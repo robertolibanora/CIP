@@ -1,0 +1,28 @@
+[Unit]
+Description=CIP Immobiliare Flask App
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=exec
+User=cip_user
+Group=cip_user
+WorkingDirectory=/opt/cip_immobiliare
+Environment=PATH=/opt/cip_immobiliare/.venv/bin
+Environment=DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cip
+Environment=SECRET_KEY=your-secret-key-here
+Environment=FLASK_DEBUG=0
+ExecStart=/opt/cip_immobiliare/.venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 4 --worker-class sync wsgi:app
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+
+# Sicurezza
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/cip_immobiliare/uploads
+
+[Install]
+WantedBy=multi-user.target
