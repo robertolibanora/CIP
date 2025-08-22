@@ -1,0 +1,363 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Gestione Utenti - Admin CIP Immobiliare{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-4">
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Admin</span>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Utenti</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Gestione Utenti
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Gestisci tutti gli utenti del sistema CIP Immobiliare
+        </p>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn-secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Dashboard
+        </a>
+        <button onclick="exportUsers()" class="btn-accent">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Esporta
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filtri e Ricerca -->
+<div class="card mb-6">
+    <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cerca Utenti</label>
+            <input type="text" id="search" name="search" value="{{ search }}" 
+                   placeholder="Username, email, nome, cognome..."
+                   class="input-field w-full">
+        </div>
+        <div class="sm:w-48">
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Stato</label>
+            <select id="status" name="status" class="input-field w-full">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Tutti gli stati</option>
+                <option value="active" {% if status == 'active' %}selected{% endif %}>Attivi</option>
+                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inattivi</option>
+                <option value="admin" {% if status == 'admin' %}selected{% endif %}>Amministratori</option>
+            </select>
+        </div>
+        <div class="sm:w-32">
+            <label for="per_page" class="block text-sm font-medium text-gray-700 mb-2">Per Pagina</label>
+            <select id="per_page" name="per_page" class="input-field w-full">
+                <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20</option>
+                <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button onclick="applyFilters()" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Filtra
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiche Utenti -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="card bg-blue-50 border-blue-200">
+        <div class="flex items-center">
+            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-blue-800">Totale Utenti</p>
+                <p class="text-lg font-bold text-blue-900">{{ pagination.total }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-green-50 border-green-200">
+        <div class="flex items-center">
+            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-green-800">Utenti Attivi</p>
+                <p class="text-lg font-bold text-green-900">{{ users|selectattr('is_active', 'equalto', true)|list|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-yellow-50 border-yellow-200">
+        <div class="flex items-center">
+            <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-yellow-800">Investitori</p>
+                <p class="text-lg font-bold text-yellow-900">{{ users|selectattr('investments_count', 'gt', 0)|list|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-purple-50 border-purple-200">
+        <div class="flex items-center">
+            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-purple-800">Referral Attivi</p>
+                <p class="text-lg font-bold text-purple-900">{{ users|selectattr('referrals_count', 'gt', 0)|list|length }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabella Utenti -->
+<div class="card">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Utente
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Portfolio
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Investimenti
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Referral
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stato
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Registrazione
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Azioni
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for user in users %}
+                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-cip-primary rounded-full flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ user.first_name[0].upper() }}{{ user.last_name[0].upper() }}</span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ user.first_name }} {{ user.last_name }}</div>
+                                <div class="text-sm text-gray-500">@{{ user.username }}</div>
+                                <div class="text-sm text-gray-400">{{ user.email }}</div>
+                                {% if user.is_admin %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    Admin
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <div class="font-medium">€{{ "{:,.2f}".format(user.balance|float) if user.balance else '0.00' }}</div>
+                            <div class="text-gray-500">Saldo</div>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <div>Investito: €{{ "{:,.2f}".format(user.total_invested|float) if user.total_invested else '0.00' }}</div>
+                            <div>Guadagnato: €{{ "{:,.2f}".format(user.total_earned|float) if user.total_earned else '0.00' }}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <div class="font-medium">{{ user.investments_count }}</div>
+                            <div class="text-gray-500">Investimenti attivi</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <div class="font-medium">{{ user.referrals_count }}</div>
+                            <div class="text-gray-500">Utenti invitati</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if user.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                                Attivo
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <span class="w-2 h-2 bg-red-400 rounded-full mr-1"></span>
+                                Inattivo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ user.created_at.strftime('%d/%m/%Y') }}
+                        <div class="text-gray-500">{{ user.created_at.strftime('%H:%M') }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <a href="{{ url_for('admin.admin_user_detail', user_id=user.id) }}" 
+                               class="text-cip-primary hover:text-blue-700">
+                                Dettagli
+                            </a>
+                            <button onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|lower }})" 
+                                    class="{% if user.is_active %}text-red-600 hover:text-red-700{% else %}text-green-600 hover:text-green-700{% endif %}">
+                                {% if user.is_active %}Disattiva{% else %}Attiva{% endif %}
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginazione -->
+    {% if pagination.pages > 1 %}
+    <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+        <div class="text-sm text-gray-700">
+            Mostrando <span class="font-medium">{{ (pagination.page - 1) * pagination.per_page + 1 }}</span> a 
+            <span class="font-medium">{{ min(pagination.page * pagination.per_page, pagination.total) }}</span> di 
+            <span class="font-medium">{{ pagination.total }}</span> risultati
+        </div>
+        <div class="flex space-x-2">
+            {% if pagination.page > 1 %}
+            <a href="?page={{ pagination.page - 1 }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
+               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Precedente
+            </a>
+            {% endif %}
+            
+            {% for page_num in range(1, pagination.pages + 1) %}
+                {% if page_num == pagination.page %}
+                <span class="px-3 py-2 text-sm font-medium text-white bg-cip-primary border border-transparent rounded-md">
+                    {{ page_num }}
+                </span>
+                {% else %}
+                <a href="?page={{ page_num }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
+                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    {{ page_num }}
+                </a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.page < pagination.pages %}
+            <a href="?page={{ pagination.page + 1 }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
+               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Successivo
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function applyFilters() {
+    const search = document.getElementById('search').value;
+    const status = document.getElementById('status').value;
+    const perPage = document.getElementById('per_page').value;
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status !== 'all') params.append('status', status);
+    if (perPage !== '20') params.append('per_page', perPage);
+    
+    const queryString = params.toString();
+    const url = queryString ? `?${queryString}` : '';
+    
+    window.location.href = `{{ url_for('admin.admin_users_list') }}${url}`;
+}
+
+function toggleUserStatus(userId, currentStatus) {
+    const action = currentStatus ? 'disattivare' : 'attivare';
+    if (confirm(`Sei sicuro di voler ${action} questo utente?`)) {
+        fetch(`/admin/users/${userId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Errore: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            alert('Errore nella richiesta');
+        });
+    }
+}
+
+function exportUsers() {
+    const search = document.getElementById('search').value;
+    const status = document.getElementById('status').value;
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (status !== 'all') params.append('status', status);
+    params.append('export', 'csv');
+    
+    window.open(`{{ url_for('admin.admin_users_list') }}?${params.toString()}`, '_blank');
+}
+
+// Applica filtri con Enter nella ricerca
+document.getElementById('search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        applyFilters();
+    }
+});
+
+// Applica filtri quando cambiano i select
+document.getElementById('status').addEventListener('change', applyFilters);
+document.getElementById('per_page').addEventListener('change', applyFilters);
+</script>
+{% endblock %}

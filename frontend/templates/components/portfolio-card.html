@@ -1,0 +1,33 @@
+<div class="card bg-gradient-to-r from-cip-primary to-blue-600 text-white">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-medium text-blue-100">Saldo Portafoglio</h3>
+            <p class="text-3xl font-bold mt-2">€{{ "%.2f"|format(portfolio_balance|float) }}</p>
+            <p class="text-blue-100 text-sm mt-1">
+                {% if portfolio_change > 0 %}
+                    <span class="text-green-300">↗ +{{ "%.2f"|format(portfolio_change|float) }}%</span>
+                {% elif portfolio_change < 0 %}
+                    <span class="text-red-300">↘ {{ "%.2f"|format(portfolio_change|float) }}%</span>
+                {% else %}
+                    <span class="text-blue-100">→ 0.00%</span>
+                {% endif %}
+                ultimi 30 giorni
+            </p>
+        </div>
+        <div class="text-blue-100">
+            <svg class="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+        </div>
+    </div>
+    
+    <!-- Azioni rapide -->
+    <div class="flex space-x-3 mt-6">
+        <button class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
+            Ricarica
+        </button>
+        <button class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
+            Preleva
+        </button>
+    </div>
+</div>

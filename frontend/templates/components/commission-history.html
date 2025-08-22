@@ -1,0 +1,290 @@
+<div class="card">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-800">Storico Commissioni Referral</h3>
+        <div class="flex items-center space-x-3">
+            <select id="periodFilter" class="input-field text-sm" onchange="filterCommissions()">
+                <option value="all">Tutti i periodi</option>
+                <option value="this_month">Questo mese</option>
+                <option value="last_month">Mese scorso</option>
+                <option value="this_year">Questo anno</option>
+                <option value="last_year">Anno scorso</option>
+            </select>
+            <button onclick="exportCommissions()" class="btn-secondary text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Esporta
+            </button>
+        </div>
+    </div>
+
+    <!-- Riepilogo Commissioni -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-green-800">Totali Guadagnate</p>
+                    <p class="text-lg font-bold text-green-900">€{{ "%.2f"|format(total_earned|float) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-blue-800">Questo Mese</p>
+                    <p class="text-lg font-bold text-blue-900">€{{ "%.2f"|format(this_month_earned|float) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-yellow-800">In Attesa</p>
+                    <p class="text-lg font-bold text-yellow-900">€{{ "%.2f"|format(pending_earned|float) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-purple-800">Media Mensile</p>
+                    <p class="text-lg font-bold text-purple-900">€{{ "%.2f"|format(monthly_average|float) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabella Commissioni -->
+    {% if commission_history %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Data
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Utente Referral
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Progetto
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Investimento
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Commissione (1%)
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stato
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Azioni
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for commission in commission_history %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-200" data-period="{{ commission.period }}" data-status="{{ commission.status }}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ commission.date.strftime('%d/%m/%Y') }}</div>
+                            <div class="text-xs text-gray-500">{{ commission.date.strftime('%H:%M') }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-cip-primary rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold text-xs">{{ commission.user.first_name[0].upper() }}</span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">{{ commission.user.first_name }} {{ commission.user.last_name }}</div>
+                                    <div class="text-xs text-gray-500">@{{ commission.user.username }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ commission.project.name }}</div>
+                            <div class="text-xs text-gray-500">{{ commission.project.type|title }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">€{{ "{:,.2f}".format(commission.investment_amount|float) }}</div>
+                            <div class="text-xs text-gray-500">{{ commission.investment_date.strftime('%d/%m/%Y') }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-green-600">€{{ "{:,.2f}".format(commission.amount|float) }}</div>
+                            <div class="text-xs text-gray-500">1% di €{{ "{:,.2f}".format(commission.investment_amount|float) }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if commission.status == 'paid' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                                    Pagata
+                                </span>
+                            {% elif commission.status == 'pending' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <span class="w-2 h-2 bg-yellow-400 rounded-full mr-1"></span>
+                                    In Attesa
+                                </span>
+                            {% elif commission.status == 'processing' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span class="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
+                                    In Elaborazione
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <span class="w-2 h-2 bg-gray-400 rounded-full mr-1"></span>
+                                    {{ commission.status|title }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <button onclick="viewCommissionDetails({{ commission.id }})" 
+                                        class="text-cip-primary hover:text-blue-700">
+                                    Dettagli
+                                </button>
+                                {% if commission.status == 'pending' %}
+                                <button onclick="requestPayout({{ commission.id }})" 
+                                        class="text-green-600 hover:text-green-700">
+                                    Richiedi Pagamento
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginazione -->
+        {% if commission_history|length > 10 %}
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-sm text-gray-700">
+                Mostrando <span class="font-medium">1</span> a <span class="font-medium">10</span> di <span class="font-medium">{{ commission_history|length }}</span> risultati
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Precedente
+                </button>
+                <button class="px-3 py-2 text-sm font-medium text-white bg-cip-primary border border-transparent rounded-md">
+                    1
+                </button>
+                <button class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Successivo
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-12">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna commissione ancora guadagnata</h3>
+            <p class="text-gray-500 mb-6">Inizia a condividere il tuo link referral per guadagnare commissioni del 1%!</p>
+            <a href="{{ url_for('user.referral') }}" class="btn-accent">
+                Vai alla Dashboard Referral
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Filtra commissioni per periodo
+function filterCommissions() {
+    const period = document.getElementById('periodFilter').value;
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const rowPeriod = row.dataset.period;
+        const rowStatus = row.dataset.status;
+        
+        if (period === 'all' || rowPeriod === period) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Esporta commissioni
+function exportCommissions() {
+    const period = document.getElementById('periodFilter').value;
+    const filename = `commissioni_referral_${period}_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Implementa logica di esportazione CSV
+    console.log('Esportazione commissioni per periodo:', period);
+    
+    // Simula download
+    const link = document.createElement('a');
+    link.href = 'data:text/csv;charset=utf-8,Commissioni Referral';
+    link.download = filename;
+    link.click();
+}
+
+// Visualizza dettagli commissione
+function viewCommissionDetails(commissionId) {
+    // Implementa modal o redirect per dettagli
+    console.log('Visualizza dettagli commissione:', commissionId);
+    window.location.href = `/referral/commission/${commissionId}`;
+}
+
+// Richiedi pagamento
+function requestPayout(commissionId) {
+    if (confirm('Sei sicuro di voler richiedere il pagamento per questa commissione?')) {
+        // Implementa richiesta pagamento
+        console.log('Richiesta pagamento per commissione:', commissionId);
+        
+        // Simula richiesta
+        fetch(`/referral/commission/${commissionId}/payout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Richiesta di pagamento inviata con successo!');
+                location.reload();
+            } else {
+                alert('Errore nella richiesta di pagamento: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            alert('Errore nella richiesta di pagamento');
+        });
+    }
+}
+
+// Inizializza filtri
+document.addEventListener('DOMContentLoaded', function() {
+    // Imposta filtro predefinito
+    document.getElementById('periodFilter').value = 'this_month';
+    filterCommissions();
+});
+</script>

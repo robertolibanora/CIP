@@ -1,0 +1,230 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Profilo - CIP Immobiliare{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-4">
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Dashboard</span>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Profilo</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Profilo Utente
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Gestisci le tue informazioni personali e preferenze
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Informazioni Profilo -->
+    <div class="lg:col-span-2">
+        <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6">Informazioni Personali</h3>
+            
+            <form method="POST" action="{{ url_for('auth.profile') }}" class="space-y-6">
+                {{ form.hidden_tag() }}
+                
+                <!-- Nome e Cognome -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700">
+                            Nome
+                        </label>
+                        <div class="mt-1">
+                            {{ form.first_name(class="input-field", placeholder="Nome") }}
+                            {% if form.first_name.errors %}
+                                {% for error in form.first_name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700">
+                            Cognome
+                        </label>
+                        <div class="mt-1">
+                            {{ form.last_name(class="input-field", placeholder="Cognome") }}
+                            {% if form.last_name.errors %}
+                                {% for error in form.last_name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Username e Email -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">
+                            Username
+                        </label>
+                        <div class="mt-1">
+                            {{ form.username(class="input-field bg-gray-50", readonly=true) }}
+                            <p class="mt-1 text-xs text-gray-500">Username non modificabile</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">
+                            Email
+                        </label>
+                        <div class="mt-1">
+                            {{ form.email(class="input-field", placeholder="La tua email") }}
+                            {% if form.email.errors %}
+                                {% for error in form.email.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Telefono e Data di Nascita -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">
+                            Telefono
+                        </label>
+                        <div class="mt-1">
+                            {{ form.phone(class="input-field", placeholder="+39 123 456 7890") }}
+                            {% if form.phone.errors %}
+                                {% for error in form.phone.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="birth_date" class="block text-sm font-medium text-gray-700">
+                            Data di Nascita
+                        </label>
+                        <div class="mt-1">
+                            {{ form.birth_date(class="input-field", type="date") }}
+                            {% if form.birth_date.errors %}
+                                {% for error in form.birth_date.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Indirizzo -->
+                <div>
+                    <label for="address" class="block text-sm font-medium text-gray-700">
+                        Indirizzo
+                    </label>
+                    <div class="mt-1">
+                        {{ form.address(class="input-field", placeholder="Via, numero, città, CAP") }}
+                        {% if form.address.errors %}
+                            {% for error in form.address.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Messaggi di errore generali -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="rounded-md p-4 {% if category == 'error' %}bg-red-50 border border-red-200{% else %}bg-green-50 border border-green-200{% endif %}">
+                                <p class="text-sm {% if category == 'error' %}text-red-800{% else %}text-green-800{% endif %}">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Submit Button -->
+                <div class="flex justify-end">
+                    <button type="submit" class="btn-primary">
+                        Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar Destra -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Card Profilo -->
+        <div class="card text-center">
+            <div class="w-24 h-24 bg-cip-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-white text-2xl font-bold">{{ current_user.first_name[0].upper() }}{{ current_user.last_name[0].upper() }}</span>
+            </div>
+            <h4 class="text-lg font-semibold text-gray-800">{{ current_user.first_name }} {{ current_user.last_name }}</h4>
+            <p class="text-gray-500">@{{ current_user.username }}</p>
+            <p class="text-sm text-gray-400 mt-1">Membro dal {{ current_user.created_at.strftime('%d/%m/%Y') }}</p>
+        </div>
+
+        <!-- Cambio Password -->
+        <div class="card">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Sicurezza</h4>
+            <a href="{{ url_for('auth.change_password') }}" class="btn-secondary w-full">
+                Cambia Password
+            </a>
+        </div>
+
+        <!-- Preferenze -->
+        <div class="card">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Preferenze</h4>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Notifiche Email</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cip-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cip-primary"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Notifiche SMS</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cip-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cip-primary"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni -->
+        <div class="card">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Azioni</h4>
+            <div class="space-y-3">
+                <a href="{{ url_for('auth.export_data') }}" class="btn-secondary w-full">
+                    Esporta Dati
+                </a>
+                <button class="w-full px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors duration-200">
+                    Elimina Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

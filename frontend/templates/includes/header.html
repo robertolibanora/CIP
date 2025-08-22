@@ -1,0 +1,36 @@
+<header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo -->
+            <div class="flex items-center">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="CIP Immobiliare" class="h-8 w-auto">
+                <span class="ml-3 text-xl font-bold text-cip-primary">CIP Immobiliare</span>
+            </div>
+            
+            <!-- Menu principale -->
+            <nav class="hidden md:flex space-x-8">
+                <a href="{{ url_for('user.dashboard') }}" class="text-gray-700 hover:text-cip-primary px-3 py-2 text-sm font-medium">Dashboard</a>
+                <a href="{{ url_for('user.projects') }}" class="text-gray-700 hover:text-cip-primary px-3 py-2 text-sm font-medium">Progetti</a>
+                <a href="{{ url_for('user.referral') }}" class="text-gray-700 hover:text-cip-primary px-3 py-2 text-sm font-medium">Referral</a>
+            </nav>
+            
+            <!-- Menu utente -->
+            <div class="flex items-center space-x-4">
+                {% if session.user_id %}
+                    <div class="relative">
+                        <button class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cip-primary">
+                            <span class="sr-only">Apri menu utente</span>
+                            <div class="h-8 w-8 rounded-full bg-cip-primary flex items-center justify-center">
+                                <span class="text-white font-medium">U</span>
+                            </div>
+                        </button>
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}" class="text-gray-700 hover:text-cip-primary text-sm font-medium">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn-primary">Accedi</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn-secondary">Registrati</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</header>

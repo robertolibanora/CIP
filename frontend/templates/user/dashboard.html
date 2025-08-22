@@ -1,0 +1,147 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard - CIP Immobiliare{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-4">
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Dashboard</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Benvenuto, {{ session.get('full_name', 'Utente') }}! 👋
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Gestisci i tuoi investimenti immobiliari e monitora il tuo portfolio
+        </p>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+        <a href="{{ url_for('user.projects') }}" class="btn-primary">
+            Scopri Nuovi Progetti
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Grid principale delle card -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Card Portfolio (grande) -->
+    <div class="lg:col-span-2">
+        {% include 'components/portfolio-card.html' %}
+    </div>
+    
+    <!-- Card Referral -->
+    <div class="lg:col-span-1">
+        {% include 'components/referral-card.html' %}
+    </div>
+</div>
+
+<!-- Seconda riga -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Card Investimenti Attivi -->
+    <div>
+        {% include 'components/investments-card.html' %}
+    </div>
+    
+    <!-- Card Performance Rapida -->
+    <div class="card">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Rapida</h3>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-gray-600">ROI Medio</span>
+                <span class="font-semibold text-green-600">+{{ "%.1f"|format(avg_roi|float) }}%</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-600">Progetti Attivi</span>
+                <span class="font-semibold text-cip-primary">{{ active_projects_count }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-600">Ultimo Investimento</span>
+                <span class="font-semibold text-gray-800">
+                    {% if last_investment_date %}
+                        {{ last_investment_date.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        Nessuno
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Azioni rapide -->
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <div class="grid grid-cols-2 gap-3">
+                <a href="{{ url_for('user.projects') }}" class="btn-secondary text-center">
+                    Investi Ora
+                </a>
+                <a href="{{ url_for('user.portfolio') }}" class="btn-accent text-center">
+                    Vedi Portfolio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terza riga - Attività recenti -->
+<div class="card">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Attività Recenti</h3>
+    
+    {% if recent_activities %}
+        <div class="space-y-3">
+            {% for activity in recent_activities[:5] %}
+            <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors duration-200">
+                <div class="w-8 h-8 rounded-full bg-cip-primary flex items-center justify-center">
+                    {% if activity.type == 'investment' %}
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                    {% elif activity.type == 'referral' %}
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l1.102-1.101a4 4 0 00-5.656-5.656l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l1.102-1.101a4 4 0 00-5.656-5.656l-4 4a4 4 0 105.656 5.656l1.102-1.101"></path>
+                        </svg>
+                    {% else %}
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-800">{{ activity.description }}</p>
+                    <p class="text-xs text-gray-500">{{ activity.date.strftime('%d/%m/%Y %H:%M') }}</p>
+                </div>
+                {% if activity.amount %}
+                <span class="text-sm font-semibold text-gray-800">€{{ "%.2f"|format(activity.amount|float) }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if recent_activities|length > 5 %}
+        <div class="text-center pt-4">
+            <a href="{{ url_for('user.portfolio') }}" class="text-cip-primary hover:text-blue-700 text-sm font-medium">
+                Vedi tutte le attività
+            </a>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-8">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            <p class="text-gray-500">Nessuna attività recente</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

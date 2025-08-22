@@ -1,0 +1,253 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ project.name }} - CIP Immobiliare{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-4">
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Dashboard</span>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <a href="{{ url_for('user.projects') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 md:ml-2">Progetti</a>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ project.name }}</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Contenuto Principale -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Immagine Principale -->
+        <div class="relative overflow-hidden rounded-lg">
+            {% if project.image_url %}
+                <img src="{{ project.image_url }}" alt="{{ project.name }}" class="w-full h-96 object-cover">
+            {% else %}
+                <div class="w-full h-96 bg-gradient-to-br from-cip-primary to-blue-600 flex items-center justify-center">
+                    <svg class="w-24 h-24 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+            {% endif %}
+            
+            <!-- Badge Status -->
+            <div class="absolute top-4 left-4">
+                {% if project.status == 'active' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                        Attivo
+                    </span>
+                {% elif project.status == 'funding' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                        Raccolta Fondi
+                    </span>
+                {% elif project.status == 'completed' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                        Completato
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informazioni Progetto -->
+        <div class="card">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ project.name }}</h1>
+            <p class="text-gray-600 text-lg mb-6">{{ project.description }}</p>
+            
+            <!-- Dettagli Chiave -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-cip-primary">{{ "%.1f"|format(project.roi|float) }}%</p>
+                    <p class="text-sm text-gray-500">ROI Atteso</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-green-600">{{ project.duration }}</p>
+                    <p class="text-sm text-gray-500">Mesi</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-cip-accent">{{ project.type|title }}</p>
+                    <p class="text-sm text-gray-500">Tipo</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-700">{{ project.location }}</p>
+                    <p class="text-sm text-gray-500">Località</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Galleria Immagini -->
+        {% if project.gallery %}
+        <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Galleria Immagini</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {% for image in project.gallery %}
+                <div class="aspect-w-1 aspect-h-1">
+                    <img src="{{ image.url }}" alt="{{ image.caption }}" class="w-full h-32 object-cover rounded-lg">
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Documenti -->
+        {% if project.documents %}
+        <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Documenti</h3>
+            <div class="space-y-3">
+                {% for doc in project.documents %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                        </svg>
+                        <div>
+                            <p class="font-medium text-gray-800">{{ doc.name }}</p>
+                            <p class="text-sm text-gray-500">{{ doc.size }}</p>
+                        </div>
+                    </div>
+                    <a href="{{ doc.url }}" class="btn-secondary text-sm" download>
+                        Scarica
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar Destra -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Card Investimento -->
+        <div class="card bg-gradient-to-br from-cip-primary to-blue-600 text-white">
+            <h3 class="text-xl font-semibold mb-4">Investi Ora</h3>
+            
+            <!-- Statistiche Investimento -->
+            <div class="space-y-4 mb-6">
+                <div class="text-center">
+                    <p class="text-3xl font-bold">€{{ "{:,.0f}".format(project.total_amount|float) }}</p>
+                    <p class="text-blue-100">Valore Totale</p>
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-2xl font-bold">{{ "%.1f"|format(project.funding_progress|float) }}%</p>
+                    <p class="text-blue-100">Completato</p>
+                </div>
+                
+                <!-- Barra Progresso -->
+                <div class="w-full bg-blue-500 bg-opacity-30 rounded-full h-3">
+                    <div class="bg-white h-3 rounded-full transition-all duration-300" 
+                         style="width: {{ project.funding_progress }}%"></div>
+                </div>
+                
+                <div class="flex justify-between text-sm text-blue-100">
+                    <span>Raccolto: €{{ "{:,.0f}".format(project.funded_amount|float) }}</span>
+                    <span>Rimanente: €{{ "{:,.0f}".format((project.total_amount - project.funded_amount)|float) }}</span>
+                </div>
+            </div>
+            
+            <!-- Form Investimento Rapido -->
+            {% if project.status == 'funding' %}
+            <form method="POST" action="{{ url_for('user.invest', project_id=project.id) }}" class="space-y-4">
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-blue-100 mb-2">
+                        Importo Investimento
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-100">€</span>
+                        <input type="number" name="amount" id="amount" min="{{ project.min_investment }}" 
+                               step="100" required
+                               class="w-full pl-8 pr-3 py-2 bg-white bg-opacity-20 border border-blue-300 rounded-lg text-white placeholder-blue-100 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                               placeholder="Min €{{ "{:,.0f}".format(project.min_investment|float) }}">
+                    </div>
+                    <p class="text-xs text-blue-200 mt-1">
+                        Minimo: €{{ "{:,.0f}".format(project.min_investment|float) }}
+                    </p>
+                </div>
+                
+                <button type="submit" class="w-full bg-white text-cip-primary font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                    Investi Ora
+                </button>
+            </form>
+            {% else %}
+            <div class="text-center py-8">
+                <p class="text-blue-100 mb-4">
+                    {% if project.status == 'completed' %}
+                        Progetto completato
+                    {% else %}
+                        Non disponibile per investimenti
+                    {% endif %}
+                </p>
+                <button disabled class="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed">
+                    Non Disponibile
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Dettagli Investimento -->
+        <div class="card">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Dettagli Investimento</h4>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Investimento Minimo:</span>
+                    <span class="font-medium">€{{ "{:,.0f}".format(project.min_investment|float) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Durata:</span>
+                    <span class="font-medium">{{ project.duration }} mesi</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">ROI Atteso:</span>
+                    <span class="font-medium text-green-600">{{ "%.1f"|format(project.roi|float) }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Tipo:</span>
+                    <span class="font-medium">{{ project.type|title }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Data Inizio:</span>
+                    <span class="font-medium">{{ project.start_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Data Fine:</span>
+                    <span class="font-medium">{{ project.end_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Condividi -->
+        <div class="card">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Condividi Progetto</h4>
+            <div class="flex space-x-3">
+                <button class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    Facebook
+                </button>
+                <button class="flex-1 bg-blue-400 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors duration-200">
+                    Twitter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

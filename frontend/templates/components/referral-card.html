@@ -1,0 +1,56 @@
+<div class="card bg-gradient-to-r from-cip-accent to-yellow-500 text-white">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-medium text-yellow-100">Referral Earnings</h3>
+            <p class="text-3xl font-bold mt-2">€{{ "%.2f"|format(referral_earnings|float) }}</p>
+            <p class="text-yellow-100 text-sm mt-1">Commissione 1% su investimenti</p>
+        </div>
+        <div class="text-yellow-100">
+            <svg class="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l1.102-1.101a4 4 0 00-5.656-5.656l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-.758l1.102-1.101a4 4 0 00-5.656-5.656l-4 4a4 4 0 105.656 5.656l1.102-1.101"></path>
+            </svg>
+        </div>
+    </div>
+    
+    <!-- Statistiche referral -->
+    <div class="grid grid-cols-2 gap-4 mt-6">
+        <div class="text-center">
+            <p class="text-2xl font-bold">{{ referred_users|length }}</p>
+            <p class="text-yellow-100 text-sm">Utenti Invitati</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold">{{ "%.2f"|format(total_referral_investments|float) }}</p>
+            <p class="text-yellow-100 text-sm">€ Totali Investiti</p>
+        </div>
+    </div>
+    
+    <!-- Link referral -->
+    <div class="mt-6 p-3 bg-white bg-opacity-20 rounded-lg">
+        <p class="text-yellow-100 text-sm mb-2">Il tuo link referral:</p>
+        <div class="flex items-center space-x-2">
+            <input type="text" value="{{ referral_link }}" readonly class="flex-1 bg-white bg-opacity-20 text-white placeholder-white rounded px-3 py-2 text-sm">
+            <button onclick="copyReferralLink()" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded text-sm font-medium transition-all duration-200">
+                Copia
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyReferralLink() {
+    const linkInput = document.querySelector('input[readonly]');
+    linkInput.select();
+    document.execCommand('copy');
+    
+    // Feedback visivo
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Copiato!';
+    button.classList.add('bg-green-500');
+    
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('bg-green-500');
+    }, 2000);
+}
+</script>

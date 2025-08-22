@@ -1,0 +1,363 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Crea Nuovo Progetto - Admin CIP Immobiliare{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="flex items-center space-x-4">
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Admin</span>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Progetti</span>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Crea Nuovo</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            Crea Nuovo Progetto
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Aggiungi un nuovo progetto immobiliare al catalogo CIP
+        </p>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+        <a href="{{ url_for('admin.admin_projects_list') }}" class="btn-secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Lista Progetti
+        </a>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn-primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <form id="createProjectForm" class="space-y-8">
+        <!-- Informazioni Base -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Informazioni Base</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nome Progetto *
+                    </label>
+                    <input type="text" id="name" name="name" required
+                           class="input-field w-full" placeholder="Es: Residenza Marina">
+                </div>
+                
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo Progetto *
+                    </label>
+                    <select id="type" name="type" required class="input-field w-full">
+                        <option value="">Seleziona tipo</option>
+                        <option value="residential">Residenziale</option>
+                        <option value="commercial">Commerciale</option>
+                        <option value="industrial">Industriale</option>
+                        <option value="mixed">Misto</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                        Località *
+                    </label>
+                    <input type="text" id="location" name="location" required
+                           class="input-field w-full" placeholder="Es: Milano, Via Roma 123">
+                </div>
+                
+                <div>
+                    <label for="roi" class="block text-sm font-medium text-gray-700 mb-2">
+                        ROI Atteso (%) *
+                    </label>
+                    <input type="number" id="roi" name="roi" required min="0" step="0.1"
+                           class="input-field w-full" placeholder="Es: 12.5">
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Descrizione Progetto *
+                </label>
+                <textarea id="description" name="description" rows="4" required
+                          class="input-field w-full" placeholder="Descrivi il progetto in dettaglio..."></textarea>
+            </div>
+        </div>
+
+        <!-- Parametri Finanziari -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Parametri Finanziari</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="total_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                        Valore Totale (€) *
+                    </label>
+                    <input type="number" id="total_amount" name="total_amount" required min="1000" step="1000
+                           class="input-field w-full" placeholder="Es: 500000">
+                    <p class="text-xs text-gray-500 mt-1">Importo totale del progetto</p>
+                </div>
+                
+                <div>
+                    <label for="min_investment" class="block text-sm font-medium text-gray-700 mb-2">
+                        Investimento Minimo (€) *
+                    </label>
+                    <input type="number" id="min_investment" name="min_investment" required min="100" step="100
+                           class="input-field w-full" placeholder="Es: 5000">
+                    <p class="text-xs text-gray-500 mt-1">Importo minimo per investire</p>
+                </div>
+                
+                <div>
+                    <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+                        Durata (mesi) *
+                    </label>
+                    <input type="number" id="duration" name="duration" required min="1" max="120
+                           class="input-field w-full" placeholder="Es: 24">
+                    <p class="text-xs text-gray-500 mt-1">Durata dell'investimento</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date e Timeline -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Timeline Progetto</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                        Data Inizio *
+                    </label>
+                    <input type="date" id="start_date" name="start_date" required
+                           class="input-field w-full">
+                    <p class="text-xs text-gray-500 mt-1">Data di inizio del progetto</p>
+                </div>
+                
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
+                        Data Fine *
+                    </label>
+                    <input type="date" id="end_date" name="end_date" required
+                           class="input-field w-full">
+                    <p class="text-xs text-gray-500 mt-1">Data di completamento prevista</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media e Documenti -->
+        <div class="card">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Media e Documenti</h3>
+            <div class="space-y-6">
+                <div>
+                    <label for="image_url" class="block text-sm font-medium text-gray-700 mb-2">
+                        URL Immagine Principale
+                    </label>
+                    <input type="url" id="image_url" name="image_url"
+                           class="input-field w-full" placeholder="https://example.com/image.jpg">
+                    <p class="text-xs text-gray-500 mt-1">URL dell'immagine principale del progetto</p>
+                </div>
+                
+                <div>
+                    <label for="gallery" class="block text-sm font-medium text-gray-700 mb-2">
+                        Galleria Immagini (URLs separati da virgola)
+                    </label>
+                    <textarea id="gallery" name="gallery" rows="3"
+                              class="input-field w-full" placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">URLs delle immagini della galleria</p>
+                </div>
+                
+                <div>
+                    <label for="documents" class="block text-sm font-medium text-gray-700 mb-2">
+                        Documenti (URLs separati da virgola)
+                    </label>
+                    <textarea id="documents" name="documents" rows="3"
+                              class="input-field w-full" placeholder="https://example.com/doc1.pdf, https://example.com/doc2.pdf"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">URLs dei documenti del progetto</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anteprima ROI -->
+        <div class="card bg-blue-50 border-blue-200">
+            <h3 class="text-lg font-medium text-blue-900 mb-4">Anteprima ROI</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-900" id="roiPreview">-</div>
+                    <div class="text-sm text-blue-700">ROI Atteso</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-900" id="durationPreview">-</div>
+                    <div class="text-sm text-blue-700">Durata (mesi)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-900" id="minInvestmentPreview">-</div>
+                    <div class="text-sm text-blue-700">Investimento Minimo</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni -->
+        <div class="flex justify-end space-x-4">
+            <a href="{{ url_for('admin.admin_projects_list') }}" class="btn-secondary">
+                Annulla
+            </a>
+            <button type="submit" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Crea Progetto
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Aggiorna anteprima ROI in tempo reale
+function updateROIPreview() {
+    const roi = document.getElementById('roi').value;
+    const duration = document.getElementById('duration').value;
+    const minInvestment = document.getElementById('min_investment').value;
+    
+    if (roi) document.getElementById('roiPreview').textContent = roi + '%';
+    if (duration) document.getElementById('durationPreview').textContent = duration + ' mesi';
+    if (minInvestment) document.getElementById('minInvestmentPreview').textContent = '€' + parseInt(minInvestment).toLocaleString();
+}
+
+// Event listeners per aggiornamento preview
+document.getElementById('roi').addEventListener('input', updateROIPreview);
+document.getElementById('duration').addEventListener('input', updateROIPreview);
+document.getElementById('min_investment').addEventListener('input', updateROIPreview);
+
+// Gestione form submit
+document.getElementById('createProjectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validazione campi obbligatori
+    const requiredFields = ['name', 'type', 'location', 'roi', 'description', 'total_amount', 'min_investment', 'duration', 'start_date', 'end_date'];
+    const missingFields = [];
+    
+    requiredFields.forEach(field => {
+        const element = document.getElementById(field);
+        if (!element.value.trim()) {
+            missingFields.push(field);
+            element.classList.add('border-red-500');
+        } else {
+            element.classList.remove('border-red-500');
+        }
+    });
+    
+    if (missingFields.length > 0) {
+        alert('Compila tutti i campi obbligatori: ' + missingFields.join(', '));
+        return;
+    }
+    
+    // Validazione date
+    const startDate = new Date(document.getElementById('start_date').value);
+    const endDate = new Date(document.getElementById('end_date').value);
+    const today = new Date();
+    
+    if (startDate < today) {
+        alert('La data di inizio non può essere nel passato');
+        return;
+    }
+    
+    if (endDate <= startDate) {
+        alert('La data di fine deve essere successiva alla data di inizio');
+        return;
+    }
+    
+    // Validazione importi
+    const totalAmount = parseFloat(document.getElementById('total_amount').value);
+    const minInvestment = parseFloat(document.getElementById('min_investment').value);
+    
+    if (minInvestment > totalAmount) {
+        alert('L\'investimento minimo non può essere maggiore del valore totale');
+        return;
+    }
+    
+    // Prepara dati per invio
+    const formData = {
+        name: document.getElementById('name').value,
+        type: document.getElementById('type').value,
+        location: document.getElementById('location').value,
+        roi: parseFloat(document.getElementById('roi').value),
+        description: document.getElementById('description').value,
+        total_amount: totalAmount,
+        min_investment: minInvestment,
+        duration: parseInt(document.getElementById('duration').value),
+        start_date: document.getElementById('start_date').value,
+        end_date: document.getElementById('end_date').value,
+        image_url: document.getElementById('image_url').value || null,
+        gallery: document.getElementById('gallery').value ? document.getElementById('gallery').value.split(',').map(url => url.trim()) : [],
+        documents: document.getElementById('documents').value ? document.getElementById('documents').value.split(',').map(url => url.trim()) : []
+    };
+    
+    // Invia richiesta
+    createProject(formData);
+});
+
+function createProject(data) {
+    // Mostra loading
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Creazione...';
+    submitBtn.disabled = true;
+    
+    fetch('/admin/projects/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Progetto creato con successo! ID: ' + result.project_id);
+            window.location.href = '{{ url_for("admin.admin_projects_list") }}';
+        } else {
+            alert('Errore nella creazione: ' + result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Errore nella richiesta di creazione progetto');
+    })
+    .finally(() => {
+        // Ripristina bottone
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+// Inizializza preview
+updateROIPreview();
+</script>
+{% endblock %}

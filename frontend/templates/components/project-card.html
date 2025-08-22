@@ -1,0 +1,129 @@
+<div class="card hover:shadow-lg transition-all duration-300 group">
+    <!-- Immagine Progetto -->
+    <div class="relative overflow-hidden rounded-t-lg">
+        {% if project.image_url %}
+            <img src="{{ project.image_url }}" alt="{{ project.name }}" 
+                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+        {% else %}
+            <div class="w-full h-48 bg-gradient-to-br from-cip-primary to-blue-600 flex items-center justify-center">
+                <svg class="w-16 h-16 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+            </div>
+        {% endif %}
+        
+        <!-- Badge Status -->
+        <div class="absolute top-3 left-3">
+            {% if project.status == 'active' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                    Attivo
+                </span>
+            {% elif project.status == 'funding' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <span class="w-2 h-2 bg-yellow-400 rounded-full mr-1"></span>
+                    Raccolta
+                </span>
+            {% elif project.status == 'completed' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span class="w-2 h-2 bg-blue-400 rounded-full mr-1"></span>
+                    Completato
+                </span>
+            {% endif %}
+        </div>
+        
+        <!-- Badge ROI -->
+        <div class="absolute top-3 right-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cip-accent text-white">
+                ROI {{ "%.1f"|format(project.roi|float) }}%
+            </span>
+        </div>
+    </div>
+    
+    <!-- Contenuto Card -->
+    <div class="p-6">
+        <!-- Titolo e Località -->
+        <div class="mb-4">
+            <h3 class="text-xl font-semibold text-gray-800 group-hover:text-cip-primary transition-colors duration-200">
+                {{ project.name }}
+            </h3>
+            <p class="text-gray-600 flex items-center mt-1">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                {{ project.location }}
+            </p>
+        </div>
+        
+        <!-- Descrizione -->
+        <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+            {{ project.description[:120] }}{% if project.description|length > 120 %}...{% endif %}
+        </p>
+        
+        <!-- Statistiche Progetto -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="text-center">
+                <p class="text-2xl font-bold text-cip-primary">€{{ "{:,.0f}".format(project.total_amount|float) }}</p>
+                <p class="text-xs text-gray-500">Valore Totale</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-green-600">{{ "%.1f"|format(project.funding_progress|float) }}%</p>
+                <p class="text-xs text-gray-500">Completato</p>
+            </div>
+        </div>
+        
+        <!-- Barra Progresso -->
+        <div class="mb-6">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Raccolto: €{{ "{:,.0f}".format(project.funded_amount|float) }}</span>
+                <span>Rimanente: €{{ "{:,.0f}".format((project.total_amount - project.funded_amount)|float) }}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-cip-primary h-2 rounded-full transition-all duration-300" 
+                     style="width: {{ project.funding_progress }}%"></div>
+            </div>
+        </div>
+        
+        <!-- Dettagli Investimento -->
+        <div class="space-y-2 mb-6 text-sm">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Investimento Minimo:</span>
+                <span class="font-medium">€{{ "{:,.0f}".format(project.min_investment|float) }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Durata:</span>
+                <span class="font-medium">{{ project.duration }} mesi</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Tipo:</span>
+                <span class="font-medium">{{ project.type|title }}</span>
+            </div>
+        </div>
+        
+        <!-- Azioni -->
+        <div class="flex space-x-3">
+            <a href="{{ url_for('user.project_detail', project_id=project.id) }}" 
+               class="flex-1 btn-primary text-center">
+                Dettagli
+            </a>
+            {% if project.status == 'funding' %}
+                <button onclick="openInvestmentModal({{ project.id }})" 
+                        class="flex-1 btn-accent">
+                    Investi Ora
+                </button>
+            {% else %}
+                <button disabled class="flex-1 bg-gray-300 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
+                    {{ 'Completato' if project.status == 'completed' else 'Non Disponibile' }}
+                </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function openInvestmentModal(projectId) {
+    // Apri modal investimento
+    window.location.href = `/projects/${projectId}/invest`;
+}
+</script>

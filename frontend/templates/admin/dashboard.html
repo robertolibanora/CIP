@@ -1,0 +1,63 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard Admin - CIP Immobiliare{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Dashboard Amministratore</h1>
+        
+        <!-- Metriche principali -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-blue-100 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-blue-800">Utenti Totali</h3>
+                <p class="text-2xl font-bold text-blue-600">{{ metrics.users_total or 0 }}</p>
+            </div>
+            <div class="bg-green-100 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-green-800">Progetti Attivi</h3>
+                <p class="text-2xl font-bold text-green-600">{{ metrics.projects_active or 0 }}</p>
+            </div>
+            <div class="bg-purple-100 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-purple-800">Investimenti Totali</h3>
+                <p class="text-2xl font-bold text-purple-600">€{{ "%.2f"|format(metrics.investments_total or 0) }}</p>
+            </div>
+            <div class="bg-orange-100 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold text-orange-800">Richieste in Attesa</h3>
+                <p class="text-2xl font-bold text-orange-600">{{ metrics.requests_pending or 0 }}</p>
+            </div>
+        </div>
+        
+        <!-- Azioni rapide -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Progetti</h3>
+                <a href="{{ url_for('admin.projects_list') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Visualizza Progetti
+                </a>
+            </div>
+            
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Utenti</h3>
+                <a href="{{ url_for('admin.users_list') }}" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Visualizza Utenti
+                </a>
+            </div>
+            
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Richieste Investimenti</h3>
+                <a href="{{ url_for('admin.requests_queue') }}" class="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Visualizza Richieste
+                </a>
+            </div>
+        </div>
+        
+        <!-- Informazioni utente -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Informazioni Sessione</h3>
+            <p><strong>User ID:</strong> {{ session.user_id }}</p>
+            <p><strong>Email:</strong> {{ session.email }}</p>
+            <p><strong>Ruolo:</strong> {{ session.role }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

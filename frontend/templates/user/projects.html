@@ -1,0 +1,87 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Progetti - CIP Immobiliare{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Progetti Disponibili</h1>
+        <p class="text-gray-600">Scopri le opportunità di investimento immobiliare</p>
+    </div>
+
+    <!-- Filtri -->
+    <div class="mb-6 flex flex-wrap gap-4">
+        <button class="px-4 py-2 bg-cip-primary text-white rounded-lg hover:bg-blue-700 transition-colors">
+            Tutti i Progetti
+        </button>
+        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+            Solo Attivi
+        </button>
+        <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+            Per Rendimento
+        </button>
+    </div>
+
+    <!-- Grid Progetti -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for project in projects %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+            <!-- Immagine progetto (placeholder) -->
+            <div class="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                <svg class="w-16 h-16 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+            </div>
+            
+            <!-- Contenuto -->
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ project.title }}</h3>
+                <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ project.description[:100] }}...</p>
+                
+                <!-- Statistiche -->
+                <div class="space-y-3 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Località:</span>
+                        <span class="font-medium">{{ project.location or 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Rendimento:</span>
+                        <span class="font-medium text-green-600">{{ project.expected_yield or 0 }}%</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Completamento:</span>
+                        <span class="font-medium">{{ project.completion_percent }}%</span>
+                    </div>
+                </div>
+                
+                <!-- Barra progresso -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div class="bg-cip-primary h-2 rounded-full" style="width: {{ project.completion_percent }}%"></div>
+                </div>
+                
+                <!-- Azioni -->
+                <div class="flex gap-2">
+                    <a href="{{ url_for('user.project_detail', project_id=project.id) }}" 
+                       class="flex-1 bg-cip-primary text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        Dettagli
+                    </a>
+                    <a href="{{ url_for('user.requests_new') }}?project_id={{ project.id }}" 
+                       class="flex-1 bg-green-600 text-white text-center py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                        Investi
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Nessun progetto disponibile</h3>
+            <p class="mt-1 text-sm text-gray-500">Al momento non ci sono progetti attivi per l'investimento.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

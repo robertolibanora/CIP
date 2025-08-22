@@ -1,0 +1,162 @@
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="investmentModal">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">Investi in {{ project.name }}</h3>
+                <button onclick="closeInvestmentModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Form Investimento -->
+            <form method="POST" action="{{ url_for('user.invest', project_id=project.id) }}" class="space-y-6">
+                <!-- Riepilogo Progetto -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center space-x-3 mb-3">
+                        {% if project.image_url %}
+                            <img src="{{ project.image_url }}" alt="{{ project.name }}" class="w-12 h-12 object-cover rounded">
+                        {% else %}
+                            <div class="w-12 h-12 bg-cip-primary rounded flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ project.name[0].upper() }}</span>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ project.name }}</h4>
+                            <p class="text-sm text-gray-500">{{ project.location }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">ROI:</span>
+                            <span class="font-medium text-green-600 ml-1">{{ "%.1f"|format(project.roi|float) }}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Durata:</span>
+                            <span class="font-medium ml-1">{{ project.duration }} mesi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Importo Investimento -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                        Importo Investimento
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                        <input type="number" name="amount" id="amount" min="{{ project.min_investment }}" 
+                               step="100" required
+                               class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cip-primary focus:border-transparent"
+                               placeholder="Inserisci importo"
+                               onchange="calculateInvestment()">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Minimo: €{{ "{:,.0f}".format(project.min_investment|float) }}
+                    </p>
+                </div>
+
+                <!-- Calcolo ROI -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h5 class="font-medium text-gray-900 mb-3">Proiezione Investimento</h5>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Importo Investito:</span>
+                            <span class="font-medium" id="investedAmount">€0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">ROI Atteso ({{ "%.1f"|format(project.roi|float) }}%):</span>
+                            <span class="font-medium text-green-600" id="expectedReturn">€0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Valore Finale:</span>
+                            <span class="font-medium text-cip-primary" id="finalValue">€0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Guadagno Netto:</span>
+                            <span class="font-medium text-green-600" id="netProfit">€0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Termini e Condizioni -->
+                <div class="flex items-start space-x-3">
+                    <input type="checkbox" name="accept_terms" id="accept_terms" required
+                           class="mt-1 h-4 w-4 text-cip-primary focus:ring-cip-primary border-gray-300 rounded">
+                    <label for="accept_terms" class="text-sm text-gray-700">
+                        Accetto i <a href="#" class="text-cip-primary hover:text-blue-700">Termini e Condizioni</a> 
+                        e confermo di aver letto la <a href="#" class="text-cip-primary hover:text-blue-700">Documentazione</a> del progetto
+                    </label>
+                </div>
+
+                <!-- Messaggi di errore -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="rounded-md p-3 {% if category == 'error' %}bg-red-50 border border-red-200{% else %}bg-green-50 border border-green-200{% endif %}">
+                                <p class="text-sm {% if category == 'error' %}text-red-800{% else %}text-green-800{% endif %}">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Azioni -->
+                <div class="flex space-x-3">
+                    <button type="button" onclick="closeInvestmentModal()" 
+                            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                        Annulla
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 btn-primary">
+                        Conferma Investimento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateInvestment() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const roi = {{ project.roi|float }};
+    const duration = {{ project.duration }};
+    
+    if (amount > 0) {
+        const expectedReturn = (amount * roi / 100) * (duration / 12);
+        const finalValue = amount + expectedReturn;
+        const netProfit = expectedReturn;
+        
+        document.getElementById('investedAmount').textContent = `€${amount.toLocaleString('it-IT')}`;
+        document.getElementById('expectedReturn').textContent = `€${expectedReturn.toLocaleString('it-IT', {maximumFractionDigits: 2})}`;
+        document.getElementById('finalValue').textContent = `€${finalValue.toLocaleString('it-IT', {maximumFractionDigits: 2})}`;
+        document.getElementById('netProfit').textContent = `€${netProfit.toLocaleString('it-IT', {maximumFractionDigits: 2})}`;
+    } else {
+        document.getElementById('investedAmount').textContent = '€0';
+        document.getElementById('expectedReturn').textContent = '€0';
+        document.getElementById('finalValue').textContent = '€0';
+        document.getElementById('netProfit').textContent = '€0';
+    }
+}
+
+function closeInvestmentModal() {
+    document.getElementById('investmentModal').style.display = 'none';
+}
+
+// Chiudi modal cliccando fuori
+document.getElementById('investmentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeInvestmentModal();
+    }
+});
+
+// Inizializza calcolo
+document.addEventListener('DOMContentLoaded', function() {
+    calculateInvestment();
+});
+</script>

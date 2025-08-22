@@ -1,0 +1,138 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ project.title }} - CIP Immobiliare{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('user.dashboard') }}" class="text-gray-700 hover:text-cip-primary">
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <a href="{{ url_for('user.projects') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 md:ml-2">
+                        Progetti
+                    </a>
+                </div>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ project.title }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Header Progetto -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Immagine e info base -->
+            <div>
+                <div class="h-64 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center mb-6">
+                    <svg class="w-24 h-24 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ project.title }}</h1>
+                <p class="text-gray-600 text-lg mb-6">{{ project.description }}</p>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="text-gray-700">{{ project.location or 'Località non specificata' }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiche e azioni -->
+            <div class="space-y-6">
+                <!-- Statistiche chiave -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-cip-primary">{{ project.expected_yield or 0 }}%</div>
+                        <div class="text-sm text-gray-600">Rendimento Atteso</div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-green-600">{{ project.investor_count or 0 }}</div>
+                        <div class="text-sm text-gray-600">Investitori</div>
+                    </div>
+                </div>
+                
+                <!-- Progresso finanziamento -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Progresso Finanziamento</span>
+                        <span class="text-sm font-medium text-gray-900">{{ project.completion_percent }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-cip-primary h-3 rounded-full" style="width: {{ project.completion_percent }}%"></div>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 mt-2">
+                        <span>€{{ "{:,.0f}".format(project.total_invested or 0) }}</span>
+                        <span>€{{ "{:,.0f}".format(project.target_amount or 0) }}</span>
+                    </div>
+                </div>
+                
+                <!-- Azioni -->
+                <div class="space-y-3">
+                    <a href="{{ url_for('user.requests_new') }}?project_id={{ project.id }}" 
+                       class="w-full bg-cip-primary text-white text-center py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                        Investi Ora
+                    </a>
+                    <button class="w-full bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                        Scarica Documenti
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dettagli tecnici -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Dettagli Tecnici</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Informazioni Progetto</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Stato:</span>
+                        <span class="font-medium">{{ project.status|title }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Data Creazione:</span>
+                        <span class="font-medium">{{ project.created_at.strftime('%d/%m/%Y') if project.created_at else 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Target Amount:</span>
+                        <span class="font-medium">€{{ "{:,.0f}".format(project.target_amount or 0) }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Rischi e Considerazioni</h3>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <p>• Investimento immobiliare comporta rischi di mercato</p>
+                    <p>• Rendimenti non garantiti</p>
+                    <p>• Valore dell'investimento può diminuire</p>
+                    <p>• Consultare un consulente finanziario</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
