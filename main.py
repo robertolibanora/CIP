@@ -37,6 +37,8 @@ app.register_blueprint(portfolio_bp, url_prefix='/portfolio')
 def index():
     return redirect(url_for("auth.login"))
 
+
+
 if __name__ == "__main__":
     app.run(
         host=os.environ.get("HOST", "0.0.0.0"),

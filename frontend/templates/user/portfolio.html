@@ -3,78 +3,214 @@
 {% block title %}Portfolio - CIP Immobiliare{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Il Mio Portfolio</h1>
-        
-        <!-- Tab di navigazione -->
-        <div class="border-b border-gray-200 mb-6">
-            <nav class="-mb-px flex space-x-8">
-                <a href="?tab=attivi" 
-                   class="py-2 px-1 border-b-2 font-medium text-sm {% if tab == 'attivi' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
-                    Investimenti Attivi
-                </a>
-                <a href="?tab=completati" 
-                   class="py-2 px-1 border-b-2 font-medium text-sm {% if tab == 'completati' %}border-blue-500 text-blue-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
-                    Investimenti Completati
-                </a>
-            </nav>
+<!-- Page Header - Mobile First -->
+<div class="m-cip-mobile">
+    <div class="card-mobile text-center">
+        <div class="w-20 h-20 bg-gradient-cip-logo rounded-full flex items-center justify-center shadow-cip-glow mx-auto mb-4">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
         </div>
+        <h1 class="text-2xl font-bold text-cip-neutral-900 mb-2">Il Mio Portfolio</h1>
+        <p class="text-cip-neutral-600 mb-4">Gestisci i tuoi investimenti</p>
         
-        <!-- Lista investimenti -->
-        {% if investments %}
-            <div class="space-y-4">
-                {% for investment in investments %}
-                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800">{{ investment.title }}</h3>
-                            <p class="text-gray-600">Importo: €{{ "%.2f"|format(investment.amount) }}</p>
-                            <p class="text-sm text-gray-500">Data: {{ investment.created_at.strftime('%d/%m/%Y') if investment.created_at else 'N/A' }}</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                {% if investment.status == 'active' %}bg-green-100 text-green-800
-                                {% elif investment.status == 'completed' %}bg-blue-100 text-blue-800
-                                {% elif investment.status == 'cancelled' %}bg-red-100 text-red-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ investment.status|title }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <a href="/user/portfolio/{{ investment.id }}" 
-                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            Visualizza Dettagli →
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
+        <!-- Portfolio Stats Mobile -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+                <div class="text-xl font-bold text-cip-neutral-900">{{ investments|length }}</div>
+                <div class="text-sm text-cip-neutral-600">Investimenti</div>
             </div>
-        {% else %}
-            <div class="text-center py-12">
-                <div class="text-gray-400 mb-4">
-                    <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+            <div class="text-center">
+                <div class="text-xl font-bold text-cip-accent">{{ "%.1f"|format(8.5) }}%</div>
+                <div class="text-sm text-cip-neutral-600">ROI Medio</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Tabs - Mobile First -->
+<div class="m-cip-mobile">
+    <div class="card-mobile p-2">
+        <div class="grid grid-cols-2 gap-2">
+            <a href="?tab=attivi" 
+               class="px-3 py-2 rounded-2xl font-medium text-center transition-cip text-sm
+                      {% if tab == 'attivi' %}bg-gradient-cip-logo text-white shadow-cip{% else %}text-cip-neutral-700 hover:bg-cip-neutral-100{% endif %}">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                Attivi
+            </a>
+            <a href="?tab=completati" 
+               class="px-3 py-2 rounded-2xl font-medium text-center transition-cip text-sm
+                      {% if tab == 'completati' %}bg-gradient-cip-logo text-white shadow-cip{% else %}text-cip-neutral-700 hover:bg-cip-neutral-100{% endif %}">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Completati
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Investments List - Mobile First -->
+{% if investments %}
+    <div class="m-cip-mobile space-y-4">
+        {% for investment in investments %}
+        <div class="card-mobile">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <h3 class="text-lg font-bold text-cip-neutral-900">{{ investment.title or 'Progetto Immobiliare' }}</h3>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                            {% if investment.status == 'active' %}bg-cip-accent text-white
+                            {% elif investment.status == 'completed' %}bg-gradient-cip-logo text-white
+                            {% elif investment.status == 'cancelled' %}bg-cip-error text-white
+                            {% else %}bg-cip-neutral-200 text-cip-neutral-700{% endif %}">
+                            {% if investment.status == 'active' %}Attivo
+                            {% elif investment.status == 'completed' %}Completato
+                            {% elif investment.status == 'cancelled' %}Annullato
+                            {% else %}{{ investment.status|title }}{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-cip-neutral-600 text-sm mb-3">
+                        Data: {{ investment.created_at.strftime('%d/%m/%Y') if investment.created_at else 'N/A' }}
+                    </p>
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun investimento trovato</h3>
-                <p class="text-gray-500">
-                    {% if tab == 'attivi' %}
-                        Non hai ancora investimenti attivi.
-                    {% else %}
-                        Non hai investimenti completati.
+                
+                <!-- Investment Amount -->
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-cip-neutral-900 mb-1">
+                        €{{ "%.0f"|format(investment.amount|float) }}
+                    </div>
+                    {% if investment.status == 'active' and investment.percentage %}
+                    <div class="text-cip-accent font-semibold text-sm">
+                        {{ investment.percentage|round(1) }}% completato
+                    </div>
                     {% endif %}
-                </p>
+                </div>
             </div>
+            
+            <!-- Progress Bar for Active Investments -->
+            {% if investment.status == 'active' and investment.percentage %}
+            <div class="mb-4">
+                <div class="flex justify-between text-xs text-cip-neutral-600 mb-2">
+                    <span>Progresso</span>
+                    <span>{{ investment.percentage|round(1) }}%</span>
+                </div>
+                <div class="w-full bg-cip-neutral-200 rounded-full h-2">
+                    <div class="bg-gradient-cip-accent h-2 rounded-full transition-all duration-500" 
+                         style="width: {{ investment.percentage }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Investment Actions -->
+            <div class="flex items-center justify-between pt-3 border-t border-cip-neutral-200">
+                <div class="flex items-center space-x-3">
+                    {% if investment.status == 'active' %}
+                    <div class="flex items-center text-cip-accent text-sm">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        <span class="font-medium">In crescita</span>
+                    </div>
+                    {% elif investment.status == 'completed' %}
+                    <div class="flex items-center text-cip-accent text-sm">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-medium">Completato</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <button class="bg-cip-neutral-100 hover:bg-cip-neutral-200 text-cip-neutral-700 px-3 py-2 rounded-xl font-medium transition-cip text-sm">
+                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Dettagli
+                    </button>
+                    {% if investment.status == 'active' %}
+                    <button class="bg-gradient-cip-accent hover-scale-cip text-white px-3 py-2 rounded-xl font-medium transition-cip text-sm">
+                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Incrementa
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- Empty State -->
+    <div class="bg-card-white rounded-2xl p-12 shadow-cip text-center">
+        <div class="w-20 h-20 bg-cip-neutral-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-cip-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-cip-neutral-900 mb-3">
+            {% if tab == 'attivi' %}
+                Nessun investimento attivo
+            {% else %}
+                Nessun investimento completato
+            {% endif %}
+        </h3>
+        <p class="text-cip-neutral-600 mb-8 max-w-md mx-auto">
+            {% if tab == 'attivi' %}
+                Non hai ancora investimenti attivi. Inizia a investire nei nostri progetti immobiliari per far crescere il tuo portfolio.
+            {% else %}
+                Non hai investimenti completati. I tuoi investimenti futuri appariranno qui una volta completati.
+            {% endif %}
+        </p>
+        {% if tab == 'attivi' %}
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{{ url_for('user.projects') }}" class="bg-gradient-cip-logo hover-scale-cip text-white font-bold px-8 py-3 rounded-xl transition-cip shadow-cip">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                Scopri Progetti
+            </a>
+            <a href="{{ url_for('user.dashboard') }}" class="bg-cip-neutral-100 hover:bg-cip-neutral-200 text-cip-neutral-700 font-bold px-8 py-3 rounded-xl transition-cip">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"/>
+                </svg>
+                Torna alla Dashboard
+            </a>
+        </div>
         {% endif %}
-        
-        <!-- Informazioni utente -->
-        <div class="mt-8 bg-gray-50 rounded-lg p-6">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Informazioni Sessione</h3>
-            <p><strong>User ID:</strong> {{ user_id }}</p>
-            <p><strong>Tab attivo:</strong> {{ tab }}</p>
-            <p><strong>Numero investimenti:</strong> {{ investments|length }}</p>
+    </div>
+{% endif %}
+
+<!-- Portfolio Summary -->
+<div class="mt-8 bg-card-white rounded-2xl p-6 shadow-cip">
+    <h2 class="text-2xl font-bold text-cip-neutral-900 mb-6">Riepilogo Portfolio</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="text-center p-4 bg-gradient-cip-logo rounded-xl text-white">
+            <div class="text-2xl font-bold mb-1">{{ investments|length }}</div>
+            <div class="font-medium">Investimenti Totali</div>
+        </div>
+        <div class="text-center p-4 bg-cip-neutral-50 rounded-xl">
+            <div class="text-2xl font-bold text-cip-neutral-900 mb-1">
+                {% set active_count = investments|selectattr("status", "equalto", "active")|list|length %}
+                {{ active_count }}
+            </div>
+            <div class="text-cip-neutral-600 font-medium">Investimenti Attivi</div>
+        </div>
+        <div class="text-center p-4 bg-cip-neutral-50 rounded-xl">
+            <div class="text-2xl font-bold text-cip-neutral-900 mb-1">
+                {% set completed_count = investments|selectattr("status", "equalto", "completed")|list|length %}
+                {{ completed_count }}
+            </div>
+            <div class="text-cip-neutral-600 font-medium">Completati</div>
+        </div>
+        <div class="text-center p-4 bg-gradient-cip-accent rounded-xl text-white">
+            <div class="text-2xl font-bold mb-1">{{ "%.1f"|format(8.5) }}%</div>
+            <div class="font-medium">ROI Medio</div>
         </div>
     </div>
 </div>

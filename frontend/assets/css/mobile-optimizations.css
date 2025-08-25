@@ -1,0 +1,222 @@
+/* =====================================================
+   MOBILE OPTIMIZATIONS - CIP Immobiliare
+   Ottimizzazioni specifiche per dispositivi mobili
+   ===================================================== */
+
+/* Meta viewport ottimizzazioni */
+@media screen and (max-width: 768px) {
+    /* Riduci padding e margini per mobile */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Ottimizza card per mobile */
+    .card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 1rem;
+    }
+    
+    /* Ottimizza card brand per mobile */
+    .bg-white.rounded-2xl,
+    .bg-card-white.rounded-3xl {
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+    
+    /* Ottimizza glassmorphism per mobile */
+    .glass-effect,
+    .glass-effect-strong {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    /* Ottimizza input per mobile */
+    .input-field {
+        padding: 0.75rem;
+        font-size: 16px; /* Previene zoom su iOS */
+        border-radius: 0.5rem;
+    }
+    
+    /* Ottimizza bottoni per mobile */
+    .btn-primary,
+    .btn-secondary,
+    .btn-accent,
+    .bg-cip-primary,
+    .bg-cip-secondary,
+    .bg-cip-accent {
+        padding: 0.75rem 1rem;
+        font-size: 16px;
+        border-radius: 0.5rem;
+        min-height: 44px; /* Touch target minimo */
+    }
+    
+    /* Ottimizza grid per mobile */
+    .grid {
+        gap: 1rem;
+    }
+    
+    /* Ottimizza spacing per mobile */
+    .space-y-4 > * + * {
+        margin-top: 1rem;
+    }
+    
+    .space-y-6 > * + * {
+        margin-top: 1.5rem;
+    }
+    
+    .space-y-8 > * + * {
+        margin-top: 2rem;
+    }
+    
+    /* Ottimizza header dashboard per mobile */
+    .text-3xl {
+        font-size: 1.75rem;
+        line-height: 2.25rem;
+    }
+    
+    /* Ottimizza KPI cards per mobile */
+    .md\:grid-cols-3 {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    
+    /* Ottimizza portfolio overview per mobile */
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+}
+
+/* Touch interactions ottimizzate */
+@media (hover: none) and (pointer: coarse) {
+    /* Aumenta area touch per elementi interattivi */
+    button, a, input, select, textarea {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Ottimizza hover states per touch */
+    .hover\:bg-gray-50:hover {
+        background-color: transparent;
+    }
+    
+    .hover\:shadow-lg:hover {
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+}
+
+/* Performance mobile */
+@media screen and (max-width: 768px) {
+    /* Riduci animazioni su mobile per performance */
+    .transition-all {
+        transition: none;
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Ottimizza scroll su mobile */
+    .overflow-y-auto {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+
+/* Mobile-specific utilities */
+@media screen and (max-width: 768px) {
+    /* Nascondi elementi non necessari su mobile */
+    .mobile-hidden {
+        display: none !important;
+    }
+    
+    /* Mostra elementi solo su mobile */
+    .mobile-only {
+        display: block !important;
+    }
+    
+    /* Ottimizza testo per mobile */
+    .text-mobile-sm {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+    
+    .text-mobile-base {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+    
+    .text-mobile-lg {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+    }
+}
+
+/* Landscape mobile ottimizzazioni */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    /* Riduci header height su landscape */
+    header {
+        height: 3rem;
+    }
+    
+    /* Aggiusta navigation bar */
+    .mobile-nav {
+        height: 3rem;
+    }
+    
+    /* Spazio per navigation bar */
+    .mobile-nav-spacer {
+        height: 3rem;
+    }
+}
+
+/* High-DPI displays ottimizzazioni */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Ottimizza immagini per retina */
+    img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Dark mode support (se implementato in futuro) */
+@media (prefers-color-scheme: dark) {
+    /* Placeholder per dark mode */
+    .dark-mode-support {
+        /* TODO: Implementare dark mode */
+    }
+}
+
+/* Accessibility mobile */
+@media screen and (max-width: 768px) {
+    /* Migliora focus states per mobile */
+    .focus\:ring-2:focus {
+        outline: 2px solid #1e40af;
+        outline-offset: 2px;
+    }
+    
+    /* Ottimizza contrasto per mobile */
+    .text-gray-500 {
+        color: #6b7280;
+    }
+    
+    .text-gray-600 {
+        color: #4b5563;
+    }
+}
+
+/* Print styles (se necessario) */
+@media print {
+    /* Nascondi navigation bar su stampa */
+    .mobile-nav,
+    .mobile-nav-spacer {
+        display: none !important;
+    }
+    
+    /* Ottimizza layout per stampa */
+    .card {
+        border: 1px solid #d1d5db;
+        box-shadow: none;
+        break-inside: avoid;
+    }
+}

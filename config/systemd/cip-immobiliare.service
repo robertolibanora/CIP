@@ -1,0 +1,26 @@
+[Unit]
+Description=CIP Immobiliare Web Application
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=exec
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/cip_immobiliare
+Environment=PATH=/var/www/cip_immobiliare/.venv/bin
+Environment=FLASK_ENV=production
+ExecStart=/var/www/cip_immobiliare/.venv/bin/gunicorn --bind 127.0.0.1:8090 --workers 4 --timeout 120 --access-logfile /var/log/cip_immobiliare/access.log --error-logfile /var/log/cip_immobiliare/error.log main:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/cip_immobiliare /var/www/cip_immobiliare/frontend/uploads
+
+[Install]
+WantedBy=multi-user.target
