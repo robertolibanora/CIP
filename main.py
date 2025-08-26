@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CIP Immobiliare - Main Application
-Applicazione principale con struttura riorganizzata
+Applicazione principale con struttura riorganizzata in compartimenti stagni
 """
 
 import os
@@ -25,10 +25,17 @@ from backend.admin.routes import admin_bp
 from backend.auth.routes import auth_bp
 from backend.user.routes import user_bp
 
-# Registra blueprints
+# Importa i nuovi blueprint dei compartimenti stagni User
+from backend.user import user_blueprints
+
+# Registra blueprints principali
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')
+
+# Registra i blueprint dei compartimenti stagni User
+for blueprint in user_blueprints:
+    app.register_blueprint(blueprint, url_prefix='/user')
 
 # Route per assets
 @app.route('/assets/<path:filename>')
@@ -41,8 +48,6 @@ def assets(filename):
 @app.route("/")
 def index():
     return redirect(url_for("auth.login"))
-
-
 
 if __name__ == "__main__":
     app.run(
