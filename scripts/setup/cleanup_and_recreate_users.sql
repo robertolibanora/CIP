@@ -119,7 +119,7 @@ INSERT INTO projects (code, title, description, status, target_amount, raised_am
 VALUES (
     'FIR-001',
     'Hotel Firenze Centro',
-    'Hotel boutique nel centro storico di Firenze. Alto tasso di occupazione tutto l\'anno.',
+    'Hotel boutique nel centro storico di Firenze. Alto tasso di occupazione tutto lanno.',
     'active',
     800000.00,
     450000.00,
