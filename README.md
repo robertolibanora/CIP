@@ -1,63 +1,28 @@
-# C.I.P. Immobiliare - App Portfolio Investimenti
+# 🏠 CIP Immobiliare - Piattaforma di Investimenti Immobiliari
 
-## 🎯 **Progetto Semplificato per Mobile-First**
+## 📱 **App Mobile-First con Bottom Navigation**
 
-**C.I.P. Immobiliare** è un'applicazione web per la gestione di portafogli di investimenti immobiliari, ottimizzata per dispositivi mobili.
+CIP Immobiliare è un'applicazione web moderna e responsive per investimenti immobiliari, progettata con un approccio mobile-first e una bottom navigation bar ispirata alle migliori app mobile.
 
-## ✨ **Caratteristiche Principali**
+### ✨ **Caratteristiche Principali**
 
-### **5 Sezioni Utente Principali**
-1. **📊 Dashboard** - Vista generale del portfolio e statistiche
-2. **💼 Portfolio** - Dettaglio investimenti e rendimenti  
-3. **🏗️ Progetti** - Lista e dettagli dei progetti disponibili
-4. **🔗 Referral** - Sistema di referral e bonus
-5. **👤 Profilo** - Gestione account utente
-
-### **🎨 Design Mobile-First**
-- **Responsive design** ottimizzato per mobile
-- **Navigation bar** fissa in basso per mobile
-- **Touch interactions** ottimizzate (44px+ targets)
-- **CSS mobile** specifico per performance
-
-## 🚀 **Tecnologie Utilizzate**
-
-- **Backend**: Flask (Python)
-- **Frontend**: HTML5 + Tailwind CSS
-- **Database**: PostgreSQL
-- **Template Engine**: Jinja2
-- **Architettura**: MVC con Blueprint
-
-## 📁 **Struttura Progetto**
-
-```
-C.I.P./
-├── backend/                 # Logica backend Flask
-│   ├── user/               # Rotte utente
-│   ├── admin/              # Rotte admin
-│   ├── auth/               # Autenticazione
-│   ├── portfolio/          # API portfolio
-│   └── shared/             # Moduli condivisi
-├── frontend/               # Template e assets
-│   ├── templates/          # Template Jinja2
-│   │   ├── user/          # Template utente (5 sezioni)
-│   │   ├── includes/      # Componenti riutilizzabili
-│   │   └── layouts/       # Layout base
-│   └── assets/            # CSS, JS, immagini
-├── config/                 # Configurazione
-├── docs/                   # Documentazione
-└── main.py                 # Entry point Flask
-```
+- **Design Mobile-First**: Ottimizzato per dispositivi mobili con layout responsive
+- **Bottom Navigation**: Barra di navigazione inferiore visibile solo su mobile (md:hidden)
+- **Tailwind CSS**: Styling moderno e consistente
+- **Flask Backend**: API robuste e sicure
+- **PostgreSQL**: Database performante per gestione investimenti
 
 ## 🔧 **Installazione e Setup**
 
 ### **Prerequisiti**
 - Python 3.8+
 - PostgreSQL 12+
-- pip
+- Node.js 16+ (per Tailwind CSS)
 
 ### **Installazione**
+
 ```bash
-# Clone repository
+# Clona il repository
 git clone <repository-url>
 cd C.I.P.
 
@@ -65,124 +30,142 @@ cd C.I.P.
 pip install -r requirements.txt
 
 # Configura database
-cp config/env/.env.example config/env/.env
-# Modifica .env con credenziali database
+# (vedi config/database/ per schema)
 
-# Esegui migrazioni
-python scripts/setup/setup.sh
-
-# Avvia applicazione
+# Avvia l'applicazione
 python main.py
 ```
 
-## 📱 **Design Mobile-First**
+## 🧭 **Bottom Navigation - Configurazione**
 
-### **Breakpoints**
-- **Mobile**: ≤ 768px (default)
-- **Tablet**: 768px - 1024px
-- **Desktop**: ≥ 1024px
+### **Struttura Tab**
+La bottom navigation include 5 tab principali:
 
-### **Caratteristiche Mobile**
-- **Touch targets** minimi 44px
-- **Font size** minimo 16px (previene zoom iOS)
-- **Navigation bar** fissa in basso
-- **Scroll ottimizzato** per touch
-- **Meta viewport** ottimizzato
+1. **Dashboard** (`user.dashboard`) - Home principale
+2. **Search** (`user.search`) - Ricerca progetti
+3. **New** (`user.new_project`) - Nuovo investimento
+4. **Portfolio** (`user.portfolio`) - Gestione investimenti
+5. **Profile** (`user.profile`) - Profilo utente
 
-## 🧪 **Testing**
+### **Configurazione current_page**
 
-### **Test Coerenza**
-```bash
-python3 test_routes_coherence.py
+Per attivare correttamente le tab, ogni route deve passare la variabile `current_page`:
+
+```python
+# In backend/user/routes.py
+@user_bp.get("/dashboard")
+def dashboard():
+    return render_template("user/dashboard.html", 
+                         user=user_data,
+                         current_page="dashboard"  # ← Attiva tab Dashboard
+                         )
+
+@user_bp.get("/search")
+def search():
+    return render_template("user/search.html", 
+                         projects=projects,
+                         current_page="search"     # ← Attiva tab Search
+                         )
+
+@user_bp.get("/new-project")
+def new_project():
+    return render_template("user/new_project.html", 
+                         projects=projects,
+                         current_page="new_project" # ← Attiva tab New
+                         )
+
+@user_bp.get("/portfolio")
+def portfolio():
+    return render_template("user/portfolio.html", 
+                         investments=rows,
+                         current_page="portfolio"   # ← Attiva tab Portfolio
+                         )
+
+@user_bp.get("/profile")
+def profile():
+    return render_template("user/profile.html", 
+                         user=user_data,
+                         current_page="profile"     # ← Attiva tab Profile
+                         )
 ```
 
-### **Test Database e HTTP**
-```bash
-python3 test_database_http.py
+### **Valori current_page Supportati**
+- `"dashboard"` - Attiva tab Dashboard
+- `"search"` - Attiva tab Search  
+- `"new_project"` - Attiva tab New
+- `"portfolio"` - Attiva tab Portfolio
+- `"profile"` - Attiva tab Profile
+
+### **Template Requirements**
+Ogni template deve:
+1. **Estendere `layouts/base.html`**
+2. **Avere `<main class="pt-16 pb-24">`** per lo spacing corretto
+3. **Ricevere `current_page`** dalla route
+
+```html
+<!-- Template esempio -->
+{% extends "layouts/base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-white">
+    <!-- Contenuto della pagina -->
+    <!-- La bottom nav è automaticamente inclusa da base.html -->
+</div>
+{% endblock %}
 ```
 
-### **Test Finale Completo**
-```bash
-python3 test_finale_completo.py
-```
+## 🎨 **Design System**
+
+### **Colori Brand**
+- **Primary**: Blue-600 (#2563eb)
+- **Secondary**: Gray-600 (#4b5563)
+- **Accent**: Green-600 (#16a34a)
+
+### **Componenti**
+- **Tabbar**: `.tabbar`, `.tabbar-item`, `.tabbar-item--active`
+- **Spacing**: `.tabbar-spacer` per evitare sovrapposizioni
+- **Responsive**: `md:hidden` per nascondere su desktop
 
 ## 🚀 **Deployment**
 
-### **Produzione**
 ```bash
-# Build CSS
-npm run build:css:prod
+# Script di deployment
+./deploy.sh
 
-# Avvia con Gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 main:app
+# O manualmente
+python main.py --host 0.0.0.0 --port 8090
 ```
 
-### **Docker**
-```bash
-docker-compose up -d
-```
+## 📱 **Mobile-First Features**
 
-## 📚 **API Endpoints**
+- **Safe Area Support**: `env(safe-area-inset-bottom)` per iOS
+- **Touch Optimized**: Target touch minimo 44px
+- **Responsive Breakpoints**: Mobile-first con `md:` prefix
+- **Performance**: CSS ottimizzato per dispositivi mobili
 
-### **Utente (Autenticato)**
-- `GET /user/dashboard` - Dashboard principale
-- `GET /user/portfolio` - Portfolio investimenti
-- `GET /user/projects` - Lista progetti
-- `GET /user/referral` - Dashboard referral
-- `GET /user/profile` - Profilo utente
+## 🔍 **Troubleshooting**
 
-### **Portfolio API**
-- `GET /portfolio/overview` - Overview portfolio
-- `GET /portfolio/investments` - Lista investimenti
-- `GET /portfolio/referral/overview` - Statistiche referral
+### **Tab non attiva?**
+1. Verifica che la route passi `current_page`
+2. Controlla che il template estenda `base.html`
+3. Verifica che `request.endpoint` corrisponda al valore atteso
 
-## 🔒 **Sicurezza**
+### **Bottom nav non visibile?**
+1. Controlla che `partials/bottom_nav.html` sia incluso in `base.html`
+2. Verifica che il CSS sia caricato correttamente
+3. Testa su dispositivo mobile o con viewport mobile
 
-- **Autenticazione** richiesta per rotte utente
-- **Decoratori** `@login_required` e `@admin_required`
-- **Session management** sicuro
-- **Input validation** su tutti i form
+### **Layout sovrapposto?**
+1. Assicurati che il `<main>` abbia `pb-24`
+2. Verifica che `.tabbar-spacer` sia presente
+3. Controlla che non ci siano CSS conflittuali
 
-## 📊 **Database Schema**
+## 📚 **Documentazione Aggiuntiva**
 
-### **Tabelle Principali**
-- `users` - Utenti e referral
-- `projects` - Progetti immobiliari
-- `investments` - Investimenti utenti
-- `investment_yields` - Rendimenti investimenti
-- `referral_bonuses` - Bonus referral
-
-## 🎨 **Customizzazione**
-
-### **CSS Personalizzato**
-- **Colori brand**: Variabili CSS personalizzabili
-- **Componenti**: Card, bottoni, form ottimizzati
-- **Utilities**: Classi helper per mobile
-
-### **Template**
-- **Layout base** con navigation mobile
-- **Componenti** riutilizzabili
-- **Responsive** per tutti i dispositivi
-
-## 🤝 **Contribuire**
-
-1. Fork del repository
-2. Crea branch per feature (`git checkout -b feature/nuova-feature`)
-3. Commit delle modifiche (`git commit -am 'Aggiunge nuova feature'`)
-4. Push del branch (`git push origin feature/nuova-feature`)
-5. Crea Pull Request
-
-## 📄 **Licenza**
-
-Questo progetto è sotto licenza MIT. Vedi `LICENSE` per dettagli.
-
-## 📞 **Supporto**
-
-Per supporto e domande:
-- **Email**: support@cipimmobiliare.com
-- **Documentazione**: `/docs` directory
-- **Issues**: GitHub Issues
+- [API Documentation](docs/api/API_DOCS.md)
+- [Deployment Guide](docs/deployment/)
+- [Project Structure](docs/project/README.md)
 
 ---
 
-**C.I.P. Immobiliare** - Investimenti immobiliari semplificati 📱✨
+**CIP Immobiliare** - Investimenti immobiliari semplificati 🏗️✨

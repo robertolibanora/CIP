@@ -17,9 +17,9 @@
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <div class="flex items-center space-x-3 mb-3">
                         {% if project.image_url %}
-                            <img src="{{ project.image_url }}" alt="{{ project.name }}" class="w-12 h-12 object-cover rounded">
+                            <img src="{{ project.image_url }}" alt="{{ project.name }}" class="icon-wrap icon-kpi object-cover rounded">
                         {% else %}
-                            <div class="w-12 h-12 bg-cip-primary rounded flex items-center justify-center">
+                            <div class="icon-wrap icon-kpi bg-cip-primary">
                                 <span class="text-white font-bold text-sm">{{ project.name[0].upper() }}</span>
                             </div>
                         {% endif %}

@@ -6,7 +6,7 @@ Applicazione principale con struttura riorganizzata
 
 import os
 from dotenv import load_dotenv
-from flask import redirect, url_for
+from flask import redirect, url_for, send_from_directory
 
 # Carica configurazione
 load_dotenv("config/env.local")
@@ -24,13 +24,18 @@ app = create_app()
 from backend.admin.routes import admin_bp
 from backend.auth.routes import auth_bp
 from backend.user.routes import user_bp
-from backend.portfolio.routes import portfolio_bp
 
 # Registra blueprints
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')
-app.register_blueprint(portfolio_bp, url_prefix='/portfolio')
+
+# Route per assets
+@app.route('/assets/<path:filename>')
+def assets(filename):
+    """Serve i file dalla cartella frontend/assets"""
+    assets_dir = os.path.join(os.path.dirname(__file__), 'frontend', 'assets')
+    return send_from_directory(assets_dir, filename)
 
 # Route principale
 @app.route("/")

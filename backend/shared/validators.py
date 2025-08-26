@@ -1,6 +1,10 @@
 import re
 from decimal import Decimal
-from .errors import ValidationError
+
+# Classe ValidationError semplice
+class ValidationError(Exception):
+    """Eccezione per errori di validazione"""
+    pass
 
 def validate_email(email):
     """Valida formato email"""

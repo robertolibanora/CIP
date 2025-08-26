@@ -1,224 +1,57 @@
 {% extends "layouts/base.html" %}
 
+{% block title %}Dashboard - CIP Immobiliare{% endblock %}
+
 {% block content %}
-<!-- Dashboard Header - Design immobiliare.it style -->
-<div class="m-cip-mobile">
-    <div class="card-mobile text-center">
-        <div class="w-16 h-16 bg-gradient-cip-logo rounded-cip-full flex items-center justify-center shadow-cip-glow mx-auto mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"/>
-            </svg>
-        </div>
-        <h1 class="text-2xl font-bold text-cip-neutral-900 mb-2">Benvenuto! 👋</h1>
-        <p class="text-cip-neutral-600">Gestisci i tuoi investimenti immobiliari</p>
+<div class="min-h-screen bg-white">
+    <!-- Header minimal -->
+    <div class="px-6 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p class="text-gray-600">Benvenuto, {{ user['full_name'] or 'Utente' }}!</p>
     </div>
-</div>
 
-<!-- KPI Cards - Grid mobile-first -->
-<div class="m-cip-mobile">
-    <div class="grid-mobile-2">
-        <div class="card-mobile text-center">
-            <div class="w-12 h-12 bg-gradient-cip-accent rounded-cip-lg flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                </svg>
-            </div>
-            <div class="text-xl font-bold text-cip-neutral-900 mb-1">€{{ "%.0f"|format(total_invested|float) }}</div>
-            <div class="text-cip-neutral-600 text-sm">Totale Investito</div>
-        </div>
-        
-        <div class="card-mobile text-center">
-            <div class="w-12 h-12 bg-gradient-cip-logo rounded-cip-lg flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                </svg>
-            </div>
-            <div class="text-xl font-bold text-cip-neutral-900 mb-1">{{ "%.1f"|format(avg_roi|float) }}%</div>
-            <div class="text-cip-neutral-600 text-sm">ROI Medio</div>
-        </div>
-        
-        <div class="card-mobile text-center">
-            <div class="w-12 h-12 bg-cip-accent rounded-cip-lg flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-            </div>
-            <div class="text-xl font-bold text-cip-neutral-900 mb-1">{{ active_projects_count }}</div>
-            <div class="text-cip-neutral-600 text-sm">Progetti Attivi</div>
-        </div>
-        
-        <div class="card-mobile text-center">
-            <div class="w-12 h-12 bg-cip-neutral-200 rounded-cip-lg flex items-center justify-center mx-auto mb-3">
-                <svg class="w-6 h-6 text-cip-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-            </div>
-            <div class="text-xl font-bold text-cip-neutral-900 mb-1">{{ referred_users|length }}</div>
-            <div class="text-cip-neutral-600 text-sm">Referral Attivi</div>
+    <!-- KPI essenziali -->
+    <div class="px-6 pb-8">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {% from 'components/kpi-card.html' import kpi_card %}
+            {{ kpi_card(
+                title="Investito",
+                value="€" + "%.0f"|format(total_invested|float),
+                icon='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>',
+                color="blue"
+            ) }}
+            {{ kpi_card(
+                title="ROI Medio",
+                value="%.1f"|format(avg_roi|float) + "%",
+                icon='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>',
+                color="green"
+            ) }}
+            {{ kpi_card(
+                title="Stato Portfolio",
+                value="Attivo",
+                icon='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+                color="emerald"
+            ) }}
         </div>
     </div>
-</div>
 
-<!-- Main Content Grid - Portfolio Overview & Quick Stats -->
-<div class="m-cip-mobile space-y-6">
-    <!-- Portfolio Overview -->
-    <div class="card-mobile">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-cip-neutral-900">Panoramica Portfolio</h2>
-            <a href="/portfolio" class="text-cip-bg hover:text-cip-bg-dark font-medium text-sm transition-cip">
-                Vedi tutto →
-            </a>
-        </div>
-        
-        <div class="space-y-4">
-            {% for investment in active_investments[:3] %}
-            <div class="flex items-center justify-between p-3 bg-cip-neutral-50 rounded-cip hover-scale-cip transition-cip">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-cip-logo rounded-cip flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">{{ investment.project_title[0]|upper if investment.project_title else 'P' }}</span>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-cip-neutral-900 text-sm">{{ investment.project_title or 'Progetto' }}</h4>
-                        <p class="text-cip-neutral-600 text-xs">€{{ "%.0f"|format(investment.amount|float) }}</p>
-                    </div>
-                </div>
-                
-                <div class="text-right">
-                    <div class="text-sm font-bold text-cip-neutral-900">
-                        {{ "%.1f"|format(avg_roi|float) }}%
-                    </div>
-                    <div class="text-cip-neutral-600 text-xs">ROI</div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <div class="mt-4 pt-4 border-t border-cip-neutral-200">
-            <div class="flex items-center justify-between text-sm">
-                <span class="text-cip-neutral-600">Progresso Portfolio</span>
-                <span class="font-medium text-cip-neutral-900">{{ "%.1f"|format(portfolio_change|float) }}%</span>
-            </div>
-            <div class="w-full bg-cip-neutral-200 rounded-cip-full h-2 mt-2">
-                <div class="bg-gradient-cip-accent h-2 rounded-cip-full transition-cip-slow" 
-                     style="width: {{ portfolio_change }}%"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Quick Actions -->
-    <div class="card-mobile">
-        <h2 class="text-xl font-bold text-cip-neutral-900 mb-4">Azioni Rapide</h2>
-        <div class="grid-mobile-2 gap-3">
-            <a href="/projects" class="btn-mobile-primary">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Azioni rapide minimal -->
+    <div class="px-6 pb-8">
+        <h3 class="text-xl font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <a href="{{ url_for('user.projects') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-xl text-center transition-all duration-300">
+                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
-                Nuovo Investimento
+                Investi Ora
             </a>
-            <a href="/referral" class="btn-mobile-secondary">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+            <a href="{{ url_for('user.portfolio') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium p-4 rounded-xl text-center transition-all duration-300">
+                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
-                Invita Amici
+                Visualizza Portfolio
             </a>
         </div>
     </div>
 </div>
-
-<!-- Referral Program - Design immobiliare.it -->
-<div class="m-cip-mobile">
-    <div class="card-mobile">
-        <div class="text-center">
-            <div class="w-16 h-16 bg-gradient-cip-accent rounded-cip-lg flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-            </div>
-            <h2 class="text-xl font-bold text-cip-neutral-900 mb-2">Programma Referral</h2>
-            <p class="text-cip-neutral-600 text-sm mb-4">Guadagna invitando nuovi investitori</p>
-            
-            <div class="grid-mobile-1 mb-4">
-                <div class="text-center p-3 bg-cip-neutral-50 rounded-cip">
-                    <div class="text-lg font-bold text-cip-neutral-900">{{ referred_users|length }}</div>
-                    <div class="text-cip-neutral-600 text-xs">Utenti Invitati</div>
-                </div>
-            </div>
-            
-            <div class="flex space-x-3">
-                <a href="/referral" class="btn-mobile-primary flex-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
-                    </svg>
-                    Gestisci Referral
-                </a>
-                <button onclick="copyReferralLink()" class="btn-mobile-secondary flex-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                    Copia Link
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Activities - Design immobiliare.it -->
-<div class="m-cip-mobile">
-    <div class="card-mobile">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-cip-neutral-900">Attività Recenti</h2>
-            <a href="/portfolio" class="text-cip-bg hover:text-cip-bg-dark font-medium text-sm transition-cip">
-                Vedi tutto →
-            </a>
-        </div>
-        
-        <div class="space-y-3">
-            {% if recent_activities %}
-                {% for activity in recent_activities[:5] %}
-                <div class="flex items-center space-x-3 p-3 bg-cip-neutral-50 rounded-cip hover-scale-cip transition-cip">
-                    <div class="w-8 h-8 bg-cip-accent rounded-cip flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-cip-neutral-900">{{ activity.description }}</p>
-                        <p class="text-xs text-cip-neutral-600">{{ activity.date }}</p>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-xs font-medium text-cip-neutral-700">{{ activity.amount }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="text-center py-8">
-                    <div class="w-16 h-16 bg-cip-neutral-200 rounded-cip-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-cip-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-cip-neutral-700 font-semibold mb-2">Nessuna attività recente</h3>
-                    <p class="text-cip-neutral-600 text-sm">Inizia a investire per vedere le tue attività qui</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- Hidden referral link for copying -->
-<input type="hidden" id="referralLink" value="https://cip-immobiliare.com/register?ref={{ session.user_id }}">
-
-<script>
-function copyReferralLink() {
-    const link = document.getElementById('referralLink').value;
-    navigator.clipboard.writeText(link).then(() => {
-        // Mostra notifica di successo
-        alert('Link referral copiato negli appunti!');
-    }).catch(err => {
-        console.error('Errore nel copiare il link:', err);
-        alert('Errore nel copiare il link');
-    });
-}
-</script>
 {% endblock %}

@@ -1,0 +1,393 @@
+/* CSS Mobile-First per CIP Immobiliare - Design Professionale e Visibile */
+
+/* ===== VARIABILI COLORE PROFESSIONALI E VISIBILI ===== */
+:root {
+  --cip-primary: #2563eb;
+  --cip-primary-dark: #1d4ed8;
+  --cip-primary-light: #3b82f6;
+  --cip-accent: #10b981;
+  --cip-accent-dark: #059669;
+  --cip-neutral-50: #f8fafc;
+  --cip-neutral-100: #f1f5f9;
+  --cip-neutral-200: #e2e8f0;
+  --cip-neutral-300: #cbd5e1;
+  --cip-neutral-400: #94a3b8;
+  --cip-neutral-500: #64748b;
+  --cip-neutral-600: #475569;
+  --cip-neutral-700: #334155;
+  --cip-neutral-800: #1e293b;
+  --cip-neutral-900: #0f172a;
+  --cip-success: #10b981;
+  --cip-warning: #f59e0b;
+  --cip-error: #ef4444;
+  --cip-bg: #ffffff;
+  --cip-card: #ffffff;
+  --cip-border: #e2e8f0;
+  --cip-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --cip-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --cip-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --cip-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== BOTTOM NAVIGATION ORIGINALE ===== */
+.bottom-nav {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+.bottom-nav a {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-nav a:hover {
+  transform: translateY(-2px);
+}
+
+.bottom-nav a.active {
+  color: #2563eb;
+}
+
+.bottom-nav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #2563eb;
+  border-radius: 50%;
+}
+
+.bottom-nav svg {
+  transition: all 0.3s ease;
+}
+
+.bottom-nav a:hover svg {
+  transform: scale(1.1);
+}
+
+.bottom-nav a.active svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.3));
+}
+
+/* ===== ICONE RESPONSIVE PROFESSIONALI ===== */
+@layer components {
+  /* Header Icons - Mobile First */
+  .icon-header {
+    @apply w-12 h-12;        /* mobile: 48px - più visibile */
+  }
+  .icon-header > svg {
+    @apply w-6 h-6;          /* mobile: 24px */
+  }
+
+  @screen sm {
+    .icon-header { @apply w-14 h-14; }   /* tablet: 56px */
+    .icon-header > svg { @apply w-7 h-7; }
+  }
+
+  @screen md {
+    .icon-header { @apply w-16 h-16; }   /* desktop: 64px */
+    .icon-header > svg { @apply w-8 h-8; }
+  }
+
+  /* KPI Icons - Mobile First */
+  .icon-kpi {
+    @apply w-10 h-10;        /* mobile: 40px */
+  }
+  .icon-kpi > svg {
+    @apply w-5 h-5;          /* mobile: 20px */
+  }
+
+  @screen sm {
+    .icon-kpi { @apply w-12 h-12; }      /* tablet: 48px */
+    .icon-kpi > svg { @apply w-6 h-6; }
+  }
+
+  @screen md {
+    .icon-kpi { @apply w-14 h-14; }      /* desktop: 56px */
+    .icon-kpi > svg { @apply w-7 h-7; }
+  }
+
+  /* Navigation Icons - Mobile First */
+  .icon-nav {
+    @apply w-7 h-7;          /* mobile: 28px */
+  }
+  .icon-nav > svg {
+    @apply w-5 h-5;          /* mobile: 20px */
+  }
+
+  @screen md {
+    .icon-nav { @apply w-8 h-8; }        /* desktop: 32px */
+    .icon-nav > svg { @apply w-6 h-6; }
+  }
+}
+
+/* ===== LAYOUT RESPONSIVE PROFESSIONALE ===== */
+@layer components {
+  /* KPI Grid - Mobile First */
+  .kpi-grid {
+    @apply grid grid-cols-1 gap-6;       /* mobile: 1 colonna, gap maggiore */
+  }
+
+  @screen sm {
+    .kpi-grid { @apply grid-cols-2 gap-6; }  /* tablet: 2 colonne */
+  }
+
+  @screen md {
+    .kpi-grid { @apply grid-cols-3 gap-8; }  /* desktop: 3 colonne, gap maggiore */
+  }
+
+  /* Sidebar - Mobile First */
+  .sidebar-mobile {
+    @apply fixed inset-y-0 left-0 transform -translate-x-full transition duration-300 ease-in-out z-40;
+    @apply w-72 bg-white shadow-xl border-r border-gray-200; /* sidebar più larga */
+  }
+
+  .sidebar-desktop {
+    @apply hidden md:block md:relative md:translate-x-0 md:w-72;
+  }
+
+  /* Content Layout - Mobile First */
+  .content-mobile {
+    @apply w-full px-6;                   /* mobile: padding maggiore */
+  }
+
+  @screen md {
+    .content-mobile { @apply md:ml-72 md:px-8; }  /* desktop: sidebar offset */
+  }
+}
+
+/* ===== TYPOGRAPHY RESPONSIVE PROFESSIONALE E VISIBILE ===== */
+@layer components {
+  /* Card Titles - Mobile First */
+  .card-title {
+    @apply text-xl font-bold text-gray-900;         /* mobile: 20px, più grande */
+  }
+
+  @screen md {
+    .card-title { @apply text-2xl; }      /* desktop: 24px */
+  }
+
+  /* Header Titles - Mobile First */
+  .header-title {
+    @apply text-2xl font-bold text-gray-900;             /* mobile: 24px */
+  }
+
+  @screen md {
+    .header-title { @apply text-3xl; }   /* desktop: 30px */
+  }
+
+  /* Descriptions - Mobile First */
+  .text-desc {
+    @apply text-base text-gray-700;                       /* mobile: 16px, più leggibile */
+  }
+
+  @screen md {
+    .text-desc { @apply text-lg; }     /* desktop: 18px */
+  }
+
+  /* KPI Values - Mobile First */
+  .kpi-value {
+    @apply text-2xl font-bold;         /* mobile: 24px */
+  }
+
+  @screen md {
+    .kpi-value { @apply text-3xl; }    /* desktop: 30px */
+  }
+}
+
+/* ===== SPACING RESPONSIVE PROFESSIONALE ===== */
+@layer components {
+  /* Card Padding - Mobile First */
+  .card-padding {
+    @apply p-6;                           /* mobile: 24px - più spazio */
+  }
+
+  @screen md {
+    .card-padding { @apply p-8; }        /* desktop: 32px */
+  }
+
+  /* Section Spacing - Mobile First */
+  .section-spacing {
+    @apply py-6;                          /* mobile: 24px */
+  }
+
+  @screen md {
+    .section-spacing { @apply py-8; }    /* desktop: 32px */
+  }
+}
+
+/* ===== CARD DESIGN PROFESSIONALE E VISIBILE ===== */
+@layer components {
+  .card-professional {
+    @apply bg-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply backdrop-blur-sm bg-white/95;
+  }
+
+  .card-kpi {
+    @apply card-professional card-padding;
+    @apply border-l-4 border-l-blue-500;
+  }
+
+  .card-header {
+    @apply bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200;
+    @apply px-6 py-4 rounded-t-xl;
+  }
+}
+
+/* ===== BUTTONS PROFESSIONALI E VISIBILI ===== */
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold;
+    @apply px-6 py-3 rounded-xl shadow-lg hover:shadow-xl;
+    @apply transition-all duration-300 transform hover:-translate-y-1;
+    @apply border-0 focus:ring-4 focus:ring-blue-200;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 font-semibold border-2 border-gray-200;
+    @apply px-6 py-3 rounded-xl shadow-md hover:shadow-lg;
+    @apply transition-all duration-300 hover:border-blue-300;
+    @apply focus:ring-4 focus:ring-gray-200;
+  }
+
+  .btn-success {
+    @apply bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold;
+    @apply px-6 py-3 rounded-xl shadow-lg hover:shadow-xl;
+    @apply transition-all duration-300 transform hover:-translate-y-1;
+    @apply border-0 focus:ring-4 focus:ring-green-200;
+  }
+}
+
+/* ===== MOBILE OPTIMIZATIONS PROFESSIONALI ===== */
+@layer utilities {
+  /* Touch-friendly buttons */
+  .touch-friendly {
+    @apply min-h-[48px] min-w-[48px];    /* iOS/Android touch target ottimizzato */
+  }
+
+  /* Mobile-safe margins */
+  .safe-mobile {
+    @apply mx-6;                          /* safe margins su mobile */
+  }
+
+  @screen md {
+    .safe-mobile { @apply mx-8; }
+  }
+
+  /* Professional shadows */
+  .shadow-professional {
+    @apply shadow-lg;                     /* ombre professionali su mobile */
+  }
+
+  @screen md {
+    .shadow-professional { @apply shadow-xl; }
+  }
+}
+
+/* ===== TRANSITIONS SMOOTH PROFESSIONALI ===== */
+@layer utilities {
+  .transition-professional {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .hover-lift {
+    @apply hover:-translate-y-1 hover:shadow-xl transition-all duration-300;
+  }
+}
+
+/* ===== HAMBURGER MENU PROFESSIONALE ===== */
+.hamburger-menu {
+  @apply block md:hidden p-3 rounded-xl hover:bg-gray-100 transition-colors;
+  @apply border border-gray-200 hover:border-gray-300;
+}
+
+.hamburger-icon {
+  @apply w-7 h-7 text-gray-700;
+}
+
+/* ===== OVERLAY MOBILE PROFESSIONALE ===== */
+.sidebar-overlay {
+  @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden;
+}
+
+/* ===== RESPONSIVE UTILITIES PROFESSIONALI ===== */
+@layer utilities {
+  /* Hide on mobile, show on desktop */
+  .mobile-hidden {
+    @apply hidden md:block;
+  }
+
+  /* Show on mobile, hide on desktop */
+  .desktop-hidden {
+    @apply block md:hidden;
+  }
+
+  /* Professional text sizes */
+  .text-professional {
+    @apply text-base font-medium;
+  }
+
+  @screen sm {
+    .text-professional { @apply text-lg; }
+  }
+
+  @screen md {
+    .text-professional { @apply text-xl; }
+  }
+}
+
+/* ===== GRADIENTI PROFESSIONALI E VISIBILI ===== */
+@layer utilities {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600;
+  }
+
+  .gradient-success {
+    @apply bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500;
+  }
+
+  .gradient-warning {
+    @apply bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500;
+  }
+}
+
+/* ===== ANIMAZIONI PROFESSIONALI ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* ===== SCROLLBAR PERSONALIZZATA ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

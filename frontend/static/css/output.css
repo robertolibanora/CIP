@@ -1002,6 +1002,27 @@
   }
 }
 @layer components {
+  /* ===== Bottom Tabbar (mobile-first) ===== */
+  .tabbar {
+    @apply fixed bottom-0 inset-x-0 z-50 md:hidden
+           bg-white/95 dark:bg-neutral-900/90 backdrop-blur
+           border-t border-neutral-200 dark:border-neutral-800
+           px-4 pt-2
+           pb-[calc(10px+env(safe-area-inset-bottom))] /* safe-area iOS */;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .tabbar-item {
+    @apply h-12 w-12 flex items-center justify-center rounded-xl
+           transition-transform active:scale-95 select-none;
+  }
+  .tabbar-item svg, .tabbar-item img { @apply h-6 w-6 opacity-80; }
+  .tabbar-item--active svg, .tabbar-item--active img { @apply opacity-100; }
+  .tabbar-plus { @apply h-12 w-12 rounded-2xl border border-neutral-300 dark:border-neutral-700; }
+  /* Spaziatore per evitare sovrapposizione contenuti */
+  .tabbar-spacer { @apply h-16 md:hidden; }
+  /* Niente badge rosso: disabilita eventuali puntini */
+  .notif-badge, .notif-dot { display:none !important; }
+
   .btn-primary {
     background-color: rgb(var(--color-cip-primary));
     color: white;
@@ -1052,6 +1073,32 @@
   .input-field:focus {
     border-color: rgb(var(--color-cip-primary));
     box-shadow: 0 0 0 3px rgb(var(--color-cip-primary) / 0.1);
+  }
+}
+
+/* Icon Components Layer */
+@layer components {
+  /* Wrapper tondo/soft per icone (se usato) */
+  .icon-wrap {
+    @apply inline-flex items-center justify-center rounded-xl;
+  }
+  /* Header icon target size */
+  .icon-header {
+    @apply w-12 h-12;        /* 48px */
+  }
+  .icon-header > svg {
+    @apply w-6 h-6;          /* 24px */
+  }
+  /* KPI icon target size */
+  .icon-kpi {
+    @apply w-10 h-10;        /* 40px */
+  }
+  .icon-kpi > svg {
+    @apply w-5 h-5;          /* 20px */
+  }
+  /* Spaziature coerenti */
+  .icon-gap {
+    @apply mb-4;
   }
 }
 @property --tw-space-y-reverse {

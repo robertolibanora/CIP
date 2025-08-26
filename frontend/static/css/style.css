@@ -96,6 +96,14 @@ a:hover {
     color: white;
 }
 
+/* Icon Wrapper */
+.icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+}
+
 /* Form elements */
 input, textarea, select {
     width: 100%;

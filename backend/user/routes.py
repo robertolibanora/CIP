@@ -63,15 +63,18 @@ def dashboard():
         """, (uid,))
         total_referral_investments = cur.fetchone()['total_invested'] or 0
         
-        # Referral code utente
-        cur.execute("SELECT referral_code FROM users WHERE id = %s", (uid,))
+        # Dati utente completi
+        cur.execute("""
+            SELECT id, email, full_name, role, referral_code
+            FROM users WHERE id = %s
+        """, (uid,))
         user_data = cur.fetchone()
         referral_code = user_data['referral_code'] if user_data else None
     
     # Calcola valori portfolio
-    total_invested = inv.get('total_invested', 0) or 0
-    total_yields = (yields and yields['total_yields'] or 0) or 0
-    referral_bonus_value = (bonus and bonus['bonus_total'] or 0) or 0
+    total_invested = (inv and inv.get('total_invested', 0) or 0) or 0
+    total_yields = (yields and yields.get('total_yields', 0) or 0) or 0
+    referral_bonus_value = (bonus and bonus.get('bonus_total', 0) or 0) or 0
     
     # Portfolio balance = investimenti + rendimenti + bonus
     portfolio_balance = total_invested + total_yields + referral_bonus_value
@@ -84,26 +87,98 @@ def dashboard():
     referral_link = f"{base_url}/auth/register?ref={referral_code}" if referral_code else f"{base_url}/auth/register"
     
     return render_template("user/dashboard.html", 
-                         user_id=uid,
+                         user=user_data,
                          total_invested=total_invested,
-                         active_investments=active_investments_data,
-                         total_yields=total_yields,
-                         referral_bonus=referral_bonus_value,
-                         portfolio_balance=portfolio_balance,
-                         portfolio_change=portfolio_change,
                          avg_roi=8.5,  # ROI medio simulato
-                         active_projects_count=len(active_investments_data),
-                         last_investment_date=None,  # Per ora None
-                         recent_activities=[],  # Per ora vuoto
-                         # Variabili per referral card
-                         referral_earnings=referral_bonus_value,
-                         referred_users=[{'id': i} for i in range(referred_users_count)],
-                         total_referral_investments=total_referral_investments,
-                         referral_link=referral_link
+                         current_page="dashboard"
                          )
 
 # =====================================================
-# 2. PORTAFOGLIO - Dettaglio investimenti e rendimenti
+# 2. SEARCH - Ricerca progetti disponibili
+# =====================================================
+
+@user_bp.get("/search")
+def search():
+    """Ricerca progetti disponibili per investimento"""
+    uid = session.get("user_id")
+    query = request.args.get("q", "")
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        if query:
+            cur.execute("""
+                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                       p.status, p.created_at, p.code
+                FROM projects p 
+                WHERE p.status = 'active' 
+                AND (p.title ILIKE %s OR p.description ILIKE %s)
+                ORDER BY p.created_at DESC
+            """, (f'%{query}%', f'%{query}%'))
+        else:
+            cur.execute("""
+                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                       p.status, p.created_at, p.code
+                FROM projects p 
+                WHERE p.status = 'active'
+                ORDER BY p.created_at DESC
+            """)
+        
+        projects = cur.fetchall()
+        
+        # Calcola percentuale completamento
+        for project in projects:
+            if project['target_amount'] and project['target_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            else:
+                project['completion_percent'] = 0
+            
+            # Aggiungi campi mancanti per compatibilità template
+            project['location'] = 'N/A'  # Non presente nello schema attuale
+            project['roi'] = 8.5  # ROI fisso per ora
+            project['min_investment'] = 1000  # Investimento minimo fisso per ora
+    
+    return render_template("user/search.html", 
+                         user_id=uid,
+                         projects=projects,
+                         query=query,
+                         current_page="search")
+
+# =====================================================
+# 3. NEW PROJECT - Nuovo investimento
+# =====================================================
+
+@user_bp.get("/new-project")
+def new_project():
+    """Pagina per nuovo investimento"""
+    uid = session.get("user_id")
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                   p.status, p.created_at, p.code
+            FROM projects p 
+            WHERE p.status = 'active'
+            ORDER BY p.created_at DESC
+        """)
+        available_projects = cur.fetchall()
+        
+        # Calcola percentuale completamento
+        for project in available_projects:
+            if project['target_amount'] and project['target_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            else:
+                project['completion_percent'] = 0
+            
+            project['location'] = 'N/A'
+            project['roi'] = 8.5
+            project['min_investment'] = 1000
+    
+    return render_template("user/new_project.html", 
+                         user_id=uid,
+                         projects=available_projects,
+                         current_page="new_project")
+
+# =====================================================
+# 4. PORTAFOGLIO - Dettaglio investimenti e rendimenti
 # =====================================================
 
 @user_bp.get("/portfolio")
@@ -115,17 +190,22 @@ def portfolio():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.id, p.title, i.amount, i.status, i.created_at
+            SELECT i.id, p.title AS project_title, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s AND i.status = ANY(%s)
             ORDER BY i.created_at DESC
         """, (uid, list(statuses)))
         rows = cur.fetchall()
+        
+        # Aggiungi campi mancanti per compatibilità template
+        for row in rows:
+            row['roi'] = 8.5  # ROI fisso per ora
     
     return render_template("user/portfolio.html", 
                          user_id=uid,
                          tab=tab,
-                         investments=rows)
+                         investments=rows,
+                         current_page="portfolio")
 
 @user_bp.get("/portfolio/<int:investment_id>")
 def portfolio_detail(investment_id):
@@ -150,7 +230,7 @@ def portfolio_detail(investment_id):
     return jsonify({"investment": inv, "yields": yields})
 
 # =====================================================
-# 3. PROGETTI - Lista e dettagli dei progetti disponibili
+# 5. PROGETTI - Lista e dettagli dei progetti disponibili
 # =====================================================
 
 @user_bp.get("/projects")
@@ -177,16 +257,18 @@ def projects():
             
             # Aggiungi campi mancanti per compatibilità template
             project['location'] = 'N/A'  # Non presente nello schema attuale
-            project['expected_yield'] = 0  # Non presente nello schema attuale
+            project['roi'] = 8.5  # ROI fisso per ora
+            project['min_investment'] = 1000  # Investimento minimo fisso per ora
     
     return render_template("user/projects.html", 
                          user_id=uid,
-                         projects=projects)
+                         projects=projects,
+                         current_page="projects")
 
 # Rota per dettaglio progetto rimossa - ora gestito tramite modal in projects.html
 
 # =====================================================
-# 4. REFERRAL - Sistema di referral e bonus
+# 6. REFERRAL - Sistema di referral e bonus
 # =====================================================
 
 @user_bp.get("/referral")
@@ -228,10 +310,11 @@ def referral():
                          user_id=uid,
                          stats=stats,
                          referrals=referrals,
-                         total_bonus=bonus['total_bonus'] if bonus else 0)
+                         total_bonus=bonus['total_bonus'] if bonus else 0,
+                         current_page="referral")
 
 # =====================================================
-# 5. PROFILO - Gestione account utente
+# 7. PROFILO - Gestione account utente
 # =====================================================
 
 @user_bp.get("/profile")
@@ -248,7 +331,8 @@ def profile():
     
     return render_template("user/profile.html", 
                          user_id=uid,
-                         user=user_data)
+                         user=user_data,
+                         current_page="profile")
 
 @user_bp.post("/profile/update")
 def profile_update():
