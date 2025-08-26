@@ -6,3 +6,4 @@ requests>=2.31
 gunicorn>=21.0
 redis>=4.5
 psutil>=5.9
+Flask-WTF>=1.1

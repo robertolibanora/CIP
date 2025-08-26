@@ -1306,3 +1306,38 @@
     }
   }
 }
+
+/* appended utilities for auth forms */
+.input-with-left-icon { padding-left: 2.5rem; }
+.input-with-right-icon { padding-right: 3rem; }
+.btn-primary-solid { background-color: rgb(37 99 235); color: #fff; }
+.btn-primary-solid:hover { background-color: rgb(29 78 216); }
+
+/* Ensure input fields are clean */
+.input-field {
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+}
+
+.input-field.input-with-left-icon {
+  background-image: none !important;
+  padding-left: 2.5rem;
+}
+
+.input-field.input-with-right-icon {
+  background-image: none !important;
+  padding-right: 3rem;
+}
+
+/* Password toggle alignment */
+.input-right-icon-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 2.5rem; /* 40px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,211 @@
+/* =====================================================
+   AUTH FORMS STYLES - CIP Academy
+   Stili per i form di login e registrazione
+   ===================================================== */
+
+/* Primary color variables for auth forms */
+:root {
+    --primary-50: #eff6ff;
+    --primary-100: #dbeafe;
+    --primary-200: #bfdbfe;
+    --primary-300: #93c5fd;
+    --primary-400: #60a5fa;
+    --primary-500: #3b82f6;
+    --primary-600: #2563eb;
+    --primary-700: #1d4ed8;
+    --primary-800: #1e40af;
+    --primary-900: #1e3a8a;
+    
+    --cream-50: #fefce8;
+    --green-200: #bbf7d0;
+    --green-300: #86efac;
+    --green-600: #16a34a;
+}
+
+/* Background gradients */
+.bg-gradient-to-br {
+    background: linear-gradient(to bottom right, var(--cream-50), white, var(--primary-50));
+}
+
+.from-cream-50 {
+    background: linear-gradient(to bottom right, var(--cream-50), white, var(--primary-50));
+}
+
+.via-white {
+    background: linear-gradient(to bottom right, var(--cream-50), white, var(--primary-50));
+}
+
+.to-primary-50 {
+    background: linear-gradient(to bottom right, var(--cream-50), white, var(--primary-50));
+}
+
+/* Background colors */
+.bg-primary-50 { background-color: var(--primary-50); }
+.bg-primary-100 { background-color: var(--primary-100); }
+.bg-primary-200 { background-color: var(--primary-200); }
+.bg-green-200 { background-color: var(--green-200); }
+.bg-green-300 { background-color: var(--green-300); }
+
+/* Text colors */
+.text-primary-600 { color: var(--primary-600); }
+.text-primary-700 { color: var(--primary-700); }
+.text-primary-800 { color: var(--primary-800); }
+
+/* Hover states */
+.hover\:from-primary-700:hover { background: linear-gradient(to right, var(--primary-700), var(--primary-800)); }
+.hover\:to-primary-800:hover { background: linear-gradient(to right, var(--primary-700), var(--primary-800)); }
+.hover\:text-primary-700:hover { color: var(--primary-700); }
+
+/* Form input styles */
+.input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200;
+}
+
+/* Card styles */
+.card {
+    @apply rounded-xl;
+}
+
+/* Shadow utilities */
+.shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Backdrop blur */
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+}
+
+/* Background opacity */
+.bg-white\/80 {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Transform utilities */
+.transform { transform: translateZ(0); }
+.hover\:scale-105:hover { transform: scale(1.05); }
+
+/* Z-index utilities */
+.z-10 { z-index: 10; }
+.z-50 { z-index: 50; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Position utilities */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+
+/* Top utilities */
+.top-4 { top: 1rem; }
+.-top-40 { top: -10rem; }
+.top-1\/2 { top: 50%; }
+
+/* Right utilities */
+.right-4 { right: 1rem; }
+.-right-40 { right: -10rem; }
+
+/* Bottom utilities */
+.-bottom-40 { bottom: -10rem; }
+
+/* Left utilities */
+.-left-40 { left: -10rem; }
+
+/* Width utilities */
+.w-80 { width: 20rem; }
+.w-96 { width: 24rem; }
+
+/* Height utilities */
+.h-80 { height: 20rem; }
+.h-96 { height: 24rem; }
+
+/* Opacity utilities */
+.opacity-20 { opacity: 0.2; }
+.opacity-10 { opacity: 0.1; }
+
+/* Blur utilities */
+.blur-3xl { filter: blur(64px); }
+
+/* Transform utilities */
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.-translate-y-1\/2 { transform: translateY(-50%); }
+
+/* Grid utilities */
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Gap utilities */
+.gap-4 { gap: 1rem; }
+
+/* Hidden utilities */
+.hidden { display: none; }
+
+/* Responsive utilities */
+.md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Animation utilities */
+.transition-all { transition-property: all; }
+.duration-200 { transition-duration: 200ms; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; }
+
+/* Hover utilities */
+.hover\:bg-gray-300:hover { background-color: #d1d5db; }
+.hover\:bg-gray-700:hover { background-color: #374151; }
+
+/* Focus utilities */
+.focus\:bg-white:focus { background-color: white; }
+
+/* Placeholder utilities */
+.placeholder-gray-500::placeholder { color: #6b7280; }
+
+/* SVG utilities */
+.fill-current { fill: currentColor; }
+.stroke-current { stroke: currentColor; }
+
+/* ViewBox utilities */
+.viewBox { viewBox: "0 0 24 24"; }
+
+/* Stroke utilities */
+.stroke-2 { stroke-width: 2; }
+
+/* Line cap utilities */
+.stroke-linecap-round { stroke-linecap: round; }
+
+/* Line join utilities */
+.stroke-linejoin-round { stroke-linejoin: round; }
+
+/* Mix blend mode utilities */
+.mix-blend-multiply { mix-blend-mode: multiply; }
+
+/* Filter utilities */
+.filter { filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow); }
+
+/* Animation keyframes */
+@keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+}
+
+/* Animation classes */
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

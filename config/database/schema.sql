@@ -1,19 +1,40 @@
+-- RESET SCHEMA (DROP in correct dependency order)
+DROP VIEW IF EXISTS v_admin_metrics;
+DROP VIEW IF EXISTS v_user_bonus;
+DROP VIEW IF EXISTS v_user_invested;
+
+DROP TABLE IF EXISTS referral_bonuses CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS documents CASCADE;
+DROP TABLE IF EXISTS doc_categories CASCADE;
+DROP TABLE IF EXISTS investment_yields CASCADE;
+DROP TABLE IF EXISTS investments CASCADE;
+DROP TABLE IF EXISTS investment_requests CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
 -- USERS & AUTH
 CREATE TABLE IF NOT EXISTS users (
     id              SERIAL PRIMARY KEY,
     email           TEXT UNIQUE NOT NULL,
     password_hash   TEXT NOT NULL,
     full_name       TEXT,
-    phone           TEXT,
+    nome            TEXT NOT NULL,
+    cognome         TEXT NOT NULL,
+    nome_telegram   TEXT UNIQUE NOT NULL,
+    telefono        TEXT NOT NULL,
     address         TEXT,
     role            TEXT NOT NULL CHECK (role IN ('admin','investor')) DEFAULT 'investor',
     kyc_status      TEXT NOT NULL CHECK (kyc_status IN ('unverified','pending','verified','rejected')) DEFAULT 'unverified',
     currency_code   CHAR(3) NOT NULL DEFAULT 'EUR',
     referral_code   TEXT UNIQUE,
+    referral_link   TEXT,
     referred_by     INT REFERENCES users(id) ON DELETE SET NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
+CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(nome_telegram);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(telefono);
 
 -- PROJECTS
 CREATE TABLE IF NOT EXISTS projects (
@@ -112,9 +133,9 @@ CREATE TABLE IF NOT EXISTS referral_bonuses (
     receiver_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     source_user_id   INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     investment_id    INT REFERENCES investments(id) ON DELETE SET NULL,
-    level            INT NOT NULL CHECK (level >= 1),
-    amount           NUMERIC(14,2) NOT NULL CHECK (amount >= 0),
-    month_ref        DATE NOT NULL,
+    level            INT NOT NULL CHECK (level >= 1) DEFAULT 1,
+    amount           NUMERIC(14,2) NOT NULL CHECK (amount >= 0) DEFAULT 0,
+    month_ref        DATE NOT NULL DEFAULT DATE_TRUNC('month', NOW())::date,
     status           TEXT NOT NULL CHECK (status IN ('accrued','paid','cancelled')) DEFAULT 'accrued',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     paid_at          TIMESTAMPTZ

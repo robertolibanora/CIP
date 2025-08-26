@@ -21,6 +21,10 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB
     
+    # Configurazione CSRF protection
+    app.config['SECRET_KEY'] = 'your-secret-key-here'  # Cambia con una chiave sicura
+    app.config['WTF_CSRF_ENABLED'] = True
+    
     # Carica configurazione
     from config.config import config
     app.config.from_object(config['default'])
