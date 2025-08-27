@@ -1,6 +1,7 @@
 from flask import Blueprint, request, session, redirect, url_for, render_template, flash
 from backend.shared.database import get_connection
 from backend.shared.validators import validate_email, validate_password
+from backend.auth.middleware import create_secure_session, destroy_session
 import hashlib
 
 auth_bp = Blueprint("auth", __name__)
@@ -42,13 +43,10 @@ def login():
 
             # Verifica password con hash
             if user and user["password_hash"] == hash_password(password):
-                session["user_id"] = user["id"]
-                session["user_role"] = user["role"]
-                session["user_name"] = (
-                    f"{user['nome']} {user['cognome']}" if user["nome"] and user["cognome"] else user["email"]
-                )
+                # Crea sessione sicura
+                create_secure_session(user)
 
-                flash(f"Benvenuto, {session['user_name']}!", "success")
+                flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
 
                 # Reindirizza admin alla dashboard admin, utenti normali alla dashboard utente
                 if user["role"] == "admin":
@@ -155,7 +153,17 @@ def register():
 
 @auth_bp.route("/logout")
 def logout():
-    """Logout utente"""
-    session.clear()
-    flash("Logout completato", "success")
+    """Logout utente con pulizia completa sessione"""
+    if 'user_id' in session:
+        user_id = session.get('user_id')
+        user_name = session.get('user_name', 'Utente')
+        
+        # Distrugge sessione in modo sicuro
+        destroy_session()
+        
+        flash(f"Logout completato per {user_name}", "success")
+        # logger.info(f"Logout utente {user_id}") # This line was commented out in the original file, so it's commented out here.
+    else:
+        flash("Nessuna sessione attiva", "info")
+    
     return redirect(url_for("auth.login"))

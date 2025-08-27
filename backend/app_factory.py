@@ -1,6 +1,7 @@
 """
 Factory per creare l'applicazione Flask
 Configura i percorsi per template e file assets
+Task 2.2: Configurazione sicura sessioni
 """
 
 from flask import Flask, url_for
@@ -24,6 +25,22 @@ def create_app():
     # Configurazione CSRF protection
     app.config['SECRET_KEY'] = 'your-secret-key-here'  # Cambia con una chiave sicura
     app.config['WTF_CSRF_ENABLED'] = True
+    
+    # ============================================================================
+    # CONFIGURAZIONE SICUREZZA SESSIONI - Task 2.2
+    # ============================================================================
+    
+    # Timeout sessione (1 ora)
+    app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # secondi
+    
+    # Cookie sicuri
+    app.config['SESSION_COOKIE_SECURE'] = False  # True in produzione con HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
+    # Controlli sicurezza sessione
+    app.config['CHECK_SESSION_IP'] = True
+    app.config['CHECK_SESSION_USER_AGENT'] = True
     
     # Carica configurazione
     from config.config import config

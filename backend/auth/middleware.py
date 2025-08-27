@@ -1,17 +1,29 @@
 """
 Middleware per autenticazione e autorizzazioni
-Task 1.3: Middleware KYC, Ruoli e Permessi
+Task 2.2: Auth System - Verifiche e Blocchi
 """
 
 from functools import wraps
 from flask import session, redirect, url_for, flash, request, current_app
 from typing import Optional, Callable, Any
 import logging
+import time
+from datetime import datetime, timedelta
 
 from backend.shared.models import UserRole, KYCStatus
 from backend.shared.database import get_connection
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# COSTANTI SICUREZZA SESSIONI
+# ============================================================================
+
+SESSION_TIMEOUT = 3600  # 1 ora in secondi
+SESSION_LAST_ACTIVITY_KEY = 'last_activity'
+SESSION_CREATED_KEY = 'created_at'
+SESSION_IP_KEY = 'ip_address'
+SESSION_USER_AGENT_KEY = 'user_agent'
 
 # ============================================================================
 # FUNZIONI UTILITY
@@ -54,6 +66,65 @@ def is_kyc_verified() -> bool:
     return user and user.get('kyc_status') == KYCStatus.VERIFIED.value
 
 # ============================================================================
+# VALIDAZIONE SICUREZZA SESSIONI
+# ============================================================================
+
+def validate_session_security() -> bool:
+    """Valida la sicurezza della sessione corrente"""
+    if not is_authenticated():
+        return False
+    
+    # Verifica timeout sessione
+    last_activity = session.get(SESSION_LAST_ACTIVITY_KEY)
+    if last_activity:
+        if time.time() - last_activity > SESSION_TIMEOUT:
+            logger.warning(f"Sessione scaduta per utente {session.get('user_id')}")
+            return False
+    
+    # Verifica IP address (se configurato)
+    if current_app.config.get('CHECK_SESSION_IP', False):
+        stored_ip = session.get(SESSION_IP_KEY)
+        if stored_ip and stored_ip != request.remote_addr:
+            logger.warning(f"Cambio IP sospetto per utente {session.get('user_id')}: {stored_ip} -> {request.remote_addr}")
+            return False
+    
+    # Verifica User-Agent (se configurato)
+    if current_app.config.get('CHECK_SESSION_USER_AGENT', False):
+        stored_ua = session.get(SESSION_USER_AGENT_KEY)
+        current_ua = request.headers.get('User-Agent', '')
+        
+        # Solo se entrambi sono presenti e diversi
+        if stored_ua and current_ua and stored_ua != current_ua:
+            logger.warning(f"Cambio User-Agent sospetto per utente {session.get('user_id')}")
+            return False
+    
+    return True
+
+def update_session_activity():
+    """Aggiorna timestamp ultima attività sessione"""
+    if is_authenticated():
+        session[SESSION_LAST_ACTIVITY_KEY] = time.time()
+        session.modified = True
+
+def create_secure_session(user_data: dict):
+    """Crea una sessione sicura con tutti i controlli"""
+    session.clear()
+    session['user_id'] = user_data['id']
+    session['user_role'] = user_data['role']
+    session['user_name'] = user_data.get('nome', '') + ' ' + user_data.get('cognome', '')
+    session[SESSION_CREATED_KEY] = time.time()
+    session[SESSION_LAST_ACTIVITY_KEY] = time.time()
+    session[SESSION_IP_KEY] = request.remote_addr
+    session[SESSION_USER_AGENT_KEY] = request.headers.get('User-Agent', '')
+    session.permanent = True
+    session.modified = True
+
+def destroy_session():
+    """Distrugge completamente la sessione"""
+    session.clear()
+    session.modified = True
+
+# ============================================================================
 # MIDDLEWARE KYC
 # ============================================================================
 
@@ -66,6 +137,9 @@ class KYCRequired:
     def check_access(self) -> bool:
         """Verifica se l'utente può accedere (KYC verificato o admin)"""
         if not is_authenticated():
+            return False
+        
+        if not validate_session_security():
             return False
         
         user = get_current_user()
@@ -100,6 +174,13 @@ def login_required(f: Callable) -> Callable:
         if not is_authenticated():
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
+        
+        if not validate_session_security():
+            destroy_session()
+            flash("Sessione non valida. Effettua nuovamente il login.", "error")
+            return redirect(url_for('auth.login'))
+        
+        update_session_activity()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -111,10 +192,16 @@ def admin_required(f: Callable) -> Callable:
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
         
+        if not validate_session_security():
+            destroy_session()
+            flash("Sessione non valida. Effettua nuovamente il login.", "error")
+            return redirect(url_for('auth.login'))
+        
         if not is_admin():
             flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
             return redirect(url_for('user.dashboard'))
         
+        update_session_activity()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -126,10 +213,16 @@ def kyc_verified(f: Callable) -> Callable:
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
         
+        if not validate_session_security():
+            destroy_session()
+            flash("Sessione non valida. Effettua nuovamente il login.", "error")
+            return redirect(url_for('auth.login'))
+        
         if not is_kyc_verified():
             flash("Verifica KYC richiesta per accedere a questa funzionalità", "warning")
             return redirect(url_for('user.profile'))
         
+        update_session_activity()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -142,11 +235,17 @@ def role_required(required_role: UserRole) -> Callable:
                 flash("Accesso richiesto per visualizzare questa pagina", "warning")
                 return redirect(url_for('auth.login'))
             
+            if not validate_session_security():
+                destroy_session()
+                flash("Sessione non valida. Effettua nuovamente il login.", "error")
+                return redirect(url_for('auth.login'))
+            
             user = get_current_user()
             if not user or user.get('role') != required_role.value:
                 flash(f"Accesso negato. Ruolo {required_role.value} richiesto", "error")
                 return redirect(url_for('user.dashboard'))
             
+            update_session_activity()
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -181,6 +280,15 @@ def setup_auth_middleware(app):
             if any(request.endpoint.startswith(prefix) for prefix in protected_routes):
                 flash("Accesso richiesto per visualizzare questa pagina", "warning")
                 return redirect(url_for('auth.login'))
+        else:
+            # Verifica sicurezza sessione per utenti autenticati
+            if not validate_session_security():
+                destroy_session()
+                flash("Sessione non valida. Effettua nuovamente il login.", "error")
+                return redirect(url_for('auth.login'))
+            
+            # Aggiorna attività sessione
+            update_session_activity()
     
     @app.after_request
     def after_request(response):
