@@ -31,7 +31,7 @@ if [ ! -f "main.py" ]; then
     exit 1
 fi
 
-if [ ! -d "frontend/static/css" ]; then
+if [ ! -d "frontend/assets/css" ]; then
     echo "❌ CSS non trovati"
     exit 1
 fi

@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from .paths import UPLOADS_DIR, TEMPLATES_DIR, STATIC_DIR, ENV_FILE
+from .paths import UPLOADS_DIR, TEMPLATES_DIR, ASSETS_DIR, ENV_FILE
 
 # Carica variabili ambiente dal file config/env.local
 load_dotenv(ENV_FILE)
@@ -11,7 +11,7 @@ class Config:
     DATABASE_URL = os.environ.get('DATABASE_URL') or 'postgresql://postgres:postgres@localhost:5432/cip'
     UPLOAD_FOLDER = UPLOADS_DIR
     TEMPLATE_FOLDER = TEMPLATES_DIR
-    STATIC_FOLDER = STATIC_DIR
+    ASSETS_FOLDER = ASSETS_DIR
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     FLASK_DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
 

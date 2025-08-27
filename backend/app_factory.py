@@ -1,12 +1,12 @@
 """
 Factory per creare l'applicazione Flask
-Configura i percorsi per template e static files
+Configura i percorsi per template e file assets
 """
 
 from flask import Flask, url_for
 from werkzeug.routing import BuildError
 import logging
-from config.paths import TEMPLATES_DIR, STATIC_DIR, UPLOADS_DIR
+from config.paths import TEMPLATES_DIR, ASSETS_DIR, UPLOADS_DIR
 
 def create_app():
     """Crea e configura l'applicazione Flask"""
@@ -14,7 +14,7 @@ def create_app():
     app = Flask(
         __name__,
         template_folder=TEMPLATES_DIR,
-        static_folder=STATIC_DIR
+        static_folder=ASSETS_DIR
     )
     
     # Configurazione percorsi
