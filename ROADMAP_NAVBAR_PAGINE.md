@@ -105,10 +105,10 @@
 - [x] **Prelievi API**: Richieste, approvazioni
 - [x] **Rendimenti API**: Calcoli e distribuzioni
 
-#### **1.3 Autenticazione e Autorizzazioni** 
-- [ ] **Middleware KYC**: Blocco funzionalità per utenti non verificati
-- [ ] **Ruoli e Permessi**: Admin vs User permissions
-- [ ] **Validazioni**: Controlli sicurezza e business logic
+#### **1.3 Autenticazione e Autorizzazioni** ✅
+- [x] **Middleware KYC**: Blocco funzionalità per utenti non verificati
+- [x] **Ruoli e Permessi**: Admin vs User permissions
+- [x] **Validazioni**: Controlli sicurezza e business logic
 
 ---
 
