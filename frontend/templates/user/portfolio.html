@@ -7,96 +7,316 @@
     <!-- Header -->
     <div class="px-6 py-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Il Mio Portfolio</h1>
-        <p class="text-gray-600">Gestisci i tuoi investimenti immobiliari</p>
+        <p class="text-gray-600">Gestisci i tuoi investimenti immobiliari e capitali</p>
     </div>
 
-    <!-- Tabs -->
-    <div class="px-6 pb-6">
-        <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-            <a href="{{ url_for('user.portfolio', tab='attivi') }}" 
-               class="flex-1 py-2 px-4 text-center rounded-md transition-colors {{ 'bg-white text-blue-600 shadow-sm' if tab == 'attivi' else 'text-gray-600 hover:text-gray-900' }}">
-                Investimenti Attivi
-            </a>
-            <a href="{{ url_for('user.portfolio', tab='completati') }}" 
-               class="flex-1 py-2 px-4 text-center rounded-md transition-colors {{ 'bg-white text-blue-600 shadow-sm' if tab == 'completati' else 'text-gray-600 hover:text-gray-900' }}">
-                Completati
-            </a>
+    <!-- 4 Sezioni Portafoglio -->
+    <div class="px-6 pb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Capitale Libero -->
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-green-700">Disponibile</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Capitale Libero</h3>
+                <p class="text-3xl font-bold text-green-600" id="free-capital">€0.00</p>
+                <p class="text-sm text-green-600 mt-1">Sempre prelevabile</p>
+            </div>
+
+            <!-- Capitale Investito -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-blue-700">Bloccato</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Capitale Investito</h3>
+                <p class="text-3xl font-bold text-blue-600" id="invested-capital">€0.00</p>
+                <p class="text-sm text-blue-600 mt-1">Fino alla vendita</p>
+            </div>
+
+            <!-- Bonus Referral -->
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-purple-700">Bonus</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Bonus Referral</h3>
+                <p class="text-3xl font-bold text-purple-600" id="referral-bonus">€0.00</p>
+                <p class="text-sm text-purple-600 mt-1">1% sui profitti</p>
+            </div>
+
+            <!-- Profitti -->
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-orange-700">Rendimenti</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Profitti</h3>
+                <p class="text-3xl font-bold text-orange-600" id="profits">€0.00</p>
+                <p class="text-sm text-orange-600 mt-1">Accumulati</p>
+            </div>
+        </div>
+
+        <!-- Totale Portafoglio -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Totale Portafoglio</h3>
+                    <p class="text-gray-600">Saldo complessivo disponibile e investito</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-3xl font-bold text-gray-900" id="total-balance">€0.00</p>
+                    <p class="text-sm text-gray-500" id="last-updated">Aggiornato: mai</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Lista investimenti -->
+    <!-- Tabs per sezioni -->
+    <div class="px-6 pb-6">
+        <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
+            <button onclick="showSection('overview')" 
+                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors bg-white text-blue-600 shadow-sm" 
+                    id="tab-overview">
+                Panoramica
+            </button>
+            <button onclick="showSection('deposits')" 
+                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
+                    id="tab-deposits">
+                Ricariche
+            </button>
+            <button onclick="showSection('withdrawals')" 
+                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
+                    id="tab-withdrawals">
+                Prelievi
+            </button>
+            <button onclick="showSection('movements')" 
+                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
+                    id="tab-movements">
+                Movimenti
+            </button>
+            <button onclick="showSection('profits')" 
+                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
+                    id="tab-profits">
+                Profitti
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenuto sezioni -->
     <div class="px-6 pb-8">
-        {% if investments %}
-            <div class="space-y-4">
-                {% for investment in investments %}
-                <div class="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">{{ investment.project_title }}</h3>
-                            <p class="text-gray-600 text-sm">ID: {{ investment.id }}</p>
+        <!-- Sezione Panoramica -->
+        <div id="section-overview" class="section-content">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Panoramica Investimenti</h2>
+                
+                {% if investments %}
+                    <div class="space-y-4">
+                        {% for investment in investments %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ investment.project_title }}</h3>
+                                    <p class="text-gray-600 text-sm">ID: {{ investment.id }}</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-xs font-medium
+                                    {% if investment.status == 'active' %}
+                                        bg-green-100 text-green-800
+                                    {% elif investment.status == 'completed' %}
+                                        bg-blue-100 text-blue-800
+                                    {% else %}
+                                        bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                    {{ investment.status|title }}
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <p class="text-sm text-gray-500">Importo Investito</p>
+                                    <p class="font-semibold text-gray-900">€{{ "{:,}".format(investment.amount) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">ROI Stimato</p>
+                                    <p class="font-semibold text-green-600">{{ investment.roi }}%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="text-sm text-gray-500">
+                                <p>Data investimento: {{ investment.created_at.strftime('%d/%m/%Y') if investment.created_at else 'N/A' }}</p>
+                            </div>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium
-                            {% if investment.status == 'active' %}
-                                bg-green-100 text-green-800
-                            {% elif investment.status == 'completed' %}
-                                bg-blue-100 text-blue-800
-                            {% else %}
-                                bg-gray-100 text-gray-800
-                            {% endif %}">
-                            {{ investment.status|title }}
-                        </span>
+                        {% endfor %}
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <p class="text-sm text-gray-500">Importo Investito</p>
-                            <p class="font-semibold text-gray-900">€{{ "{:,}".format(investment.amount) }}</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500">ROI Stimato</p>
-                            <p class="font-semibold text-green-600">{{ investment.roi }}%</p>
-                        </div>
-                    </div>
-                    
-                    <div class="text-sm text-gray-500">
-                        <p>Data investimento: {{ investment.created_at.strftime('%d/%m/%Y') if investment.created_at else 'N/A' }}</p>
-                    </div>
-                    
-                    {% if investment.status == 'active' %}
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                        <a href="{{ url_for('user.portfolio_detail', investment_id=investment.id) }}" 
-                           class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                            Vedi Dettagli →
+                {% else %}
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun investimento attivo</h3>
+                        <p class="text-gray-600">Inizia a investire nei nostri progetti immobiliari per vedere i tuoi investimenti qui.</p>
+                        <a href="{{ url_for('user.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            Vedi Progetti
                         </a>
                     </div>
-                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sezione Ricariche -->
+        <div id="section-deposits" class="section-content hidden">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Storico Ricariche</h2>
+                <div id="deposits-list" class="space-y-4">
+                    <div class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">Caricamento ricariche...</p>
+                    </div>
                 </div>
-                {% endfor %}
             </div>
-        {% else %}
-            <div class="text-center py-12">
-                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">
-                    {% if tab == 'attivi' %}
-                        Nessun investimento attivo
-                    {% else %}
-                        Nessun investimento completato
-                    {% endif %}
-                </h3>
-                <p class="text-gray-600">
-                    {% if tab == 'attivi' %}
-                        Inizia a investire nei nostri progetti immobiliari per vedere i tuoi investimenti qui.
-                    {% else %}
-                        I tuoi investimenti completati appariranno qui.
-                    {% endif %}
-                </p>
-                <a href="{{ url_for('user.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                    Vedi Progetti
-                </a>
+        </div>
+
+        <!-- Sezione Prelievi -->
+        <div id="section-withdrawals" class="section-content hidden">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Gestione Prelievi</h2>
+                
+                <!-- Form Richiesta Prelievo -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Nuova Richiesta Prelievo</h3>
+                    <form id="withdrawal-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="withdrawal-amount" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Importo (min. €50)
+                                </label>
+                                <input type="number" 
+                                       id="withdrawal-amount" 
+                                       name="amount" 
+                                       min="50" 
+                                       step="0.01"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label for="withdrawal-source" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Sezione Fonte
+                                </label>
+                                <select id="withdrawal-source" 
+                                        name="source_section" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required>
+                                    <option value="">Seleziona sezione</option>
+                                    <option value="free_capital">Capitale Libero</option>
+                                    <option value="referral_bonus">Bonus Referral</option>
+                                    <option value="profits">Profitti</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="withdrawal-iban" class="block text-sm font-medium text-gray-700 mb-2">
+                                    IBAN
+                                </label>
+                                <input type="text" 
+                                       id="withdrawal-iban" 
+                                       name="iban" 
+                                       placeholder="IT60X0542811101000000123456"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label for="withdrawal-holder" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Intestatario
+                                </label>
+                                <input type="text" 
+                                       id="withdrawal-holder" 
+                                       name="account_holder" 
+                                       placeholder="Mario Rossi"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label for="withdrawal-bank" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Banca
+                                </label>
+                                <input type="text" 
+                                       id="withdrawal-bank" 
+                                       name="bank_name" 
+                                       placeholder="Banca Popolare"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit" 
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
+                                Richiedi Prelievo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Lista Richieste Prelievo -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Richieste Prelievo</h3>
+                    <div id="withdrawals-list" class="space-y-4">
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="text-gray-500 mt-2">Caricamento prelievi...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        {% endif %}
+        </div>
+
+        <!-- Sezione Movimenti -->
+        <div id="section-movements" class="section-content hidden">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Movimenti Capitali</h2>
+                <div id="movements-list" class="space-y-4">
+                    <div class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">Caricamento movimenti...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Profitti -->
+        <div id="section-profits" class="section-content hidden">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Profitti e Rendimenti</h2>
+                <div id="profits-list" class="space-y-4">
+                    <div class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">Caricamento profitti...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Form Profilo - Richiesto dalla roadmap -->
@@ -194,6 +414,316 @@
 </div>
 
 <script>
+// Gestione sezioni portfolio
+function showSection(sectionName) {
+    // Nascondi tutte le sezioni
+    document.querySelectorAll('.section-content').forEach(section => {
+        section.classList.add('hidden');
+    });
+    
+    // Rimuovi stile attivo da tutti i tab
+    document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+        tab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+        tab.classList.add('text-gray-600', 'hover:text-gray-900');
+    });
+    
+    // Mostra sezione selezionata
+    document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+    
+    // Attiva tab selezionato
+    document.getElementById(`tab-${sectionName}`).classList.remove('text-gray-600', 'hover:text-gray-900');
+    document.getElementById(`tab-${sectionName}`).classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+    
+    // Carica dati sezione se necessario
+    if (sectionName === 'deposits' && !window.depositsLoaded) {
+        loadDeposits();
+    } else if (sectionName === 'withdrawals' && !window.withdrawalsLoaded) {
+        loadWithdrawals();
+    } else if (sectionName === 'movements' && !window.movementsLoaded) {
+        loadMovements();
+    } else if (sectionName === 'profits' && !window.profitsLoaded) {
+        loadProfits();
+    }
+}
+
+// Carica dati portfolio 4 sezioni
+async function loadPortfolioData() {
+    try {
+        const response = await fetch('/api/portfolio/4-sections');
+        const data = await response.json();
+        
+        if (data.portfolio) {
+            document.getElementById('free-capital').textContent = `€${data.portfolio.free_capital.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+            document.getElementById('invested-capital').textContent = `€${data.portfolio.invested_capital.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+            document.getElementById('referral-bonus').textContent = `€${data.portfolio.referral_bonus.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+            document.getElementById('profits').textContent = `€${data.portfolio.profits.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+            document.getElementById('total-balance').textContent = `€${data.portfolio.total_balance.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+            
+            if (data.portfolio.last_updated) {
+                const date = new Date(data.portfolio.last_updated);
+                document.getElementById('last-updated').textContent = `Aggiornato: ${date.toLocaleDateString('it-IT')} ${date.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}`;
+            }
+        }
+    } catch (error) {
+        console.error('Errore caricamento portfolio:', error);
+    }
+}
+
+// Carica storico ricariche
+async function loadDeposits() {
+    try {
+        const response = await fetch('/api/portfolio/deposits');
+        const data = await response.json();
+        
+        const depositsList = document.getElementById('deposits-list');
+        
+        if (data.deposits && data.deposits.length > 0) {
+            depositsList.innerHTML = data.deposits.map(deposit => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                            <p class="text-sm text-gray-500">Chiave: ${deposit.unique_key}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            ${deposit.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-gray-100 text-gray-800'}">
+                            ${deposit.status === 'completed' ? 'Completata' : 
+                              deposit.status === 'pending' ? 'In Attesa' : 
+                              deposit.status === 'failed' ? 'Fallita' : deposit.status}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <p>Data: ${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
+                        ${deposit.approved_at ? `<p>Approvata: ${new Date(deposit.approved_at).toLocaleDateString('it-IT')}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            depositsList.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna ricarica</h3>
+                    <p class="text-gray-600">Non hai ancora effettuato ricariche al tuo portafoglio.</p>
+                </div>
+            `;
+        }
+        
+        window.depositsLoaded = true;
+    } catch (error) {
+        console.error('Errore caricamento ricariche:', error);
+        document.getElementById('deposits-list').innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>Errore durante il caricamento delle ricariche</p>
+            </div>
+        `;
+    }
+}
+
+// Carica richieste prelievo
+async function loadWithdrawals() {
+    try {
+        const response = await fetch('/api/portfolio/withdrawals');
+        const data = await response.json();
+        
+        const withdrawalsList = document.getElementById('withdrawals-list');
+        
+        if (data.withdrawals && data.withdrawals.length > 0) {
+            withdrawalsList.innerHTML = data.withdrawals.map(withdrawal => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                            <p class="text-sm text-gray-500">Fonte: ${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
+                                                                    withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : 'Profitti'}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            ${withdrawal.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800'}">
+                            ${withdrawal.status === 'completed' ? 'Completato' : 
+                              withdrawal.status === 'pending' ? 'In Attesa' : 
+                              withdrawal.status === 'rejected' ? 'Rifiutato' : withdrawal.status}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <p>Data: ${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</p>
+                        ${withdrawal.approved_at ? `<p>Approvato: ${new Date(withdrawal.approved_at).toLocaleDateString('it-IT')}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            withdrawalsList.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun prelievo</h3>
+                    <p class="text-gray-600">Non hai ancora richiesto prelievi dal tuo portafoglio.</p>
+                </div>
+            `;
+        }
+        
+        window.withdrawalsLoaded = true;
+    } catch (error) {
+        console.error('Errore caricamento prelievi:', error);
+        document.getElementById('withdrawals-list').innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>Errore durante il caricamento dei prelievi</p>
+            </div>
+        `;
+    }
+}
+
+// Carica movimenti capitali
+async function loadMovements() {
+    try {
+        const response = await fetch('/api/portfolio/movements');
+        const data = await response.json();
+        
+        const movementsList = document.getElementById('movements-list');
+        
+        if (data.movements && data.movements.length > 0) {
+            movementsList.innerHTML = data.movements.map(movement => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900">€${parseFloat(movement.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                            <p class="text-sm text-gray-500">${movement.description}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium
+                            ${movement.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              movement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-gray-100 text-gray-800'}">
+                            ${movement.status === 'completed' ? 'Completato' : 
+                              movement.status === 'pending' ? 'In Attesa' : 
+                              movement.status === 'failed' ? 'Fallito' : movement.status}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <p>Data: ${new Date(movement.created_at).toLocaleDateString('it-IT')}</p>
+                        <p>Tipo: ${movement.type === 'investment' ? 'Investimento' : 
+                                   movement.type === 'roi' ? 'Rendimento' : 
+                                   movement.type === 'referral' ? 'Referral' : movement.type}</p>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            movementsList.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun movimento</h3>
+                    <p class="text-gray-600">Non ci sono ancora movimenti nel tuo portafoglio.</p>
+                </div>
+            `;
+        }
+        
+        window.movementsLoaded = true;
+    } catch (error) {
+        console.error('Errore caricamento movimenti:', error);
+        document.getElementById('movements-list').innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>Errore durante il caricamento dei movimenti</p>
+            </div>
+        `;
+    }
+}
+
+// Carica profitti e rendimenti
+async function loadProfits() {
+    try {
+        const response = await fetch('/api/portfolio/profits');
+        const data = await response.json();
+        
+        const profitsList = document.getElementById('profits-list');
+        
+        if (data.profits && data.profits.length > 0) {
+            profitsList.innerHTML = data.profits.map(profit => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-medium text-gray-900">${profit.project_title}</h3>
+                            <p class="text-sm text-gray-500">Investito: €${parseFloat(profit.invested_amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-green-600">+€${parseFloat(profit.profit).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                            <p class="text-sm text-green-600">ROI: ${profit.roi_percentage}%</p>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <p>Completato: ${profit.completion_date ? new Date(profit.completion_date).toLocaleDateString('it-IT') : 'N/A'}</p>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            profitsList.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun profitto</h3>
+                    <p class="text-gray-600">Non hai ancora profitti dai tuoi investimenti.</p>
+                </div>
+            `;
+        }
+        
+        window.profitsLoaded = true;
+    } catch (error) {
+        console.error('Errore caricamento profitti:', error);
+        document.getElementById('profits-list').innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>Errore durante il caricamento dei profitti</p>
+            </div>
+        `;
+    }
+}
+
+// Gestione form prelievo
+document.getElementById('withdrawal-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        amount: formData.get('amount'),
+        source_section: formData.get('source_section'),
+        bank_details: {
+            iban: formData.get('iban'),
+            account_holder: formData.get('account_holder'),
+            bank_name: formData.get('bank_name')
+        }
+    };
+    
+    try {
+        const response = await fetch('/api/portfolio/withdrawals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Richiesta prelievo creata con successo!');
+            this.reset();
+            // Ricarica lista prelievi
+            loadWithdrawals();
+            // Ricarica dati portfolio
+            loadPortfolioData();
+        } else {
+            alert('Errore: ' + result.error);
+        }
+    } catch (error) {
+        alert('Errore durante la creazione della richiesta prelievo');
+    }
+});
+
 // Gestione form profilo portfolio
 document.getElementById('portfolio-profile-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -228,6 +758,15 @@ document.getElementById('portfolio-profile-form').addEventListener('submit', asy
     } catch (error) {
         alert('Errore durante l\'aggiornamento dei dati personali');
     }
+});
+
+// Inizializzazione pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica dati portfolio all'avvio
+    loadPortfolioData();
+    
+    // Mostra sezione panoramica di default
+    showSection('overview');
 });
 </script>
 {% endblock %}

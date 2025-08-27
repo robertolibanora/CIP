@@ -148,3 +148,46 @@ def validate_date_range(start_date, end_date):
             raise ValidationError("Data inizio deve essere precedente alla data fine")
     
     return start_date, end_date
+
+def validate_withdrawal_amount(amount):
+    """Valida importo prelievo (minimo 50 dollari)"""
+    if not amount:
+        raise ValidationError("Importo prelievo richiesto")
+    
+    try:
+        amount_decimal = Decimal(str(amount))
+        if amount_decimal < Decimal('50.00'):
+            raise ValidationError("Importo minimo prelievo: 50 dollari")
+        if amount_decimal > 999999999.99:
+            raise ValidationError("Importo troppo elevato")
+        return amount_decimal
+    except (ValueError, TypeError):
+        raise ValidationError("Importo prelievo non valido")
+
+def validate_withdrawal_source(source_section):
+    """Valida sezione fonte prelievo"""
+    if not source_section:
+        raise ValidationError("Sezione fonte prelievo richiesta")
+    
+    valid_sections = ['free_capital', 'referral_bonus', 'profits']
+    if source_section not in valid_sections:
+        raise ValidationError(f"Sezione fonte non valida. Usa una di: {', '.join(valid_sections)}")
+    
+    return source_section
+
+def validate_bank_details(bank_details):
+    """Valida dettagli bancari per prelievo"""
+    if not bank_details:
+        raise ValidationError("Dettagli bancari richiesti")
+    
+    required_fields = ['iban', 'account_holder', 'bank_name']
+    for field in required_fields:
+        if not bank_details.get(field):
+            raise ValidationError(f"Campo {field} richiesto nei dettagli bancari")
+    
+    # Validazione IBAN base
+    iban = bank_details['iban'].replace(' ', '').upper()
+    if len(iban) < 15 or len(iban) > 34:
+        raise ValidationError("IBAN non valido")
+    
+    return bank_details
