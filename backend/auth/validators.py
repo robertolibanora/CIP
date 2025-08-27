@@ -93,9 +93,19 @@ def validate_email_format(email: str) -> bool:
     if not email:
         return False
     
-    # Pattern regex per email valida
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return bool(re.match(pattern, email))
+    # Pattern regex per email valida (accetta anche IP come domini)
+    pattern = r'^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$'
+    
+    # Verifica pattern base
+    if not re.match(pattern, email):
+        return False
+    
+    # Verifica che non ci siano punti consecutivi nella parte locale
+    local_part = email.split('@')[0]
+    if '..' in local_part:
+        return False
+        
+    return True
 
 def validate_email_domain(email: str, allowed_domains: Optional[list] = None) -> bool:
     """Valida il dominio dell'email"""
@@ -164,6 +174,12 @@ def validate_session_token(token: str) -> bool:
     if len(token) < 32:
         return False
     
+    # Verifica che contenga solo caratteri validi per base64 URL safe
+    import string
+    valid_chars = string.ascii_letters + string.digits + '-_'
+    if not all(c in valid_chars for c in token):
+        return False
+    
     # Verifica formato (base64 URL safe)
     try:
         import base64
@@ -185,13 +201,13 @@ def sanitize_input(input_string: str, max_length: int = 1000) -> str:
     if len(input_string) > max_length:
         input_string = input_string[:max_length]
     
+    # Rimuovi script tags mantenendo il contenuto interno
+    input_string = re.sub(r'<script[^>]*>(.*?)</script>', r'\1', input_string, flags=re.IGNORECASE)
+    
     # Rimuovi caratteri pericolosi
     dangerous_chars = ['<', '>', '"', "'", '&', 'javascript:', 'vbscript:']
     for char in dangerous_chars:
         input_string = input_string.replace(char, '')
-    
-    # Rimuovi script tags
-    input_string = re.sub(r'<script.*?</script>', '', input_string, flags=re.IGNORECASE)
     
     return input_string.strip()
 
@@ -343,6 +359,8 @@ def validate_file_upload(filename: str, mime_type: str,
     Returns:
         Tuple[bool, str]: (is_valid, error_message)
     """
+    import os
+    
     # Verifica estensione
     allowed_extensions = {'.pdf', '.jpg', '.jpeg', '.png', '.gif'}
     file_ext = os.path.splitext(filename)[1].lower()

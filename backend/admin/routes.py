@@ -467,6 +467,460 @@ def analytics():
         bonus_month = cur.fetchall()
     return jsonify({"investments": inv_month, "users": users_month, "bonuses": bonus_month})
 
+# ---- TASK 2.7 - Gestione Ricariche ----
+@admin_bp.get("/api/deposit-requests")
+@admin_required
+def deposit_requests_list():
+    """Gestione ricariche: lista richieste pending"""
+    status = request.args.get('status', 'pending')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT dr.id, dr.user_id, u.full_name, u.email, dr.amount, 
+                   dr.unique_key, dr.payment_reference, dr.status, dr.created_at,
+                   dr.iban, dr.admin_notes
+            FROM deposit_requests dr
+            JOIN users u ON u.id = dr.user_id
+            WHERE dr.status = %s
+            ORDER BY dr.created_at ASC
+        """, (status,))
+        requests = cur.fetchall()
+    
+    return jsonify(requests)
+
+@admin_bp.post("/api/deposit-requests/approve")
+@admin_required
+def approve_deposit_request():
+    """Approvazione ricarica dopo verifica bonifico"""
+    data = request.get_json() or {}
+    deposit_id = data.get('deposit_id')
+    amount_received = data.get('amount_received')
+    admin_notes = data.get('admin_notes', '')
+    
+    if not deposit_id:
+        return jsonify({'error': 'Deposit ID richiesto'}), 400
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica richiesta esiste
+            cur.execute("""
+                SELECT dr.*, u.email FROM deposit_requests dr
+                JOIN users u ON u.id = dr.user_id  
+                WHERE dr.id = %s AND dr.status = 'pending'
+            """, (deposit_id,))
+            deposit = cur.fetchone()
+            
+            if not deposit:
+                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
+            
+            # Aggiorna stato ricarica
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'completed', admin_notes = %s, approved_at = NOW(), approved_by = %s
+                WHERE id = %s
+            """, (admin_notes, session.get('user_id'), deposit_id))
+            
+            # Aggiorna portfolio utente (capitale libero)
+            amount_to_add = amount_received if amount_received else deposit['amount']
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET free_capital = free_capital + %s, updated_at = NOW()
+                WHERE user_id = %s
+            """, (amount_to_add, deposit['user_id']))
+            
+            # Registra transazione
+            cur.execute("""
+                INSERT INTO portfolio_transactions (
+                    user_id, type, amount, balance_before, balance_after,
+                    description, reference_id, reference_type, status, created_at
+                ) VALUES (
+                    %s, 'deposit', %s, 0, %s, 
+                    'Ricarica approvata da admin', %s, 'deposit_request', 'completed', NOW()
+                )
+            """, (deposit['user_id'], amount_to_add, amount_to_add, deposit_id))
+            
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Ricarica approvata con successo',
+            'deposit_id': deposit_id,
+            'amount_added': float(amount_to_add)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+
+@admin_bp.post("/api/deposit-requests/reject")
+@admin_required
+def reject_deposit_request():
+    """Rifiuta richiesta di ricarica"""
+    data = request.get_json() or {}
+    deposit_id = data.get('deposit_id')
+    admin_notes = data.get('admin_notes', '')
+    
+    if not deposit_id:
+        return jsonify({'error': 'Deposit ID richiesto'}), 400
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'rejected', admin_notes = %s, approved_at = NOW(), approved_by = %s
+                WHERE id = %s AND status = 'pending'
+            """, (admin_notes, session.get('user_id'), deposit_id))
+            
+            if cur.rowcount == 0:
+                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
+            
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Richiesta rifiutata',
+            'deposit_id': deposit_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore nel rifiuto: {str(e)}'}), 500
+
+# ---- TASK 2.7 - Gestione Prelievi ----
+@admin_bp.get("/api/withdrawal-requests")
+@admin_required
+def withdrawal_requests_list():
+    """Gestione prelievi: lista richieste pending (48h max)"""
+    status = request.args.get('status', 'pending')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, 
+                   wr.source_section, wr.bank_details, wr.status, wr.created_at,
+                   wr.admin_notes,
+                   EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
+            FROM withdrawal_requests wr
+            JOIN users u ON u.id = wr.user_id
+            WHERE wr.status = %s
+            ORDER BY wr.created_at ASC
+        """, (status,))
+        requests = cur.fetchall()
+    
+    return jsonify(requests)
+
+@admin_bp.post("/api/withdrawal-requests/approve")
+@admin_required
+def approve_withdrawal_request():
+    """Approvazione prelievo (48h max)"""
+    data = request.get_json() or {}
+    withdrawal_id = data.get('withdrawal_id')
+    admin_notes = data.get('admin_notes', '')
+    
+    if not withdrawal_id:
+        return jsonify({'error': 'Withdrawal ID richiesto'}), 400
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica richiesta esiste
+            cur.execute("""
+                SELECT wr.*, u.email FROM withdrawal_requests wr
+                JOIN users u ON u.id = wr.user_id  
+                WHERE wr.id = %s AND wr.status = 'pending'
+            """, (withdrawal_id,))
+            withdrawal = cur.fetchone()
+            
+            if not withdrawal:
+                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
+            
+            # Aggiorna stato prelievo
+            cur.execute("""
+                UPDATE withdrawal_requests 
+                SET status = 'completed', admin_notes = %s, approved_at = NOW(), approved_by = %s
+                WHERE id = %s
+            """, (admin_notes, session.get('user_id'), withdrawal_id))
+            
+            # Registra transazione
+            cur.execute("""
+                INSERT INTO portfolio_transactions (
+                    user_id, type, amount, balance_before, balance_after,
+                    description, reference_id, reference_type, status, created_at
+                ) VALUES (
+                    %s, 'withdrawal', -%s, 0, 0, 
+                    'Prelievo approvato da admin', %s, 'withdrawal_request', 'completed', NOW()
+                )
+            """, (withdrawal['user_id'], withdrawal['amount'], withdrawal_id))
+            
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Prelievo approvato con successo',
+            'withdrawal_id': withdrawal_id,
+            'amount': float(withdrawal['amount'])
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+
+# ---- TASK 2.7 - Configurazione IBAN ----
+@admin_bp.get("/api/iban-config")
+@admin_required
+def get_iban_configuration():
+    """Recupera configurazione IBAN per ricariche"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT * FROM iban_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        config = cur.fetchone()
+    
+    return jsonify(config) if config else jsonify({'error': 'Nessuna configurazione IBAN trovata'}), 404
+
+@admin_bp.post("/api/iban-config")
+@admin_required
+def set_iban_configuration():
+    """Imposta configurazione IBAN unico per ricariche"""
+    data = request.get_json() or {}
+    iban = data.get('iban')
+    bank_name = data.get('bank_name')
+    account_holder = data.get('account_holder')
+    
+    if not all([iban, bank_name, account_holder]):
+        return jsonify({'error': 'IBAN, nome banca e intestatario richiesti'}), 400
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Disattiva configurazioni precedenti
+            cur.execute("UPDATE iban_configurations SET is_active = false")
+            
+            # Inserisci nuova configurazione
+            cur.execute("""
+                INSERT INTO iban_configurations (iban, bank_name, account_holder, is_active, created_at, updated_at)
+                VALUES (%s, %s, %s, true, NOW(), NOW())
+                RETURNING id
+            """, (iban, bank_name, account_holder))
+            
+            config_id = cur.fetchone()['id']
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Configurazione IBAN aggiornata',
+            'config_id': config_id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore nel salvataggio: {str(e)}'}), 500
+
+# ---- TASK 2.7 - Monitoraggio Transazioni ----
+@admin_bp.get("/api/transactions-overview")
+@admin_required
+def transactions_overview():
+    """Monitoraggio transazioni: overview completo"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Statistiche ricariche
+        cur.execute("""
+            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
+            FROM deposit_requests 
+            GROUP BY status
+        """)
+        deposits_stats = cur.fetchall()
+        
+        # Statistiche prelievi
+        cur.execute("""
+            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
+            FROM withdrawal_requests 
+            GROUP BY status
+        """)
+        withdrawals_stats = cur.fetchall()
+        
+        # Transazioni recenti
+        cur.execute("""
+            SELECT pt.*, u.full_name, u.email
+            FROM portfolio_transactions pt
+            JOIN users u ON u.id = pt.user_id
+            ORDER BY pt.created_at DESC
+            LIMIT 50
+        """)
+        recent_transactions = cur.fetchall()
+    
+    return jsonify({
+        'deposits_stats': deposits_stats,
+        'withdrawals_stats': withdrawals_stats,
+        'recent_transactions': recent_transactions
+    })
+
+@admin_bp.get("/api/transactions")
+@admin_required
+def transactions_filtered():
+    """Monitoraggio transazioni con filtri"""
+    status = request.args.get('status')
+    transaction_type = request.args.get('type')
+    user_id = request.args.get('user_id')
+    
+    where_conditions = []
+    params = []
+    
+    if status:
+        where_conditions.append("pt.status = %s")
+        params.append(status)
+    
+    if transaction_type:
+        where_conditions.append("pt.type = %s")
+        params.append(transaction_type)
+    
+    if user_id:
+        where_conditions.append("pt.user_id = %s")
+        params.append(user_id)
+    
+    where_clause = " AND ".join(where_conditions)
+    if where_clause:
+        where_clause = "WHERE " + where_clause
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(f"""
+            SELECT pt.*, u.full_name, u.email
+            FROM portfolio_transactions pt
+            JOIN users u ON u.id = pt.user_id
+            {where_clause}
+            ORDER BY pt.created_at DESC
+            LIMIT 100
+        """, params)
+        transactions = cur.fetchall()
+    
+    return jsonify(transactions)
+
+# ---- TASK 2.7 - Gestione Referral ----
+@admin_bp.get("/api/referral-overview")
+@admin_required
+def referral_overview():
+    """Gestione referral: overview sistema referral"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Statistiche referral
+        cur.execute("""
+            SELECT COUNT(*) as total_referrals,
+                   COUNT(CASE WHEN status = 'active' THEN 1 END) as active_referrals,
+                   COALESCE(SUM(commission_earned), 0) as total_commissions
+            FROM referrals
+        """)
+        referral_stats = cur.fetchone()
+        
+        # Top referrer
+        cur.execute("""
+            SELECT u.full_name, u.email, r.commission_earned, r.total_invested
+            FROM referrals r
+            JOIN users u ON u.id = r.referrer_id
+            ORDER BY r.commission_earned DESC
+            LIMIT 10
+        """)
+        top_referrers = cur.fetchall()
+        
+        # Commissioni recenti
+        cur.execute("""
+            SELECT rc.*, ur.full_name as referrer_name, uu.full_name as referred_name
+            FROM referral_commissions rc
+            JOIN users ur ON ur.id = rc.referrer_id
+            JOIN users uu ON uu.id = rc.referred_user_id
+            ORDER BY rc.created_at DESC
+            LIMIT 20
+        """)
+        recent_commissions = cur.fetchall()
+    
+    return jsonify({
+        'stats': referral_stats,
+        'top_referrers': top_referrers,
+        'recent_commissions': recent_commissions
+    })
+
+@admin_bp.post("/api/distribute-referral-bonus")
+@admin_required
+def distribute_referral_bonus():
+    """Distribuzione manuale bonus referral 1%"""
+    data = request.get_json() or {}
+    user_id = data.get('user_id')
+    profit_amount = data.get('profit_amount')
+    referral_percentage = data.get('referral_percentage', 0.01)
+    
+    if not all([user_id, profit_amount]):
+        return jsonify({'error': 'User ID e profit amount richiesti'}), 400
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se l'utente ha un referrer
+            cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
+            user = cur.fetchone()
+            
+            if not user or not user['referred_by']:
+                return jsonify({'error': 'Utente non ha un referrer'}), 400
+            
+            # Calcola bonus referral
+            bonus_amount = float(profit_amount) * float(referral_percentage)
+            
+            # Aggiorna portfolio del referrer
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET referral_bonus = referral_bonus + %s, updated_at = NOW()
+                WHERE user_id = %s
+            """, (bonus_amount, user['referred_by']))
+            
+            # Registra transazione
+            cur.execute("""
+                INSERT INTO portfolio_transactions (
+                    user_id, type, amount, balance_before, balance_after,
+                    description, status, created_at
+                ) VALUES (
+                    %s, 'referral', %s, 0, %s, 
+                    'Bonus referral distribuito da admin', 'completed', NOW()
+                )
+            """, (user['referred_by'], bonus_amount, bonus_amount))
+            
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': 'Bonus referral distribuito',
+            'referrer_id': user['referred_by'],
+            'bonus_amount': bonus_amount
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore nella distribuzione: {str(e)}'}), 500
+
+# ---- TASK 2.7 - Enhanced KYC Management ----
+@admin_bp.get("/api/kyc-requests")
+@admin_required
+def kyc_requests_list():
+    """Lista documenti KYC da approvare"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT u.id, u.full_name, u.email, u.kyc_status, u.created_at,
+                   COUNT(d.id) as documents_count
+            FROM users u
+            LEFT JOIN documents d ON d.user_id = u.id AND d.category_id = 1
+            WHERE u.kyc_status IN ('pending', 'unverified')
+            GROUP BY u.id, u.full_name, u.email, u.kyc_status, u.created_at
+            ORDER BY u.created_at ASC
+        """)
+        requests = cur.fetchall()
+    
+    return jsonify(requests)
+
+@admin_bp.get("/api/kyc-requests/<int:user_id>/documents")
+@admin_required
+def kyc_user_documents(user_id):
+    """Documenti KYC specifici utente"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT d.*, dc.name as category_name
+            FROM documents d
+            JOIN document_categories dc ON dc.id = d.category_id
+            WHERE d.user_id = %s AND dc.is_kyc = true
+            ORDER BY d.uploaded_at DESC
+        """, (user_id,))
+        documents = cur.fetchall()
+    
+    return jsonify(documents)
+
 # ---- Static uploads ----
 @admin_bp.get('/uploads/<path:filename>')
 @admin_required

@@ -42,11 +42,20 @@ def portfolio():
         # Aggiungi campi mancanti per compatibilità template
         for row in rows:
             row['roi'] = 8.5  # ROI fisso per ora
+        
+        # Dati utente completi per il form profilo - TABELLA: users
+        cur.execute("""
+            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+                   address, currency_code, referral_code, created_at
+            FROM users WHERE id = %s
+        """, (uid,))
+        user_data = cur.fetchone()
     
     return render_template("user/portfolio.html", 
                          user_id=uid,
                          tab=tab,
                          investments=rows,
+                         user=user_data,
                          current_page="portfolio")
 
 @portfolio_bp.get("/portfolio/<int:investment_id>")

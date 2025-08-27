@@ -54,7 +54,7 @@
                             <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
-                            <div class="flex text-sm text-gray-600">
+                            <div class="flex flex-col sm:flex-row text-sm text-gray-600">
                                 <label for="document_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
                                     <span>Carica un file</span>
                                     <input id="document_file" 
@@ -62,11 +62,13 @@
                                            type="file" 
                                            class="sr-only" 
                                            accept=".pdf,.png,.jpg,.jpeg,.gif"
+                                           capture="environment"
                                            required>
                                 </label>
-                                <p class="pl-1">o trascina e rilascia</p>
+                                <p class="pl-1 mt-1 sm:mt-0">o trascina e rilascia</p>
                             </div>
                             <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
+                            <p class="text-xs text-blue-600 mt-2">📱 Tocca per scattare foto o selezionare file</p>
                         </div>
                     </div>
                 </div>
@@ -464,9 +466,10 @@ class KYCManager {
             await this.uploadDocument(formData);
         });
         
-        // Drag and drop per mobile
+        // Drag and drop per mobile e desktop
         const dropZone = document.querySelector('#kyc-upload-form .border-dashed');
         
+        // Eventi drag and drop per desktop
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('border-blue-400', 'bg-blue-50');
@@ -486,6 +489,42 @@ class KYCManager {
                 document.getElementById('document_file').files = files;
             }
         });
+        
+        // Ottimizzazioni per mobile
+        if ('ontouchstart' in window) {
+            // Aggiungi feedback visivo per touch
+            dropZone.addEventListener('touchstart', () => {
+                dropZone.classList.add('bg-blue-50', 'scale-105');
+            });
+            
+            dropZone.addEventListener('touchend', () => {
+                dropZone.classList.remove('bg-blue-50', 'scale-105');
+            });
+            
+            // Migliora la selezione file su mobile
+            const fileInput = document.getElementById('document_file');
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    // Mostra preview del file selezionato
+                    const fileName = file.name;
+                    const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                    
+                    // Aggiorna UI per mostrare file selezionato
+                    const dropZoneText = dropZone.querySelector('.space-y-1');
+                    dropZoneText.innerHTML = `
+                        <svg class="mx-auto h-12 w-12 text-green-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="text-sm text-gray-900">
+                            <p class="font-medium">${fileName}</p>
+                            <p class="text-gray-500">${fileSize} MB</p>
+                        </div>
+                        <p class="text-xs text-blue-600">File selezionato ✓</p>
+                    `;
+                }
+            });
+        }
     }
 }
 

@@ -28,9 +28,10 @@ def profile():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Dati utente - TABELLA: users
+        # Dati utente completi - TABELLA: users
         cur.execute("""
-            SELECT id, full_name, email, referral_code, created_at
+            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+                   address, currency_code, referral_code, created_at
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -44,23 +45,69 @@ def profile():
 def profile_update():
     """
     Aggiornamento dati profilo
-    ACCESSO: Solo tramite profile.html (non accessibile direttamente)
+    ACCESSO: Solo tramite profile.html e portfolio.html
     TABELLE: users (aggiornamento)
     """
     uid = session.get("user_id")
     data = request.get_json()
     
-    # Validazione dati
-    if not data or not data.get('full_name') or not data.get('email'):
+    # Validazione dati base
+    if not data:
         return jsonify({'success': False, 'error': 'Dati mancanti'}), 400
+    
+    # Gestisce sia il form profile.html che portfolio.html
+    update_fields = []
+    update_values = []
+    
+    # Campi del form profile.html
+    if 'full_name' in data and data['full_name']:
+        update_fields.append('full_name = %s')
+        update_values.append(data['full_name'])
+    
+    if 'email' in data and data['email']:
+        update_fields.append('email = %s')
+        update_values.append(data['email'])
+    
+    # Campi del form portfolio.html
+    if 'nome' in data and data['nome']:
+        update_fields.append('nome = %s')
+        update_values.append(data['nome'])
+    
+    if 'cognome' in data and data['cognome']:
+        update_fields.append('cognome = %s')
+        update_values.append(data['cognome'])
+    
+    if 'telefono' in data and data['telefono']:
+        update_fields.append('telefono = %s')
+        update_values.append(data['telefono'])
+    
+    if 'nome_telegram' in data:
+        update_fields.append('nome_telegram = %s')
+        update_values.append(data['nome_telegram'])
+    
+    if 'address' in data:
+        update_fields.append('address = %s')
+        update_values.append(data['address'])
+    
+    if 'currency_code' in data and data['currency_code']:
+        update_fields.append('currency_code = %s')
+        update_values.append(data['currency_code'])
+    
+    if not update_fields:
+        return jsonify({'success': False, 'error': 'Nessun campo valido da aggiornare'}), 400
+    
+    # Aggiungi updated_at e user_id
+    update_fields.append('updated_at = NOW()')
+    update_values.append(uid)
     
     with get_conn() as conn, conn.cursor() as cur:
         # Aggiorna profilo - TABELLA: users
-        cur.execute("""
+        query = f"""
             UPDATE users 
-            SET full_name = %s, email = %s, updated_at = NOW()
+            SET {', '.join(update_fields)}
             WHERE id = %s
-        """, (data['full_name'], data['email'], uid))
+        """
+        cur.execute(query, update_values)
         conn.commit()
     
     return jsonify({'success': True, 'message': 'Profilo aggiornato con successo'})

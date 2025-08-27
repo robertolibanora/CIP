@@ -15,7 +15,7 @@ def get_conn():
     return get_connection()
 
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, can_access_portfolio
+from backend.auth.decorators import login_required, can_access_portfolio, admin_required
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -486,3 +486,144 @@ def admin_get_profits_stats():
         'distribution_stats': distribution_stats,
         'portfolio_stats': portfolio_stats
     })
+
+@profits_bp.route('/api/admin/complete-project-sale', methods=['POST'])
+@admin_required
+def complete_project_sale():
+    """Admin completa la vendita di un progetto e distribuisce profitti + referral"""
+    data = request.get_json() or {}
+    project_id = data.get('project_id')
+    sale_price = data.get('sale_price')
+    
+    if not project_id or not sale_price:
+        return jsonify({'error': 'Project ID e sale price richiesti'}), 400
+
+    try:
+        sale_price = Decimal(str(sale_price))
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Sale price non valido'}), 400
+    
+    try:
+            with get_conn() as conn, conn.cursor() as cur:
+                # Verifica progetto esiste e ha investimenti
+                cur.execute("""
+                    SELECT id, name, total_amount, funded_amount
+                    FROM projects 
+                    WHERE id = %s AND status = 'active'
+                """, (project_id,))
+                project = cur.fetchone()
+                
+                if not project:
+                    return jsonify({'error': 'Progetto non trovato o non attivo'}), 404
+                
+                # Ottieni tutti gli investimenti attivi per questo progetto
+                cur.execute("""
+                    SELECT i.id, i.user_id, i.amount, i.percentage,
+                           u.referred_by, u.referral_code
+                    FROM investments i
+                    JOIN users u ON i.user_id = u.id
+                    WHERE i.project_id = %s AND i.status = 'active'
+                """, (project_id,))
+                investments = cur.fetchall()
+                
+                if not investments:
+                    return jsonify({'error': 'Nessun investimento attivo trovato'}), 400
+                
+                # Calcola profitti totali
+                total_invested = sum(Decimal(str(inv['amount'])) for inv in investments)
+                total_profit = sale_price - total_invested
+                
+                if total_profit < 0:
+                    total_profit = Decimal('0.00')  # Non ci sono profitti se la vendita è in perdita
+                
+                # Registra la vendita
+                cur.execute("""
+                    INSERT INTO project_sales (project_id, sale_price, sale_date, admin_id)
+                    VALUES (%s, %s, NOW(), %s)
+                    RETURNING id
+                """, (project_id, sale_price, session.get('user_id')))
+                
+                sale_id = cur.fetchone()['id']
+                
+                # Distribuisci profitti e referral per ogni investimento
+                for investment in investments:
+                    user_id = investment['user_id']
+                    invested_amount = Decimal(str(investment['amount']))
+                    user_percentage = Decimal(str(investment['percentage']))
+                    referred_by = investment['referred_by']
+                
+                # Calcola profitto per questo utente
+                user_profit_share = (invested_amount / total_invested) * total_profit if total_invested > 0 else Decimal('0.00')
+                
+                # Calcola commissione referral (1% del profitto)
+                referral_bonus = user_profit_share * Decimal('0.01') if user_profit_share > 0 else Decimal('0.00')
+                
+                # Calcola payout totale
+                total_payout = user_profit_share + referral_bonus
+                
+                # Registra distribuzione profitti
+                cur.execute("""
+                    INSERT INTO profit_distributions (
+                        project_sale_id, user_id, investment_id, original_investment,
+                        profit_share, referral_bonus, total_payout, status
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (sale_id, user_id, investment['id'], invested_amount, 
+                      user_profit_share, referral_bonus, total_payout, 'completed'))
+                
+                # Aggiorna portfolio utente
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET profits = profits + %s,
+                        updated_at = NOW()
+                    WHERE user_id = %s
+                """, (user_profit_share, user_id))
+                
+                # Se c'è un referral, distribuisci il bonus
+                if referred_by and referral_bonus > 0:
+                    # Aggiorna portfolio di chi ha fatto il referral
+                    cur.execute("""
+                        UPDATE user_portfolios 
+                        SET referral_bonus = referral_bonus + %s,
+                            updated_at = NOW()
+                        WHERE user_id = %s
+                    """, (referral_bonus, referred_by))
+                    
+                    # Registra commissione referral
+                    cur.execute("""
+                        INSERT INTO referral_commissions (
+                            referral_id, referrer_id, referred_user_id, investment_id,
+                            project_id, investment_amount, commission_amount, status
+                        ) VALUES (
+                            (SELECT id FROM referrals WHERE referrer_id = %s AND referred_user_id = %s LIMIT 1),
+                            %s, %s, %s, %s, %s, %s, 'completed'
+                        )
+                    """, (referred_by, user_id, referred_by, user_id, investment['id'], 
+                          project_id, invested_amount, referral_bonus))
+                
+                # Aggiorna stato investimento
+                cur.execute("""
+                    UPDATE investments 
+                    SET status = 'completed', completion_date = NOW(), roi_earned = %s
+                    WHERE id = %s
+                """, (user_profit_share, investment['id']))
+            
+            # Aggiorna stato progetto
+            cur.execute("""
+                UPDATE projects 
+                SET status = 'completed', end_date = NOW()
+                WHERE id = %s
+            """, (project_id,))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'sale_id': sale_id,
+                'total_profit': float(total_profit),
+                'investments_processed': len(investments),
+                'message': 'Vendita completata e profitti distribuiti con successo'
+            })
+            
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': f'Errore durante la distribuzione: {str(e)}'}), 500

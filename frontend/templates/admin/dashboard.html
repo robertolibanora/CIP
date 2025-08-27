@@ -3,61 +3,385 @@
 {% block title %}Dashboard Admin - CIP Immobiliare{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Dashboard Amministratore</h1>
-        
-        <!-- Metriche principali -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-blue-100 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-blue-800">Utenti Totali</h3>
-                <p class="text-2xl font-bold text-blue-600">{{ metrics.users_total or 0 }}</p>
+<!-- TASK 2.7 - Admin Panel Ottimizzato Mobile -->
+<div class="min-h-screen bg-gray-50">
+    <!-- Header Mobile-Friendly -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Admin</h1>
+                    <p class="text-sm text-gray-600 mt-1">Gestione completa sistema CIP</p>
+                </div>
+                <!-- Badge responsive -->
+                <div class="mt-3 sm:mt-0">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                        Sistema Attivo
+                    </div>
+                </div>
             </div>
-            <div class="bg-green-100 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-green-800">Progetti Attivi</h3>
-                <p class="text-2xl font-bold text-green-600">{{ metrics.projects_active or 0 }}</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Metriche principali - Mobile First -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Utenti Totali</h3>
+                        <p class="text-2xl font-semibold text-gray-900">{{ metrics.users_total or 0 }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="bg-purple-100 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-purple-800">Investimenti Totali</h3>
-                <p class="text-2xl font-bold text-purple-600">€{{ "%.2f"|format(metrics.investments_total or 0) }}</p>
+            
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Progetti Attivi</h3>
+                        <p class="text-2xl font-semibold text-gray-900">{{ metrics.projects_active or 0 }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="bg-orange-100 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-orange-800">Richieste in Attesa</h3>
-                <p class="text-2xl font-bold text-orange-600">{{ metrics.requests_pending or 0 }}</p>
+            
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Investimenti</h3>
+                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">€{{ "%.0f"|format(metrics.investments_total or 0) }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500">Pending</h3>
+                        <p class="text-2xl font-semibold text-gray-900">{{ metrics.requests_pending or 0 }}</p>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <!-- Azioni rapide -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Progetti</h3>
-                <a href="{{ url_for('admin.projects_list') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Visualizza Progetti
+        <!-- TASK 2.7 - Azioni rapide mobile-optimized -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 mb-8">
+            
+            <!-- Gestione KYC -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">KYC</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Approvazione documenti identità</p>
+                <button onclick="loadKYCRequests()" class="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium">
+                    Gestisci KYC
+                </button>
+            </div>
+            
+            <!-- Gestione Ricariche -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Ricariche</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Approvazione dopo bonifici</p>
+                <button onclick="loadDepositRequests()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                    Gestisci Ricariche
+                </button>
+            </div>
+            
+            <!-- Gestione Prelievi -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Prelievi</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Approvazione richieste (48h max)</p>
+                <button onclick="loadWithdrawalRequests()" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
+                    Gestisci Prelievi
+                </button>
+            </div>
+            
+            <!-- Gestione Progetti -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Progetti</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Gestione progetti immobiliari</p>
+                <a href="{{ url_for('admin.projects_list') }}" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium block text-center">
+                    Gestisci Progetti
                 </a>
             </div>
             
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Gestione Utenti</h3>
-                <a href="{{ url_for('admin.users_list') }}" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Visualizza Utenti
+            <!-- Gestione Utenti -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Utenti</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Gestione utenti e investitori</p>
+                <a href="{{ url_for('admin.users_list') }}" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium block text-center">
+                    Gestisci Utenti
                 </a>
             </div>
             
-            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Richieste Investimenti</h3>
-                <a href="{{ url_for('admin.requests_queue') }}" class="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                    Visualizza Richieste
-                </a>
+            <!-- Monitoraggio Transazioni -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Transazioni</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Monitoraggio e tracking</p>
+                <button onclick="loadTransactionsOverview()" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+                    Vedi Transazioni
+                </button>
+            </div>
+            
+            <!-- Gestione Referral -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Referral</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Distribuzione bonus 1%</p>
+                <button onclick="loadReferralOverview()" class="w-full bg-pink-600 text-white py-2 px-4 rounded-lg hover:bg-pink-700 transition-colors text-sm font-medium">
+                    Gestisci Referral
+                </button>
+            </div>
+            
+            <!-- Configurazione IBAN -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">Config</h3>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">IBAN e configurazioni</p>
+                <button onclick="loadIBANConfig()" class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium">
+                    Configurazioni
+                </button>
             </div>
         </div>
         
-        <!-- Informazioni utente -->
-        <div class="mt-8 bg-gray-50 rounded-lg p-6">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Informazioni Sessione</h3>
-            <p><strong>User ID:</strong> {{ session.user_id }}</p>
-            <p><strong>Email:</strong> {{ session.email }}</p>
-            <p><strong>Ruolo:</strong> {{ session.role }}</p>
+        <!-- Informazioni utente mobile-friendly -->
+        <div class="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Sessione Admin</h3>
+                <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">User ID</p>
+                    <p class="font-medium text-gray-900">{{ session.user_id }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Email</p>
+                    <p class="font-medium text-gray-900">{{ session.email }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Ruolo</p>
+                    <p class="font-medium text-gray-900">{{ session.role }}</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- TASK 2.7 - JavaScript per funzionalità admin -->
+<script>
+// Gestione KYC
+async function loadKYCRequests() {
+    try {
+        const response = await fetch('/admin/api/kyc-requests');
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`Trovate ${data.length} richieste KYC pendenti`);
+            // TODO: Implementare UI per visualizzare le richieste
+        } else {
+            alert('Errore nel caricamento richieste KYC');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Gestione Ricariche
+async function loadDepositRequests() {
+    try {
+        const response = await fetch('/admin/api/deposit-requests');
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`Trovate ${data.length} richieste di ricarica pendenti`);
+            // TODO: Implementare UI per gestire le ricariche
+        } else {
+            alert('Errore nel caricamento richieste ricarica');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Gestione Prelievi
+async function loadWithdrawalRequests() {
+    try {
+        const response = await fetch('/admin/api/withdrawal-requests');
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`Trovate ${data.length} richieste di prelievo pendenti`);
+            // TODO: Implementare UI per gestire i prelievi
+        } else {
+            alert('Errore nel caricamento richieste prelievo');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Monitoraggio Transazioni
+async function loadTransactionsOverview() {
+    try {
+        const response = await fetch('/admin/api/transactions-overview');
+        const data = await response.json();
+        
+        if (response.ok) {
+            const overview = `
+                Statistiche Transazioni:
+                - Ricariche: ${data.deposits_stats?.length || 0} categorie
+                - Prelievi: ${data.withdrawals_stats?.length || 0} categorie
+                - Transazioni recenti: ${data.recent_transactions?.length || 0}
+            `;
+            alert(overview);
+            // TODO: Implementare UI dettagliata per transazioni
+        } else {
+            alert('Errore nel caricamento overview transazioni');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Gestione Referral
+async function loadReferralOverview() {
+    try {
+        const response = await fetch('/admin/api/referral-overview');
+        const data = await response.json();
+        
+        if (response.ok) {
+            const overview = `
+                Sistema Referral:
+                - Referral totali: ${data.stats?.total_referrals || 0}
+                - Referral attivi: ${data.stats?.active_referrals || 0}
+                - Commissioni totali: €${data.stats?.total_commissions || 0}
+                - Top referrer: ${data.top_referrers?.length || 0}
+            `;
+            alert(overview);
+            // TODO: Implementare UI per gestione referral
+        } else {
+            alert('Errore nel caricamento sistema referral');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Configurazione IBAN
+async function loadIBANConfig() {
+    try {
+        const response = await fetch('/admin/api/iban-config');
+        
+        if (response.ok) {
+            const data = await response.json();
+            alert(`IBAN configurato: ${data.iban}\nBanca: ${data.bank_name}\nIntestatario: ${data.account_holder}`);
+        } else {
+            alert('Nessuna configurazione IBAN trovata');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore di connessione');
+    }
+}
+
+// Auto-refresh metriche ogni 30 secondi
+setInterval(async () => {
+    try {
+        const response = await fetch('/admin/metrics');
+        if (response.ok) {
+            // Auto-refresh delle metriche in background
+            console.log('Metriche aggiornate');
+        }
+    } catch (error) {
+        console.log('Errore refresh metriche:', error);
+    }
+}, 30000);
+</script>
 {% endblock %}

@@ -28,6 +28,20 @@ def referral():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        # Dati utente per codice referral - TABELLA: users
+        cur.execute("""
+            SELECT id, full_name, email, referral_code, created_at
+            FROM users WHERE id = %s
+        """, (uid,))
+        user_data = cur.fetchone()
+        
+        # Genera codice referral se non esiste
+        if not user_data.get('referral_code'):
+            referral_code = 'REF' + str(uid).zfill(6)
+            cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (referral_code, uid))
+            user_data['referral_code'] = referral_code
+            conn.commit()
+        
         # Statistiche referral - TABELLA: users
         cur.execute("""
             SELECT COUNT(*) as total_referrals,
@@ -59,6 +73,7 @@ def referral():
     
     return render_template("user/referral.html", 
                          user_id=uid,
+                         user=user_data,
                          stats=stats,
                          referrals=referrals,
                          total_bonus=bonus['total_bonus'] if bonus else 0,
