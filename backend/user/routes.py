@@ -8,7 +8,7 @@ def get_conn():
     return get_connection()
 
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, kyc_verified, can_access_portfolio
+from backend.auth.decorators import login_required, kyc_verified, can_access_portfolio, can_invest
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -24,22 +24,30 @@ def dashboard():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Portfolio overview
-        cur.execute("SELECT total_invested, active_count FROM v_user_invested WHERE user_id=%s", (uid,))
-        inv = cur.fetchone() or {"total_invested": 0, "active_count": 0}
-        
-        # Rendimenti totali
+        # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT COALESCE(SUM(iy.amount),0) AS total_yields 
-            FROM investment_yields iy 
-            JOIN investments i ON i.id=iy.investment_id 
-            WHERE i.user_id=%s
+            SELECT id, email, full_name, role, referral_code, kyc_status
+            FROM users WHERE id = %s
         """, (uid,))
-        yields = cur.fetchone()
+        user_data = cur.fetchone()
         
-        # Bonus referral totali
-        cur.execute("SELECT bonus_total FROM v_user_bonus WHERE user_id=%s", (uid,))
-        bonus = cur.fetchone()
+        # Portfolio overview - 4 sezioni distinte
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio = cur.fetchone()
+        
+        if not portfolio:
+            # Crea portfolio se non esiste
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0.00, 0.00, 0.00, 0.00)
+                RETURNING free_capital, invested_capital, referral_bonus, profits
+            """, (uid,))
+            portfolio = cur.fetchone()
+            conn.commit()
         
         # Investimenti attivi dettagliati
         cur.execute("""
@@ -64,33 +72,42 @@ def dashboard():
         """, (uid,))
         total_referral_investments = cur.fetchone()['total_invested'] or 0
         
-        # Dati utente completi
-        cur.execute("""
-            SELECT id, email, full_name, role, referral_code
-            FROM users WHERE id = %s
-        """, (uid,))
-        user_data = cur.fetchone()
-        referral_code = user_data['referral_code'] if user_data else None
-    
-    # Calcola valori portfolio
-    total_invested = (inv and inv.get('total_invested', 0) or 0) or 0
-    total_yields = (yields and yields.get('total_yields', 0) or 0) or 0
-    referral_bonus_value = (bonus and bonus.get('bonus_total', 0) or 0) or 0
-    
-    # Portfolio balance = investimenti + rendimenti + bonus
-    portfolio_balance = total_invested + total_yields + referral_bonus_value
-    
-    # Portfolio change simulato (in futuro calcolare dai dati storici)
-    portfolio_change = 2.5  # +2.5%
-    
-    # Genera link referral
-    base_url = request.url_root.rstrip('/')
-    referral_link = f"{base_url}/auth/register?ref={referral_code}" if referral_code else f"{base_url}/auth/register"
+        # Calcola KPI e metriche
+        free_capital = portfolio['free_capital'] or 0
+        invested_capital = portfolio['invested_capital'] or 0
+        referral_bonus = portfolio['referral_bonus'] or 0
+        profits = portfolio['profits'] or 0
+        
+        total_available = free_capital + referral_bonus + profits
+        total_balance = total_available + invested_capital
+        
+        # Calcola ROI medio se ci sono investimenti
+        avg_roi = 0
+        if invested_capital > 0 and profits > 0:
+            avg_roi = (profits / invested_capital) * 100
+        
+        # Stato portfolio basato su KYC e investimenti
+        portfolio_status = "Attivo" if user_data['kyc_status'] == 'verified' and invested_capital > 0 else "Inattivo"
+        
+        # Genera link referral
+        base_url = request.url_root.rstrip('/')
+        referral_link = f"{base_url}/auth/register?ref={user_data['referral_code']}" if user_data['referral_code'] else f"{base_url}/auth/register"
     
     return render_template("user/dashboard.html", 
                          user=user_data,
-                         total_invested=total_invested,
-                         avg_roi=8.5,  # ROI medio simulato
+                         portfolio=portfolio,
+                         free_capital=free_capital,
+                         invested_capital=invested_capital,
+                         referral_bonus=referral_bonus,
+                         profits=profits,
+                         total_available=total_available,
+                         total_balance=total_balance,
+                         avg_roi=avg_roi,
+                         portfolio_status=portfolio_status,
+                         active_investments=active_investments_data,
+                         referred_users_count=referred_users_count,
+                         total_referral_investments=total_referral_investments,
+                         referral_link=referral_link,
                          current_page="dashboard"
                          )
 
@@ -151,34 +168,228 @@ def search():
 @user_bp.get("/new-project")
 @kyc_verified
 def new_project():
-    """Pagina per nuovo investimento"""
+    """Pagina per nuovo investimento - Task 2.5 implementazione completa"""
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        # 1. VERIFICA KYC - Già gestito dal decorator @kyc_verified
+        
+        # 2. CONTROLLO BUDGET - Ottieni portfolio con 4 sezioni
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio = cur.fetchone()
+        
+        if not portfolio:
+            # Crea portfolio se non esiste
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0.00, 0.00, 0.00, 0.00)
+                RETURNING free_capital, invested_capital, referral_bonus, profits
+            """, (uid,))
+            portfolio = cur.fetchone()
+            conn.commit()
+        
+        # 3. CALCOLO DISPONIBILITÀ - Calcola importi disponibili per sezione
+        total_available = portfolio['free_capital'] + portfolio['referral_bonus'] + portfolio['profits']
+        
+        # 4. SELEZIONE FONTE - Prepara dati per scelta sezione portafoglio
+        available_sections = []
+        if portfolio['free_capital'] > 0:
+            available_sections.append({
+                'name': 'Capitale Libero',
+                'key': 'free_capital',
+                'amount': portfolio['free_capital'],
+                'description': 'Soldi non investiti, sempre prelevabili'
+            })
+        if portfolio['referral_bonus'] > 0:
+            available_sections.append({
+                'name': 'Bonus Referral',
+                'key': 'referral_bonus',
+                'amount': portfolio['referral_bonus'],
+                'description': '1% referral, sempre disponibili per investimento'
+            })
+        if portfolio['profits'] > 0:
+            available_sections.append({
+                'name': 'Profitti',
+                'key': 'profits',
+                'amount': portfolio['profits'],
+                'description': 'Rendimenti accumulati, reinvestibili'
+            })
+        
+        # 5. PROGETTI DISPONIBILI
         cur.execute("""
             SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
-                   p.status, p.created_at, p.code
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment
             FROM projects p 
             WHERE p.status = 'active'
             ORDER BY p.created_at DESC
         """)
         available_projects = cur.fetchall()
         
-        # Calcola percentuale completamento
+        # Calcola percentuale completamento e aggiungi campi mancanti
         for project in available_projects:
             if project['target_amount'] and project['target_amount'] > 0:
                 project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             
-            project['location'] = 'N/A'
-            project['roi'] = 8.5
-            project['min_investment'] = 1000
+            # Campi di fallback se non presenti
+            project['location'] = project.get('location', 'N/A')
+            project['roi'] = project.get('roi', 8.5)
+            project['min_investment'] = project.get('min_investment', 1000)
     
     return render_template("user/new_project.html", 
                          user_id=uid,
                          projects=available_projects,
+                         portfolio=portfolio,
+                         total_available=total_available,
+                         available_sections=available_sections,
                          current_page="new_project")
+
+@user_bp.post("/invest/<int:project_id>")
+@can_invest
+def invest(project_id):
+    """Gestisce nuovo investimento - Task 2.5 implementazione completa"""
+    uid = session.get("user_id")
+    
+    # Validazione input
+    amount = request.form.get('amount')
+    source_section = request.form.get('source_section', 'free_capital')
+    
+    if not amount:
+        flash("Importo richiesto", "error")
+        return redirect(url_for('user.new_project'))
+    
+    try:
+        amount = float(amount)
+        if amount <= 0:
+            flash("Importo deve essere positivo", "error")
+            return redirect(url_for('user.new_project'))
+    except ValueError:
+        flash("Importo non valido", "error")
+        return redirect(url_for('user.new_project'))
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # 1. VERIFICA KYC - Già gestito dal decorator @can_invest
+        
+        # 2. CONTROLLO BUDGET - Verifica disponibilità saldo
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio = cur.fetchone()
+        
+        if not portfolio:
+            flash("Portfolio non trovato", "error")
+            return redirect(url_for('user.new_project'))
+        
+        # 3. SELEZIONE FONTE - Verifica sezione portafoglio scelta
+        available_amount = 0
+        if source_section == 'free_capital':
+            available_amount = portfolio['free_capital']
+        elif source_section == 'referral_bonus':
+            available_amount = portfolio['referral_bonus']
+        elif source_section == 'profits':
+            available_amount = portfolio['profits']
+        else:
+            flash("Sezione portafoglio non valida", "error")
+            return redirect(url_for('user.new_project'))
+        
+        # 4. CALCOLO DISPONIBILITÀ - Verifica fondi sufficienti
+        if available_amount < amount:
+            flash(f"Fondi insufficienti. Disponibile: €{available_amount:.2f}", "error")
+            return redirect(url_for('user.new_project'))
+        
+        # 5. VERIFICA PROGETTO
+        cur.execute("""
+            SELECT id, title, min_investment, target_amount, raised_amount, status
+            FROM projects 
+            WHERE id = %s AND status = 'active'
+        """, (project_id,))
+        project = cur.fetchone()
+        
+        if not project:
+            flash("Progetto non trovato o non disponibile", "error")
+            return redirect(url_for('user.new_project'))
+        
+        # 6. VALIDAZIONE IMPORTO MINIMO
+        if amount < project['min_investment']:
+            flash(f"Importo minimo richiesto: €{project['min_investment']:.2f}", "error")
+            return redirect(url_for('user.new_project'))
+        
+        # 7. WIZARD INVESTIMENTO - Crea investimento
+        try:
+            # Inizia transazione
+            conn.autocommit = False
+            
+            # Crea investimento
+            cur.execute("""
+                INSERT INTO investments (user_id, project_id, amount, status, investment_date)
+                VALUES (%s, %s, %s, 'active', NOW())
+                RETURNING id
+            """, (uid, project_id, amount))
+            investment_id = cur.fetchone()['id']
+            
+            # Aggiorna portfolio - sottrai dalla sezione scelta
+            if source_section == 'free_capital':
+                new_free_capital = portfolio['free_capital'] - amount
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET free_capital = %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (new_free_capital, uid))
+            elif source_section == 'referral_bonus':
+                new_referral_bonus = portfolio['referral_bonus'] - amount
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET referral_bonus = %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (new_referral_bonus, uid))
+            elif source_section == 'profits':
+                new_profits = portfolio['profits'] - amount
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET profits = %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (new_profits, uid))
+            
+            # Aggiungi a capitale investito
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET invested_capital = invested_capital + %s, updated_at = NOW()
+                WHERE user_id = %s
+            """, (amount, uid))
+            
+            # Aggiorna progetto
+            cur.execute("""
+                UPDATE projects 
+                SET raised_amount = raised_amount + %s
+                WHERE id = %s
+            """, (amount, project_id))
+            
+            # Registra transazione
+            cur.execute("""
+                INSERT INTO portfolio_transactions 
+                (user_id, type, amount, description, status, reference_type, reference_id)
+                VALUES (%s, 'investment', %s, %s, 'completed', 'investment', %s)
+            """, (uid, amount, f"Investimento in {project['title']}", investment_id))
+            
+            # Commit transazione
+            conn.commit()
+            conn.autocommit = True
+            
+            flash(f"Investimento di €{amount:.2f} in {project['title']} completato con successo!", "success")
+            return redirect(url_for('user.portfolio'))
+            
+        except Exception as e:
+            conn.rollback()
+            conn.autocommit = True
+            flash(f"Errore durante l'investimento: {str(e)}", "error")
+            return redirect(url_for('user.new_project'))
 
 # =====================================================
 # 4. PORTAFOGLIO - Dettaglio investimenti e rendimenti

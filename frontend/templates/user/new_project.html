@@ -10,6 +10,46 @@
         <p class="text-gray-600">Scegli il progetto per il tuo prossimo investimento</p>
     </div>
 
+    <!-- 2. CONTROLLO BUDGET - Sezione Portfolio Overview -->
+    {% if portfolio %}
+    <div class="px-6 mb-8">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Il tuo Portafoglio</h2>
+            
+            <!-- 3. CALCOLO DISPONIBILITÀ - Grid 4 sezioni -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <p class="text-sm text-gray-600">Capitale Libero</p>
+                    <p class="text-lg font-bold text-green-600">€{{ "{:,.2f}".format(portfolio.free_capital or 0) }}</p>
+                    <p class="text-xs text-gray-500">Sempre prelevabile</p>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <p class="text-sm text-gray-600">Capitale Investito</p>
+                    <p class="text-lg font-bold text-blue-600">€{{ "{:,.2f}".format(portfolio.invested_capital or 0) }}</p>
+                    <p class="text-xs text-gray-500">Bloccato fino vendita</p>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <p class="text-sm text-gray-600">Bonus Referral</p>
+                    <p class="text-lg font-bold text-purple-600">€{{ "{:,.2f}".format(portfolio.referral_bonus or 0) }}</p>
+                    <p class="text-xs text-gray-500">1% referral disponibile</p>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center">
+                    <p class="text-sm text-gray-600">Profitti</p>
+                    <p class="text-lg font-bold text-orange-600">€{{ "{:,.2f}".format(portfolio.profits or 0) }}</p>
+                    <p class="text-xs text-gray-500">Rendimenti reinvestibili</p>
+                </div>
+            </div>
+            
+            <!-- Totale disponibile per investimento -->
+            <div class="bg-blue-100 rounded-lg p-4 text-center">
+                <p class="text-sm text-blue-800">Totale Disponibile per Investimento</p>
+                <p class="text-2xl font-bold text-blue-900">€{{ "{:,.2f}".format(total_available or 0) }}</p>
+                <p class="text-xs text-blue-700">Capitale libero + bonus + profitti</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Progetti disponibili -->
     <div class="px-6 pb-8">
         <h2 class="text-xl font-semibold text-gray-900 mb-6">Progetti Disponibili</h2>
@@ -56,8 +96,9 @@
                         </div>
                     </div>
                     
-                    <!-- Form investimento -->
-                    <form method="POST" action="{{ url_for('user.projects') }}" class="space-y-4">
+                    <!-- 7. WIZARD INVESTIMENTO - Form step-by-step ottimizzato -->
+                    <form method="POST" action="{{ url_for('user.invest', project_id=project.id) }}" class="space-y-4">
+                        <!-- Step 1: Importo Investimento -->
                         <div>
                             <label for="amount_{{ project.id }}" class="block text-sm font-medium text-gray-700 mb-2">
                                 Importo Investimento (€)
@@ -69,15 +110,120 @@
                                    step="100" 
                                    value="{{ project.min_investment }}"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                   placeholder="Inserisci importo">
+                                   placeholder="Inserisci importo"
+                                   onchange="updateInvestmentCalculation({{ project.id }}, {{ project.roi }}, {{ project.duration or 24 }})">
                             <p class="text-xs text-gray-500 mt-1">Minimo: €{{ "{:,}".format(project.min_investment) }}</p>
                         </div>
+
+                        <!-- Step 2: Calcolo ROI preview -->
+                        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                            <h4 class="font-medium text-gray-900 mb-2">Anteprima Rendimento</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Importo Investito:</span>
+                                    <span id="investedAmount_{{ project.id }}" class="font-medium ml-1">€{{ "{:,}".format(project.min_investment) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">ROI Atteso ({{ project.roi }}%):</span>
+                                    <span id="expectedReturn_{{ project.id }}" class="font-medium ml-1 text-green-600">€0</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Valore Finale:</span>
+                                    <span id="finalValue_{{ project.id }}" class="font-medium ml-1">€{{ "{:,}".format(project.min_investment) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Profitto Netto:</span>
+                                    <span id="netProfit_{{ project.id }}" class="font-medium ml-1 text-green-600">€0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: 4. SELEZIONE FONTE - Scelta sezione portafoglio -->
+                        {% if available_sections %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Fonte di Finanziamento
+                            </label>
+                            <div class="space-y-2">
+                                {% for section in available_sections %}
+                                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                    <input type="radio" 
+                                           name="source_section" 
+                                           value="{{ section.key }}"
+                                           {% if loop.first %}checked{% endif %}
+                                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-900">{{ section.name }}</p>
+                                        <p class="text-xs text-gray-500">{{ section.description }}</p>
+                                        <p class="text-xs font-medium text-green-600">Disponibile: €{{ "{:,.2f}".format(section.amount) }}</p>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p class="text-sm text-yellow-800">
+                                <strong>Attenzione:</strong> Non hai fondi disponibili per investire. 
+                                Effettua una ricarica per poter investire.
+                            </p>
+                        </div>
+                        {% endif %}
                         
+                        <!-- Step 4: Termini e condizioni -->
+                        <div class="flex items-start space-x-3">
+                            <input type="checkbox" 
+                                   id="terms_{{ project.id }}" 
+                                   name="accept_terms" 
+                                   required
+                                   class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="terms_{{ project.id }}" class="text-sm text-gray-700">
+                                Accetto i <a href="#" class="text-blue-600 hover:text-blue-700">Termini e Condizioni</a> 
+                                e confermo di aver letto la <a href="#" class="text-blue-600 hover:text-blue-700">Documentazione</a> del progetto
+                            </label>
+                        </div>
+                        
+                        <!-- 6. MOBILE OPTIMIZATION - Form responsive -->
                         <button type="submit" 
-                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-                            Investi Ora
+                                {% if not available_sections %}disabled{% endif %}
+                                class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-xl transition-colors">
+                            {% if available_sections %}
+                                Investi Ora
+                            {% else %}
+                                Fondi Insufficienti
+                            {% endif %}
                         </button>
                     </form>
+
+                    <!-- JavaScript per calcoli ROI -->
+                    <script>
+                    function updateInvestmentCalculation(projectId, roi, duration) {
+                        const amount = parseFloat(document.getElementById('amount_' + projectId).value) || 0;
+                        
+                        if (amount > 0) {
+                            const expectedReturn = (amount * roi / 100) * (duration / 12);
+                            const finalValue = amount + expectedReturn;
+                            const netProfit = expectedReturn;
+                            
+                            document.getElementById('investedAmount_' + projectId).textContent = '€' + amount.toLocaleString('it-IT');
+                            document.getElementById('expectedReturn_' + projectId).textContent = '€' + expectedReturn.toLocaleString('it-IT', {maximumFractionDigits: 2});
+                            document.getElementById('finalValue_' + projectId).textContent = '€' + finalValue.toLocaleString('it-IT', {maximumFractionDigits: 2});
+                            document.getElementById('netProfit_' + projectId).textContent = '€' + netProfit.toLocaleString('it-IT', {maximumFractionDigits: 2});
+                        } else {
+                            document.getElementById('investedAmount_' + projectId).textContent = '€0';
+                            document.getElementById('expectedReturn_' + projectId).textContent = '€0';
+                            document.getElementById('finalValue_' + projectId).textContent = '€0';
+                            document.getElementById('netProfit_' + projectId).textContent = '€0';
+                        }
+                    }
+                    
+                    // Inizializza calcoli
+                    document.addEventListener('DOMContentLoaded', function() {
+                        {% for project in projects %}
+                        updateInvestmentCalculation({{ project.id }}, {{ project.roi }}, {{ project.duration or 24 }});
+                        {% endfor %}
+                    });
+                    </script>
                 </div>
                 {% endfor %}
             </div>

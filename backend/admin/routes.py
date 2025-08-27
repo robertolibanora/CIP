@@ -157,9 +157,7 @@ def user_change_referrer(uid):
         cur.execute("UPDATE users SET referred_by=%s WHERE id=%s", (referred_by, uid))
     return jsonify({"ok": True})
 
-@admin_bp.get("/users/<int:uid>/bonuses")
-@admin_required
-@admin_bp.post("/users/<int:uid>/bonuses")
+@admin_bp.route("/users/<int:uid>/bonuses", methods=['GET', 'POST'])
 @admin_required
 def user_bonuses(uid):
     if request.method == 'GET':
@@ -400,13 +398,7 @@ def notifications_run_scheduler():
             cur.execute("DELETE FROM scheduled_notifications WHERE id=%s", (d['id'],))
     return jsonify({"moved": len(due) if due else 0})
 
-@admin_bp.get("/notifications/templates")
-@admin_required
-@admin_bp.post("/notifications/templates")
-@admin_required
-@admin_bp.post("/notifications/templates/<int:tid>/edit")
-@admin_required
-@admin_bp.post("/notifications/templates/<int:tid>/delete")
+@admin_bp.route("/notifications/templates", methods=['GET', 'POST'])
 @admin_required
 def notifications_templates(tid=None):
     with get_conn() as conn, conn.cursor() as cur:
@@ -424,12 +416,8 @@ def notifications_templates(tid=None):
             cur.execute("SELECT * FROM notification_templates ORDER BY id DESC")
             rows = cur.fetchall()
         return jsonify(rows)
-    if request.path.endswith('/delete'):
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("DELETE FROM notification_templates WHERE id=%s", (tid,))
-        return jsonify({"deleted": tid})
     data = request.form or request.json or {}
-    if tid and request.path.endswith('/edit'):
+    if tid:
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
                         (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
@@ -440,6 +428,22 @@ def notifications_templates(tid=None):
                         (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low')))
             nid = cur.fetchone()['id']
         return jsonify({"id": nid})
+
+@admin_bp.post("/notifications/templates/<int:tid>/edit")
+@admin_required
+def notifications_templates_edit(tid):
+    data = request.form or request.json or {}
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
+                    (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
+    return jsonify({"updated": tid})
+
+@admin_bp.post("/notifications/templates/<int:tid>/delete")
+@admin_required
+def notifications_templates_delete(tid):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM notification_templates WHERE id=%s", (tid,))
+    return jsonify({"deleted": tid})
 
 # ---- Analytics ----
 @admin_bp.get("/analytics")

@@ -148,25 +148,25 @@
 - **Dipendenze**: Sistema KYC, Auth, Database portafoglio
 - **Rischio**: Medio (business logic complessa)
 
-#### **2.4 Dashboard - Overview Completo** 🎯 **PRIORITÀ 4**
+#### **2.4 Dashboard - Overview Completo** 🎯 **PRIORITÀ 4** ✅
 *Motivazione: Visualizzazione dati, dipende da portfolio*
-- [ ] **KYC Status**: Indicatore stato verifica identità
-- [ ] **4 Sezioni Portafoglio**: Visualizzazione saldi e stati
-- [ ] **Stato Investimenti**: Indicatori investimenti attivi e bloccati
-- [ ] **KPI e Metriche**: Overview performance e trend
-- [ ] **Mobile Optimization**: Dashboard responsive
+- [x] **KYC Status**: Indicatore stato verifica identità
+- [x] **4 Sezioni Portafoglio**: Visualizzazione saldi e stati
+- [x] **Stato Investimenti**: Indicatori investimenti attivi e bloccati
+- [x] **KPI e Metriche**: Overview performance e trend
+- [x] **Mobile Optimization**: Dashboard responsive
 - **Complessità**: Media
 - **Dipendenze**: Portfolio, KYC, Auth
 - **Rischio**: Basso (solo visualizzazione)
 
-#### **2.5 New Project - Investimenti** 🎯 **PRIORITÀ 5**
+#### **2.5 New Project - Investimenti** 🎯 **PRIORITÀ 5** ✅
 *Motivazione: Funzionalità core, dipende da tutto il sistema*
-- [ ] **Verifica KYC**: Blocco se utente non verificato
-- [ ] **Controllo Budget**: Verifica disponibilità saldo
-- [ ] **Selezione Fonte**: Scelta sezione portafoglio per investimento
-- [ ] **Calcolo Disponibilità**: Mostra importi disponibili per sezione
-- [ ] **Wizard Investimento**: Form step-by-step ottimizzato
-- [ ] **Mobile Optimization**: Form responsive
+- [x] **Verifica KYC**: Blocco se utente non verificato
+- [x] **Controllo Budget**: Verifica disponibilità saldo
+- [x] **Selezione Fonte**: Scelta sezione portafoglio per investimento
+- [x] **Calcolo Disponibilità**: Mostra importi disponibili per sezione
+- [x] **Wizard Investimento**: Form step-by-step ottimizzato
+- [x] **Mobile Optimization**: Form responsive
 - **Complessità**: Media
 - **Dipendenze**: KYC, Portfolio, Auth
 - **Rischio**: Medio (form complesso + business logic)
