@@ -23,19 +23,14 @@ def get_upload_folder():
 # -----------------------------
 admin_bp = Blueprint("admin", __name__)
 
-@admin_bp.before_request
-def require_admin():
-    # Skip auth endpoints
-    if request.endpoint and request.endpoint.startswith('auth.'):
-        return
-    # Check if user is logged in
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
-    # Check if user is admin
-    if session.get('role') != 'admin':
-        abort(403)
+# Importa decoratori di autorizzazione
+from backend.auth.decorators import admin_required
+
+# Rimuove il before_request globale e usa decoratori specifici
+# per ogni route che richiede autorizzazione admin
 
 @admin_bp.get("/")
+@admin_required
 def admin_dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT * FROM v_admin_metrics")
@@ -46,6 +41,7 @@ def admin_dashboard():
     return render_template("admin/dashboard.html", metrics=m or {})
 
 @admin_bp.get("/metrics")
+@admin_required
 def metrics():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT * FROM v_admin_metrics")
@@ -54,6 +50,7 @@ def metrics():
 
 # ---- Gestione Progetti ----
 @admin_bp.get("/projects")
+@admin_required
 def projects_list():
     status = request.args.get('status')
     q = []
@@ -68,6 +65,7 @@ def projects_list():
     return jsonify(rows)
 
 @admin_bp.post("/projects/new")
+@admin_required
 def projects_new():
     data = request.form or request.json or {}
     code = data.get('code'); title = data.get('title')
@@ -88,6 +86,7 @@ def projects_new():
     return jsonify({"id": pid})
 
 @admin_bp.post("/projects/<int:pid>/edit")
+@admin_required
 def projects_edit(pid):
     data = request.form or request.json or {}
     fields = [
@@ -109,6 +108,7 @@ def projects_edit(pid):
 
 # ---- Gestione Utenti ----
 @admin_bp.get("/users")
+@admin_required
 def users_list():
     q = request.args.get('q')
     where = ""
@@ -123,6 +123,7 @@ def users_list():
     return jsonify(rows)
 
 @admin_bp.get("/users/<int:uid>")
+@admin_required
 def user_detail(uid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
@@ -148,6 +149,7 @@ def user_detail(uid):
     return jsonify({"user": u, "investments": inv, "bonus_total": (bonus and bonus['total_bonus'] or 0), "network": net})
 
 @admin_bp.post("/users/<int:uid>/referrer")
+@admin_required
 def user_change_referrer(uid):
     data = request.form or request.json or {}
     referred_by = data.get('referred_by')
@@ -156,7 +158,9 @@ def user_change_referrer(uid):
     return jsonify({"ok": True})
 
 @admin_bp.get("/users/<int:uid>/bonuses")
+@admin_required
 @admin_bp.post("/users/<int:uid>/bonuses")
+@admin_required
 def user_bonuses(uid):
     if request.method == 'GET':
         with get_conn() as conn, conn.cursor() as cur:
@@ -177,6 +181,7 @@ def user_bonuses(uid):
 
 # ---- Gestione Investimenti ----
 @admin_bp.get("/investments")
+@admin_required
 def investments_list():
     status = request.args.get('status')
     user_id = request.args.get('user_id')
@@ -200,6 +205,7 @@ def investments_list():
     return jsonify(rows)
 
 @admin_bp.get("/investments/<int:iid>")
+@admin_required
 def investment_detail(iid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -215,12 +221,14 @@ def investment_detail(iid):
     return jsonify({"investment": inv, "yields": yields})
 
 @admin_bp.post("/investments/<int:iid>/confirm_wire")
+@admin_required
 def investment_confirm_wire(iid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE investments SET status='active', activated_at=NOW() WHERE id=%s", (iid,))
     return jsonify({"status": "active"})
 
 @admin_bp.post("/investments/<int:iid>/yield")
+@admin_required
 def investment_add_yield(iid):
     data = request.form or request.json or {}
     amount = data.get('amount'); period_start = data.get('period_start'); period_end = data.get('period_end')
@@ -236,6 +244,7 @@ def investment_add_yield(iid):
 
 # ---- Gestione Richieste ----
 @admin_bp.get("/requests")
+@admin_required
 def requests_queue():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -249,6 +258,7 @@ def requests_queue():
     return jsonify(rows)
 
 @admin_bp.post("/requests/<int:rid>/approve")
+@admin_required
 def requests_approve(rid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE investment_requests SET state='approved', updated_at=NOW() WHERE id=%s", (rid,))
@@ -263,6 +273,7 @@ def requests_approve(rid):
     return jsonify({"approved_request": rid, "investment_id": inv_id})
 
 @admin_bp.post("/requests/<int:rid>/reject")
+@admin_required
 def requests_reject(rid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE investment_requests SET state='rejected', updated_at=NOW() WHERE id=%s", (rid,))
@@ -270,12 +281,14 @@ def requests_reject(rid):
 
 # ---- KYC ----
 @admin_bp.post("/kyc/<int:uid>/verify")
+@admin_required
 def kyc_verify(uid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET kyc_status='verified' WHERE id=%s", (uid,))
     return jsonify({"kyc_status": "verified"})
 
 @admin_bp.post("/kyc/<int:uid>/reject")
+@admin_required
 def kyc_reject(uid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (uid,))
@@ -283,6 +296,7 @@ def kyc_reject(uid):
 
 # ---- Documenti (admin) ----
 @admin_bp.get("/documents")
+@admin_required
 def admin_documents():
     user_id = request.args.get('user_id')
     visibility = request.args.get('visibility')
@@ -297,6 +311,7 @@ def admin_documents():
     return jsonify(rows)
 
 @admin_bp.post("/documents/upload")
+@admin_required
 def admin_documents_upload():
     user_id = request.form.get('user_id')
     category_id = request.form.get('category_id')
@@ -316,6 +331,7 @@ def admin_documents_upload():
     return jsonify({"id": did, "file_path": path})
 
 @admin_bp.post("/documents/<int:doc_id>/visibility")
+@admin_required
 def admin_documents_visibility(doc_id):
     visibility = request.form.get('visibility', 'private')
     verified = request.form.get('verified_by_admin')
@@ -326,6 +342,7 @@ def admin_documents_visibility(doc_id):
 
 # ---- Sistema Notifiche ----
 @admin_bp.post("/notifications/new")
+@admin_required
 def notifications_new():
     data = request.form or request.json or {}
     user_id = data.get('user_id')  # None => broadcast
@@ -361,6 +378,7 @@ def notifications_new():
         return jsonify({"notification_id": nid})
 
 @admin_bp.post("/notifications/run_scheduler")
+@admin_required
 def notifications_run_scheduler():
     # move due scheduled to notifications
     with get_conn() as conn, conn.cursor() as cur:
@@ -383,9 +401,13 @@ def notifications_run_scheduler():
     return jsonify({"moved": len(due) if due else 0})
 
 @admin_bp.get("/notifications/templates")
+@admin_required
 @admin_bp.post("/notifications/templates")
+@admin_required
 @admin_bp.post("/notifications/templates/<int:tid>/edit")
+@admin_required
 @admin_bp.post("/notifications/templates/<int:tid>/delete")
+@admin_required
 def notifications_templates(tid=None):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -421,6 +443,7 @@ def notifications_templates(tid=None):
 
 # ---- Analytics ----
 @admin_bp.get("/analytics")
+@admin_required
 def analytics():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -442,7 +465,6 @@ def analytics():
 
 # ---- Static uploads ----
 @admin_bp.get('/uploads/<path:filename>')
+@admin_required
 def uploaded_file(filename):
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
     return send_from_directory(get_upload_folder(), filename)

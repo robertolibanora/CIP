@@ -40,4 +40,12 @@ def create_app():
     
     app.jinja_env.globals["safe_url_for"] = safe_url_for
     
+    # Configura middleware di autenticazione
+    try:
+        from backend.auth.middleware import setup_auth_middleware
+        setup_auth_middleware(app)
+        app.logger.info("Middleware di autenticazione configurato con successo")
+    except Exception as e:
+        app.logger.warning(f"Impossibile configurare middleware di autenticazione: {e}")
+    
     return app

@@ -7,17 +7,18 @@ user_bp = Blueprint("user", __name__)
 def get_conn():
     return get_connection()
 
-@user_bp.before_request
-def require_login():
-    """Verifica che l'utente sia autenticato per tutte le route user"""
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+# Importa decoratori di autorizzazione
+from backend.auth.decorators import login_required, kyc_verified, can_access_portfolio
+
+# Rimuove il before_request globale e usa decoratori specifici
+# per ogni route che richiede autorizzazione
 
 # =====================================================
 # 1. DASHBOARD - Vista generale del portfolio e statistiche
 # =====================================================
 
 @user_bp.get("/dashboard")
+@login_required
 def dashboard():
     """Dashboard principale con overview portfolio e statistiche"""
     uid = session.get("user_id")
@@ -98,6 +99,7 @@ def dashboard():
 # =====================================================
 
 @user_bp.get("/search")
+@login_required
 def search():
     """Ricerca progetti disponibili per investimento"""
     uid = session.get("user_id")
@@ -147,6 +149,7 @@ def search():
 # =====================================================
 
 @user_bp.get("/new-project")
+@kyc_verified
 def new_project():
     """Pagina per nuovo investimento"""
     uid = session.get("user_id")
@@ -182,6 +185,7 @@ def new_project():
 # =====================================================
 
 @user_bp.get("/portfolio")
+@can_access_portfolio
 def portfolio():
     """Portafoglio dettagliato con investimenti attivi e completati"""
     uid = session.get("user_id")
@@ -189,6 +193,7 @@ def portfolio():
     statuses = ('active',) if tab == 'attivi' else ('completed','cancelled','rejected')
     
     with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni investimenti
         cur.execute("""
             SELECT i.id, p.title AS project_title, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
@@ -200,14 +205,24 @@ def portfolio():
         # Aggiungi campi mancanti per compatibilità template
         for row in rows:
             row['roi'] = 8.5  # ROI fisso per ora
+        
+        # Ottieni dati utente completi per il form profilo
+        cur.execute("""
+            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+                   address, currency_code, referral_code, created_at, kyc_status
+            FROM users WHERE id = %s
+        """, (uid,))
+        user_data = cur.fetchone()
     
     return render_template("user/portfolio.html", 
                          user_id=uid,
+                         user=user_data,
                          tab=tab,
                          investments=rows,
                          current_page="portfolio")
 
 @user_bp.get("/portfolio/<int:investment_id>")
+@can_access_portfolio
 def portfolio_detail(investment_id):
     """Dettaglio specifico di un investimento"""
     uid = session.get("user_id")
@@ -234,6 +249,7 @@ def portfolio_detail(investment_id):
 # =====================================================
 
 @user_bp.get("/projects")
+@login_required
 def projects():
     """Lista progetti disponibili per investimento"""
     uid = session.get("user_id")
@@ -272,6 +288,7 @@ def projects():
 # =====================================================
 
 @user_bp.get("/referral")
+@login_required
 def referral():
     """Dashboard referral dell'utente"""
     uid = session.get("user_id")
@@ -318,6 +335,7 @@ def referral():
 # =====================================================
 
 @user_bp.get("/profile")
+@login_required
 def profile():
     """Gestione profilo utente"""
     uid = session.get("user_id")
@@ -335,26 +353,71 @@ def profile():
                          current_page="profile")
 
 @user_bp.post("/profile/update")
+@login_required
 def profile_update():
     """Aggiornamento dati profilo"""
     uid = session.get("user_id")
     data = request.get_json()
     
-    # Validazione dati
-    if not data or not data.get('full_name') or not data.get('email'):
+    # Validazione dati base
+    if not data:
         return jsonify({'success': False, 'error': 'Dati mancanti'}), 400
     
+    # Campi obbligatori
+    required_fields = ['nome', 'cognome', 'telefono']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'success': False, 'error': f'Campo {field} obbligatorio'}), 400
+    
+    # Campi opzionali
+    nome_telegram = data.get('nome_telegram', '')
+    address = data.get('address', '')
+    currency_code = data.get('currency_code', 'USD')
+    full_name = data.get('full_name', '')
+    email = data.get('email', '')
+    
+    # Validazione valuta
+    valid_currencies = ['USD', 'EUR', 'GBP']
+    if currency_code not in valid_currencies:
+        return jsonify({'success': False, 'error': 'Valuta non valida'}), 400
+    
     with get_conn() as conn, conn.cursor() as cur:
+        # Aggiorna tutti i campi del profilo
         cur.execute("""
             UPDATE users 
-            SET full_name = %s, email = %s, updated_at = NOW()
+            SET nome = %s, cognome = %s, telefono = %s, nome_telegram = %s, 
+                address = %s, currency_code = %s, updated_at = NOW()
             WHERE id = %s
-        """, (data['full_name'], data['email'], uid))
+        """, (data['nome'], data['cognome'], data['telefono'], nome_telegram, 
+              address, currency_code, uid))
+        
+        # Se forniti, aggiorna anche full_name ed email
+        if full_name or email:
+            update_fields = []
+            update_values = []
+            
+            if full_name:
+                update_fields.append("full_name = %s")
+                update_values.append(full_name)
+            
+            if email:
+                update_fields.append("email = %s")
+                update_values.append(email)
+            
+            if update_fields:
+                update_values.append(uid)
+                cur.execute(f"""
+                    UPDATE users 
+                    SET {', '.join(update_fields)}, updated_at = NOW()
+                    WHERE id = %s
+                """, update_values)
+        
         conn.commit()
     
     return jsonify({'success': True, 'message': 'Profilo aggiornato con successo'})
 
 @user_bp.post("/profile/change-password")
+@login_required
 def change_password():
     """Cambio password utente"""
     uid = session.get("user_id")

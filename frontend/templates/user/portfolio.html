@@ -98,5 +98,136 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- Form Profilo - Richiesto dalla roadmap -->
+    <div class="px-6 pb-8">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Dati Personali e Preferenze</h2>
+            
+            <form id="portfolio-profile-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="portfolio_nome" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nome
+                        </label>
+                        <input type="text" 
+                               id="portfolio_nome" 
+                               name="nome" 
+                               value="{{ user.nome or '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label for="portfolio_cognome" class="block text-sm font-medium text-gray-700 mb-2">
+                            Cognome
+                        </label>
+                        <input type="text" 
+                               id="portfolio_cognome" 
+                               name="cognome" 
+                               value="{{ user.cognome or '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="portfolio_telefono" class="block text-sm font-medium text-gray-700 mb-2">
+                            Telefono
+                        </label>
+                        <input type="tel" 
+                               id="portfolio_telefono" 
+                               name="telefono" 
+                               value="{{ user.telefono or '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               required>
+                    </div>
+                    
+                    <div>
+                        <label for="portfolio_nome_telegram" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nome Telegram
+                        </label>
+                        <input type="text" 
+                               id="portfolio_nome_telegram" 
+                               name="nome_telegram" 
+                               value="{{ user.nome_telegram or '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="@username">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="portfolio_address" class="block text-sm font-medium text-gray-700 mb-2">
+                        Indirizzo
+                    </label>
+                    <textarea id="portfolio_address" 
+                              name="address" 
+                              rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Via, numero, città, CAP">{{ user.address or '' }}</textarea>
+                </div>
+                
+                <div>
+                    <label for="portfolio_currency" class="block text-sm font-medium text-gray-700 mb-2">
+                        Valuta Preferita
+                    </label>
+                    <select id="portfolio_currency" 
+                            name="currency_code" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required>
+                        <option value="USD" {{ 'selected' if user.currency_code == 'USD' else '' }}>Dollaro USA (USD)</option>
+                        <option value="EUR" {{ 'selected' if user.currency_code == 'EUR' else '' }}>Euro (EUR)</option>
+                        <option value="GBP" {{ 'selected' if user.currency_code == 'GBP' else '' }}>Sterlina (GBP)</option>
+                    </select>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
+                        Aggiorna Dati Personali
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+// Gestione form profilo portfolio
+document.getElementById('portfolio-profile-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        nome: formData.get('nome'),
+        cognome: formData.get('cognome'),
+        telefono: formData.get('telefono'),
+        nome_telegram: formData.get('nome_telegram'),
+        address: formData.get('address'),
+        currency_code: formData.get('currency_code')
+    };
+    
+    try {
+        const response = await fetch('{{ url_for("user.profile_update") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Dati personali aggiornati con successo!');
+            location.reload();
+        } else {
+            alert('Errore: ' + result.error);
+        }
+    } catch (error) {
+        alert('Errore durante l\'aggiornamento dei dati personali');
+    }
+});
+</script>
 {% endblock %}

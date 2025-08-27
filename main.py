@@ -20,6 +20,12 @@ from backend.app_factory import create_app
 # Crea app Flask
 app = create_app()
 
+# Configura logging per autenticazione
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info("Applicazione CIP Immobiliare avviata con middleware di autenticazione")
+
 # Importa moduli backend riorganizzati
 from backend.admin.routes import admin_bp
 from backend.auth.routes import auth_bp
@@ -27,6 +33,13 @@ from backend.user.routes import user_bp
 
 # Importa i nuovi blueprint dei compartimenti stagni User
 from backend.user import user_blueprints
+
+# Importa i nuovi blueprint per le API
+from backend.kyc import kyc_bp
+from backend.portfolio_api import portfolio_api_bp
+from backend.deposits import deposits_bp
+from backend.withdrawals import withdrawals_bp
+from backend.profits import profits_bp
 
 # Registra blueprints principali
 app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -36,6 +49,13 @@ app.register_blueprint(user_bp, url_prefix='/user')
 # Registra i blueprint dei compartimenti stagni User
 for blueprint in user_blueprints:
     app.register_blueprint(blueprint, url_prefix='/user')
+
+# Registra i nuovi blueprint per le API
+app.register_blueprint(kyc_bp, url_prefix='/kyc')
+app.register_blueprint(portfolio_api_bp, url_prefix='/portfolio')
+app.register_blueprint(deposits_bp, url_prefix='/deposits')
+app.register_blueprint(withdrawals_bp, url_prefix='/withdrawals')
+app.register_blueprint(profits_bp, url_prefix='/profits')
 
 # Route per assets
 @app.route('/assets/<path:filename>')

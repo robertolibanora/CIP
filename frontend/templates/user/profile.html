@@ -7,7 +7,90 @@
     <!-- Header -->
     <div class="px-6 py-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Il Mio Profilo</h1>
-        <p class="text-gray-600">Gestisci le informazioni del tuo account</p>
+        <p class="text-gray-600">Gestisci le informazioni del tuo account e verifica identità</p>
+    </div>
+
+    <!-- Status KYC -->
+    <div class="px-6 pb-6">
+        <div id="kyc-status-card" class="bg-white rounded-xl border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">Stato Verifica Identità (KYC)</h2>
+                <div id="kyc-status-badge" class="px-3 py-1 rounded-full text-sm font-medium">
+                    <!-- Status badge verrà popolato via JavaScript -->
+                </div>
+            </div>
+            
+            <div id="kyc-status-content">
+                <!-- Contenuto status KYC verrà popolato via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Documenti KYC -->
+    <div class="px-6 pb-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Carica Documenti Identità</h2>
+            
+            <form id="kyc-upload-form" class="space-y-6">
+                <div>
+                    <label for="document_category" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo Documento
+                    </label>
+                    <select id="document_category" 
+                            name="category" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required>
+                        <option value="">Seleziona tipo documento</option>
+                        <!-- Opzioni verranno popolate via JavaScript -->
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="document_file" class="block text-sm font-medium text-gray-700 mb-2">
+                        File Documento
+                    </label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="document_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Carica un file</span>
+                                    <input id="document_file" 
+                                           name="file" 
+                                           type="file" 
+                                           class="sr-only" 
+                                           accept=".pdf,.png,.jpg,.jpeg,.gif"
+                                           required>
+                                </label>
+                                <p class="pl-1">o trascina e rilascia</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <button type="submit" 
+                            id="upload-btn"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Carica Documento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Documenti Caricati -->
+    <div class="px-6 pb-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Documenti Caricati</h2>
+            
+            <div id="kyc-documents-list" class="space-y-4">
+                <!-- Lista documenti verrà popolata via JavaScript -->
+            </div>
+        </div>
     </div>
 
     <!-- Informazioni profilo -->
@@ -128,6 +211,287 @@
 </div>
 
 <script>
+// Gestione sistema KYC
+class KYCManager {
+    constructor() {
+        this.init();
+    }
+    
+    async init() {
+        await this.loadKYCCategories();
+        await this.loadKYCStatus();
+        await this.loadKYCDocuments();
+        this.setupEventListeners();
+    }
+    
+    async loadKYCCategories() {
+        try {
+            const response = await fetch('/kyc/api/categories');
+            const data = await response.json();
+            
+            const select = document.getElementById('document_category');
+            select.innerHTML = '<option value="">Seleziona tipo documento</option>';
+            
+            data.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.slug;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Errore caricamento categorie:', error);
+        }
+    }
+    
+    async loadKYCStatus() {
+        try {
+            const response = await fetch('/kyc/api/status');
+            const data = await response.json();
+            
+            this.updateKYCStatusUI(data);
+        } catch (error) {
+            console.error('Errore caricamento status KYC:', error);
+        }
+    }
+    
+    async loadKYCDocuments() {
+        try {
+            const response = await fetch('/kyc/api/documents');
+            const data = await response.json();
+            
+            this.updateDocumentsList(data.documents);
+        } catch (error) {
+            console.error('Errore caricamento documenti:', error);
+        }
+    }
+    
+    updateKYCStatusUI(statusData) {
+        const badge = document.getElementById('kyc-status-badge');
+        const content = document.getElementById('kyc-status-content');
+        
+        // Aggiorna badge
+        let badgeClass = '';
+        let badgeText = '';
+        
+        switch(statusData.kyc_status) {
+            case 'unverified':
+                badgeClass = 'bg-red-100 text-red-800';
+                badgeText = 'Non Verificato';
+                break;
+            case 'pending':
+                badgeClass = 'bg-yellow-100 text-yellow-800';
+                badgeText = 'In Attesa';
+                break;
+            case 'verified':
+                badgeClass = 'bg-green-100 text-green-800';
+                badgeText = 'Verificato';
+                break;
+            case 'rejected':
+                badgeClass = 'bg-red-100 text-red-800';
+                badgeText = 'Rifiutato';
+                break;
+        }
+        
+        badge.className = `px-3 py-1 rounded-full text-sm font-medium ${badgeClass}`;
+        badge.textContent = badgeText;
+        
+        // Aggiorna contenuto
+        let contentHTML = '';
+        
+        if (statusData.kyc_status === 'unverified') {
+            contentHTML = `
+                <div class="text-sm text-gray-600">
+                    <p>Per iniziare a investire devi verificare la tua identità caricando un documento.</p>
+                    <p class="mt-2">Carica un documento d'identità valido (carta d'identità, passaporto o patente).</p>
+                </div>
+            `;
+        } else if (statusData.kyc_status === 'pending') {
+            contentHTML = `
+                <div class="text-sm text-gray-600">
+                    <p>I tuoi documenti sono stati ricevuti e sono in attesa di verifica da parte del nostro team.</p>
+                    <p class="mt-2">Riceverai una notifica una volta completata la verifica.</p>
+                </div>
+            `;
+        } else if (statusData.kyc_status === 'verified') {
+            contentHTML = `
+                <div class="text-sm text-green-600">
+                    <p>✅ La tua identità è stata verificata con successo!</p>
+                    <p class="mt-2">Ora puoi accedere a tutte le funzionalità di investimento.</p>
+                </div>
+            `;
+        } else if (statusData.kyc_status === 'rejected') {
+            contentHTML = `
+                <div class="text-sm text-red-600">
+                    <p>❌ La verifica della tua identità è stata rifiutata.</p>
+                    <p class="mt-2">Carica un nuovo documento valido per riprovare.</p>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = contentHTML;
+        
+        // Nascondi form upload se già verificato
+        const uploadForm = document.getElementById('kyc-upload-form').parentElement;
+        if (statusData.kyc_status === 'verified') {
+            uploadForm.style.display = 'none';
+        } else {
+            uploadForm.style.display = 'block';
+        }
+    }
+    
+    updateDocumentsList(documents) {
+        const container = document.getElementById('kyc-documents-list');
+        
+        if (!documents || documents.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <p>Nessun documento caricato</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        documents.forEach(doc => {
+            const statusClass = doc.verified_by_admin ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const statusText = doc.verified_by_admin ? 'Verificato' : 'In Attesa';
+            const deleteBtn = doc.verified_by_admin ? '' : `
+                <button onclick="kycManager.deleteDocument(${doc.id})" 
+                        class="text-red-600 hover:text-red-800 text-sm font-medium">
+                    Elimina
+                </button>
+            `;
+            
+            html += `
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${doc.title}</p>
+                            <p class="text-xs text-gray-500">${doc.category_name} • ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                            ${statusText}
+                        </span>
+                        ${deleteBtn}
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    async uploadDocument(formData) {
+        try {
+            const uploadBtn = document.getElementById('upload-btn');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Caricamento...';
+            
+            const response = await fetch('/kyc/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Documento caricato con successo!');
+                await this.loadKYCStatus();
+                await this.loadKYCDocuments();
+                document.getElementById('kyc-upload-form').reset();
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            alert('Errore durante il caricamento del documento');
+            console.error('Errore upload:', error);
+        } finally {
+            const uploadBtn = document.getElementById('upload-btn');
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Carica Documento';
+        }
+    }
+    
+    async deleteDocument(docId) {
+        if (!confirm('Sei sicuro di voler eliminare questo documento?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/kyc/api/documents/${docId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Documento eliminato con successo!');
+                await this.loadKYCStatus();
+                await this.loadKYCDocuments();
+            } else {
+                alert('Errore: ' + result.error);
+            }
+        } catch (error) {
+            alert('Errore durante l\'eliminazione del documento');
+            console.error('Errore eliminazione:', error);
+        }
+    }
+    
+    setupEventListeners() {
+        // Form upload KYC
+        document.getElementById('kyc-upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const file = document.getElementById('document_file').files[0];
+            const category = document.getElementById('document_category').value;
+            
+            if (!file || !category) {
+                alert('Seleziona un file e una categoria');
+                return;
+            }
+            
+            formData.append('file', file);
+            formData.append('category', category);
+            
+            await this.uploadDocument(formData);
+        });
+        
+        // Drag and drop per mobile
+        const dropZone = document.querySelector('#kyc-upload-form .border-dashed');
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('document_file').files = files;
+            }
+        });
+    }
+}
+
+// Inizializza gestore KYC
+let kycManager;
+
 // Gestione form profilo
 document.getElementById('profile-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -201,5 +565,10 @@ function copyReferralCode() {
         });
     }
 }
+
+// Inizializza quando la pagina è caricata
+document.addEventListener('DOMContentLoaded', function() {
+    kycManager = new KYCManager();
+});
 </script>
 {% endblock %}

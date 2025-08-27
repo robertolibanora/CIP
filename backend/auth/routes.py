@@ -15,7 +15,10 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+from backend.auth.decorators import guest_only
+
 @auth_bp.route("/login", methods=["GET", "POST"])
+@guest_only
 def login():
     """Login utente"""
     if request.method == "POST":
@@ -59,6 +62,7 @@ def login():
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
+@guest_only
 def register():
     """Registrazione nuovo utente"""
     if request.method == "POST":
