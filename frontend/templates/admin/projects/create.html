@@ -1,363 +1,841 @@
-{% extends "layouts/base.html" %}
+{% extends "layouts/admin_base.html" %}
 
-{% block title %}Crea Nuovo Progetto - Admin CIP Immobiliare{% endblock %}
+{% block title %}Wizard Nuovo Progetto - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
 
 {% block breadcrumb %}
-<nav class="flex" aria-label="Breadcrumb">
-    <ol class="flex items-center space-x-4">
+<ol class="flex items-center space-x-2 text-sm">
         <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                 </svg>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Admin</span>
-            </div>
+        </a>
         </li>
-        <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Progetti</span>
-            </div>
+    <li class="text-gray-400">/</li>
+    <li>
+        <a href="{{ url_for('admin.projects_list') }}" class="text-gray-500 hover:text-gray-700">Progetti</a>
         </li>
-        <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Crea Nuovo</span>
-            </div>
-        </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Wizard Nuovo Progetto</li>
     </ol>
-</nav>
-{% endblock %}
-
-{% block page_header %}
-<div class="md:flex md:items-center md:justify-between">
-    <div class="flex-1 min-w-0">
-        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Crea Nuovo Progetto
-        </h2>
-        <p class="mt-1 text-sm text-gray-500">
-            Aggiungi un nuovo progetto immobiliare al catalogo CIP
-        </p>
-    </div>
-    <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
-        <a href="{{ url_for('admin.projects_list') }}" class="btn-secondary">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            Lista Progetti
-        </a>
-        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn-primary">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            Dashboard
-        </a>
-    </div>
-</div>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <form id="createProjectForm" class="space-y-8">
-        <!-- Informazioni Base -->
-        <div class="card">
-            <h3 class="text-lg font-medium text-gray-900 mb-6">Informazioni Base</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nome Progetto *
-                    </label>
-                    <input type="text" id="name" name="name" required
-                           class="input-field w-full" placeholder="Es: Residenza Marina">
+<!-- Wizard Progress Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Wizard Nuovo Progetto</h1>
+            <p class="admin-text-small">Creazione guidata progetto immobiliare</p>
+    </div>
+        <div class="admin-flex">
+            <span class="admin-badge admin-badge--info" id="step-indicator">Step 1 di 4</span>
+            <a href="{{ url_for('admin.projects_list') }}" class="admin-btn admin-btn--secondary admin-btn--sm ml-3">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+                Annulla
+        </a>
+    </div>
+</div>
+    
+    <!-- Progress Bar -->
+    <div class="mt-6">
+        <div class="flex items-center">
+            <div class="flex items-center flex-1">
+                <div class="flex items-center w-full">
+                    <!-- Step 1 -->
+                    <div class="flex items-center">
+                        <div id="step-1-circle" class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-medium">1</span>
+                        </div>
+                        <span class="ml-2 admin-text-small font-medium text-blue-600">Informazioni Base</span>
+                    </div>
+                    <div id="step-1-line" class="flex-1 h-1 bg-gray-200 mx-4"></div>
+                    
+                    <!-- Step 2 -->
+                    <div class="flex items-center">
+                        <div id="step-2-circle" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span class="text-gray-500 text-sm font-medium">2</span>
+                        </div>
+                        <span class="ml-2 admin-text-small text-gray-500">Dettagli Finanziari</span>
+                    </div>
+                    <div id="step-2-line" class="flex-1 h-1 bg-gray-200 mx-4"></div>
+                    
+                    <!-- Step 3 -->
+                    <div class="flex items-center">
+                        <div id="step-3-circle" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span class="text-gray-500 text-sm font-medium">3</span>
+                        </div>
+                        <span class="ml-2 admin-text-small text-gray-500">Documenti e Media</span>
+                    </div>
+                    <div id="step-3-line" class="flex-1 h-1 bg-gray-200 mx-4"></div>
+                    
+                    <!-- Step 4 -->
+                    <div class="flex items-center">
+                        <div id="step-4-circle" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span class="text-gray-500 text-sm font-medium">4</span>
+                        </div>
+                        <span class="ml-2 admin-text-small text-gray-500">Anteprima e Conferma</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="wizard-alerts" class="mb-6"></div>
+
+<!-- Wizard Form Container -->
+<div class="admin-card">
+    <form id="wizard-form" class="wizard-container">
+        
+        <!-- STEP 1: Informazioni Base -->
+        <div id="step-1" class="wizard-step active">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Step 1: Informazioni Base</h2>
+                <p class="admin-text-small">Inserisci le informazioni principali del progetto</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-6">
+                    <div class="admin-grid admin-grid--2">
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Codice Progetto</label>
+                            <input type="text" name="code" class="admin-input" required 
+                                   placeholder="es. PROJ001" id="field-code">
+                            <p class="admin-help-text">Codice univoco per identificare il progetto</p>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Titolo Progetto</label>
+                            <input type="text" name="title" class="admin-input" required 
+                                   placeholder="Nome del progetto" id="field-title">
+                        </div>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Descrizione</label>
+                        <textarea name="description" class="admin-input admin-textarea" required rows="4"
+                                  placeholder="Descrizione dettagliata del progetto immobiliare..." id="field-description"></textarea>
+                        <p class="admin-help-text">Minimo 50 caratteri, massimo 2000</p>
                 </div>
                 
-                <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700 mb-2">
-                        Tipo Progetto *
-                    </label>
-                    <select id="type" name="type" required class="input-field w-full">
-                        <option value="">Seleziona tipo</option>
+                    <div class="admin-grid admin-grid--2">
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Località</label>
+                            <input type="text" name="location" class="admin-input" required 
+                                   placeholder="es. Milano, Via Roma 123" id="field-location">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Tipologia</label>
+                            <select name="type" class="admin-input admin-select" required id="field-type">
+                                <option value="">Seleziona tipologia</option>
                         <option value="residential">Residenziale</option>
                         <option value="commercial">Commerciale</option>
                         <option value="industrial">Industriale</option>
                         <option value="mixed">Misto</option>
                     </select>
                 </div>
-                
-                <div>
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
-                        Località *
-                    </label>
-                    <input type="text" id="location" name="location" required
-                           class="input-field w-full" placeholder="Es: Milano, Via Roma 123">
                 </div>
-                
-                <div>
-                    <label for="roi" class="block text-sm font-medium text-gray-700 mb-2">
-                        ROI Atteso (%) *
-                    </label>
-                    <input type="number" id="roi" name="roi" required min="0" step="0.1"
-                           class="input-field w-full" placeholder="Es: 12.5">
+                </div>
                 </div>
             </div>
             
-            <div class="mt-6">
-                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                    Descrizione Progetto *
-                </label>
-                <textarea id="description" name="description" rows="4" required
-                          class="input-field w-full" placeholder="Descrivi il progetto in dettaglio..."></textarea>
+        <!-- STEP 2: Dettagli Finanziari -->
+        <div id="step-2" class="wizard-step hidden">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Step 2: Dettagli Finanziari</h2>
+                <p class="admin-text-small">Configura gli aspetti economici del progetto</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-6">
+                    <div class="admin-grid admin-grid--2">
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Importo Target (€)</label>
+                            <input type="number" name="target_amount" class="admin-input" required 
+                                   min="1000" step="0.01" placeholder="100000" id="field-target_amount">
+                            <p class="admin-help-text">Capitale totale da raccogliere</p>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Investimento Minimo (€)</label>
+                            <input type="number" name="min_investment" class="admin-input" required 
+                                   min="100" step="0.01" placeholder="1000" id="field-min_investment">
+                            <p class="admin-help-text">Importo minimo per singolo investimento</p>
             </div>
         </div>
 
-        <!-- Parametri Finanziari -->
-        <div class="card">
-            <h3 class="text-lg font-medium text-gray-900 mb-6">Parametri Finanziari</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label for="total_amount" class="block text-sm font-medium text-gray-700 mb-2">
-                        Valore Totale (€) *
-                    </label>
-                    <input type="number" id="total_amount" name="total_amount" required min="1000" step="1000
-                           class="input-field w-full" placeholder="Es: 500000">
-                    <p class="text-xs text-gray-500 mt-1">Importo totale del progetto</p>
+                    <div class="admin-grid admin-grid--3">
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">ROI Atteso (%)</label>
+                            <input type="number" name="roi" class="admin-input" required 
+                                   min="0.1" max="99.9" step="0.1" placeholder="8.5" id="field-roi">
+                            <p class="admin-help-text">Rendimento annuo atteso</p>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Durata (mesi)</label>
+                            <input type="number" name="duration" class="admin-input" required 
+                                   min="1" max="120" placeholder="24" id="field-duration">
+                            <p class="admin-help-text">Durata del progetto</p>
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Stato Iniziale</label>
+                            <select name="status" class="admin-input admin-select" required id="field-status">
+                                <option value="draft">Bozza</option>
+                                <option value="funding">In Finanziamento</option>
+                                <option value="active">Attivo</option>
+                            </select>
+                        </div>
                 </div>
                 
-                <div>
-                    <label for="min_investment" class="block text-sm font-medium text-gray-700 mb-2">
-                        Investimento Minimo (€) *
-                    </label>
-                    <input type="number" id="min_investment" name="min_investment" required min="100" step="100
-                           class="input-field w-full" placeholder="Es: 5000">
-                    <p class="text-xs text-gray-500 mt-1">Importo minimo per investire</p>
+                    <div class="admin-grid admin-grid--2">
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Data Inizio</label>
+                            <input type="date" name="start_date" class="admin-input" required id="field-start_date">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label admin-label--required">Data Fine</label>
+                            <input type="date" name="end_date" class="admin-input" required id="field-end_date">
+                        </div>
                 </div>
                 
+                    <!-- Preview Calcoli -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="admin-heading-3 text-blue-800">Anteprima Calcoli</h3>
+                        <div class="admin-grid admin-grid--3 mt-3">
+                            <div>
+                                <p class="admin-text-caption text-blue-700">ROI Totale</p>
+                                <p class="admin-text-body font-medium text-blue-900" id="calc-total-roi">-</p>
+                            </div>
+                            <div>
+                                <p class="admin-text-caption text-blue-700">Rendimento per €1000</p>
+                                <p class="admin-text-body font-medium text-blue-900" id="calc-yield-1000">-</p>
+                            </div>
                 <div>
-                    <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
-                        Durata (mesi) *
-                    </label>
-                    <input type="number" id="duration" name="duration" required min="1" max="120
-                           class="input-field w-full" placeholder="Es: 24">
-                    <p class="text-xs text-gray-500 mt-1">Durata dell'investimento</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Date e Timeline -->
-        <div class="card">
-            <h3 class="text-lg font-medium text-gray-900 mb-6">Timeline Progetto</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
-                        Data Inizio *
-                    </label>
-                    <input type="date" id="start_date" name="start_date" required
-                           class="input-field w-full">
-                    <p class="text-xs text-gray-500 mt-1">Data di inizio del progetto</p>
-                </div>
-                
-                <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
-                        Data Fine *
-                    </label>
-                    <input type="date" id="end_date" name="end_date" required
-                           class="input-field w-full">
-                    <p class="text-xs text-gray-500 mt-1">Data di completamento prevista</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Media e Documenti -->
-        <div class="card">
-            <h3 class="text-lg font-medium text-gray-900 mb-6">Media e Documenti</h3>
-            <div class="space-y-6">
-                <div>
-                    <label for="image_url" class="block text-sm font-medium text-gray-700 mb-2">
-                        URL Immagine Principale
-                    </label>
-                    <input type="url" id="image_url" name="image_url"
-                           class="input-field w-full" placeholder="https://example.com/image.jpg">
-                    <p class="text-xs text-gray-500 mt-1">URL dell'immagine principale del progetto</p>
-                </div>
-                
-                <div>
-                    <label for="gallery" class="block text-sm font-medium text-gray-700 mb-2">
-                        Galleria Immagini (URLs separati da virgola)
-                    </label>
-                    <textarea id="gallery" name="gallery" rows="3"
-                              class="input-field w-full" placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg"></textarea>
-                    <p class="text-xs text-gray-500 mt-1">URLs delle immagini della galleria</p>
-                </div>
-                
-                <div>
-                    <label for="documents" class="block text-sm font-medium text-gray-700 mb-2">
-                        Documenti (URLs separati da virgola)
-                    </label>
-                    <textarea id="documents" name="documents" rows="3"
-                              class="input-field w-full" placeholder="https://example.com/doc1.pdf, https://example.com/doc2.pdf"></textarea>
-                    <p class="text-xs text-gray-500 mt-1">URLs dei documenti del progetto</p>
+                                <p class="admin-text-caption text-blue-700">N° Investitori Min</p>
+                                <p class="admin-text-body font-medium text-blue-900" id="calc-min-investors">-</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Anteprima ROI -->
-        <div class="card bg-blue-50 border-blue-200">
-            <h3 class="text-lg font-medium text-blue-900 mb-4">Anteprima ROI</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-900" id="roiPreview">-</div>
-                    <div class="text-sm text-blue-700">ROI Atteso</div>
+        <!-- STEP 3: Documenti e Media -->
+        <div id="step-3" class="wizard-step hidden">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Step 3: Documenti e Media</h2>
+                <p class="admin-text-small">Carica immagini e documenti del progetto</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-6">
+                    <!-- Immagine Principale -->
+                    <div class="admin-form-group">
+                        <label class="admin-label">Immagine Principale</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="main-image-dropzone">
+                            <div class="text-center" id="main-image-placeholder">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <div class="mt-4">
+                                    <label for="main-image" class="cursor-pointer">
+                                        <span class="admin-btn admin-btn--primary admin-btn--sm">Seleziona Immagine</span>
+                                        <input id="main-image" type="file" class="sr-only" accept="image/*">
+                    </label>
+                                </div>
+                                <p class="admin-help-text mt-2">PNG, JPG fino a 10MB</p>
+                            </div>
+                            <div id="main-image-preview" class="hidden">
+                                <img id="main-image-img" class="max-h-48 mx-auto rounded-lg" alt="Anteprima">
+                                <div class="mt-2 text-center">
+                                    <button type="button" onclick="removeMainImage()" class="admin-btn admin-btn--error admin-btn--sm">
+                                        Rimuovi
+                                    </button>
                 </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-900" id="durationPreview">-</div>
-                    <div class="text-sm text-blue-700">Durata (mesi)</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-900" id="minInvestmentPreview">-</div>
-                    <div class="text-sm text-blue-700">Investimento Minimo</div>
                 </div>
             </div>
         </div>
 
-        <!-- Azioni -->
-        <div class="flex justify-end space-x-4">
-                            <a href="{{ url_for('admin.projects_list') }}" class="btn-secondary">
-                Annulla
-            </a>
-            <button type="submit" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Crea Progetto
-            </button>
+                    <!-- Galleria Immagini -->
+                    <div class="admin-form-group">
+                        <label class="admin-label">Galleria Immagini (opzionale)</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="gallery-dropzone">
+                            <div class="text-center">
+                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <div class="mt-2">
+                                    <label for="gallery-images" class="cursor-pointer">
+                                        <span class="admin-btn admin-btn--secondary admin-btn--sm">Aggiungi Immagini</span>
+                                        <input id="gallery-images" type="file" class="sr-only" accept="image/*" multiple>
+                    </label>
+                                </div>
+                                <p class="admin-help-text">Trascina o seleziona più immagini</p>
+                            </div>
+                        </div>
+                        <div id="gallery-preview" class="hidden mt-4">
+                            <div class="admin-grid admin-grid--4" id="gallery-grid"></div>
+                        </div>
+                </div>
+                
+                    <!-- Documenti PDF -->
+                    <div class="admin-form-group">
+                        <label class="admin-label">Documenti Progetto (opzionale)</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="docs-dropzone">
+                            <div class="text-center">
+                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <div class="mt-2">
+                                    <label for="project-docs" class="cursor-pointer">
+                                        <span class="admin-btn admin-btn--secondary admin-btn--sm">Aggiungi PDF</span>
+                                        <input id="project-docs" type="file" class="sr-only" accept=".pdf" multiple>
+                    </label>
+                                </div>
+                                <p class="admin-help-text">Documenti PDF del progetto</p>
+                            </div>
+                        </div>
+                        <div id="docs-preview" class="hidden mt-4">
+                            <div class="space-y-2" id="docs-list"></div>
+                        </div>
+                </div>
+                </div>
+            </div>
         </div>
+
+        <!-- STEP 4: Anteprima e Conferma -->
+        <div id="step-4" class="wizard-step hidden">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Step 4: Anteprima e Conferma</h2>
+                <p class="admin-text-small">Verifica tutti i dati prima di creare il progetto</p>
+                </div>
+            <div class="admin-card-body">
+                <div id="project-preview" class="space-y-6">
+                    <!-- Preview will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
     </form>
+    
+    <!-- Wizard Navigation -->
+    <div class="admin-card-footer">
+        <div class="admin-flex admin-flex--between">
+            <button type="button" id="prev-btn" class="admin-btn admin-btn--secondary" onclick="previousStep()" disabled>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Precedente
+            </button>
+            
+            <div class="admin-flex">
+                <button type="button" id="next-btn" class="admin-btn admin-btn--primary" onclick="nextStep()">
+                    Avanti
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                
+                <button type="button" id="submit-btn" class="admin-btn admin-btn--success hidden" onclick="submitProject()">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Crea Progetto
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
+{% block extra_js %}
 <script>
-// Aggiorna anteprima ROI in tempo reale
-function updateROIPreview() {
-    const roi = document.getElementById('roi').value;
-    const duration = document.getElementById('duration').value;
-    const minInvestment = document.getElementById('min_investment').value;
+// Project Creation Wizard Manager
+class ProjectWizard {
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.projectData = {};
+        this.uploadedFiles = {
+            mainImage: null,
+            gallery: [],
+            documents: []
+        };
+        
+        this.init();
+    }
     
-    if (roi) document.getElementById('roiPreview').textContent = roi + '%';
-    if (duration) document.getElementById('durationPreview').textContent = duration + ' mesi';
-    if (minInvestment) document.getElementById('minInvestmentPreview').textContent = '€' + parseInt(minInvestment).toLocaleString();
+    init() {
+        this.updateStepDisplay();
+        this.bindEvents();
+        this.setDefaultDates();
+        this.setupFileUploads();
+    }
+    
+    bindEvents() {
+        // Auto-generate code from title
+        document.getElementById('field-title').addEventListener('input', this.generateCode.bind(this));
+        
+        // Financial calculations
+        ['target_amount', 'min_investment', 'roi', 'duration'].forEach(field => {
+            document.getElementById(`field-${field}`).addEventListener('input', this.updateCalculations.bind(this));
+        });
+        
+        // Form validation on change
+        document.querySelectorAll('.admin-input').forEach(input => {
+            input.addEventListener('blur', this.validateField.bind(this));
+        });
+    }
+    
+    generateCode() {
+        const title = document.getElementById('field-title').value;
+        const codeField = document.getElementById('field-code');
+        
+        if (!codeField.value && title && title.length >= 3) {
+            const code = 'PROJ' + title.substring(0, 3).toUpperCase() + Date.now().toString().slice(-3);
+            codeField.value = code;
+        }
+    }
+    
+    setDefaultDates() {
+        const today = new Date();
+        const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+        
+        document.getElementById('field-start_date').value = today.toISOString().split('T')[0];
+        document.getElementById('field-end_date').value = nextYear.toISOString().split('T')[0];
+    }
+    
+    updateCalculations() {
+        const targetAmount = parseFloat(document.getElementById('field-target_amount').value) || 0;
+        const minInvestment = parseFloat(document.getElementById('field-min_investment').value) || 0;
+        const roi = parseFloat(document.getElementById('field-roi').value) || 0;
+        const duration = parseInt(document.getElementById('field-duration').value) || 0;
+        
+        if (targetAmount && roi && duration) {
+            // ROI totale (annualizzato per durata)
+            const totalRoi = (roi * duration / 12);
+            document.getElementById('calc-total-roi').textContent = `${totalRoi.toFixed(1)}%`;
+            
+            // Rendimento per €1000
+            const yield1000 = (1000 * totalRoi / 100);
+            document.getElementById('calc-yield-1000').textContent = `€${yield1000.toFixed(0)}`;
+            
+            // Numero minimo investitori
+            if (minInvestment > 0) {
+                const minInvestors = Math.ceil(targetAmount / minInvestment);
+                document.getElementById('calc-min-investors').textContent = minInvestors;
+            }
+        }
+    }
+    
+    setupFileUploads() {
+        // Main image upload
+        document.getElementById('main-image').addEventListener('change', (e) => {
+            this.handleMainImageUpload(e.target.files[0]);
+        });
+        
+        // Gallery images upload
+        document.getElementById('gallery-images').addEventListener('change', (e) => {
+            this.handleGalleryUpload(Array.from(e.target.files));
+        });
+        
+        // Documents upload
+        document.getElementById('project-docs').addEventListener('change', (e) => {
+            this.handleDocumentsUpload(Array.from(e.target.files));
+        });
+    }
+    
+    handleMainImageUpload(file) {
+        if (!file) return;
+        
+        if (file.size > 10 * 1024 * 1024) {
+            this.showAlert('error', 'File troppo grande. Massimo 10MB');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('main-image-placeholder').classList.add('hidden');
+            document.getElementById('main-image-preview').classList.remove('hidden');
+            document.getElementById('main-image-img').src = e.target.result;
+            this.uploadedFiles.mainImage = file;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    handleGalleryUpload(files) {
+        files.forEach(file => {
+            if (file.size <= 10 * 1024 * 1024) {
+                this.uploadedFiles.gallery.push(file);
+                this.addGalleryPreview(file);
+            }
+        });
+        
+        if (this.uploadedFiles.gallery.length > 0) {
+            document.getElementById('gallery-preview').classList.remove('hidden');
+        }
+    }
+    
+    addGalleryPreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const grid = document.getElementById('gallery-grid');
+            const div = document.createElement('div');
+            div.className = 'relative';
+            div.innerHTML = `
+                <img src="${e.target.result}" class="w-full h-24 object-cover rounded-lg">
+                <button type="button" onclick="removeGalleryImage(this)" 
+                        class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    ×
+                </button>
+            `;
+            grid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    handleDocumentsUpload(files) {
+        files.forEach(file => {
+            if (file.type === 'application/pdf' && file.size <= 10 * 1024 * 1024) {
+                this.uploadedFiles.documents.push(file);
+                this.addDocumentPreview(file);
+            }
+        });
+        
+        if (this.uploadedFiles.documents.length > 0) {
+            document.getElementById('docs-preview').classList.remove('hidden');
+        }
+    }
+    
+    addDocumentPreview(file) {
+        const list = document.getElementById('docs-list');
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg';
+        div.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <div>
+                    <p class="admin-text-body">${file.name}</p>
+                    <p class="admin-text-caption">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+            </div>
+            <button type="button" onclick="removeDocument(this)" class="admin-btn admin-btn--error admin-btn--sm">
+                Rimuovi
+            </button>
+        `;
+        list.appendChild(div);
+    }
+    
+    validateStep(step) {
+        let isValid = true;
+        const requiredFields = this.getRequiredFieldsForStep(step);
+        
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field.value.trim()) {
+                this.markFieldInvalid(field);
+                isValid = false;
+            } else {
+                this.markFieldValid(field);
+            }
+        });
+        
+        // Validazioni specifiche per step
+        if (step === 1) {
+            const description = document.getElementById('field-description').value;
+            if (description.length < 50) {
+                this.showAlert('error', 'La descrizione deve essere di almeno 50 caratteri');
+                isValid = false;
+            }
+        }
+        
+        if (step === 2) {
+            const targetAmount = parseFloat(document.getElementById('field-target_amount').value);
+            const minInvestment = parseFloat(document.getElementById('field-min_investment').value);
+            
+            if (minInvestment >= targetAmount) {
+                this.showAlert('error', 'L\'investimento minimo deve essere inferiore al target');
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    getRequiredFieldsForStep(step) {
+        const fields = {
+            1: ['field-code', 'field-title', 'field-description', 'field-location', 'field-type'],
+            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-duration', 'field-status', 'field-start_date', 'field-end_date'],
+            3: [], // No required fields in step 3
+            4: []  // No fields in step 4
+        };
+        return fields[step] || [];
+    }
+    
+    markFieldInvalid(field) {
+        field.classList.add('admin-input--error');
+        field.classList.remove('admin-input--success');
+    }
+    
+    markFieldValid(field) {
+        field.classList.remove('admin-input--error');
+        field.classList.add('admin-input--success');
+    }
+    
+    validateField(e) {
+        const field = e.target;
+        if (field.value.trim()) {
+            this.markFieldValid(field);
+        }
+    }
+    
+    nextStep() {
+        if (!this.validateStep(this.currentStep)) {
+            return;
+        }
+        
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.updateStepDisplay();
+            
+            if (this.currentStep === 4) {
+                this.generatePreview();
+            }
+        }
+    }
+    
+    previousStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.updateStepDisplay();
+        }
+    }
+    
+    updateStepDisplay() {
+        // Hide all steps
+        for (let i = 1; i <= this.totalSteps; i++) {
+            document.getElementById(`step-${i}`).classList.add('hidden');
+            
+            // Update progress bar
+            const circle = document.getElementById(`step-${i}-circle`);
+            const line = document.getElementById(`step-${i}-line`);
+            
+            if (i < this.currentStep) {
+                // Completed step
+                circle.className = 'w-8 h-8 bg-green-600 rounded-full flex items-center justify-center';
+                circle.innerHTML = '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+                if (line) line.className = 'flex-1 h-1 bg-green-600 mx-4';
+            } else if (i === this.currentStep) {
+                // Current step
+                circle.className = 'w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center';
+                circle.innerHTML = `<span class="text-white text-sm font-medium">${i}</span>`;
+                if (line) line.className = 'flex-1 h-1 bg-gray-200 mx-4';
+            } else {
+                // Future step
+                circle.className = 'w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center';
+                circle.innerHTML = `<span class="text-gray-500 text-sm font-medium">${i}</span>`;
+                if (line) line.className = 'flex-1 h-1 bg-gray-200 mx-4';
+            }
+        }
+        
+        // Show current step
+        document.getElementById(`step-${this.currentStep}`).classList.remove('hidden');
+        
+        // Update step indicator
+        document.getElementById('step-indicator').textContent = `Step ${this.currentStep} di ${this.totalSteps}`;
+        
+        // Update navigation buttons
+        document.getElementById('prev-btn').disabled = this.currentStep === 1;
+        
+        if (this.currentStep === this.totalSteps) {
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('submit-btn').classList.remove('hidden');
+        } else {
+            document.getElementById('next-btn').classList.remove('hidden');
+            document.getElementById('submit-btn').classList.add('hidden');
+        }
+    }
+    
+    generatePreview() {
+        const formData = new FormData(document.getElementById('wizard-form'));
+        const data = Object.fromEntries(formData);
+        
+        const preview = document.getElementById('project-preview');
+        preview.innerHTML = `
+            <div class="admin-grid admin-grid--2">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-heading-3">Informazioni Progetto</h3>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="space-y-3">
+                            <div><strong>Codice:</strong> ${data.code}</div>
+                            <div><strong>Titolo:</strong> ${data.title}</div>
+                            <div><strong>Località:</strong> ${data.location}</div>
+                            <div><strong>Tipologia:</strong> ${data.type}</div>
+                            <div><strong>Descrizione:</strong><br>${data.description}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-heading-3">Dettagli Finanziari</h3>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="space-y-3">
+                            <div><strong>Target:</strong> €${parseFloat(data.target_amount).toLocaleString()}</div>
+                            <div><strong>Min. Investimento:</strong> €${parseFloat(data.min_investment).toLocaleString()}</div>
+                            <div><strong>ROI:</strong> ${data.roi}% annuo</div>
+                            <div><strong>Durata:</strong> ${data.duration} mesi</div>
+                            <div><strong>Periodo:</strong> ${data.start_date} - ${data.end_date}</div>
+                            <div><strong>Stato:</strong> ${data.status}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-heading-3">Media e Documenti</h3>
+                </div>
+                <div class="admin-card-body">
+                    <div class="space-y-3">
+                        <div><strong>Immagine principale:</strong> ${this.uploadedFiles.mainImage ? '✅ Caricata' : '❌ Non caricata'}</div>
+                        <div><strong>Galleria:</strong> ${this.uploadedFiles.gallery.length} immagini</div>
+                        <div><strong>Documenti:</strong> ${this.uploadedFiles.documents.length} PDF</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    async submitProject() {
+        const submitBtn = document.getElementById('submit-btn');
+        setButtonLoading(submitBtn, true, 'Creando...');
+        
+        try {
+            // Prepare form data
+            const formData = new FormData(document.getElementById('wizard-form'));
+            
+            // Add files
+            if (this.uploadedFiles.mainImage) {
+                formData.append('main_image', this.uploadedFiles.mainImage);
+            }
+            
+            this.uploadedFiles.gallery.forEach((file, index) => {
+                formData.append(`gallery_${index}`, file);
+            });
+            
+            this.uploadedFiles.documents.forEach((file, index) => {
+                formData.append(`document_${index}`, file);
+            });
+            
+            // Convert to JSON (excluding files for basic project creation)
+            const projectData = {};
+            for (let [key, value] of formData.entries()) {
+                if (!key.startsWith('gallery_') && !key.startsWith('document_') && key !== 'main_image') {
+                    projectData[key] = value;
+                }
+            }
+            
+            const response = await fetch('/admin/projects/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(projectData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showAlert('success', `Progetto "${projectData.title}" creato con successo!`);
+                
+                // TODO: Upload files to the created project
+                
+                setTimeout(() => {
+                    window.location.href = '/admin/projects';
+                }, 2000);
+            } else {
+                this.showAlert('error', result.error || 'Errore nella creazione del progetto');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('wizard-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
 }
 
-// Event listeners per aggiornamento preview
-document.getElementById('roi').addEventListener('input', updateROIPreview);
-document.getElementById('duration').addEventListener('input', updateROIPreview);
-document.getElementById('min_investment').addEventListener('input', updateROIPreview);
+// Global functions
+let projectWizard;
 
-// Gestione form submit
-document.getElementById('createProjectForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+function nextStep() {
+    projectWizard.nextStep();
+}
+
+function previousStep() {
+    projectWizard.previousStep();
+}
+
+function submitProject() {
+    projectWizard.submitProject();
+}
+
+function removeMainImage() {
+    document.getElementById('main-image-placeholder').classList.remove('hidden');
+    document.getElementById('main-image-preview').classList.add('hidden');
+    document.getElementById('main-image').value = '';
+    projectWizard.uploadedFiles.mainImage = null;
+}
+
+function removeGalleryImage(button) {
+    const index = Array.from(button.parentElement.parentElement.children).indexOf(button.parentElement);
+    projectWizard.uploadedFiles.gallery.splice(index, 1);
+    button.parentElement.remove();
     
-    // Validazione campi obbligatori
-    const requiredFields = ['name', 'type', 'location', 'roi', 'description', 'total_amount', 'min_investment', 'duration', 'start_date', 'end_date'];
-    const missingFields = [];
-    
-    requiredFields.forEach(field => {
-        const element = document.getElementById(field);
-        if (!element.value.trim()) {
-            missingFields.push(field);
-            element.classList.add('border-red-500');
-        } else {
-            element.classList.remove('border-red-500');
-        }
-    });
-    
-    if (missingFields.length > 0) {
-        alert('Compila tutti i campi obbligatori: ' + missingFields.join(', '));
-        return;
+    if (projectWizard.uploadedFiles.gallery.length === 0) {
+        document.getElementById('gallery-preview').classList.add('hidden');
     }
+}
+
+function removeDocument(button) {
+    const index = Array.from(button.parentElement.parentElement.children).indexOf(button.parentElement);
+    projectWizard.uploadedFiles.documents.splice(index, 1);
+    button.parentElement.remove();
     
-    // Validazione date
-    const startDate = new Date(document.getElementById('start_date').value);
-    const endDate = new Date(document.getElementById('end_date').value);
-    const today = new Date();
-    
-    if (startDate < today) {
-        alert('La data di inizio non può essere nel passato');
-        return;
+    if (projectWizard.uploadedFiles.documents.length === 0) {
+        document.getElementById('docs-preview').classList.add('hidden');
     }
-    
-    if (endDate <= startDate) {
-        alert('La data di fine deve essere successiva alla data di inizio');
-        return;
-    }
-    
-    // Validazione importi
-    const totalAmount = parseFloat(document.getElementById('total_amount').value);
-    const minInvestment = parseFloat(document.getElementById('min_investment').value);
-    
-    if (minInvestment > totalAmount) {
-        alert('L\'investimento minimo non può essere maggiore del valore totale');
-        return;
-    }
-    
-    // Prepara dati per invio
-    const formData = {
-        name: document.getElementById('name').value,
-        type: document.getElementById('type').value,
-        location: document.getElementById('location').value,
-        roi: parseFloat(document.getElementById('roi').value),
-        description: document.getElementById('description').value,
-        total_amount: totalAmount,
-        min_investment: minInvestment,
-        duration: parseInt(document.getElementById('duration').value),
-        start_date: document.getElementById('start_date').value,
-        end_date: document.getElementById('end_date').value,
-        image_url: document.getElementById('image_url').value || null,
-        gallery: document.getElementById('gallery').value ? document.getElementById('gallery').value.split(',').map(url => url.trim()) : [],
-        documents: document.getElementById('documents').value ? document.getElementById('documents').value.split(',').map(url => url.trim()) : []
-    };
-    
-    // Invia richiesta
-    createProject(formData);
+}
+
+// Initialize wizard
+document.addEventListener('DOMContentLoaded', function() {
+    projectWizard = new ProjectWizard();
 });
-
-function createProject(data) {
-    // Mostra loading
-    const submitBtn = document.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Creazione...';
-    submitBtn.disabled = true;
-    
-    fetch('/admin/projects/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            alert('Progetto creato con successo! ID: ' + result.project_id);
-            window.location.href = '{{ url_for("admin.projects_list") }}';
-        } else {
-            alert('Errore nella creazione: ' + result.error);
-        }
-    })
-    .catch(error => {
-        console.error('Errore:', error);
-        alert('Errore nella richiesta di creazione progetto');
-    })
-    .finally(() => {
-        // Ripristina bottone
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-}
-
-// Inizializza preview
-updateROIPreview();
 </script>
+{% endblock %}
 {% endblock %}

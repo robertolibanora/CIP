@@ -1,0 +1,126 @@
+<!-- Loading Component - Admin Design System -->
+<!-- Usage: {% include 'admin/components/loading.html' with loading_text='Caricamento...', loading_size='md' %} -->
+
+{% set loading_text = loading_text or 'Caricamento...' %}
+{% set loading_size = loading_size or 'md' %}
+{% set loading_id = loading_id or 'loading-' + range(1000, 9999) | random | string %}
+
+<!-- Loading Overlay (full screen) -->
+{% if loading_overlay %}
+<div id="{{ loading_id }}" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4">
+        <div class="flex items-center space-x-3">
+            <div class="admin-spinner 
+                        {% if loading_size == 'sm' %}w-4 h-4{% elif loading_size == 'lg' %}w-8 h-8{% else %}w-6 h-6{% endif %}"></div>
+            <span class="admin-text-body">{{ loading_text }}</span>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Inline Loading -->
+<div id="{{ loading_id }}" class="admin-loading">
+    <div class="admin-spinner 
+                {% if loading_size == 'sm' %}w-4 h-4{% elif loading_size == 'lg' %}w-8 h-8{% else %}w-6 h-6{% endif %}"></div>
+    <span class="{% if loading_size == 'sm' %}admin-text-small{% elif loading_size == 'lg' %}admin-text-body{% else %}admin-text-body{% endif %}">
+        {{ loading_text }}
+    </span>
+</div>
+{% endif %}
+
+<!-- Loading Skeleton (for content placeholders) -->
+{% if loading_skeleton %}
+<div class="space-y-4">
+    {% for i in range(loading_skeleton_lines or 3) %}
+    <div class="admin-skeleton h-4 rounded 
+                {% if loop.last %}w-3/4{% elif loop.index == 2 %}w-full{% else %}w-5/6{% endif %}"></div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Button Loading State -->
+{% if loading_button %}
+<button type="button" disabled class="admin-btn admin-btn--primary opacity-50 cursor-not-allowed">
+    <div class="admin-spinner w-4 h-4 mr-2"></div>
+    {{ loading_text }}
+</button>
+{% endif %}
+
+<script>
+// Utility functions for loading states
+function showLoading(loadingId) {
+    const element = document.getElementById(loadingId);
+    if (element) {
+        element.classList.remove('hidden');
+        element.classList.add('admin-fade-in');
+    }
+}
+
+function hideLoading(loadingId) {
+    const element = document.getElementById(loadingId);
+    if (element) {
+        element.classList.add('hidden');
+        element.classList.remove('admin-fade-in');
+    }
+}
+
+// Global loading overlay management
+let globalLoadingCount = 0;
+
+function showGlobalLoading(text = 'Caricamento...') {
+    globalLoadingCount++;
+    
+    let overlay = document.getElementById('global-loading-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'global-loading-overlay';
+        overlay.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+        overlay.innerHTML = `
+            <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4">
+                <div class="flex items-center space-x-3">
+                    <div class="admin-spinner w-6 h-6"></div>
+                    <span class="admin-text-body" id="global-loading-text">${text}</span>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    } else {
+        document.getElementById('global-loading-text').textContent = text;
+        overlay.classList.remove('hidden');
+    }
+}
+
+function hideGlobalLoading() {
+    globalLoadingCount = Math.max(0, globalLoadingCount - 1);
+    
+    if (globalLoadingCount === 0) {
+        const overlay = document.getElementById('global-loading-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }
+}
+
+// Button loading state management
+function setButtonLoading(buttonElement, loading = true, text = 'Caricamento...') {
+    if (loading) {
+        buttonElement.disabled = true;
+        buttonElement.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        const originalContent = buttonElement.innerHTML;
+        buttonElement.dataset.originalContent = originalContent;
+        
+        buttonElement.innerHTML = `
+            <div class="admin-spinner w-4 h-4 mr-2"></div>
+            ${text}
+        `;
+    } else {
+        buttonElement.disabled = false;
+        buttonElement.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        if (buttonElement.dataset.originalContent) {
+            buttonElement.innerHTML = buttonElement.dataset.originalContent;
+            delete buttonElement.dataset.originalContent;
+        }
+    }
+}
+</script>

@@ -1,0 +1,197 @@
+<!-- Sidebar Menu Admin - Component -->
+<div class="space-y-2">
+    <!-- Dashboard -->
+    <a href="{{ url_for('admin.admin_dashboard') }}" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group
+              {% if request.endpoint == 'admin.admin_dashboard' %}active{% else %}text-gray-700 hover:text-gray-900{% endif %}">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Dashboard
+    </a>
+
+    <!-- Separator -->
+    <div class="border-t border-gray-200 my-4"></div>
+    <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestione</p>
+
+    <!-- Utenti -->
+    <a href="{{ url_for('admin.users_list') }}" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group
+              {% if request.endpoint == 'admin.users_list' %}active{% else %}text-gray-700 hover:text-gray-900{% endif %}">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+        </svg>
+        Utenti
+        <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">{{ metrics.users_total or 0 }}</span>
+    </a>
+
+    <!-- Progetti -->
+    <a href="{{ url_for('admin.projects_list') }}" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group
+              {% if request.endpoint == 'admin.projects_list' %}active{% else %}text-gray-700 hover:text-gray-900{% endif %}">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        Progetti
+        <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full" id="projects-count-sidebar">{{ metrics.projects_active or 0 }}</span>
+    </a>
+
+    <!-- Portfolio -->
+    <a href="{{ url_for('admin.portfolio_dashboard') }}" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group
+              {% if request.endpoint == 'admin.portfolio_dashboard' %}active{% else %}text-gray-700 hover:text-gray-900{% endif %}">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+        </svg>
+        Portfolio
+        <span class="ml-auto bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">€{{ (metrics.total_capital or 0) | int }}</span>
+    </a>
+
+    <!-- Separator -->
+    <div class="border-t border-gray-200 my-4"></div>
+    <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Approvazioni</p>
+
+    <!-- KYC -->
+    <a href="#kyc" onclick="loadKYCRequests()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Verifica KYC
+        <span class="ml-auto bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full" id="kyc-count">0</span>
+    </a>
+
+    <!-- Ricariche -->
+    <a href="#deposits" onclick="loadDepositRequests()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Ricariche
+        <span class="ml-auto bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full" id="deposits-count">0</span>
+    </a>
+
+    <!-- Prelievi -->
+    <a href="#withdrawals" onclick="loadWithdrawalRequests()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+        </svg>
+        Prelievi (48h)
+        <span class="ml-auto bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full" id="withdrawals-count">0</span>
+    </a>
+
+    <!-- Separator -->
+    <div class="border-t border-gray-200 my-4"></div>
+    <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sistema</p>
+
+    <!-- Transazioni -->
+    <a href="#transactions" onclick="loadTransactionsOverview()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Transazioni
+    </a>
+
+    <!-- Referral -->
+    <a href="#referral" onclick="loadReferralOverview()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Sistema Referral
+    </a>
+
+    <!-- Analytics -->
+    <a href="#analytics" onclick="loadAnalytics()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+        Analytics
+    </a>
+
+    <!-- Separator -->
+    <div class="border-t border-gray-200 my-4"></div>
+    <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Configurazioni</p>
+
+    <!-- IBAN Config -->
+    <a href="#iban-config" onclick="loadIBANConfig()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+        </svg>
+        IBAN Sistema
+    </a>
+
+    <!-- Settings -->
+    <a href="#settings" onclick="showAdminSettings()" 
+       class="menu-item flex items-center px-4 py-3 text-sm font-medium rounded-lg group text-gray-700 hover:text-gray-900">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Impostazioni
+    </a>
+</div>
+
+<!-- JavaScript per contatori dinamici -->
+<script>
+// Aggiorna contatori sidebar
+async function updateSidebarCounters() {
+    try {
+        // KYC count
+        const kycResponse = await fetch('/admin/api/kyc-requests');
+        if (kycResponse.ok) {
+            const kycData = await kycResponse.json();
+            document.getElementById('kyc-count').textContent = kycData.length || 0;
+        }
+
+        // Deposits count
+        const depositsResponse = await fetch('/admin/api/deposit-requests');
+        if (depositsResponse.ok) {
+            const depositsData = await depositsResponse.json();
+            document.getElementById('deposits-count').textContent = depositsData.length || 0;
+        }
+
+        // Withdrawals count
+        const withdrawalsResponse = await fetch('/admin/api/withdrawal-requests');
+        if (withdrawalsResponse.ok) {
+            const withdrawalsData = await withdrawalsResponse.json();
+            document.getElementById('withdrawals-count').textContent = withdrawalsData.length || 0;
+        }
+    } catch (error) {
+        console.log('Errore aggiornamento contatori:', error);
+    }
+}
+
+// Aggiorna contatori ogni 30 secondi
+setInterval(updateSidebarCounters, 30000);
+
+// Aggiorna al caricamento
+document.addEventListener('DOMContentLoaded', updateSidebarCounters);
+
+// Funzioni placeholder per menu items
+async function loadInvestments() {
+    try {
+        const response = await fetch('/admin/investments');
+        const data = await response.json();
+        alert(`Trovati ${data.length} investimenti`);
+        // TODO: Navigate to investments page
+    } catch (error) {
+        alert('Errore caricamento investimenti');
+    }
+}
+
+async function loadAnalytics() {
+    try {
+        const response = await fetch('/admin/analytics');
+        const data = await response.json();
+        alert('Analytics caricati');
+        // TODO: Navigate to analytics page
+    } catch (error) {
+        alert('Errore caricamento analytics');
+    }
+}
+</script>

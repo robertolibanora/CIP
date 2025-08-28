@@ -1,0 +1,949 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Gestione Progetti - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Progetti</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Gestione Progetti</h1>
+            <p class="admin-text-small">Gestisci tutti i progetti immobiliari della piattaforma</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <a href="{{ url_for('admin.projects_new') if url_for('admin.projects_new') else '#' }}" onclick="openCreateProjectModal()" 
+               class="admin-btn admin-btn--primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Nuovo Progetto
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Sistema Alert per Progetti -->
+<div id="projects-alerts" class="mb-6"></div>
+
+<!-- Filtri e Statistiche -->
+<div class="admin-grid admin-grid--2 mb-6">
+    <!-- Filtri -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Filtri Progetti</h2>
+        </div>
+        <div class="admin-card-body">
+            <div class="space-y-4">
+                <div class="admin-form-group">
+                    <label class="admin-label">Stato Progetto</label>
+                    <select id="status-filter" class="admin-input admin-select">
+                        <option value="">Tutti gli stati</option>
+                        <option value="draft">Bozza</option>
+                        <option value="active">Attivo</option>
+                        <option value="funded">Finanziato</option>
+                        <option value="completed">Completato</option>
+                        <option value="cancelled">Annullato</option>
+                    </select>
+                </div>
+                
+                <div class="admin-form-group">
+                    <label class="admin-label">Ricerca Testuale</label>
+                    <input type="text" id="search-input" class="admin-input" 
+                           placeholder="Cerca per codice, titolo o descrizione...">
+                </div>
+                
+                <div class="admin-form-group">
+                    <label class="admin-label">Ordinamento</label>
+                    <select id="sort-filter" class="admin-input admin-select">
+                        <option value="created_at-desc">Più recenti</option>
+                        <option value="created_at-asc">Più vecchi</option>
+                        <option value="title-asc">Nome A-Z</option>
+                        <option value="title-desc">Nome Z-A</option>
+                        <option value="target_amount-desc">Importo ↓</option>
+                        <option value="target_amount-asc">Importo ↑</option>
+                    </select>
+                </div>
+                
+                <button onclick="applyFilters()" class="admin-btn admin-btn--primary w-full">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"/>
+                    </svg>
+                    Applica Filtri
+                </button>
+                
+                <button onclick="resetFilters()" class="admin-btn admin-btn--secondary w-full">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche Progetti -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Statistiche</h2>
+        </div>
+        <div class="admin-card-body">
+            <div class="space-y-4">
+                <div id="projects-stats">
+                    {% include 'admin/components/loading.html' with loading_skeleton=true, loading_skeleton_lines=4 %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista Progetti -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <div class="admin-flex admin-flex--between">
+            <h2 class="admin-heading-3">Progetti Immobiliari</h2>
+            <div class="admin-flex">
+                <span class="admin-badge admin-badge--info" id="projects-count">0 progetti</span>
+                <button onclick="refreshProjects()" class="admin-btn admin-btn--secondary admin-btn--sm ml-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-card-body">
+        <!-- Loading State -->
+        <div id="projects-loading" class="hidden">
+            {% include 'admin/components/loading.html' with loading_text='Caricamento progetti...', loading_size='lg' %}
+        </div>
+        
+        <!-- Empty State -->
+        <div id="projects-empty" class="hidden text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <h3 class="admin-heading-3 text-gray-500">Nessun progetto trovato</h3>
+            <p class="admin-text-body text-gray-400 mb-4">Non ci sono progetti che corrispondono ai filtri selezionati</p>
+            <button onclick="resetFilters()" class="admin-btn admin-btn--secondary">Reset Filtri</button>
+        </div>
+        
+        <!-- Bulk Actions Bar (hidden by default) -->
+        <div id="bulk-actions-bar" class="admin-card admin-card-body mb-6 hidden">
+            <div class="admin-flex admin-flex--between">
+                <div class="admin-flex admin-flex--center">
+                    <input type="checkbox" id="select-all-projects" class="mr-3" onchange="toggleSelectAll()">
+                    <span class="admin-text-body">
+                        <span id="selected-count">0</span> progetti selezionati
+                    </span>
+                </div>
+                <div class="admin-flex">
+                    <select id="bulk-action-select" class="admin-input admin-select admin-btn--sm mr-2">
+                        <option value="">Scegli azione...</option>
+                        <option value="activate">🟢 Attiva progetti</option>
+                        <option value="pause">⏸️ Metti in pausa</option>
+                        <option value="export">📊 Esporta CSV</option>
+                        <option value="duplicate">📋 Duplica progetti</option>
+                        <option value="archive">📦 Archivia</option>
+                        <option value="delete">🗑️ Elimina</option>
+                    </select>
+                    <button onclick="executeBulkAction()" class="admin-btn admin-btn--warning admin-btn--sm mr-2" id="bulk-execute-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Applica
+                    </button>
+                    <button onclick="clearSelection()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Deseleziona
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="admin-card admin-card-body mb-6">
+            <div class="admin-flex admin-flex--between">
+                <div class="admin-flex">
+                    <button onclick="toggleBulkMode()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="bulk-mode-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Selezione Multipla
+                    </button>
+                    <button onclick="exportAllProjects()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="export-all-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Esporta Tutti
+                    </button>
+                    <button onclick="openAnalyticsModal()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        Analytics
+                    </button>
+                </div>
+                <div class="admin-flex">
+                    <span class="admin-text-small text-gray-500 mr-4" id="total-projects-indicator">
+                        <span id="total-projects-count">0</span> progetti totali
+                    </span>
+                    <button onclick="refreshProjects()" class="admin-btn admin-btn--secondary admin-btn--sm" id="refresh-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Aggiorna
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Grid -->
+        <div id="projects-grid" class="admin-grid admin-grid--3"></div>
+        
+        <!-- Pagination -->
+        <div id="projects-pagination" class="mt-6 hidden">
+            <div class="admin-flex admin-flex--between">
+                <div class="admin-text-small text-gray-600">
+                    Mostrando <span id="page-info">0-0 di 0</span> progetti
+                </div>
+                <div class="admin-flex" id="pagination-controls"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuovo Progetto -->
+{% include 'admin/components/modal.html' with modal_id='create-project-modal', modal_title='Nuovo Progetto', modal_size='lg' %}
+
+{% block modal_body %}
+<form id="create-project-form" class="space-y-4">
+    <div class="admin-grid admin-grid--2">
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Codice Progetto</label>
+            <input type="text" name="code" class="admin-input" required 
+                   placeholder="es. PROJ001">
+        </div>
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Titolo</label>
+            <input type="text" name="title" class="admin-input" required 
+                   placeholder="Nome del progetto">
+        </div>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Descrizione</label>
+        <textarea name="description" class="admin-input admin-textarea" 
+                  placeholder="Descrizione dettagliata del progetto"></textarea>
+    </div>
+    
+    <div class="admin-grid admin-grid--3">
+        <div class="admin-form-group">
+            <label class="admin-label">Importo Target (€)</label>
+            <input type="number" name="target_amount" class="admin-input" 
+                   min="0" step="0.01" placeholder="100000">
+        </div>
+        <div class="admin-form-group">
+            <label class="admin-label">Data Inizio</label>
+            <input type="date" name="start_date" class="admin-input">
+        </div>
+        <div class="admin-form-group">
+            <label class="admin-label">Data Fine</label>
+            <input type="date" name="end_date" class="admin-input">
+        </div>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Stato</label>
+        <select name="status" class="admin-input admin-select">
+            <option value="draft">Bozza</option>
+            <option value="active">Attivo</option>
+            <option value="funded">Finanziato</option>
+            <option value="completed">Completato</option>
+            <option value="cancelled">Annullato</option>
+        </select>
+    </div>
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('create-project-modal')">
+    Annulla
+</button>
+<button type="button" class="admin-btn admin-btn--primary" onclick="submitCreateProject()" id="create-project-btn">
+    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+    </svg>
+    Crea Progetto
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gestione Progetti Admin
+class ProjectsManager {
+    constructor() {
+        this.projects = [];
+        this.filteredProjects = [];
+        this.currentPage = 1;
+        this.projectsPerPage = 9;
+        this.filters = {
+            status: '',
+            search: '',
+            sort: 'created_at-desc'
+        };
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadProjects();
+        this.updateStats();
+        this.bindEvents();
+        
+        // Auto-refresh ogni 2 minuti
+        setInterval(() => {
+            this.loadProjects(false);
+        }, 120000);
+    }
+    
+    async loadProjects(showLoading = true) {
+        if (showLoading) {
+            document.getElementById('projects-loading').classList.remove('hidden');
+            document.getElementById('projects-grid').classList.add('hidden');
+        }
+        
+        try {
+            const params = new URLSearchParams();
+            if (this.filters.status) params.append('status', this.filters.status);
+            
+            params.append('format', 'json');
+            const response = await fetch(`/admin/projects?${params.toString()}`);
+            if (response.ok) {
+                this.projects = await response.json();
+                this.applyFilters();
+                this.updateDisplay();
+                this.updateStats();
+            } else {
+                this.showAlert('error', 'Errore nel caricamento dei progetti');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            if (showLoading) {
+                document.getElementById('projects-loading').classList.add('hidden');
+                document.getElementById('projects-grid').classList.remove('hidden');
+            }
+        }
+    }
+    
+    applyFilters() {
+        let filtered = [...this.projects];
+        
+        // Filtro per stato
+        if (this.filters.status) {
+            filtered = filtered.filter(p => p.status === this.filters.status);
+        }
+        
+        // Filtro per ricerca testuale
+        if (this.filters.search) {
+            const search = this.filters.search.toLowerCase();
+            filtered = filtered.filter(p => 
+                p.code?.toLowerCase().includes(search) ||
+                p.title?.toLowerCase().includes(search) ||
+                p.description?.toLowerCase().includes(search)
+            );
+        }
+        
+        // Ordinamento
+        const [field, direction] = this.filters.sort.split('-');
+        filtered.sort((a, b) => {
+            let aVal = a[field] || '';
+            let bVal = b[field] || '';
+            
+            if (field === 'target_amount') {
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+            }
+            
+            if (direction === 'desc') {
+                return aVal < bVal ? 1 : -1;
+            } else {
+                return aVal > bVal ? 1 : -1;
+            }
+        });
+        
+        this.filteredProjects = filtered;
+        this.currentPage = 1;
+    }
+    
+    updateDisplay() {
+        const grid = document.getElementById('projects-grid');
+        const empty = document.getElementById('projects-empty');
+        const pagination = document.getElementById('projects-pagination');
+        
+        // Aggiorna contatore
+        document.getElementById('projects-count').textContent = 
+            `${this.filteredProjects.length} progetti`;
+        
+        if (this.filteredProjects.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            pagination.classList.add('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        grid.classList.remove('hidden');
+        
+        // Calcola paginazione
+        const startIndex = (this.currentPage - 1) * this.projectsPerPage;
+        const endIndex = startIndex + this.projectsPerPage;
+        const pageProjects = this.filteredProjects.slice(startIndex, endIndex);
+        
+        // Renderizza progetti
+        grid.innerHTML = pageProjects.map(project => this.renderProjectCard(project)).join('');
+        
+        // Aggiorna paginazione
+        this.updatePagination();
+    }
+    
+    renderProjectCard(project) {
+        const statusColors = {
+            draft: 'gray',
+            active: 'blue', 
+            funded: 'green',
+            completed: 'purple',
+            cancelled: 'red'
+        };
+        
+        const statusLabels = {
+            draft: 'Bozza',
+            active: 'Attivo',
+            funded: 'Finanziato', 
+            completed: 'Completato',
+            cancelled: 'Annullato'
+        };
+        
+        const color = statusColors[project.status] || 'gray';
+        const label = statusLabels[project.status] || project.status;
+        
+        return `
+            <div class="admin-card hover:shadow-lg transition-all duration-200">
+                <div class="admin-card-body">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="admin-heading-3">${project.title || 'Senza titolo'}</h3>
+                            <p class="admin-text-caption">${project.code || 'N/A'}</p>
+                        </div>
+                        <span class="admin-badge admin-badge--${color}">${label}</span>
+                    </div>
+                    
+                    <p class="admin-text-body text-gray-600 mb-4 line-clamp-2">
+                        ${project.description || 'Nessuna descrizione disponibile'}
+                    </p>
+                    
+                    <div class="space-y-2 mb-4">
+                        ${project.target_amount ? `
+                            <div class="flex justify-between">
+                                <span class="admin-text-small">Target:</span>
+                                <span class="admin-text-small font-medium">€${parseFloat(project.target_amount).toLocaleString()}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex justify-between">
+                            <span class="admin-text-small">Creato:</span>
+                            <span class="admin-text-small">${new Date(project.created_at).toLocaleDateString('it-IT')}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-flex">
+                        <button onclick="viewProject(${project.id})" 
+                                class="admin-btn admin-btn--secondary admin-btn--sm flex-1 mr-2">
+                            Visualizza
+                        </button>
+                        <button onclick="editProject(${project.id})" 
+                                class="admin-btn admin-btn--primary admin-btn--sm flex-1">
+                            Modifica
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    updatePagination() {
+        const pagination = document.getElementById('projects-pagination');
+        const pageInfo = document.getElementById('page-info');
+        const controls = document.getElementById('pagination-controls');
+        
+        const totalPages = Math.ceil(this.filteredProjects.length / this.projectsPerPage);
+        
+        if (totalPages <= 1) {
+            pagination.classList.add('hidden');
+            return;
+        }
+        
+        pagination.classList.remove('hidden');
+        
+        const startIndex = (this.currentPage - 1) * this.projectsPerPage + 1;
+        const endIndex = Math.min(this.currentPage * this.projectsPerPage, this.filteredProjects.length);
+        
+        pageInfo.textContent = `${startIndex}-${endIndex} di ${this.filteredProjects.length}`;
+        
+        // Genera controlli paginazione
+        let controlsHTML = '';
+        
+        // Precedente
+        if (this.currentPage > 1) {
+            controlsHTML += `<button onclick="projectsManager.changePage(${this.currentPage - 1})" 
+                                    class="admin-btn admin-btn--secondary admin-btn--sm">Precedente</button>`;
+        }
+        
+        // Pagine
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === this.currentPage) {
+                controlsHTML += `<span class="admin-btn admin-btn--primary admin-btn--sm">${i}</span>`;
+            } else if (i === 1 || i === totalPages || Math.abs(i - this.currentPage) <= 1) {
+                controlsHTML += `<button onclick="projectsManager.changePage(${i})" 
+                                        class="admin-btn admin-btn--secondary admin-btn--sm">${i}</button>`;
+            } else if (Math.abs(i - this.currentPage) === 2) {
+                controlsHTML += `<span class="admin-text-body">...</span>`;
+            }
+        }
+        
+        // Successivo
+        if (this.currentPage < totalPages) {
+            controlsHTML += `<button onclick="projectsManager.changePage(${this.currentPage + 1})" 
+                                    class="admin-btn admin-btn--secondary admin-btn--sm">Successivo</button>`;
+        }
+        
+        controls.innerHTML = controlsHTML;
+    }
+    
+    changePage(page) {
+        this.currentPage = page;
+        this.updateDisplay();
+        
+        // Scroll to top
+        document.getElementById('projects-grid').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    updateStats() {
+        const stats = {
+            total: this.projects.length,
+            draft: this.projects.filter(p => p.status === 'draft').length,
+            active: this.projects.filter(p => p.status === 'active').length,
+            funded: this.projects.filter(p => p.status === 'funded').length,
+            completed: this.projects.filter(p => p.status === 'completed').length,
+            cancelled: this.projects.filter(p => p.status === 'cancelled').length
+        };
+        
+        document.getElementById('projects-stats').innerHTML = `
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Totali:</span>
+                    <span class="admin-badge admin-badge--gray">${stats.total}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Attivi:</span>
+                    <span class="admin-badge admin-badge--info">${stats.active}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Finanziati:</span>
+                    <span class="admin-badge admin-badge--success">${stats.funded}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Bozze:</span>
+                    <span class="admin-badge admin-badge--warning">${stats.draft}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    bindEvents() {
+        // Debounce per la ricerca
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.filters.search = e.target.value.trim();
+                this.applyFilters();
+                this.updateDisplay();
+            }, 300);
+        });
+        
+        // Enter key per ricerca
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.filters.search = e.target.value.trim();
+                this.applyFilters();
+                this.updateDisplay();
+            }
+        });
+    }
+    
+    showAlert(type, message) {
+        const alerts = document.getElementById('projects-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        alerts.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Istanza globale
+let projectsManager;
+
+// Funzioni globali
+function applyFilters() {
+    projectsManager.filters.status = document.getElementById('status-filter').value;
+    projectsManager.filters.sort = document.getElementById('sort-filter').value;
+    projectsManager.applyFilters();
+    projectsManager.updateDisplay();
+}
+
+function resetFilters() {
+    document.getElementById('status-filter').value = '';
+    document.getElementById('search-input').value = '';
+    document.getElementById('sort-filter').value = 'created_at-desc';
+    
+    projectsManager.filters = {
+        status: '',
+        search: '',
+        sort: 'created_at-desc'
+    };
+    
+    projectsManager.applyFilters();
+    projectsManager.updateDisplay();
+}
+
+function refreshProjects() {
+    projectsManager.loadProjects(true);
+}
+
+function openCreateProjectModal() {
+    openModal('create-project-modal');
+    
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    document.querySelector('[name="start_date"]').value = today;
+    document.querySelector('[name="end_date"]').value = nextMonth.toISOString().split('T')[0];
+}
+
+async function submitCreateProject() {
+    const form = document.getElementById('create-project-form');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    if (!data.code || !data.title) {
+        projectsManager.showAlert('error', 'Codice e titolo sono obbligatori');
+        return;
+    }
+    
+    const btn = document.getElementById('create-project-btn');
+    setButtonLoading(btn, true, 'Creazione...');
+    
+    try {
+        const response = await fetch('/admin/projects/new', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            projectsManager.showAlert('success', `Progetto "${data.title}" creato con successo!`);
+            closeModal('create-project-modal');
+            form.reset();
+            await projectsManager.loadProjects();
+        } else {
+            projectsManager.showAlert('error', result.error || 'Errore nella creazione');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        projectsManager.showAlert('error', 'Errore di connessione');
+    } finally {
+        setButtonLoading(btn, false);
+    }
+}
+
+function viewProject(id) {
+    window.location.href = `/admin/projects/${id}`;
+}
+
+function editProject(id) {
+    window.location.href = `/admin/projects/${id}`;
+}
+
+// === BULK OPERATIONS FUNCTIONS ===
+let bulkModeActive = false;
+let selectedProjects = new Set();
+
+function toggleBulkMode() {
+    bulkModeActive = !bulkModeActive;
+    const bulkBar = document.getElementById('bulk-actions-bar');
+    const bulkBtn = document.getElementById('bulk-mode-btn');
+    
+    if (bulkModeActive) {
+        bulkBar.classList.remove('hidden');
+        bulkBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Annulla Selezione
+        `;
+        addSelectCheckboxes();
+    } else {
+        bulkBar.classList.add('hidden');
+        bulkBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Selezione Multipla
+        `;
+        removeSelectCheckboxes();
+        clearSelection();
+    }
+}
+
+function addSelectCheckboxes() {
+    const projectCards = document.querySelectorAll('.projects-grid-item');
+    projectCards.forEach(card => {
+        const projectId = card.dataset.projectId;
+        if (projectId && !card.querySelector('.project-checkbox')) {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'project-checkbox absolute top-2 left-2 z-10';
+            checkbox.dataset.projectId = projectId;
+            checkbox.addEventListener('change', updateSelectedCount);
+            
+            card.style.position = 'relative';
+            card.appendChild(checkbox);
+        }
+    });
+}
+
+function removeSelectCheckboxes() {
+    document.querySelectorAll('.project-checkbox').forEach(checkbox => {
+        checkbox.remove();
+    });
+}
+
+function updateSelectedCount() {
+    selectedProjects.clear();
+    document.querySelectorAll('.project-checkbox:checked').forEach(checkbox => {
+        selectedProjects.add(parseInt(checkbox.dataset.projectId));
+    });
+    
+    document.getElementById('selected-count').textContent = selectedProjects.size;
+    
+    const selectAllBox = document.getElementById('select-all-projects');
+    const allCheckboxes = document.querySelectorAll('.project-checkbox');
+    const checkedBoxes = document.querySelectorAll('.project-checkbox:checked');
+    
+    if (checkedBoxes.length === 0) {
+        selectAllBox.indeterminate = false;
+        selectAllBox.checked = false;
+    } else if (checkedBoxes.length === allCheckboxes.length) {
+        selectAllBox.indeterminate = false;
+        selectAllBox.checked = true;
+    } else {
+        selectAllBox.indeterminate = true;
+    }
+}
+
+function toggleSelectAll() {
+    const selectAllBox = document.getElementById('select-all-projects');
+    const checkboxes = document.querySelectorAll('.project-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllBox.checked;
+    });
+    
+    updateSelectedCount();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.project-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelectedCount();
+}
+
+async function executeBulkAction() {
+    if (selectedProjects.size === 0) {
+        projectsManager.showAlert('warning', 'Seleziona almeno un progetto');
+        return;
+    }
+    
+    const action = document.getElementById('bulk-action-select').value;
+    if (!action) {
+        projectsManager.showAlert('warning', 'Seleziona un\'azione da eseguire');
+        return;
+    }
+    
+    const confirmMessages = {
+        activate: `Attivare ${selectedProjects.size} progetti?`,
+        pause: `Mettere in pausa ${selectedProjects.size} progetti?`,
+        export: `Esportare ${selectedProjects.size} progetti in CSV?`,
+        duplicate: `Duplicare ${selectedProjects.size} progetti?`,
+        archive: `Archiviare ${selectedProjects.size} progetti?`,
+        delete: `ATTENZIONE: Eliminare definitivamente ${selectedProjects.size} progetti? Questa azione è irreversibile!`
+    };
+    
+    if (!confirm(confirmMessages[action])) {
+        return;
+    }
+    
+    const executeBtn = document.getElementById('bulk-execute-btn');
+    setButtonLoading(executeBtn, true, 'Elaborando...');
+    
+    try {
+        switch (action) {
+            case 'export':
+                await exportSelectedProjects();
+                break;
+            case 'activate':
+            case 'pause':
+            case 'archive':
+            case 'delete':
+                await updateProjectsStatus(action);
+                break;
+            case 'duplicate':
+                await duplicateProjects();
+                break;
+        }
+        
+        projectsManager.showAlert('success', `Azione "${action}" completata con successo!`);
+        clearSelection();
+        await projectsManager.fetchProjects();
+        
+    } catch (error) {
+        console.error('Errore bulk action:', error);
+        projectsManager.showAlert('error', 'Errore durante l\'esecuzione dell\'azione');
+    } finally {
+        setButtonLoading(executeBtn, false);
+    }
+}
+
+async function updateProjectsStatus(action) {
+    const statusMap = {
+        activate: 'active',
+        pause: 'paused', 
+        archive: 'archived',
+        delete: 'deleted'
+    };
+    
+    for (const projectId of selectedProjects) {
+        if (action === 'delete') {
+            await fetch(`/admin/projects/${projectId}`, { method: 'DELETE' });
+        } else {
+            await fetch(`/admin/projects/${projectId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: statusMap[action] })
+            });
+        }
+    }
+}
+
+async function duplicateProjects() {
+    // TODO: Implement project duplication
+    throw new Error('Duplicazione progetti in sviluppo');
+}
+
+async function exportSelectedProjects() {
+    const projectIds = Array.from(selectedProjects);
+    const params = new URLSearchParams({ 
+        ids: projectIds.join(','),
+        format: 'csv'
+    });
+    
+    window.open(`/admin/projects/export?${params.toString()}`, '_blank');
+}
+
+async function exportAllProjects() {
+    const exportBtn = document.getElementById('export-all-btn');
+    setButtonLoading(exportBtn, true, 'Esportando...');
+    
+    try {
+        window.open('/admin/projects/export?format=csv', '_blank');
+        projectsManager.showAlert('success', 'Export avviato! Il download inizierà a breve.');
+    } catch (error) {
+        projectsManager.showAlert('error', 'Errore durante l\'export');
+    } finally {
+        setButtonLoading(exportBtn, false);
+    }
+}
+
+function openAnalyticsModal() {
+    // TODO: Implement analytics modal
+    alert('Analytics avanzate in sviluppo');
+}
+
+// Aggiorna il contatore progetti totali
+function updateTotalProjectsCount() {
+    if (projectsManager && projectsManager.projects) {
+        document.getElementById('total-projects-count').textContent = projectsManager.projects.length;
+    }
+}
+
+// === EXTENDED PROJECT MANAGER ===
+// Estendo il ProjectsManager per supportare bulk operations
+const originalUpdateDisplay = ProjectsManager.prototype.updateDisplay;
+ProjectsManager.prototype.updateDisplay = function() {
+    originalUpdateDisplay.call(this);
+    updateTotalProjectsCount();
+    
+    // Se bulk mode è attivo, aggiungi checkboxes
+    if (bulkModeActive) {
+        setTimeout(addSelectCheckboxes, 100);
+    }
+};
+
+// Inizializzazione
+document.addEventListener('DOMContentLoaded', function() {
+    projectsManager = new ProjectsManager();
+});
+</script>
+{% endblock %}
+{% endblock %}

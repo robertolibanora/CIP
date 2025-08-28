@@ -1,0 +1,279 @@
+<!-- Admin Alerts Component - Sistema Notifiche Urgenti -->
+<!-- Sistema di alert per richieste pending e situazioni critiche -->
+
+<div id="admin-alerts-container" class="space-y-4 mb-6">
+    <!-- Alert KYC Pending -->
+    <div id="kyc-alert" class="hidden admin-alert admin-alert--warning" role="alert">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-medium mb-1">Verifiche KYC Pending</h4>
+                <p class="text-sm">Ci sono <span id="kyc-count">0</span> richieste di verifica KYC in attesa di approvazione.</p>
+                <div class="mt-2">
+                    <button onclick="loadKYCRequests()" class="admin-btn admin-btn--warning admin-btn--sm">
+                        Gestisci KYC
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Ricariche Pending -->
+    <div id="deposits-alert" class="hidden admin-alert admin-alert--info" role="alert">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-medium mb-1">Ricariche da Approvare</h4>
+                <p class="text-sm">Ci sono <span id="deposits-count">0</span> richieste di ricarica in attesa di verifica bonifico.</p>
+                <div class="mt-2">
+                    <button onclick="loadDepositRequests()" class="admin-btn admin-btn--primary admin-btn--sm">
+                        Gestisci Ricariche
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Prelievi Urgenti (48h) -->
+    <div id="withdrawals-alert" class="hidden admin-alert admin-alert--error" role="alert">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-medium mb-1">Prelievi Urgenti (48h)</h4>
+                <p class="text-sm">Ci sono <span id="withdrawals-count">0</span> richieste di prelievo che devono essere processate entro 48 ore.</p>
+                <div class="mt-2">
+                    <button onclick="loadWithdrawalRequests()" class="admin-btn admin-btn--error admin-btn--sm">
+                        Gestisci Prelievi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Sistema -->
+    <div id="system-alert" class="hidden admin-alert admin-alert--success" role="alert">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 mr-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-medium mb-1">Sistema Operativo</h4>
+                <p class="text-sm">Tutti i sistemi funzionano correttamente. Nessuna azione richiesta.</p>
+                <p class="admin-text-caption mt-1">Ultimo aggiornamento: <span id="last-update">--</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Sistema di gestione alert admin
+class AdminAlertsSystem {
+    constructor() {
+        this.alertsData = {
+            kyc: 0,
+            deposits: 0,
+            withdrawals: 0
+        };
+        this.updateInterval = null;
+        this.init();
+    }
+
+    init() {
+        this.updateAlerts();
+        this.startAutoUpdate();
+    }
+
+    async updateAlerts() {
+        try {
+            await Promise.all([
+                this.updateKYCAlerts(),
+                this.updateDepositsAlerts(),
+                this.updateWithdrawalsAlerts()
+            ]);
+            
+            this.updateSystemStatus();
+            this.updateLastUpdateTime();
+        } catch (error) {
+            console.error('Errore aggiornamento alerts:', error);
+        }
+    }
+
+    async updateKYCAlerts() {
+        try {
+            const response = await fetch('/admin/api/kyc-requests');
+            if (response.ok) {
+                const data = await response.json();
+                this.alertsData.kyc = data.length || 0;
+                
+                document.getElementById('kyc-count').textContent = this.alertsData.kyc;
+                
+                const alert = document.getElementById('kyc-alert');
+                if (this.alertsData.kyc > 0) {
+                    alert.classList.remove('hidden');
+                } else {
+                    alert.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Errore KYC alerts:', error);
+        }
+    }
+
+    async updateDepositsAlerts() {
+        try {
+            const response = await fetch('/admin/api/deposit-requests');
+            if (response.ok) {
+                const data = await response.json();
+                this.alertsData.deposits = data.length || 0;
+                
+                document.getElementById('deposits-count').textContent = this.alertsData.deposits;
+                
+                const alert = document.getElementById('deposits-alert');
+                if (this.alertsData.deposits > 0) {
+                    alert.classList.remove('hidden');
+                } else {
+                    alert.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Errore deposits alerts:', error);
+        }
+    }
+
+    async updateWithdrawalsAlerts() {
+        try {
+            const response = await fetch('/admin/api/withdrawal-requests');
+            if (response.ok) {
+                const data = await response.json();
+                this.alertsData.withdrawals = data.length || 0;
+                
+                document.getElementById('withdrawals-count').textContent = this.alertsData.withdrawals;
+                
+                const alert = document.getElementById('withdrawals-alert');
+                if (this.alertsData.withdrawals > 0) {
+                    alert.classList.remove('hidden');
+                } else {
+                    alert.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Errore withdrawals alerts:', error);
+        }
+    }
+
+    updateSystemStatus() {
+        const systemAlert = document.getElementById('system-alert');
+        const hasAlerts = this.alertsData.kyc > 0 || this.alertsData.deposits > 0 || this.alertsData.withdrawals > 0;
+        
+        if (!hasAlerts) {
+            systemAlert.classList.remove('hidden');
+        } else {
+            systemAlert.classList.add('hidden');
+        }
+    }
+
+    updateLastUpdateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('it-IT', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        document.getElementById('last-update').textContent = timeString;
+    }
+
+    startAutoUpdate() {
+        // Aggiorna ogni 2 minuti
+        this.updateInterval = setInterval(() => {
+            this.updateAlerts();
+        }, 120000);
+    }
+
+    stopAutoUpdate() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+    }
+
+    // Metodi per azioni manuali
+    async handleKYCAction() {
+        showGlobalLoading('Caricamento richieste KYC...');
+        try {
+            // Implementare navigazione verso pagina KYC dedicata
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simula caricamento
+            alert('Funzionalità KYC in sviluppo');
+        } finally {
+            hideGlobalLoading();
+        }
+    }
+
+    async handleDepositsAction() {
+        showGlobalLoading('Caricamento richieste ricariche...');
+        try {
+            // Implementare navigazione verso pagina deposits dedicata
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simula caricamento
+            alert('Funzionalità ricariche in sviluppo');
+        } finally {
+            hideGlobalLoading();
+        }
+    }
+
+    async handleWithdrawalsAction() {
+        showGlobalLoading('Caricamento richieste prelievi...');
+        try {
+            // Implementare navigazione verso pagina withdrawals dedicata
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simula caricamento
+            alert('Funzionalità prelievi in sviluppo');
+        } finally {
+            hideGlobalLoading();
+        }
+    }
+}
+
+// Inizializza il sistema di alert
+let adminAlertsSystem;
+
+document.addEventListener('DOMContentLoaded', function() {
+    adminAlertsSystem = new AdminAlertsSystem();
+});
+
+// Interfacce per la compatibility con le funzioni esistenti
+async function loadKYCRequests() {
+    if (adminAlertsSystem) {
+        await adminAlertsSystem.handleKYCAction();
+    }
+}
+
+async function loadDepositRequests() {
+    if (adminAlertsSystem) {
+        await adminAlertsSystem.handleDepositsAction();
+    }
+}
+
+async function loadWithdrawalRequests() {
+    if (adminAlertsSystem) {
+        await adminAlertsSystem.handleWithdrawalsAction();
+    }
+}
+
+// Cleanup quando si lascia la pagina
+window.addEventListener('beforeunload', function() {
+    if (adminAlertsSystem) {
+        adminAlertsSystem.stopAutoUpdate();
+    }
+});
+</script>

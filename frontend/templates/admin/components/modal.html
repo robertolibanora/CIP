@@ -1,0 +1,71 @@
+<!-- Modal Component - Admin Design System -->
+<!-- Usage: {% include 'admin/components/modal.html' with modal_id='my-modal', modal_title='Titolo', modal_size='md' %} -->
+
+{% set modal_id = modal_id or 'admin-modal' %}
+{% set modal_title = modal_title or 'Modal' %}
+{% set modal_size = modal_size or 'md' %}
+
+<div id="{{ modal_id }}" class="admin-modal-overlay hidden" onclick="closeModal('{{ modal_id }}')">
+    <div class="admin-modal {% if modal_size == 'sm' %}max-w-sm{% elif modal_size == 'lg' %}max-w-2xl{% elif modal_size == 'xl' %}max-w-4xl{% else %}max-w-md{% endif %}" 
+         onclick="event.stopPropagation()">
+        
+        <!-- Header -->
+        <div class="admin-modal-header">
+            <h3 class="admin-modal-title">{{ modal_title }}</h3>
+            <button type="button" class="admin-modal-close" onclick="closeModal('{{ modal_id }}')" aria-label="Chiudi">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="admin-modal-body">
+            {% block modal_body %}
+            <p class="admin-text-body">Contenuto del modal qui...</p>
+            {% endblock %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="admin-modal-footer">
+            {% block modal_footer %}
+            <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('{{ modal_id }}')">
+                Annulla
+            </button>
+            <button type="button" class="admin-btn admin-btn--primary">
+                Conferma
+            </button>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('admin-fade-in');
+        document.body.classList.add('admin-no-scroll');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('admin-fade-in');
+        document.body.classList.remove('admin-no-scroll');
+    }
+}
+
+// Chiudi modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.admin-modal-overlay:not(.hidden)');
+        openModals.forEach(modal => {
+            closeModal(modal.id);
+        });
+    }
+});
+</script>

@@ -1,4 +1,28 @@
-# 🚀 ROADMAP COMPLETA PERFEZIONAMENTO FRONTEND - CIP Immobiliare
+Sei il mio assistente di sviluppo frontend.  
+Devi seguire fedelmente la roadmap contenuta nel file roadmap_frontend_completa.md, lavorando *solo sul lato admin del progetto*.  
+
+⚙️ Regole fondamentali:
+1. Procedi *un punto alla volta* della roadmap, senza saltare step.
+2. Se una logica, una relazione o un requisito non sono chiari → fermati e chiedi chiarimenti prima di scrivere codice.
+3. Se invece tutto è chiaro → implementa direttamente il codice necessario.
+4. Ogni implementazione deve essere completa (HTML, CSS, JS, eventuali collegamenti a Flask/Python già esistenti).
+5. Mantieni coerenza con lo stile, le dipendenze e le convenzioni già presenti nel progetto.
+6. Al termine di ogni step, mostra un riepilogo del lavoro svolto e segnala eventuali dipendenze per il prossimo step.
+
+📌 Obiettivo finale:
+Costruire l’intero *frontend admin* del progetto, in maniera modulare, scalabile e in linea con la roadmap.Sei il mio assistente di sviluppo frontend.  
+Devi seguire fedelmente la roadmap contenuta nel file roadmap_frontend_completa.md, lavorando *solo sul lato admin del progetto*.  
+
+⚙️ Regole fondamentali:
+1. Procedi *un punto alla volta* della roadmap, senza saltare step.
+2. Se una logica, una relazione o un requisito non sono chiari → fermati e chiedi chiarimenti prima di scrivere codice.
+3. Se invece tutto è chiaro → implementa direttamente il codice necessario.
+4. Ogni implementazione deve essere completa (HTML, CSS, JS, eventuali collegamenti a Flask/Python già esistenti).
+5. Mantieni coerenza con lo stile, le dipendenze e le convenzioni già presenti nel progetto.
+6. Al termine di ogni step, mostra un riepilogo del lavoro svolto e segnala eventuali dipendenze per il prossimo step.
+
+📌 Obiettivo finale:
+Costruire l’intero *frontend admin* del progetto, in maniera modulare, scalabile e in linea con la roadmap.# 🚀 ROADMAP COMPLETA PERFEZIONAMENTO FRONTEND - CIP Immobiliare
 
 ## 🎯 OBIETTIVI STRATEGICI
 
@@ -20,29 +44,29 @@
 ## 📋 **FASE 1: INFRASTRUTTURA E DESIGN SYSTEM** (Settimana 1-2)
 
 ### **1.1 Eliminazione Navbar e Menu Dashboard** 🎯
-- [ ] **Rimuovere navbar tradizionale** da tutti i template
-- [ ] **Creare menu principale integrato** nella dashboard
-- [ ] **Implementare breadcrumb** per navigazione
-- [ ] **Sistema di routing semantico** per menu items
+- [x] **Rimuovere navbar tradizionale** da tutti i template
+- [x] **Creare menu principale integrato** nella dashboard
+- [x] **Implementare breadcrumb** per navigazione
+- [x] **Sistema di routing semantico** per menu items
 
 ### **1.2 Design System e Componenti Base** 🎨
-- [ ] **Sistema colori unificato** (brand colors)
-- [ ] **Componenti riutilizzabili**:
-  - [ ] Card component
-  - [ ] Button system
-  - [ ] Form components
-  - [ ] Modal/popup system
-  - [ ] Loading states
-  - [ ] Error handling
-- [ ] **Typography system** consistente
-- [ ] **Spacing e layout** standardizzati
+- [x] **Sistema colori unificato** (brand colors)
+- [x] **Componenti riutilizzabili**:
+  - [x] Card component
+  - [x] Button system
+  - [x] Form components
+  - [x] Modal/popup system
+  - [x] Loading states
+  - [x] Error handling
+- [x] **Typography system** consistente
+- [x] **Spacing e layout** standardizzati
 
 ### **1.3 Layout Base Unificato** 📱
-- [ ] **Template base.html** completamente rinnovato
-- [ ] **Header semplificato** (logo + menu utente)
-- [ ] **Sidebar menu** per desktop
-- [ ] **Bottom navigation** per mobile
-- [ ] **Footer minimalista**
+- [x] **Template base.html** completamente rinnovato (admin_base.html)
+- [x] **Header semplificato** (logo + menu utente)
+- [x] **Sidebar menu** per desktop
+- [x] **Bottom navigation** per mobile
+- [x] **Footer minimalista**
 
 ---
 
@@ -60,62 +84,67 @@
 - [ ] **Notifiche importanti** (banner system)
 
 ### **2.2 Dashboard Admin** 👑
-- [ ] **Template dedicato** `/admin/dashboard.html`
-- [ ] **Metriche sistema**:
-  - [ ] Utenti totali e verificati
-  - [ ] Progetti attivi
-  - [ ] Richieste pendenti
-  - [ ] Volume investimenti
-- [ ] **Quick actions** per admin
-- [ ] **Alert system** per richieste urgenti
+- [x] **Template dedicato** `/admin/dashboard.html`
+- [x] **Metriche sistema**:
+  - [x] Utenti totali e verificati
+  - [x] Progetti attivi
+  - [x] Richieste pendenti
+  - [x] Volume investimenti
+- [x] **Quick actions** per admin
+- [x] **Alert system** per richieste urgenti
 
 ---
 
 ## 🔍 **FASE 3: SISTEMA RICERCA E PROGETTI** (Settimana 5-6)
 
-### **3.1 Ricerca Progetti** 🔎
-- [ ] **Template dedicato** `/user/search.html`
-- [ ] **Filtri avanzati**:
-  - [ ] Tipo progetto (residenziale, commerciale)
-  - [ ] Località
-  - [ ] ROI range
-  - [ ] Investimento minimo
-- [ ] **Grid responsive** progetti
-- [ ] **Paginazione** intelligente
-- [ ] **Ricerca testuale** real-time
+### **3.1 Gestione Progetti Admin** 🔎
+- [x] **Template dedicato** `/admin/projects/list.html`
+- [x] **Filtri avanzati**:
+  - [x] Stato progetto (bozza, attivo, finanziato, completato, annullato)
+  - [x] Ricerca testuale (codice, titolo, descrizione)
+  - [x] Ordinamento (data, nome, importo)
+- [x] **Grid responsive** progetti con card modulari
+- [x] **Paginazione** intelligente con controlli
+- [x] **Ricerca testuale** real-time con debounce
 
-### **3.2 Dettaglio Progetto** 🏢
-- [ ] **Template dedicato** `/projects/detail.html`
-- [ ] **Galleria immagini** completa
-- [ ] **Informazioni dettagliate**:
-  - [ ] Descrizione estesa
-  - [ ] Documenti progetto
-  - [ ] Timeline sviluppo
-  - [ ] ROI previsto
-- [ ] **Form investimento** integrato
-- [ ] **Stato finanziamento** progress bar
+### **3.2 Dettaglio Progetto Admin** 🏢
+- [x] **Template dedicato** `/admin/projects/<id>.html`
+- [x] **Visualizzazione completa** progetto con editing in-line
+- [x] **Informazioni dettagliate**:
+  - [x] Tutti i campi progetto modificabili
+  - [x] Upload documenti (JPG, PNG, PDF)
+  - [x] Statistiche investimenti real-time
+  - [x] Lista investitori completa
+- [x] **Gestione completa CRUD** (create, read, update, delete)
+- [x] **Progress bar finanziamento** con percentuali
 
-### **3.3 Nuovo Progetto** ➕
-- [ ] **Template dedicato** `/user/new_project.html`
-- [ ] **Form wizard** step-by-step
-- [ ] **Upload immagini** multiple
-- [ ] **Validazione form** client-side
+### **3.3 Wizard Nuovo Progetto Admin** ➕
+- [x] **Template dedicato** `/admin/projects/create.html`
+- [x] **Form wizard** 4 step con progress bar visiva
+- [x] **Upload multiplo** immagini JPG/PNG e documenti PDF
+- [x] **Validazione avanzata** client-side con feedback real-time
+- [x] **Preview finale** completa prima della creazione
+- [x] **Calcoli automatici** ROI, rendimenti, investitori minimi
+- [x] **File management** con preview, rimozione e validazione
 - [ ] **Preview progetto** prima invio
 
 ---
 
 ## 💰 **FASE 4: SISTEMA PORTFOLIO E INVESTIMENTI** (Settimana 7-8)
 
-### **4.1 Portfolio Utente** 📊
-- [ ] **Template dedicato** `/user/portfolio.html`
-- [ ] **4 sezioni capitali**:
-  - [ ] Capitale Libero
-  - [ ] Capitale Investito
-  - [ ] Bonus Referral
-  - [ ] Profitti
-- [ ] **Grafici distribuzione** (pie charts)
-- [ ] **Storico transazioni** completo
-- [ ] **Performance timeline**
+### **4.1 Portfolio Admin Dashboard** 📊
+- [x] **Template dedicato** `/admin/portfolio/dashboard.html`
+- [x] **4 sezioni capitali** con overview completa:
+  - [x] Capitale Libero - sommario utenti
+  - [x] Capitale Investito - bloccato negli investimenti
+  - [x] Bonus Referral - commissioni maturate
+  - [x] Profitti - ROI distribuiti totali
+- [x] **Grafici distribuzione** (pie chart Capital Distribution)
+- [x] **Grafici crescita** (line chart Timeline)
+- [x] **Storico transazioni** con filtri tipo
+- [x] **Top investitori** con portfolio maggiori
+- [x] **Sistema movimenti** per admin con form completo
+- [x] **Dashboard real-time** con Chart.js e aggiornamento automatico
 
 ### **4.2 Gestione Investimenti** 💸
 - [ ] **Template dedicato** `/user/investments.html`

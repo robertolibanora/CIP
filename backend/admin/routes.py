@@ -52,17 +52,23 @@ def metrics():
 @admin_bp.get("/projects")
 @admin_required
 def projects_list():
-    status = request.args.get('status')
-    q = []
-    params = []
-    if status:
-        q.append("status=%s"); params.append(status)
-    where = ("WHERE "+" AND ".join(q)) if q else ""
-    sql = f"SELECT * FROM projects {where} ORDER BY created_at DESC"
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(sql, params)
-        rows = cur.fetchall()
-    return jsonify(rows)
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        status = request.args.get('status')
+        q = []
+        params = []
+        if status:
+            q.append("status=%s"); params.append(status)
+        where = ("WHERE "+" AND ".join(q)) if q else ""
+        sql = f"SELECT * FROM projects {where} ORDER BY created_at DESC"
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+        return jsonify(rows)
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/projects/list.html")
 
 @admin_bp.post("/projects/new")
 @admin_required
@@ -85,12 +91,60 @@ def projects_new():
         pid = cur.fetchone()['id']
     return jsonify({"id": pid})
 
+@admin_bp.get("/projects/<int:pid>")
+@admin_required
+def project_detail(pid):
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        with get_conn() as conn, conn.cursor() as cur:
+            # Dettagli progetto
+            cur.execute("SELECT * FROM projects WHERE id=%s", (pid,))
+            project = cur.fetchone()
+            if not project:
+                abort(404)
+            
+            # Investimenti collegati
+            cur.execute("""
+                SELECT i.id, i.amount, i.status, i.created_at, i.activated_at,
+                       u.id as user_id, u.full_name, u.email, u.kyc_status
+                FROM investments i
+                JOIN users u ON u.id = i.user_id
+                WHERE i.project_id = %s
+                ORDER BY i.created_at DESC
+            """, (pid,))
+            investments = cur.fetchall()
+            
+            # Documenti/immagini del progetto (TODO: implementare con project_id)
+            documents = []
+            
+            # Statistiche
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as investors_count,
+                    COALESCE(SUM(amount), 0) as total_invested,
+                    AVG(amount) as avg_investment
+                FROM investments 
+                WHERE project_id = %s AND status IN ('active', 'completed')
+            """, (pid,))
+            stats = cur.fetchone()
+            
+            return jsonify({
+                "project": project,
+                "investments": investments,
+                "documents": documents,
+                "stats": stats
+            })
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/projects/detail.html", project_id=pid)
+
 @admin_bp.post("/projects/<int:pid>/edit")
 @admin_required
 def projects_edit(pid):
     data = request.form or request.json or {}
     fields = [
-        ('title','title'),('description','description'),('status','status'),
+        ('code','code'),('title','title'),('description','description'),('status','status'),
         ('target_amount','target_amount'),('start_date','start_date'),('end_date','end_date')
     ]
     sets = []
@@ -105,6 +159,341 @@ def projects_edit(pid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
     return jsonify({"updated": True})
+
+@admin_bp.delete("/projects/<int:pid>")
+@admin_required
+def projects_delete(pid):
+    with get_conn() as conn, conn.cursor() as cur:
+        # Verifica se ci sono investimenti attivi
+        cur.execute("SELECT COUNT(*) as count FROM investments WHERE project_id=%s AND status='active'", (pid,))
+        active_investments = cur.fetchone()['count']
+        
+        if active_investments > 0:
+            return jsonify({"error": "Impossibile eliminare: ci sono investimenti attivi"}), 400
+        
+        # Elimina il progetto
+        cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
+        
+        if cur.rowcount == 0:
+            abort(404)
+    
+    return jsonify({"deleted": True})
+
+@admin_bp.post("/projects/<int:pid>/upload")
+@admin_required
+def project_upload_file(pid):
+    if 'file' not in request.files:
+        return jsonify({"error": "Nessun file selezionato"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Nessun file selezionato"}), 400
+    
+    # Verifica tipo file
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'pdf'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({"error": "Tipo file non supportato. Usa JPG, PNG o PDF"}), 400
+    
+    # Verifica dimensione (max 10MB)
+    if len(file.read()) > 10 * 1024 * 1024:
+        return jsonify({"error": "File troppo grande. Massimo 10MB"}), 400
+    
+    file.seek(0)  # Reset file pointer
+    
+    filename = secure_filename(file.filename)
+    unique_filename = f"{uuid.uuid4()}-{filename}"
+    file_path = os.path.join(get_upload_folder(), unique_filename)
+    
+    # Crea cartella se non esiste
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    file.save(file_path)
+    
+    # TODO: Salva nel database con project_id (richiede modifica schema)
+    # Per ora salvo solo il file fisicamente
+    doc_id = 1  # Mock ID
+    
+    return jsonify({
+        "success": True,
+        "document_id": doc_id,
+        "filename": unique_filename,
+        "original_name": filename
+    })
+
+# ---- Portfolio Admin ----
+@admin_bp.get("/portfolio")
+@admin_required
+def portfolio_dashboard():
+    """Dashboard portfolio admin"""
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify(get_portfolio_overview())
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/portfolio/dashboard.html")
+
+@admin_bp.get("/portfolio/overview")
+@admin_required
+def portfolio_overview():
+    """Ottiene overview completa portfolio per dashboard"""
+    return jsonify(get_portfolio_overview())
+
+def get_portfolio_overview():
+    """Helper per ottenere dati overview portfolio"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Overview generale
+        cur.execute("""
+            SELECT 
+                COALESCE(SUM(free_capital), 0) as total_free_capital,
+                COALESCE(SUM(invested_capital), 0) as total_invested_capital,
+                COALESCE(SUM(referral_bonus), 0) as total_bonus,
+                COALESCE(SUM(profits), 0) as total_profits,
+                COUNT(*) as total_users
+            FROM user_portfolios
+        """)
+        overview = cur.fetchone()
+        
+        # Calcoli aggiuntivi
+        total_capital = (overview['total_free_capital'] + overview['total_invested_capital'] + 
+                        overview['total_bonus'] + overview['total_profits'])
+        
+        # Transazioni recenti
+        cur.execute("""
+            SELECT pt.*, u.full_name as user_name, u.email as user_email
+            FROM portfolio_transactions pt
+            JOIN users u ON u.id = pt.user_id
+            ORDER BY pt.created_at DESC
+            LIMIT 20
+        """)
+        transactions = cur.fetchall()
+        
+        # Top utenti per portfolio
+        cur.execute("""
+            SELECT 
+                u.id, u.full_name as name, u.email,
+                (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) as total_balance,
+                COUNT(i.id) as active_investments
+            FROM users u
+            JOIN user_portfolios up ON up.user_id = u.id
+            LEFT JOIN investments i ON i.user_id = u.id AND i.status = 'active'
+            GROUP BY u.id, u.full_name, u.email, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
+            ORDER BY total_balance DESC
+            LIMIT 10
+        """)
+        top_users = cur.fetchall()
+        
+        # Timeline crescita (ultimi 30 giorni)
+        cur.execute("""
+            SELECT 
+                DATE(pt.created_at) as date,
+                SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END) as daily_inflow,
+                SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END) as daily_outflow
+            FROM portfolio_transactions pt
+            WHERE pt.created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(pt.created_at)
+            ORDER BY date
+        """)
+        timeline_data = cur.fetchall()
+        
+        # Processa timeline per chart
+        labels = []
+        total_capital_timeline = []
+        invested_capital_timeline = []
+        
+        running_total = 0
+        running_invested = 0
+        
+        for day in timeline_data:
+            labels.append(day['date'].strftime('%d/%m'))
+            running_total += (day['daily_inflow'] - day['daily_outflow'])
+            total_capital_timeline.append(running_total)
+            invested_capital_timeline.append(running_invested)  # Simplified
+        
+        return {
+            "overview": {
+                "total_capital": total_capital,
+                "free_capital": overview['total_free_capital'],
+                "invested_capital": overview['total_invested_capital'],
+                "bonus_total": overview['total_bonus'],
+                "profits_total": overview['total_profits'],
+                "total_users": overview['total_users'],
+                "capital_change": 5.2,  # Mock data
+                "bonus_users": 45,      # Mock data
+                "average_roi": 8.5      # Mock data
+            },
+            "transactions": transactions,
+            "topUsers": top_users,
+            "timeline": {
+                "labels": labels,
+                "total_capital": total_capital_timeline,
+                "invested_capital": invested_capital_timeline
+            }
+        }
+
+@admin_bp.get("/portfolio/timeline")
+@admin_required
+def portfolio_timeline():
+    """Timeline crescita portfolio per periodo specifico"""
+    period = int(request.args.get('period', 30))
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT 
+                DATE(pt.created_at) as date,
+                SUM(CASE WHEN pt.amount > 0 THEN pt.amount ELSE 0 END) as daily_inflow,
+                SUM(CASE WHEN pt.amount < 0 THEN ABS(pt.amount) ELSE 0 END) as daily_outflow
+            FROM portfolio_transactions pt
+            WHERE pt.created_at >= NOW() - INTERVAL '%s days'
+            GROUP BY DATE(pt.created_at)
+            ORDER BY date
+        """, (period,))
+        
+        timeline_data = cur.fetchall()
+        
+        labels = []
+        total_capital_timeline = []
+        invested_capital_timeline = []
+        
+        for day in timeline_data:
+            labels.append(day['date'].strftime('%d/%m'))
+            total_capital_timeline.append(day['daily_inflow'] - day['daily_outflow'])
+            invested_capital_timeline.append(day['daily_inflow'] * 0.7)  # Simplified
+        
+        return jsonify({
+            "labels": labels,
+            "total_capital": total_capital_timeline,
+            "invested_capital": invested_capital_timeline
+        })
+
+@admin_bp.post("/portfolio/movements")
+@admin_required
+def create_portfolio_movement():
+    """Crea nuovo movimento portfolio"""
+    data = request.json
+    
+    required_fields = ['user_id', 'type', 'section', 'amount', 'description']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({"error": f"Campo {field} obbligatorio"}), 400
+    
+    user_id = int(data['user_id'])
+    movement_type = data['type']
+    section = data['section']
+    amount = float(data['amount'])
+    description = data['description']
+    admin_notes = data.get('admin_notes', '')
+    
+    # Validation
+    if amount <= 0:
+        return jsonify({"error": "L'importo deve essere positivo"}), 400
+    
+    # Adjust amount for withdrawals
+    if movement_type in ['withdrawal']:
+        amount = -amount
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Verifica esistenza utente e portfolio
+        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+        if not cur.fetchone():
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        # Crea portfolio se non esiste
+        cur.execute("""
+            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+            VALUES (%s, 0, 0, 0, 0)
+            ON CONFLICT (user_id) DO NOTHING
+        """, (user_id,))
+        
+        # Aggiorna sezione portfolio
+        cur.execute(f"""
+            UPDATE user_portfolios 
+            SET {section} = {section} + %s, updated_at = NOW()
+            WHERE user_id = %s
+        """, (amount, user_id))
+        
+        # Registra transazione
+        cur.execute("""
+            INSERT INTO portfolio_transactions 
+            (user_id, type, amount, description, section, admin_notes, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            RETURNING id
+        """, (user_id, movement_type, amount, description, section, admin_notes))
+        
+        transaction_id = cur.fetchone()['id']
+    
+    return jsonify({
+        "success": True,
+        "transaction_id": transaction_id,
+        "message": "Movimento creato con successo"
+    })
+
+@admin_bp.get("/projects/export")
+@admin_required
+def projects_export():
+    """Esporta progetti in CSV"""
+    format_type = request.args.get('format', 'csv')
+    project_ids = request.args.get('ids')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        if project_ids:
+            # Esporta progetti selezionati
+            ids = project_ids.split(',')
+            placeholders = ','.join(['%s'] * len(ids))
+            query = f"SELECT * FROM projects WHERE id IN ({placeholders}) ORDER BY created_at DESC"
+            cur.execute(query, ids)
+        else:
+            # Esporta tutti i progetti
+            cur.execute("SELECT * FROM projects ORDER BY created_at DESC")
+        
+        projects = cur.fetchall()
+    
+    if format_type == 'csv':
+        import csv
+        from io import StringIO
+        from flask import Response
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header CSV
+        writer.writerow([
+            'ID', 'Codice', 'Titolo', 'Descrizione', 'Località', 'Tipologia',
+            'Target Amount', 'Min Investment', 'ROI', 'Durata', 'Stato',
+            'Data Inizio', 'Data Fine', 'Data Creazione'
+        ])
+        
+        # Dati progetti
+        for project in projects:
+            writer.writerow([
+                project.get('id', ''),
+                project.get('code', ''),
+                project.get('title', ''),
+                project.get('description', ''),
+                project.get('location', ''),
+                project.get('type', ''),
+                project.get('target_amount', ''),
+                project.get('min_investment', ''),
+                project.get('roi', ''),
+                project.get('duration', ''),
+                project.get('status', ''),
+                project.get('start_date', ''),
+                project.get('end_date', ''),
+                project.get('created_at', '')
+            ])
+        
+        output.seek(0)
+        
+        filename = f"progetti_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    return jsonify(projects)
 
 # ---- Gestione Utenti ----
 @admin_bp.get("/users")

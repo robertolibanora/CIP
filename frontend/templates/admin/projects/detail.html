@@ -1,0 +1,757 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Dettaglio Progetto - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li>
+        <a href="{{ url_for('admin.projects_list') }}" class="text-gray-500 hover:text-gray-700">Progetti</a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium" id="breadcrumb-title">Dettaglio</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Loading State -->
+<div id="page-loading" class="text-center py-12">
+    {% include 'admin/components/loading.html' with loading_text='Caricamento progetto...', loading_size='lg' %}
+</div>
+
+<!-- Project Content -->
+<div id="project-content" class="hidden space-y-6">
+    <!-- Page Header -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div>
+                <h1 class="admin-heading-1" id="project-title">Dettaglio Progetto</h1>
+                <p class="admin-text-small" id="project-subtitle">Gestione completa progetto immobiliare</p>
+            </div>
+            <div class="admin-flex">
+                <span class="admin-badge" id="project-status-badge">Status</span>
+                <button onclick="toggleEditMode()" class="admin-btn admin-btn--secondary admin-btn--sm ml-2" id="edit-toggle-btn">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Modifica
+                </button>
+                <button onclick="deleteProject()" class="admin-btn admin-btn--error admin-btn--sm ml-2" id="delete-btn">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Elimina
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alerts-container"></div>
+
+    <!-- Project Details and Stats -->
+    <div class="admin-grid admin-grid--3">
+        <!-- Project Info -->
+        <div class="admin-card col-span-2">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Informazioni Progetto</h2>
+            </div>
+            <div class="admin-card-body">
+                <form id="project-form">
+                    <div class="admin-grid admin-grid--2">
+                        <div class="admin-form-group">
+                            <label class="admin-label">Codice Progetto</label>
+                            <input type="text" name="code" class="admin-input" readonly id="field-code">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label">Stato</label>
+                            <select name="status" class="admin-input admin-select" disabled id="field-status">
+                                <option value="draft">Bozza</option>
+                                <option value="active">Attivo</option>
+                                <option value="funded">Finanziato</option>
+                                <option value="completed">Completato</option>
+                                <option value="cancelled">Annullato</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Titolo</label>
+                        <input type="text" name="title" class="admin-input" readonly id="field-title">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Descrizione</label>
+                        <textarea name="description" class="admin-input admin-textarea" readonly id="field-description"></textarea>
+                    </div>
+                    
+                    <div class="admin-grid admin-grid--3">
+                        <div class="admin-form-group">
+                            <label class="admin-label">Importo Target (€)</label>
+                            <input type="number" name="target_amount" class="admin-input" readonly id="field-target_amount">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label">Data Inizio</label>
+                            <input type="date" name="start_date" class="admin-input" readonly id="field-start_date">
+                        </div>
+                        <div class="admin-form-group">
+                            <label class="admin-label">Data Fine</label>
+                            <input type="date" name="end_date" class="admin-input" readonly id="field-end_date">
+                        </div>
+                    </div>
+                    
+                    <!-- Save/Cancel buttons (hidden by default) -->
+                    <div id="edit-controls" class="hidden mt-6 pt-4 border-t admin-flex admin-flex--end">
+                        <button type="button" onclick="cancelEdit()" class="admin-btn admin-btn--secondary mr-2">
+                            Annulla
+                        </button>
+                        <button type="button" onclick="saveProject()" class="admin-btn admin-btn--primary" id="save-btn">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Salva Modifiche
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-3">Statistiche Investimenti</h2>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4" id="project-stats">
+                    {% include 'admin/components/loading.html' with loading_skeleton=true, loading_skeleton_lines=4 %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents and Images -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <h2 class="admin-heading-2">Documenti e Immagini</h2>
+                <button onclick="openUploadModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Carica File
+                </button>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div id="documents-grid" class="admin-grid admin-grid--4">
+                <!-- Documents will be loaded here -->
+            </div>
+            
+            <div id="documents-empty" class="hidden text-center py-8">
+                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <h3 class="admin-heading-3 text-gray-500">Nessun documento</h3>
+                <p class="admin-text-body text-gray-400">Carica immagini JPG/PNG o documenti PDF</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investors List -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <h2 class="admin-heading-2">Investitori</h2>
+                <span class="admin-badge admin-badge--info" id="investors-count">0 investitori</span>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="min-w-full" id="investors-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left admin-text-caption">Investitore</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Importo</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Stato</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Data</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">KYC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="investors-tbody">
+                        <!-- Investors will be loaded here -->
+                    </tbody>
+                </table>
+                
+                <div id="investors-empty" class="hidden text-center py-8">
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                    </svg>
+                    <h3 class="admin-heading-3 text-gray-500">Nessun investitore</h3>
+                    <p class="admin-text-body text-gray-400">Non ci sono ancora investimenti per questo progetto</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+{% include 'admin/components/modal.html' with modal_id='upload-modal', modal_title='Carica File', modal_size='md' %}
+
+{% block modal_body %}
+<form id="upload-form" class="space-y-4">
+    <div class="admin-form-group">
+        <label class="admin-label">Titolo (opzionale)</label>
+        <input type="text" name="title" class="admin-input" placeholder="Nome descrittivo del file">
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label admin-label--required">File</label>
+        <div class="relative">
+            <input type="file" name="file" class="admin-input" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
+            <p class="admin-help-text">Formato supportati: JPG, PNG, PDF (max 10MB)</p>
+        </div>
+    </div>
+    
+    <!-- Preview -->
+    <div id="file-preview" class="hidden">
+        <label class="admin-label">Anteprima</label>
+        <div class="border border-gray-200 rounded-lg p-4">
+            <div id="preview-content"></div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('upload-modal')">
+    Annulla
+</button>
+<button type="button" class="admin-btn admin-btn--primary" onclick="submitUpload()" id="upload-btn">
+    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+    </svg>
+    Carica File
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Project Detail Manager
+class ProjectDetailManager {
+    constructor(projectId) {
+        this.projectId = projectId;
+        this.projectData = null;
+        this.isEditMode = false;
+        this.originalData = {};
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadProjectData();
+        this.bindEvents();
+    }
+    
+    async loadProjectData() {
+        try {
+            const response = await fetch(`/admin/projects/${this.projectId}?format=json`);
+            if (response.ok) {
+                this.projectData = await response.json();
+                this.renderProject();
+                this.renderStats();
+                this.renderDocuments();
+                this.renderInvestors();
+                
+                // Hide loading, show content
+                document.getElementById('page-loading').classList.add('hidden');
+                document.getElementById('project-content').classList.remove('hidden');
+            } else {
+                this.showAlert('error', 'Progetto non trovato');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore nel caricamento del progetto');
+        }
+    }
+    
+    renderProject() {
+        const project = this.projectData.project;
+        
+        // Update page title and breadcrumb
+        document.getElementById('project-title').textContent = project.title || 'Progetto Senza Titolo';
+        document.getElementById('project-subtitle').textContent = `Codice: ${project.code || 'N/A'}`;
+        document.getElementById('breadcrumb-title').textContent = project.title || 'Dettaglio';
+        
+        // Update status badge
+        const statusBadge = document.getElementById('project-status-badge');
+        const statusColors = {
+            draft: 'gray',
+            active: 'blue',
+            funded: 'green',
+            completed: 'purple',
+            cancelled: 'red'
+        };
+        const statusLabels = {
+            draft: 'Bozza',
+            active: 'Attivo',
+            funded: 'Finanziato',
+            completed: 'Completato',
+            cancelled: 'Annullato'
+        };
+        
+        statusBadge.className = `admin-badge admin-badge--${statusColors[project.status] || 'gray'}`;
+        statusBadge.textContent = statusLabels[project.status] || project.status;
+        
+        // Fill form fields
+        document.getElementById('field-code').value = project.code || '';
+        document.getElementById('field-title').value = project.title || '';
+        document.getElementById('field-description').value = project.description || '';
+        document.getElementById('field-status').value = project.status || 'draft';
+        document.getElementById('field-target_amount').value = project.target_amount || '';
+        document.getElementById('field-start_date').value = project.start_date || '';
+        document.getElementById('field-end_date').value = project.end_date || '';
+        
+        // Store original data
+        this.originalData = { ...project };
+    }
+    
+    renderStats() {
+        const stats = this.projectData.stats;
+        const project = this.projectData.project;
+        
+        const targetAmount = parseFloat(project.target_amount) || 0;
+        const totalInvested = parseFloat(stats.total_invested) || 0;
+        const percentage = targetAmount > 0 ? (totalInvested / targetAmount * 100) : 0;
+        
+        document.getElementById('project-stats').innerHTML = `
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Investitori:</span>
+                    <span class="admin-badge admin-badge--info">${stats.investors_count || 0}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Totale Investito:</span>
+                    <span class="admin-text-small font-medium">€${totalInvested.toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Target:</span>
+                    <span class="admin-text-small">€${targetAmount.toLocaleString()}</span>
+                </div>
+                <div class="space-y-1">
+                    <div class="flex justify-between">
+                        <span class="admin-text-small">Progresso:</span>
+                        <span class="admin-text-small font-medium">${percentage.toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                             style="width: ${Math.min(percentage, 100)}%"></div>
+                    </div>
+                </div>
+                ${stats.avg_investment ? `
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Media Investimento:</span>
+                    <span class="admin-text-small">€${parseFloat(stats.avg_investment).toLocaleString()}</span>
+                </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    renderDocuments() {
+        const documents = this.projectData.documents;
+        const grid = document.getElementById('documents-grid');
+        const empty = document.getElementById('documents-empty');
+        
+        if (!documents || documents.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        grid.classList.remove('hidden');
+        
+        grid.innerHTML = documents.map(doc => this.renderDocumentCard(doc)).join('');
+    }
+    
+    renderDocumentCard(doc) {
+        const isImage = ['jpg', 'jpeg', 'png'].includes(doc.file_type?.toLowerCase());
+        const isPDF = doc.file_type?.toLowerCase() === 'pdf';
+        
+        return `
+            <div class="admin-card">
+                <div class="admin-card-body p-4">
+                    <div class="aspect-square mb-3 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        ${isImage ? `
+                            <img src="/admin/uploads/${doc.file_path}" alt="${doc.title}" 
+                                 class="w-full h-full object-cover cursor-pointer"
+                                 onclick="openImagePreview('/admin/uploads/${doc.file_path}', '${doc.title}')">
+                        ` : `
+                            <div class="text-center">
+                                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    ${isPDF ? `
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    ` : `
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    `}
+                                </svg>
+                                <span class="admin-text-caption">${doc.file_type?.toUpperCase() || 'FILE'}</span>
+                            </div>
+                        `}
+                    </div>
+                    <h4 class="admin-text-small font-medium mb-1 line-clamp-2">${doc.title || 'Documento'}</h4>
+                    <p class="admin-text-caption text-gray-500 mb-3">
+                        ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}
+                    </p>
+                    <div class="admin-flex">
+                        <a href="/admin/uploads/${doc.file_path}" target="_blank" 
+                           class="admin-btn admin-btn--secondary admin-btn--sm flex-1 mr-1">
+                            Visualizza
+                        </a>
+                        <button onclick="deleteDocument(${doc.id})" 
+                                class="admin-btn admin-btn--error admin-btn--sm">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderInvestors() {
+        const investments = this.projectData.investments;
+        const tbody = document.getElementById('investors-tbody');
+        const empty = document.getElementById('investors-empty');
+        const count = document.getElementById('investors-count');
+        
+        count.textContent = `${investments?.length || 0} investitori`;
+        
+        if (!investments || investments.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        
+        tbody.innerHTML = investments.map(inv => {
+            const statusColors = {
+                pending: 'warning',
+                active: 'success',
+                completed: 'info',
+                cancelled: 'error'
+            };
+            
+            const kycColors = {
+                verified: 'success',
+                pending: 'warning',
+                rejected: 'error',
+                unverified: 'gray'
+            };
+            
+            return `
+                <tr class="border-t border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div>
+                            <p class="admin-text-body font-medium">${inv.full_name}</p>
+                            <p class="admin-text-caption text-gray-500">${inv.email}</p>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-text-body font-medium">€${parseFloat(inv.amount).toLocaleString()}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-badge admin-badge--${statusColors[inv.status] || 'gray'}">
+                            ${inv.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div>
+                            <p class="admin-text-small">${new Date(inv.created_at).toLocaleDateString('it-IT')}</p>
+                            ${inv.activated_at ? `<p class="admin-text-caption text-gray-500">Attivato: ${new Date(inv.activated_at).toLocaleDateString('it-IT')}</p>` : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-badge admin-badge--${kycColors[inv.kyc_status] || 'gray'}">
+                            ${inv.kyc_status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        
+        const fields = ['code', 'title', 'description', 'status', 'target_amount', 'start_date', 'end_date'];
+        const editControls = document.getElementById('edit-controls');
+        const editButton = document.getElementById('edit-toggle-btn');
+        
+        fields.forEach(field => {
+            const element = document.getElementById(`field-${field}`);
+            if (field === 'status') {
+                element.disabled = !this.isEditMode;
+            } else {
+                element.readOnly = !this.isEditMode;
+            }
+            
+            if (this.isEditMode) {
+                element.classList.add('bg-white');
+                element.classList.remove('bg-gray-50');
+            } else {
+                element.classList.remove('bg-white');
+                element.classList.add('bg-gray-50');
+            }
+        });
+        
+        if (this.isEditMode) {
+            editControls.classList.remove('hidden');
+            editButton.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Annulla
+            `;
+        } else {
+            editControls.classList.add('hidden');
+            editButton.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Modifica
+            `;
+        }
+    }
+    
+    cancelEdit() {
+        // Restore original values
+        Object.keys(this.originalData).forEach(key => {
+            const field = document.getElementById(`field-${key}`);
+            if (field) {
+                field.value = this.originalData[key] || '';
+            }
+        });
+        
+        this.toggleEditMode();
+    }
+    
+    async saveProject() {
+        const form = document.getElementById('project-form');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        
+        const saveBtn = document.getElementById('save-btn');
+        setButtonLoading(saveBtn, true, 'Salvando...');
+        
+        try {
+            const response = await fetch(`/admin/projects/${this.projectId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'Progetto aggiornato con successo');
+                this.originalData = { ...data };
+                this.toggleEditMode();
+                
+                // Refresh project data
+                await this.loadProjectData();
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nel salvataggio');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(saveBtn, false);
+        }
+    }
+    
+    async deleteProject() {
+        if (!confirm('Sei sicuro di voler eliminare questo progetto? Questa azione è irreversibile.')) {
+            return;
+        }
+        
+        const deleteBtn = document.getElementById('delete-btn');
+        setButtonLoading(deleteBtn, true, 'Eliminando...');
+        
+        try {
+            const response = await fetch(`/admin/projects/${this.projectId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showAlert('success', 'Progetto eliminato con successo');
+                setTimeout(() => {
+                    window.location.href = '/admin/projects';
+                }, 2000);
+            } else {
+                this.showAlert('error', result.error || 'Errore nell\'eliminazione');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(deleteBtn, false);
+        }
+    }
+    
+    bindEvents() {
+        // File input preview
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.previewFile(file);
+            }
+        });
+    }
+    
+    previewFile(file) {
+        const preview = document.getElementById('file-preview');
+        const content = document.getElementById('preview-content');
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                content.innerHTML = `<img src="${e.target.result}" alt="Preview" class="max-w-full h-32 object-contain">`;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            content.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div>
+                        <p class="admin-text-body font-medium">${file.name}</p>
+                        <p class="admin-text-caption">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                </div>
+            `;
+            preview.classList.remove('hidden');
+        }
+    }
+    
+    async uploadFile() {
+        const form = document.getElementById('upload-form');
+        const formData = new FormData(form);
+        
+        if (!formData.get('file')) {
+            this.showAlert('error', 'Seleziona un file da caricare');
+            return;
+        }
+        
+        const uploadBtn = document.getElementById('upload-btn');
+        setButtonLoading(uploadBtn, true, 'Caricando...');
+        
+        try {
+            const response = await fetch(`/admin/projects/${this.projectId}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showAlert('success', 'File caricato con successo');
+                closeModal('upload-modal');
+                form.reset();
+                document.getElementById('file-preview').classList.add('hidden');
+                
+                // Refresh documents
+                await this.loadProjectData();
+            } else {
+                this.showAlert('error', result.error || 'Errore nel caricamento');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(uploadBtn, false);
+        }
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('alerts-container');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let projectDetailManager;
+
+function toggleEditMode() {
+    projectDetailManager.toggleEditMode();
+}
+
+function cancelEdit() {
+    projectDetailManager.cancelEdit();
+}
+
+function saveProject() {
+    projectDetailManager.saveProject();
+}
+
+function deleteProject() {
+    projectDetailManager.deleteProject();
+}
+
+function openUploadModal() {
+    openModal('upload-modal');
+}
+
+function submitUpload() {
+    projectDetailManager.uploadFile();
+}
+
+function openImagePreview(src, title) {
+    // TODO: Implement image preview modal
+    window.open(src, '_blank');
+}
+
+function deleteDocument(docId) {
+    if (confirm('Sei sicuro di voler eliminare questo documento?')) {
+        // TODO: Implement document deletion
+        alert('Funzionalità in sviluppo');
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    const projectId = {{ project_id }};
+    projectDetailManager = new ProjectDetailManager(projectId);
+});
+</script>
+{% endblock %}
+{% endblock %}

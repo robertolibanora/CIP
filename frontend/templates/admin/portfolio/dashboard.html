@@ -1,0 +1,749 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Portfolio Admin - CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Portfolio Admin</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Portfolio Admin Dashboard</h1>
+            <p class="admin-text-small">Gestione completa portfolio e investimenti utenti</p>
+        </div>
+        <div class="admin-flex">
+            <button onclick="refreshData()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Aggiorna
+            </button>
+            <button onclick="openMovementModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Nuovo Movimento
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="loading-state" class="text-center py-12">
+    {% include 'admin/components/loading.html' with loading_text='Caricamento portfolio...', loading_size='lg' %}
+</div>
+
+<!-- Portfolio Content -->
+<div id="portfolio-content" class="hidden space-y-6">
+    <!-- Portfolio Overview -->
+    <div class="admin-grid admin-grid--4">
+        <div class="admin-card admin-card--success">
+            <div class="admin-card-body">
+                <div class="admin-flex admin-flex--between">
+                    <div>
+                        <h3 class="admin-heading-3 text-green-800">Capitale Totale</h3>
+                        <p class="admin-text-small text-green-600">Somma di tutti i portfolio</p>
+                    </div>
+                    <div class="p-3 bg-green-100 rounded-lg">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="admin-text-large font-bold text-green-800" id="total-capital">€0</p>
+                    <p class="admin-text-caption text-green-600" id="capital-change">+0% dal mese scorso</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card--primary">
+            <div class="admin-card-body">
+                <div class="admin-flex admin-flex--between">
+                    <div>
+                        <h3 class="admin-heading-3 text-blue-800">Capitale Investito</h3>
+                        <p class="admin-text-small text-blue-600">Attualmente bloccato</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="admin-text-large font-bold text-blue-800" id="invested-capital">€0</p>
+                    <p class="admin-text-caption text-blue-600" id="invested-percentage">0% del totale</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card--warning">
+            <div class="admin-card-body">
+                <div class="admin-flex admin-flex--between">
+                    <div>
+                        <h3 class="admin-heading-3 text-orange-800">Bonus Referral</h3>
+                        <p class="admin-text-small text-orange-600">Commissioni maturate</p>
+                    </div>
+                    <div class="p-3 bg-orange-100 rounded-lg">
+                        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="admin-text-large font-bold text-orange-800" id="bonus-total">€0</p>
+                    <p class="admin-text-caption text-orange-600" id="bonus-users">0 utenti attivi</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card--info">
+            <div class="admin-card-body">
+                <div class="admin-flex admin-flex--between">
+                    <div>
+                        <h3 class="admin-heading-3 text-purple-800">Profitti Distribuiti</h3>
+                        <p class="admin-text-small text-purple-600">ROI totale pagato</p>
+                    </div>
+                    <div class="p-3 bg-purple-100 rounded-lg">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="admin-text-large font-bold text-purple-800" id="profits-total">€0</p>
+                    <p class="admin-text-caption text-purple-600" id="profits-roi">ROI medio: 0%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Analytics -->
+    <div class="admin-grid admin-grid--2">
+        <!-- Portfolio Distribution Chart -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Distribuzione Capitale</h2>
+                <p class="admin-text-small">Ripartizione per tipologia</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="relative">
+                    <canvas id="capital-distribution-chart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Chart -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Crescita Portfolio</h2>
+                <div class="admin-flex">
+                    <select id="timeline-period" class="admin-input admin-select admin-btn--sm">
+                        <option value="7">Ultimi 7 giorni</option>
+                        <option value="30" selected>Ultimi 30 giorni</option>
+                        <option value="90">Ultimi 3 mesi</option>
+                        <option value="365">Ultimo anno</option>
+                    </select>
+                </div>
+            </div>
+            <div class="admin-card-body">
+                <div class="relative">
+                    <canvas id="growth-timeline-chart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Transazioni Recenti</h2>
+                    <p class="admin-text-small">Ultimi movimenti portfolio</p>
+                </div>
+                <div class="admin-flex">
+                    <select id="transaction-filter" class="admin-input admin-select admin-btn--sm mr-2">
+                        <option value="">Tutte le transazioni</option>
+                        <option value="deposit">Depositi</option>
+                        <option value="investment">Investimenti</option>
+                        <option value="referral">Bonus referral</option>
+                        <option value="profit">Profitti</option>
+                        <option value="withdrawal">Prelievi</option>
+                    </select>
+                    <a href="/admin/portfolio/transactions" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        Vedi Tutto
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="min-w-full" id="transactions-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left admin-text-caption">Data</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Utente</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Tipo</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Importo</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Saldo</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Stato</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-tbody">
+                        <!-- Transactions will be loaded here -->
+                    </tbody>
+                </table>
+                
+                <div id="transactions-empty" class="hidden text-center py-8">
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <h3 class="admin-heading-3 text-gray-500">Nessuna transazione</h3>
+                    <p class="admin-text-body text-gray-400">Non ci sono transazioni da visualizzare</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Users by Portfolio -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Top Investitori</h2>
+                    <p class="admin-text-small">Utenti con portfolio più elevati</p>
+                </div>
+                <a href="/admin/portfolio/users" class="admin-btn admin-btn--secondary admin-btn--sm">
+                    Gestisci Utenti
+                </a>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div class="space-y-4" id="top-users-list">
+                <!-- Top users will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Movement Modal -->
+{% include 'admin/components/modal.html' with modal_id='movement-modal', modal_title='Nuovo Movimento Portfolio', modal_size='lg' %}
+
+{% block modal_body %}
+<form id="movement-form" class="space-y-6">
+    <div class="admin-grid admin-grid--2">
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Utente</label>
+            <select name="user_id" class="admin-input admin-select" required id="user-select">
+                <option value="">Seleziona utente...</option>
+                <!-- Options will be loaded dynamically -->
+            </select>
+        </div>
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Tipo Movimento</label>
+            <select name="type" class="admin-input admin-select" required id="movement-type">
+                <option value="">Seleziona tipo...</option>
+                <option value="deposit">Deposito (+)</option>
+                <option value="withdrawal">Prelievo (-)</option>
+                <option value="bonus">Bonus Referral (+)</option>
+                <option value="profit">Distribuzione Profitti (+)</option>
+                <option value="adjustment">Rettifica (+/-)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="admin-grid admin-grid--2">
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Sezione Portfolio</label>
+            <select name="section" class="admin-input admin-select" required id="portfolio-section">
+                <option value="">Seleziona sezione...</option>
+                <option value="free_capital">Capitale Libero</option>
+                <option value="invested_capital">Capitale Investito</option>
+                <option value="referral_bonus">Bonus Referral</option>
+                <option value="profits">Profitti</option>
+            </select>
+        </div>
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">Importo (€)</label>
+            <input type="number" name="amount" class="admin-input" required 
+                   min="0.01" step="0.01" placeholder="0.00" id="movement-amount">
+        </div>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label admin-label--required">Descrizione</label>
+        <textarea name="description" class="admin-input admin-textarea" required rows="3"
+                  placeholder="Motivo del movimento..." id="movement-description"></textarea>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Note Interne (opzionale)</label>
+        <textarea name="admin_notes" class="admin-input admin-textarea" rows="2"
+                  placeholder="Note per uso interno..." id="movement-notes"></textarea>
+    </div>
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('movement-modal')">
+    Annulla
+</button>
+<button type="button" class="admin-btn admin-btn--primary" onclick="submitMovement()" id="submit-movement-btn">
+    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </svg>
+    Crea Movimento
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Portfolio Admin Dashboard Manager
+class PortfolioAdminDashboard {
+    constructor() {
+        this.data = {};
+        this.charts = {};
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadData();
+        this.renderOverview();
+        this.renderCharts();
+        this.renderTransactions();
+        this.renderTopUsers();
+        this.loadUsers(); // For movement modal
+        this.bindEvents();
+        
+        // Hide loading, show content
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('portfolio-content').classList.remove('hidden');
+    }
+    
+    async loadData() {
+        try {
+            const response = await fetch('/admin/portfolio/overview?format=json');
+            if (response.ok) {
+                this.data = await response.json();
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dati:', error);
+        }
+    }
+    
+    renderOverview() {
+        const { overview } = this.data;
+        if (!overview) return;
+        
+        // Total Capital
+        document.getElementById('total-capital').textContent = 
+            `€${(overview.total_capital || 0).toLocaleString()}`;
+        document.getElementById('capital-change').textContent = 
+            `${overview.capital_change > 0 ? '+' : ''}${(overview.capital_change || 0).toFixed(1)}% dal mese scorso`;
+        
+        // Invested Capital
+        document.getElementById('invested-capital').textContent = 
+            `€${(overview.invested_capital || 0).toLocaleString()}`;
+        const investedPercentage = overview.total_capital > 0 ? 
+            (overview.invested_capital / overview.total_capital * 100) : 0;
+        document.getElementById('invested-percentage').textContent = 
+            `${investedPercentage.toFixed(1)}% del totale`;
+        
+        // Bonus
+        document.getElementById('bonus-total').textContent = 
+            `€${(overview.bonus_total || 0).toLocaleString()}`;
+        document.getElementById('bonus-users').textContent = 
+            `${overview.bonus_users || 0} utenti attivi`;
+        
+        // Profits
+        document.getElementById('profits-total').textContent = 
+            `€${(overview.profits_total || 0).toLocaleString()}`;
+        document.getElementById('profits-roi').textContent = 
+            `ROI medio: ${(overview.average_roi || 0).toFixed(1)}%`;
+    }
+    
+    renderCharts() {
+        this.renderCapitalDistributionChart();
+        this.renderGrowthTimelineChart();
+    }
+    
+    renderCapitalDistributionChart() {
+        const ctx = document.getElementById('capital-distribution-chart').getContext('2d');
+        const { overview } = this.data;
+        
+        if (this.charts.capitalDistribution) {
+            this.charts.capitalDistribution.destroy();
+        }
+        
+        this.charts.capitalDistribution = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Capitale Libero', 'Capitale Investito', 'Bonus Referral', 'Profitti'],
+                datasets: [{
+                    data: [
+                        overview?.free_capital || 0,
+                        overview?.invested_capital || 0,
+                        overview?.bonus_total || 0,
+                        overview?.profits_total || 0
+                    ],
+                    backgroundColor: [
+                        '#10B981', // green
+                        '#3B82F6', // blue
+                        '#F59E0B', // orange
+                        '#8B5CF6'  // purple
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    renderGrowthTimelineChart() {
+        const ctx = document.getElementById('growth-timeline-chart').getContext('2d');
+        const { timeline } = this.data;
+        
+        if (this.charts.growthTimeline) {
+            this.charts.growthTimeline.destroy();
+        }
+        
+        this.charts.growthTimeline = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeline?.labels || [],
+                datasets: [{
+                    label: 'Capitale Totale',
+                    data: timeline?.total_capital || [],
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Capitale Investito',
+                    data: timeline?.invested_capital || [],
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
+    
+    renderTransactions() {
+        const { transactions } = this.data;
+        const tbody = document.getElementById('transactions-tbody');
+        const empty = document.getElementById('transactions-empty');
+        
+        if (!transactions || transactions.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        
+        tbody.innerHTML = transactions.slice(0, 10).map(transaction => {
+            const typeColors = {
+                deposit: 'success',
+                investment: 'primary',
+                referral: 'warning',
+                profit: 'info',
+                withdrawal: 'error'
+            };
+            
+            const typeLabels = {
+                deposit: 'Deposito',
+                investment: 'Investimento',
+                referral: 'Bonus Referral',
+                profit: 'Profitto',
+                withdrawal: 'Prelievo'
+            };
+            
+            return `
+                <tr class="border-t border-gray-200 hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <span class="admin-text-small">${new Date(transaction.created_at).toLocaleDateString('it-IT')}</span>
+                        <br>
+                        <span class="admin-text-caption text-gray-500">${new Date(transaction.created_at).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <p class="admin-text-body font-medium">${transaction.user_name}</p>
+                        <p class="admin-text-caption text-gray-500">${transaction.user_email}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-badge admin-badge--${typeColors[transaction.type] || 'gray'}">
+                            ${typeLabels[transaction.type] || transaction.type}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-text-body font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${transaction.amount >= 0 ? '+' : ''}€${Math.abs(transaction.amount).toLocaleString()}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-text-body">€${transaction.balance?.toLocaleString() || '0'}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-badge admin-badge--${transaction.status === 'completed' ? 'success' : 'warning'}">
+                            ${transaction.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <button onclick="viewTransaction(${transaction.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                            Dettagli
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    renderTopUsers() {
+        const { topUsers } = this.data;
+        const container = document.getElementById('top-users-list');
+        
+        if (!topUsers || topUsers.length === 0) {
+            container.innerHTML = '<p class="admin-text-body text-gray-500">Nessun dato disponibile</p>';
+            return;
+        }
+        
+        container.innerHTML = topUsers.slice(0, 5).map((user, index) => `
+            <div class="admin-flex admin-flex--between p-4 border border-gray-200 rounded-lg">
+                <div class="admin-flex">
+                    <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                        <span class="admin-text-small font-bold">${index + 1}</span>
+                    </div>
+                    <div>
+                        <p class="admin-text-body font-medium">${user.name}</p>
+                        <p class="admin-text-caption text-gray-500">${user.email}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="admin-text-body font-bold">€${user.total_balance?.toLocaleString() || '0'}</p>
+                    <p class="admin-text-caption text-gray-500">${user.active_investments || 0} investimenti</p>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    async loadUsers() {
+        try {
+            const response = await fetch('/admin/users?format=json');
+            if (response.ok) {
+                const users = await response.json();
+                const select = document.getElementById('user-select');
+                
+                select.innerHTML = '<option value="">Seleziona utente...</option>' +
+                    users.map(user => 
+                        `<option value="${user.id}">${user.full_name} (${user.email})</option>`
+                    ).join('');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento utenti:', error);
+        }
+    }
+    
+    bindEvents() {
+        // Timeline period change
+        document.getElementById('timeline-period').addEventListener('change', (e) => {
+            this.updateTimelineChart(e.target.value);
+        });
+        
+        // Transaction filter
+        document.getElementById('transaction-filter').addEventListener('change', (e) => {
+            this.filterTransactions(e.target.value);
+        });
+        
+        // Movement type change
+        document.getElementById('movement-type').addEventListener('change', (e) => {
+            this.updatePortfolioSectionOptions(e.target.value);
+        });
+    }
+    
+    async updateTimelineChart(period) {
+        try {
+            const response = await fetch(`/admin/portfolio/timeline?period=${period}&format=json`);
+            if (response.ok) {
+                const timeline = await response.json();
+                this.data.timeline = timeline;
+                this.renderGrowthTimelineChart();
+            }
+        } catch (error) {
+            console.error('Errore aggiornamento timeline:', error);
+        }
+    }
+    
+    filterTransactions(type) {
+        const rows = document.querySelectorAll('#transactions-tbody tr');
+        rows.forEach(row => {
+            if (!type) {
+                row.style.display = '';
+            } else {
+                const transactionType = row.dataset.type;
+                row.style.display = transactionType === type ? '' : 'none';
+            }
+        });
+    }
+    
+    updatePortfolioSectionOptions(movementType) {
+        const sectionSelect = document.getElementById('portfolio-section');
+        const sections = {
+            'deposit': ['free_capital'],
+            'withdrawal': ['free_capital', 'referral_bonus', 'profits'],
+            'bonus': ['referral_bonus'],
+            'profit': ['profits'],
+            'adjustment': ['free_capital', 'invested_capital', 'referral_bonus', 'profits']
+        };
+        
+        const sectionLabels = {
+            'free_capital': 'Capitale Libero',
+            'invested_capital': 'Capitale Investito',
+            'referral_bonus': 'Bonus Referral',
+            'profits': 'Profitti'
+        };
+        
+        const allowedSections = sections[movementType] || Object.keys(sectionLabels);
+        
+        sectionSelect.innerHTML = '<option value="">Seleziona sezione...</option>' +
+            allowedSections.map(section => 
+                `<option value="${section}">${sectionLabels[section]}</option>`
+            ).join('');
+    }
+    
+    async submitMovement() {
+        const form = document.getElementById('movement-form');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        
+        const submitBtn = document.getElementById('submit-movement-btn');
+        setButtonLoading(submitBtn, true, 'Creando...');
+        
+        try {
+            const response = await fetch('/admin/portfolio/movements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showAlert('success', 'Movimento creato con successo');
+                closeModal('movement-modal');
+                form.reset();
+                await this.refreshData();
+            } else {
+                this.showAlert('error', result.error || 'Errore nella creazione del movimento');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    }
+    
+    async refreshData() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        setButtonLoading(refreshBtn, true, 'Aggiornando...');
+        
+        try {
+            await this.loadData();
+            this.renderOverview();
+            this.renderCharts();
+            this.renderTransactions();
+            this.renderTopUsers();
+            
+            this.showAlert('success', 'Dati aggiornati');
+        } catch (error) {
+            console.error('Errore aggiornamento:', error);
+            this.showAlert('error', 'Errore nell\'aggiornamento');
+        } finally {
+            setButtonLoading(refreshBtn, false);
+        }
+    }
+    
+    showAlert(type, message) {
+        // Implementation similar to other components
+        console.log(`${type}: ${message}`);
+    }
+}
+
+// Global functions
+let portfolioDashboard;
+
+function refreshData() {
+    portfolioDashboard.refreshData();
+}
+
+function openMovementModal() {
+    openModal('movement-modal');
+}
+
+function submitMovement() {
+    portfolioDashboard.submitMovement();
+}
+
+function viewTransaction(id) {
+    window.location.href = `/admin/portfolio/transactions/${id}`;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    portfolioDashboard = new PortfolioAdminDashboard();
+});
+</script>
+{% endblock %}
+{% endblock %}
