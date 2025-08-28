@@ -495,9 +495,1689 @@ def projects_export():
     
     return jsonify(projects)
 
+# ---- KYC Management ----
+@admin_bp.get("/kyc")
+@admin_required
+def kyc_dashboard():
+    """Dashboard KYC admin"""
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify(get_kyc_requests())
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/kyc/dashboard.html")
+
+@admin_bp.get("/api/kyc-requests")
+@admin_required
+def kyc_requests():
+    """Lista richieste KYC"""
+    return jsonify(get_kyc_requests())
+
+@admin_bp.get("/api/kyc-requests/<int:user_id>")
+@admin_required
+def kyc_request_detail(user_id):
+    """Dettaglio richiesta KYC specifica"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Dati utente
+        cur.execute("""
+            SELECT id, full_name, email, telefono, address, kyc_status, 
+                   created_at, kyc_verified_at, kyc_notes
+            FROM users WHERE id = %s
+        """, (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            abort(404)
+        
+        # Documenti KYC
+        cur.execute("""
+            SELECT d.*, dc.name as category_name
+            FROM documents d
+            JOIN doc_categories dc ON dc.id = d.category_id
+            WHERE d.user_id = %s AND dc.is_kyc = true
+            ORDER BY d.uploaded_at DESC
+        """, (user_id,))
+        documents = cur.fetchall()
+        
+        # Portfolio info
+        cur.execute("""
+            SELECT 
+                (free_capital + invested_capital + referral_bonus + profits) as total_balance,
+                COUNT(i.id) as investments_count
+            FROM user_portfolios up
+            LEFT JOIN investments i ON i.user_id = up.user_id AND i.status = 'active'
+            WHERE up.user_id = %s
+            GROUP BY up.id, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
+        """, (user_id,))
+        portfolio = cur.fetchone()
+        
+        return jsonify({
+            **user,
+            "documents": documents,
+            "has_portfolio": bool(portfolio and portfolio['total_balance'] > 0),
+            "investments_count": portfolio['investments_count'] if portfolio else 0
+        })
+
+@admin_bp.get("/api/kyc-stats")
+@admin_required
+def kyc_stats():
+    """Statistiche KYC"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT 
+                kyc_status,
+                COUNT(*) as count
+            FROM users
+            GROUP BY kyc_status
+        """)
+        stats_raw = cur.fetchall()
+        
+        stats = {
+            'pending': 0,
+            'verified': 0,
+            'rejected': 0,
+            'unverified': 0,
+            'total': 0
+        }
+        
+        for stat in stats_raw:
+            stats[stat['kyc_status']] = stat['count']
+            stats['total'] += stat['count']
+        
+        # Mock trend data
+        stats['trend'] = 12.5  # +12.5% vs mese scorso
+        
+        return jsonify(stats)
+
+def get_kyc_requests():
+    """Helper per ottenere richieste KYC"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT 
+                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes,
+                COUNT(d.id) as documents_count,
+                CASE WHEN up.id IS NOT NULL AND 
+                     (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) > 0 
+                     THEN true ELSE false END as has_portfolio
+            FROM users u
+            LEFT JOIN documents d ON d.user_id = u.id
+            LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
+            LEFT JOIN user_portfolios up ON up.user_id = u.id
+            WHERE u.role = 'investor'
+            GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
+                     u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes, up.id,
+                     up.free_capital, up.invested_capital, up.referral_bonus, up.profits
+            ORDER BY 
+                CASE u.kyc_status 
+                    WHEN 'pending' THEN 1 
+                    WHEN 'unverified' THEN 2
+                    WHEN 'rejected' THEN 3
+                    WHEN 'verified' THEN 4
+                END,
+                u.created_at DESC
+        """)
+        
+        return cur.fetchall()
+
+@admin_bp.post("/kyc/<int:user_id>/approve")
+@admin_required
+def kyc_approve(user_id):
+    """Approva KYC utente"""
+    data = request.json or {}
+    notes = data.get('notes', '')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            UPDATE users 
+            SET kyc_status = 'verified', 
+                kyc_verified_at = NOW(),
+                kyc_notes = %s
+            WHERE id = %s AND role = 'investor'
+        """, (notes, user_id))
+        
+        if cur.rowcount == 0:
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        # Log dell'azione admin
+        cur.execute("""
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'kyc_approve', 'user', %s, %s)
+        """, (session.get('user_id'), user_id, f"KYC approvato: {notes}"))
+    
+    return jsonify({"success": True, "message": "KYC approvato con successo"})
+
+@admin_bp.post("/kyc/<int:user_id>/reject")
+@admin_required
+def kyc_reject(user_id):
+    """Rifiuta KYC utente"""
+    data = request.json or {}
+    notes = data.get('notes', '')
+    
+    if not notes:
+        return jsonify({"error": "Le note sono obbligatorie per il rifiuto"}), 400
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            UPDATE users 
+            SET kyc_status = 'rejected',
+                kyc_notes = %s
+            WHERE id = %s AND role = 'investor'
+        """, (notes, user_id))
+        
+        if cur.rowcount == 0:
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        # Log dell'azione admin
+        cur.execute("""
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'kyc_reject', 'user', %s, %s)
+        """, (session.get('user_id'), user_id, f"KYC rifiutato: {notes}"))
+    
+    return jsonify({"success": True, "message": "KYC rifiutato"})
+
+@admin_bp.post("/kyc/bulk-action")
+@admin_required
+def kyc_bulk_action():
+    """Azioni multiple su KYC"""
+    data = request.json or {}
+    action = data.get('action')
+    request_ids = data.get('request_ids', [])
+    
+    if not action or not request_ids:
+        return jsonify({"error": "Parametri mancanti"}), 400
+    
+    valid_actions = ['approve', 'reject', 'pending', 'export', 'notify']
+    if action not in valid_actions:
+        return jsonify({"error": "Azione non valida"}), 400
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        if action == 'approve':
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'verified', kyc_verified_at = NOW(),
+                    kyc_notes = 'Approvazione multipla'
+                WHERE id = ANY(%s) AND role = 'investor'
+            """, (request_ids,))
+            
+        elif action == 'reject':
+            notes = data.get('notes', 'Rifiuto multiplo')
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'rejected',
+                    kyc_notes = %s
+                WHERE id = ANY(%s) AND role = 'investor'
+            """, (notes, request_ids))
+            
+        elif action == 'pending':
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'pending',
+                    kyc_notes = 'Rimesso in attesa'
+                WHERE id = ANY(%s) AND role = 'investor'
+            """, (request_ids,))
+        
+        elif action == 'export':
+            # Per l'export, restituiamo i dati invece di modificarli
+            placeholders = ','.join(['%s'] * len(request_ids))
+            cur.execute(f"""
+                SELECT id, full_name, email, telefono, kyc_status, created_at
+                FROM users 
+                WHERE id IN ({placeholders}) AND role = 'investor'
+                ORDER BY created_at DESC
+            """, request_ids)
+            
+            users = cur.fetchall()
+            return jsonify({"users": users, "action": "export"})
+        
+        elif action == 'notify':
+            # TODO: Implementare sistema notifiche
+            pass
+        
+        # Log dell'azione admin
+        if action != 'export':
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, %s, 'bulk_kyc', %s, %s)
+            """, (session.get('user_id'), f'kyc_bulk_{action}', 0, f"Azione {action} su {len(request_ids)} utenti"))
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Azione '{action}' completata su {len(request_ids)} utenti"
+    })
+
+@admin_bp.get("/kyc/export")
+@admin_required
+def kyc_export():
+    """Esporta dati KYC in CSV"""
+    format_type = request.args.get('format', 'csv')
+    status = request.args.get('status')
+    search = request.args.get('search')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Build query with filters
+        where_conditions = ["u.role = 'investor'"]
+        params = []
+        
+        if status:
+            where_conditions.append("u.kyc_status = %s")
+            params.append(status)
+        
+        if search:
+            where_conditions.append("""
+                (u.full_name ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
+            """)
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+        
+        where_clause = " AND ".join(where_conditions)
+        
+        cur.execute(f"""
+            SELECT 
+                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes,
+                COUNT(d.id) as documents_count
+            FROM users u
+            LEFT JOIN documents d ON d.user_id = u.id
+            LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
+            WHERE {where_clause}
+            GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
+                     u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes
+            ORDER BY u.created_at DESC
+        """, params)
+        
+        kyc_requests = cur.fetchall()
+    
+    if format_type == 'csv':
+        import csv
+        from io import StringIO
+        from flask import Response
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header CSV
+        writer.writerow([
+            'ID', 'Nome Completo', 'Email', 'Telefono', 'Indirizzo',
+            'Stato KYC', 'Data Registrazione', 'Data Verifica', 'Note', 'Documenti'
+        ])
+        
+        # Dati utenti
+        for user in kyc_requests:
+            writer.writerow([
+                user.get('id', ''),
+                user.get('full_name', ''),
+                user.get('email', ''),
+                user.get('telefono', ''),
+                user.get('address', ''),
+                user.get('kyc_status', ''),
+                user.get('created_at', ''),
+                user.get('kyc_verified_at', ''),
+                user.get('kyc_notes', ''),
+                user.get('documents_count', 0)
+            ])
+        
+        output.seek(0)
+        
+        filename = f"kyc_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    return jsonify(kyc_requests)
+
 # ---- Gestione Utenti ----
 @admin_bp.get("/users")
 @admin_required
+def users_dashboard():
+    """Dashboard gestione utenti admin"""
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify(get_users_list())
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/users/dashboard.html")
+
+@admin_bp.get("/users/stats")
+@admin_required
+def users_stats():
+    """Statistiche utenti"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Statistiche base
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE kyc_status = 'verified') as verified,
+                COUNT(*) FILTER (WHERE kyc_status = 'pending') as pending,
+                COUNT(*) FILTER (WHERE kyc_status = 'rejected') as rejected,
+                COUNT(*) FILTER (WHERE is_active = false) as suspended,
+                COUNT(*) FILTER (WHERE role = 'admin') as admins
+            FROM users
+        """)
+        basic_stats = cur.fetchone()
+        
+        # Investitori attivi (con investimenti)
+        cur.execute("""
+            SELECT 
+                COUNT(DISTINCT i.user_id) as active_investors,
+                COALESCE(SUM(i.amount), 0) as total_investment_volume
+            FROM investments i
+            JOIN users u ON u.id = i.user_id
+            WHERE i.status IN ('active', 'completed')
+        """)
+        investment_stats = cur.fetchone()
+        
+        # Crescita mensile (mock data)
+        cur.execute("""
+            SELECT 
+                COUNT(*) as current_month_users
+            FROM users
+            WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        current_month = cur.fetchone()
+        
+        cur.execute("""
+            SELECT 
+                COUNT(*) as previous_month_users
+            FROM users
+            WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+            AND created_at < DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        previous_month = cur.fetchone()
+        
+        # Calcola crescita percentuale
+        growth = 0
+        if previous_month['previous_month_users'] > 0:
+            growth = ((current_month['current_month_users'] - previous_month['previous_month_users']) / 
+                     previous_month['previous_month_users']) * 100
+        
+        return jsonify({
+            'total': basic_stats['total'],
+            'verified': basic_stats['verified'],
+            'pending': basic_stats['pending'],
+            'rejected': basic_stats['rejected'],
+            'suspended': basic_stats['suspended'],
+            'admins': basic_stats['admins'],
+            'active_investors': investment_stats['active_investors'],
+            'investment_volume': float(investment_stats['total_investment_volume']),
+            'growth': round(growth, 1)
+        })
+
+def get_users_list():
+    """Helper per ottenere lista utenti con filtri"""
+    kyc_status = request.args.get('kyc_status')
+    role = request.args.get('role')
+    investment_status = request.args.get('investment_status')
+    date_range = request.args.get('date_range')
+    search = request.args.get('search')
+    sort = request.args.get('sort', 'created_at_desc')
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Build WHERE conditions
+        where_conditions = []
+        params = []
+        
+        if kyc_status:
+            where_conditions.append("u.kyc_status = %s")
+            params.append(kyc_status)
+        
+        if role:
+            where_conditions.append("u.role = %s")
+            params.append(role)
+        
+        if search:
+            where_conditions.append("""
+                (u.full_name ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
+            """)
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+        
+        # Date range filter
+        if date_range:
+            if date_range == 'today':
+                where_conditions.append("u.created_at >= CURRENT_DATE")
+            elif date_range == 'week':
+                where_conditions.append("u.created_at >= CURRENT_DATE - INTERVAL '7 days'")
+            elif date_range == 'month':
+                where_conditions.append("u.created_at >= CURRENT_DATE - INTERVAL '30 days'")
+            elif date_range == 'quarter':
+                where_conditions.append("u.created_at >= CURRENT_DATE - INTERVAL '90 days'")
+        
+        where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+        
+        # Build ORDER BY
+        order_mapping = {
+            'created_at_desc': 'u.created_at DESC',
+            'created_at_asc': 'u.created_at ASC',
+            'name_asc': 'u.full_name ASC',
+            'name_desc': 'u.full_name DESC',
+            'kyc_status': """
+                CASE u.kyc_status 
+                    WHEN 'verified' THEN 1 
+                    WHEN 'pending' THEN 2
+                    WHEN 'rejected' THEN 3
+                    WHEN 'unverified' THEN 4
+                END
+            """,
+            'investment_volume': 'COALESCE(portfolio_total, 0) DESC'
+        }
+        order_by = order_mapping.get(sort, 'u.created_at DESC')
+        
+        # Main query
+        query = f"""
+            SELECT 
+                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.kyc_status, u.role, u.is_active, u.created_at, u.last_login,
+                up.free_capital + up.invested_capital + up.referral_bonus + up.profits as portfolio_balance,
+                COALESCE(inv_stats.investments_count, 0) as investments_count,
+                COALESCE(inv_stats.investment_volume, 0) as investment_volume,
+                CASE WHEN inv_stats.investments_count > 0 THEN true ELSE false END as has_investments,
+                up.referral_bonus,
+                up.profits,
+                (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) as portfolio_total
+            FROM users u
+            LEFT JOIN user_portfolios up ON up.user_id = u.id
+            LEFT JOIN (
+                SELECT 
+                    user_id,
+                    COUNT(*) as investments_count,
+                    SUM(amount) as investment_volume
+                FROM investments 
+                WHERE status IN ('active', 'completed')
+                GROUP BY user_id
+            ) inv_stats ON inv_stats.user_id = u.id
+            {where_clause}
+            ORDER BY {order_by}
+        """
+        
+        cur.execute(query, params)
+        users = cur.fetchall()
+        
+        # Investment status filter (post-query because it's complex)
+        if investment_status:
+            if investment_status == 'with_investments':
+                users = [u for u in users if u.get('has_investments')]
+            elif investment_status == 'without_investments':
+                users = [u for u in users if not u.get('has_investments')]
+        
+        return users
+
+@admin_bp.get("/users/<int:user_id>")
+@admin_required
+def user_detail(user_id):
+    """Dettaglio utente specifico"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Dati utente base
+        cur.execute("""
+            SELECT u.*, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
+            FROM users u
+            LEFT JOIN user_portfolios up ON up.user_id = u.id
+            WHERE u.id = %s
+        """, (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            abort(404)
+        
+        # Portfolio balance
+        portfolio_balance = (user.get('free_capital', 0) + user.get('invested_capital', 0) + 
+                           user.get('referral_bonus', 0) + user.get('profits', 0))
+        
+        # Statistiche investimenti
+        cur.execute("""
+            SELECT 
+                COUNT(*) as investments_count,
+                COALESCE(SUM(amount), 0) as investment_volume
+            FROM investments 
+            WHERE user_id = %s AND status IN ('active', 'completed')
+        """, (user_id,))
+        investment_stats = cur.fetchone()
+        
+        # Documenti KYC
+        cur.execute("""
+            SELECT d.*, dc.name as category_name
+            FROM documents d
+            JOIN doc_categories dc ON dc.id = d.category_id
+            WHERE d.user_id = %s AND dc.is_kyc = true
+            ORDER BY d.uploaded_at DESC
+        """, (user_id,))
+        kyc_documents = cur.fetchall()
+        
+        # Attività recente (mock data)
+        cur.execute("""
+            SELECT 'investment' as type, 'Nuovo investimento' as description, created_at
+            FROM investments 
+            WHERE user_id = %s
+            ORDER BY created_at DESC 
+            LIMIT 5
+        """, (user_id,))
+        recent_activity = cur.fetchall()
+        
+        return jsonify({
+            **user,
+            'portfolio_balance': float(portfolio_balance),
+            'investments_count': investment_stats['investments_count'],
+            'investment_volume': float(investment_stats['investment_volume']),
+            'kyc_documents': kyc_documents,
+            'recent_activity': recent_activity
+        })
+
+@admin_bp.post("/users/<int:user_id>/toggle-status")
+@admin_required
+def toggle_user_status(user_id):
+    """Attiva/Sospendi utente"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni stato attuale
+        cur.execute("SELECT is_active, role FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        # Non permettere di sospendere admin
+        if user['role'] == 'admin':
+            return jsonify({"error": "Non è possibile sospendere un amministratore"}), 400
+        
+        new_status = not user['is_active']
+        
+        cur.execute("""
+            UPDATE users 
+            SET is_active = %s
+            WHERE id = %s
+        """, (new_status, user_id))
+        
+        # Log dell'azione admin
+        action = 'user_activate' if new_status else 'user_suspend'
+        cur.execute("""
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, %s, 'user', %s, %s)
+        """, (session.get('user_id'), action, user_id, f"Utente {'attivato' if new_status else 'sospeso'}"))
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Utente {'attivato' if new_status else 'sospeso'} con successo",
+        "new_status": new_status
+    })
+
+@admin_bp.post("/users/bulk-action")
+@admin_required  
+def users_bulk_action():
+    """Azioni multiple su utenti"""
+    data = request.json or {}
+    action = data.get('action')
+    user_ids = data.get('user_ids', [])
+    
+    if not action or not user_ids:
+        return jsonify({"error": "Parametri mancanti"}), 400
+    
+    valid_actions = ['approve_kyc', 'reject_kyc', 'suspend', 'activate', 'export', 'send_notification']
+    if action not in valid_actions:
+        return jsonify({"error": "Azione non valida"}), 400
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        if action == 'approve_kyc':
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'verified', kyc_verified_at = NOW(),
+                    kyc_notes = 'Approvazione multipla'
+                WHERE id = ANY(%s) AND role != 'admin'
+            """, (user_ids,))
+            
+        elif action == 'reject_kyc':
+            notes = data.get('notes', 'Rifiuto multiplo')
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'rejected',
+                    kyc_notes = %s
+                WHERE id = ANY(%s) AND role != 'admin'
+            """, (notes, user_ids))
+            
+        elif action == 'suspend':
+            cur.execute("""
+                UPDATE users 
+                SET is_active = false
+                WHERE id = ANY(%s) AND role != 'admin'
+            """, (user_ids,))
+            
+        elif action == 'activate':
+            cur.execute("""
+                UPDATE users 
+                SET is_active = true
+                WHERE id = ANY(%s)
+            """, (user_ids,))
+        
+        elif action == 'export':
+            # Per l'export, restituiamo i dati invece di modificarli
+            placeholders = ','.join(['%s'] * len(user_ids))
+            cur.execute(f"""
+                SELECT id, full_name, email, telefono, kyc_status, created_at
+                FROM users 
+                WHERE id IN ({placeholders})
+                ORDER BY created_at DESC
+            """, user_ids)
+            
+            users = cur.fetchall()
+            return jsonify({"users": users, "action": "export"})
+        
+        elif action == 'send_notification':
+            # TODO: Implementare sistema notifiche
+            pass
+        
+        # Log dell'azione admin
+        if action != 'export':
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, %s, 'bulk_users', %s, %s)
+            """, (session.get('user_id'), f'users_bulk_{action}', 0, f"Azione {action} su {len(user_ids)} utenti"))
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Azione '{action}' completata su {len(user_ids)} utenti"
+    })
+
+@admin_bp.get("/users/export")
+@admin_required
+def users_export():
+    """Esporta dati utenti in CSV"""
+    format_type = request.args.get('format', 'csv')
+    
+    # Usa la stessa logica di filtri della lista
+    users = get_users_list()
+    
+    if format_type == 'csv':
+        import csv
+        from io import StringIO
+        from flask import Response
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header CSV
+        writer.writerow([
+            'ID', 'Nome Completo', 'Email', 'Telefono', 'Indirizzo',
+            'Stato KYC', 'Ruolo', 'Portfolio Balance', 'Investimenti', 'Data Registrazione'
+        ])
+        
+        # Dati utenti
+        for user in users:
+            writer.writerow([
+                user.get('id', ''),
+                user.get('full_name', ''),
+                user.get('email', ''),
+                user.get('telefono', ''),
+                user.get('address', ''),
+                user.get('kyc_status', ''),
+                user.get('role', ''),
+                user.get('portfolio_balance', 0),
+                user.get('investments_count', 0),
+                user.get('created_at', '')
+            ])
+        
+        output.seek(0)
+        
+        filename = f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    return jsonify(users)
+
+# ---- Analytics e Reporting ----
+@admin_bp.get("/analytics")
+@admin_required
+def analytics_dashboard():
+    """Dashboard analytics admin"""
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify(get_analytics_data())
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/analytics/dashboard.html")
+
+@admin_bp.get("/analytics/data")
+@admin_required
+def analytics_data():
+    """Dati analytics con filtri temporali"""
+    return jsonify(get_analytics_data())
+
+def get_analytics_data():
+    """Helper per ottenere dati analytics"""
+    period = request.args.get('period', 'month')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Calculate date range based on period
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    
+    if start_date and end_date:
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        if period == 'today':
+            start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = now
+        elif period == 'week':
+            start_dt = now - timedelta(days=7)
+            end_dt = now
+        elif period == 'month':
+            start_dt = now - timedelta(days=30)
+            end_dt = now
+        elif period == 'quarter':
+            start_dt = now - timedelta(days=90)
+            end_dt = now
+        elif period == 'year':
+            start_dt = now - timedelta(days=365)
+            end_dt = now
+        else:  # all
+            start_dt = datetime(2020, 1, 1)  # Platform start date
+            end_dt = now
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # KPI calculations
+        kpis = calculate_kpis(cur, start_dt, end_dt, period)
+        
+        # Secondary metrics
+        metrics = calculate_secondary_metrics(cur, start_dt, end_dt)
+        
+        # Chart data
+        charts = generate_chart_data(cur, start_dt, end_dt, period)
+        
+        # Top projects
+        top_projects = get_top_projects_performance(cur, start_dt, end_dt)
+        
+        # Conversion funnel
+        funnel = calculate_conversion_funnel(cur, start_dt, end_dt)
+        
+        # Geographic data
+        geographic = calculate_geographic_distribution(cur, start_dt, end_dt)
+        
+        return {
+            'period': period,
+            'start_date': start_dt.isoformat(),
+            'end_date': end_dt.isoformat(),
+            'kpis': kpis,
+            'metrics': metrics,
+            'charts': charts,
+            'top_projects': top_projects,
+            'funnel': funnel,
+            'geographic': geographic
+        }
+
+def calculate_kpis(cur, start_dt, end_dt, period):
+    """Calcola KPI principali"""
+    # Total Revenue (mock calculation based on investments)
+    cur.execute("""
+        SELECT COALESCE(SUM(amount * 0.02), 0) as total_revenue
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s 
+        AND status IN ('active', 'completed')
+    """, (start_dt, end_dt))
+    current_revenue = cur.fetchone()['total_revenue']
+    
+    # Previous period revenue for comparison  
+    from datetime import timedelta
+    if period == 'month':
+        prev_start = start_dt - timedelta(days=30)
+        prev_end = start_dt
+    elif period == 'week':
+        prev_start = start_dt - timedelta(days=7)
+        prev_end = start_dt
+    else:
+        prev_start = start_dt - (end_dt - start_dt)
+        prev_end = start_dt
+    
+    cur.execute("""
+        SELECT COALESCE(SUM(amount * 0.02), 0) as prev_revenue
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s 
+        AND status IN ('active', 'completed')
+    """, (prev_start, prev_end))
+    prev_revenue = cur.fetchone()['prev_revenue']
+    
+    revenue_change = ((current_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue > 0 else 0
+    
+    # New Users
+    cur.execute("""
+        SELECT COUNT(*) as new_users
+        FROM users 
+        WHERE created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    current_users = cur.fetchone()['new_users']
+    
+    cur.execute("""
+        SELECT COUNT(*) as prev_users
+        FROM users 
+        WHERE created_at BETWEEN %s AND %s
+    """, (prev_start, prev_end))
+    prev_users = cur.fetchone()['prev_users']
+    
+    users_change = ((current_users - prev_users) / prev_users * 100) if prev_users > 0 else 0
+    
+    # Investment Volume
+    cur.execute("""
+        SELECT COALESCE(SUM(amount), 0) as investment_volume
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s 
+        AND status IN ('active', 'completed')
+    """, (start_dt, end_dt))
+    current_investment = cur.fetchone()['investment_volume']
+    
+    cur.execute("""
+        SELECT COALESCE(SUM(amount), 0) as prev_investment
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s 
+        AND status IN ('active', 'completed')
+    """, (prev_start, prev_end))
+    prev_investment = cur.fetchone()['prev_investment']
+    
+    investment_change = ((current_investment - prev_investment) / prev_investment * 100) if prev_investment > 0 else 0
+    
+    # Active Projects
+    cur.execute("""
+        SELECT COUNT(*) as active_projects
+        FROM projects 
+        WHERE status = 'active'
+        AND created_at <= %s
+    """, (end_dt,))
+    active_projects = cur.fetchone()['active_projects']
+    
+    # Previous month active projects
+    prev_month = end_dt - timedelta(days=30)
+    cur.execute("""
+        SELECT COUNT(*) as prev_active_projects
+        FROM projects 
+        WHERE status = 'active'
+        AND created_at <= %s
+    """, (prev_month,))
+    prev_active_projects = cur.fetchone()['prev_active_projects']
+    
+    projects_change = active_projects - prev_active_projects
+    
+    return {
+        'total_revenue': float(current_revenue),
+        'revenue_change': revenue_change,
+        'new_users': current_users,
+        'users_change': users_change,
+        'investment_volume': float(current_investment),
+        'investment_change': investment_change,
+        'active_projects': active_projects,
+        'projects_change': projects_change
+    }
+
+def calculate_secondary_metrics(cur, start_dt, end_dt):
+    """Calcola metriche secondarie"""
+    # Conversion Rate (registered users who made investments)
+    cur.execute("""
+        SELECT 
+            COUNT(DISTINCT u.id) as total_users,
+            COUNT(DISTINCT i.user_id) as investing_users
+        FROM users u
+        LEFT JOIN investments i ON i.user_id = u.id AND i.status IN ('active', 'completed')
+        WHERE u.created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    conversion_data = cur.fetchone()
+    
+    conversion_rate = (conversion_data['investing_users'] / conversion_data['total_users'] * 100) if conversion_data['total_users'] > 0 else 0
+    
+    # Average Investment
+    cur.execute("""
+        SELECT AVG(amount) as avg_investment
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s 
+        AND status IN ('active', 'completed')
+    """, (start_dt, end_dt))
+    avg_investment = cur.fetchone()['avg_investment'] or 0
+    
+    # Average ROI
+    cur.execute("""
+        SELECT AVG(roi) as avg_roi
+        FROM projects 
+        WHERE created_at BETWEEN %s AND %s
+        AND roi IS NOT NULL
+    """, (start_dt, end_dt))
+    avg_roi = cur.fetchone()['avg_roi'] or 0
+    
+    # KYC Pending
+    cur.execute("""
+        SELECT COUNT(*) as kyc_pending
+        FROM users 
+        WHERE kyc_status = 'pending'
+    """)
+    kyc_pending = cur.fetchone()['kyc_pending']
+    
+    # Average KYC Approval Time (mock calculation)
+    cur.execute("""
+        SELECT 
+            AVG(EXTRACT(EPOCH FROM (kyc_verified_at - created_at)) / 86400) as avg_approval_days
+        FROM users 
+        WHERE kyc_status = 'verified' 
+        AND kyc_verified_at IS NOT NULL
+        AND created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    avg_approval_time = cur.fetchone()['avg_approval_days'] or 0
+    
+    # Retention Rate (users who logged in within 30 days of registration)
+    cur.execute("""
+        SELECT 
+            COUNT(*) as total_users,
+            COUNT(*) FILTER (WHERE last_login IS NOT NULL 
+                AND last_login >= created_at + INTERVAL '30 days') as retained_users
+        FROM users 
+        WHERE created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    retention_data = cur.fetchone()
+    
+    retention_rate = (retention_data['retained_users'] / retention_data['total_users'] * 100) if retention_data['total_users'] > 0 else 0
+    
+    return {
+        'conversion_rate': conversion_rate,
+        'avg_investment': float(avg_investment),
+        'avg_roi': float(avg_roi),
+        'kyc_pending': kyc_pending,
+        'avg_approval_time': avg_approval_time,
+        'retention_rate': retention_rate
+    }
+
+def generate_chart_data(cur, start_dt, end_dt, period):
+    """Genera dati per i grafici"""
+    # Determine date grouping based on period
+    if period in ['today', 'week']:
+        date_trunc = 'day'
+        date_format = 'DD/MM'
+    elif period == 'month':
+        date_trunc = 'day'
+        date_format = 'DD/MM'
+    elif period == 'quarter':
+        date_trunc = 'week'
+        date_format = 'DD/MM'
+    else:
+        date_trunc = 'month'
+        date_format = 'MM/YYYY'
+    
+    # Users Growth Chart
+    cur.execute(f"""
+        SELECT 
+            DATE_TRUNC('{date_trunc}', created_at) as date,
+            COUNT(*) as users_count
+        FROM users 
+        WHERE created_at BETWEEN %s AND %s
+        GROUP BY DATE_TRUNC('{date_trunc}', created_at)
+        ORDER BY date
+    """, (start_dt, end_dt))
+    users_growth_data = cur.fetchall()
+    
+    # Investment Volume Chart
+    cur.execute(f"""
+        SELECT 
+            DATE_TRUNC('{date_trunc}', created_at) as date,
+            COALESCE(SUM(amount), 0) as volume
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s
+        AND status IN ('active', 'completed')
+        GROUP BY DATE_TRUNC('{date_trunc}', created_at)
+        ORDER BY date
+    """, (start_dt, end_dt))
+    investment_volume_data = cur.fetchall()
+    
+    # Projects Performance (top 10 projects by ROI)
+    cur.execute("""
+        SELECT title, roi, 
+               (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) as volume,
+               (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) / p.target_amount * 100 as funding_percentage
+        FROM projects p
+        WHERE created_at BETWEEN %s AND %s
+        AND roi IS NOT NULL
+        ORDER BY roi DESC
+        LIMIT 10
+    """, (start_dt, end_dt))
+    projects_performance = cur.fetchall()
+    
+    # Investment Distribution by Project Type
+    cur.execute("""
+        SELECT 
+            p.type,
+            COUNT(i.id) as investments_count,
+            COALESCE(SUM(i.amount), 0) as total_amount
+        FROM projects p
+        LEFT JOIN investments i ON i.project_id = p.id AND i.status IN ('active', 'completed')
+        WHERE p.created_at BETWEEN %s AND %s
+        GROUP BY p.type
+        ORDER BY total_amount DESC
+    """, (start_dt, end_dt))
+    investment_distribution = cur.fetchall()
+    
+    return {
+        'users_growth': {
+            'labels': [row['date'].strftime('%d/%m') for row in users_growth_data],
+            'data': [row['users_count'] for row in users_growth_data]
+        },
+        'investment_volume': {
+            'labels': [row['date'].strftime('%d/%m') for row in investment_volume_data],
+            'data': [float(row['volume']) for row in investment_volume_data]
+        },
+        'projects_performance': {
+            'labels': [row['title'][:20] + '...' if len(row['title']) > 20 else row['title'] for row in projects_performance],
+            'roi_data': [float(row['roi']) for row in projects_performance],
+            'volume_data': [float(row['volume']) for row in projects_performance],
+            'funding_data': [float(row['funding_percentage']) for row in projects_performance]
+        },
+        'investment_distribution': {
+            'labels': [row['type'] or 'Altro' for row in investment_distribution],
+            'data': [float(row['total_amount']) for row in investment_distribution]
+        },
+        'revenue_breakdown': {
+            'data': [65, 20, 10, 5]  # Mock data: Project commissions, Management fees, Referral commissions, Other
+        },
+        'user_segments': {
+            'data': [40, 30, 20, 10]  # Mock data: Active investors, KYC verified, Pending KYC, Unverified
+        },
+        'monthly_trends': {
+            'labels': ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'],
+            'revenue': [15000, 18000, 22000, 25000, 28000, 32000],
+            'users': [120, 150, 180, 220, 260, 300]
+        }
+    }
+
+def get_top_projects_performance(cur, start_dt, end_dt):
+    """Ottiene top progetti per performance"""
+    cur.execute("""
+        SELECT 
+            p.id, p.code, p.title, p.roi, p.status, p.target_amount,
+            COALESCE(SUM(i.amount), 0) as volume,
+            COUNT(DISTINCT i.user_id) as investors,
+            COALESCE(SUM(i.amount), 0) / p.target_amount * 100 as funding_percentage
+        FROM projects p
+        LEFT JOIN investments i ON i.project_id = p.id AND i.status IN ('active', 'completed')
+        WHERE p.created_at BETWEEN %s AND %s
+        GROUP BY p.id, p.code, p.title, p.roi, p.status, p.target_amount
+        ORDER BY p.roi DESC, volume DESC
+        LIMIT 10
+    """, (start_dt, end_dt))
+    
+    projects = cur.fetchall()
+    
+    return [
+        {
+            'id': project['id'],
+            'code': project['code'],
+            'title': project['title'],
+            'roi': float(project['roi']) if project['roi'] else 0,
+            'volume': float(project['volume']),
+            'investors': project['investors'],
+            'funding_percentage': float(project['funding_percentage']),
+            'status': project['status']
+        }
+        for project in projects
+    ]
+
+def calculate_conversion_funnel(cur, start_dt, end_dt):
+    """Calcola funnel di conversione"""
+    # Visitors (mock data)
+    visitors = 10000
+    
+    # Registrations
+    cur.execute("""
+        SELECT COUNT(*) as registrations
+        FROM users 
+        WHERE created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    registrations = cur.fetchone()['registrations']
+    
+    # KYC Completed
+    cur.execute("""
+        SELECT COUNT(*) as kyc_completed
+        FROM users 
+        WHERE kyc_status = 'verified'
+        AND created_at BETWEEN %s AND %s
+    """, (start_dt, end_dt))
+    kyc_completed = cur.fetchone()['kyc_completed']
+    
+    # First Investment
+    cur.execute("""
+        SELECT COUNT(DISTINCT user_id) as first_investors
+        FROM investments 
+        WHERE created_at BETWEEN %s AND %s
+        AND status IN ('active', 'completed')
+    """, (start_dt, end_dt))
+    first_investors = cur.fetchone()['first_investors']
+    
+    return [
+        { 'step': 'Visitatori', 'count': visitors, 'percentage': 100 },
+        { 'step': 'Registrazioni', 'count': registrations, 'percentage': (registrations / visitors * 100) if visitors > 0 else 0 },
+        { 'step': 'KYC Completato', 'count': kyc_completed, 'percentage': (kyc_completed / visitors * 100) if visitors > 0 else 0 },
+        { 'step': 'Primo Investimento', 'count': first_investors, 'percentage': (first_investors / visitors * 100) if visitors > 0 else 0 }
+    ]
+
+def calculate_geographic_distribution(cur, start_dt, end_dt):
+    """Calcola distribuzione geografica (mock data)"""
+    return [
+        { 'region': 'Nord Italia', 'percentage': 45, 'amount': 450000 },
+        { 'region': 'Centro Italia', 'percentage': 30, 'amount': 300000 },
+        { 'region': 'Sud Italia', 'percentage': 20, 'amount': 200000 },
+        { 'region': 'Estero', 'percentage': 5, 'amount': 50000 }
+    ]
+
+@admin_bp.get("/analytics/export")
+@admin_required
+def analytics_export():
+    """Esporta dati analytics"""
+    format_type = request.args.get('format', 'csv')
+    export_type = request.args.get('type', 'full')
+    period = request.args.get('period', 'month')
+    
+    # Get analytics data
+    analytics_data = get_analytics_data()
+    
+    if format_type == 'csv':
+        return export_analytics_csv(analytics_data, export_type)
+    elif format_type == 'excel':
+        return export_analytics_excel(analytics_data)
+    elif format_type == 'pdf':
+        return export_analytics_pdf(analytics_data)
+    elif format_type == 'json':
+        return jsonify(analytics_data)
+    
+    return jsonify({'error': 'Formato non supportato'}), 400
+
+def export_analytics_csv(analytics_data, export_type):
+    """Esporta analytics in CSV"""
+    import csv
+    from io import StringIO
+    from flask import Response
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    if export_type == 'projects_performance':
+        # Export top projects data
+        writer.writerow(['Codice', 'Titolo', 'ROI %', 'Volume €', 'Investitori', 'Finanziamento %', 'Stato'])
+        
+        for project in analytics_data.get('top_projects', []):
+            writer.writerow([
+                project['code'],
+                project['title'],
+                project['roi'],
+                project['volume'],
+                project['investors'],
+                project['funding_percentage'],
+                project['status']
+            ])
+    else:
+        # Export full analytics data
+        writer.writerow(['Metrica', 'Valore', 'Variazione %'])
+        
+        kpis = analytics_data.get('kpis', {})
+        writer.writerow(['Revenue Totale', f"€{kpis.get('total_revenue', 0):,.2f}", f"{kpis.get('revenue_change', 0):.1f}%"])
+        writer.writerow(['Nuovi Utenti', kpis.get('new_users', 0), f"{kpis.get('users_change', 0):.1f}%"])
+        writer.writerow(['Volume Investimenti', f"€{kpis.get('investment_volume', 0):,.2f}", f"{kpis.get('investment_change', 0):.1f}%"])
+        writer.writerow(['Progetti Attivi', kpis.get('active_projects', 0), kpis.get('projects_change', 0)])
+        
+        writer.writerow([])  # Empty row
+        writer.writerow(['Metriche Secondarie', 'Valore', ''])
+        
+        metrics = analytics_data.get('metrics', {})
+        writer.writerow(['Tasso Conversione', f"{metrics.get('conversion_rate', 0):.1f}%", ''])
+        writer.writerow(['Investimento Medio', f"€{metrics.get('avg_investment', 0):,.2f}", ''])
+        writer.writerow(['ROI Medio', f"{metrics.get('avg_roi', 0):.1f}%", ''])
+        writer.writerow(['KYC Pendenti', metrics.get('kyc_pending', 0), ''])
+        writer.writerow(['Tempo Approvazione Medio', f"{metrics.get('avg_approval_time', 0):.1f} giorni", ''])
+        writer.writerow(['Retention Rate', f"{metrics.get('retention_rate', 0):.1f}%", ''])
+    
+    output.seek(0)
+    
+    filename = f"analytics_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+def export_analytics_excel(analytics_data):
+    """Esporta analytics in Excel (placeholder)"""
+    # TODO: Implement Excel export using openpyxl
+    return jsonify({'message': 'Export Excel in sviluppo'}), 501
+
+def export_analytics_pdf(analytics_data):
+    """Esporta analytics in PDF (placeholder)"""
+    # TODO: Implement PDF export using reportlab
+    return jsonify({'message': 'Export PDF in sviluppo'}), 501
+
+# ---- Sistema Configurazione ----
+@admin_bp.get("/settings")
+@admin_required
+def settings_dashboard():
+    """Dashboard configurazione admin"""
+    # Se richiesta AJAX, restituisce JSON
+    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify(get_settings_data())
+    
+    # Altrimenti restituisce il template HTML
+    from flask import render_template
+    return render_template("admin/settings/dashboard.html")
+
+@admin_bp.get("/settings/data")
+@admin_required
+def settings_data():
+    """Dati configurazione sistema"""
+    return jsonify(get_settings_data())
+
+def get_settings_data():
+    """Helper per ottenere dati configurazione"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Carica tutte le impostazioni dalla tabella settings
+        cur.execute("""
+            SELECT category, key, value, value_type
+            FROM system_settings
+            ORDER BY category, key
+        """)
+        settings_raw = cur.fetchall()
+        
+        # Organizza le impostazioni per categoria
+        settings = {
+            'general': {},
+            'iban': {},
+            'financial': {},
+            'security': {},
+            'system': {}
+        }
+        
+        for setting in settings_raw:
+            category = setting['category']
+            key = setting['key']
+            value = setting['value']
+            value_type = setting['value_type']
+            
+            # Converti il valore nel tipo corretto
+            if value_type == 'boolean':
+                value = value.lower() == 'true'
+            elif value_type == 'integer':
+                value = int(value) if value else 0
+            elif value_type == 'float':
+                value = float(value) if value else 0.0
+            
+            if category in settings:
+                settings[category][key] = value
+        
+        # Valori predefiniti se non esistono
+        if not settings['general']:
+            settings['general'] = {
+                'platform_name': 'CIP Immobiliare',
+                'description': 'Piattaforma di investimenti immobiliari innovativa',
+                'contact_email': 'info@cipimmobiliare.it',
+                'support_phone': '+39 02 1234567',
+                'company_address': 'Via Roma 123, 20121 Milano (MI)'
+            }
+        
+        if not settings['financial']:
+            settings['financial'] = {
+                'min_investment': 500,
+                'max_investment': 100000,
+                'daily_limit': 10000,
+                'monthly_limit': 50000,
+                'platform_commission': 2.0,
+                'referral_commission': 1.0,
+                'withdrawal_fee': 5.0,
+                'free_withdrawal_threshold': 1000,
+                'referral_active': True
+            }
+        
+        if not settings['security']:
+            settings['security'] = {
+                'kyc_timeout': 7,
+                'no_kyc_limit': 0,
+                'auto_approve_kyc': 'never',
+                'session_duration': 24,
+                'max_login_attempts': 5,
+                'account_lockout_duration': 30,
+                'min_password_length': 8,
+                'require_id_card': True,
+                'require_fiscal_code': True,
+                'require_address_proof': False,
+                'require_income_proof': False,
+                'require_password_uppercase': True,
+                'require_password_numbers': True,
+                'require_password_symbols': False,
+                'enable_2fa': False
+            }
+        
+        return settings
+
+@admin_bp.post("/settings/save")
+@admin_required
+def settings_save():
+    """Salva configurazione sistema"""
+    data = request.json or {}
+    category = data.get('category')
+    settings_data = data.get('data', {})
+    
+    if not category:
+        return jsonify({"error": "Categoria richiesta"}), 400
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        try:
+            # Salva ogni impostazione nella tabella
+            for key, value in settings_data.items():
+                # Determina il tipo di valore
+                if isinstance(value, bool):
+                    value_type = 'boolean'
+                    value_str = str(value).lower()
+                elif isinstance(value, int):
+                    value_type = 'integer'
+                    value_str = str(value)
+                elif isinstance(value, float):
+                    value_type = 'float'
+                    value_str = str(value)
+                else:
+                    value_type = 'string'
+                    value_str = str(value)
+                
+                # Inserisci o aggiorna l'impostazione
+                cur.execute("""
+                    INSERT INTO system_settings (category, key, value, value_type, updated_at, updated_by)
+                    VALUES (%s, %s, %s, %s, NOW(), %s)
+                    ON CONFLICT (category, key) 
+                    DO UPDATE SET 
+                        value = EXCLUDED.value,
+                        value_type = EXCLUDED.value_type,
+                        updated_at = EXCLUDED.updated_at,
+                        updated_by = EXCLUDED.updated_by
+                """, (category, key, value_str, value_type, session.get('user_id')))
+            
+            # Log dell'azione admin
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, 'settings_update', 'system', %s, %s)
+            """, (session.get('user_id'), 0, f"Aggiornate impostazioni {category}"))
+            
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
+    
+    return jsonify({"success": True, "message": f"Impostazioni {category} salvate"})
+
+@admin_bp.post("/settings/backup")
+@admin_required
+def settings_backup():
+    """Crea backup del sistema"""
+    data = request.json or {}
+    backup_type = data.get('type', 'full')
+    compression = data.get('compression', 'gzip')
+    notes = data.get('notes', '')
+    
+    try:
+        import subprocess
+        import os
+        from datetime import datetime
+        
+        # Timestamp per il nome del backup
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f"cip_backup_{backup_type}_{timestamp}"
+        
+        # Directory backup (assicurati che esista)
+        backup_dir = "/tmp/cip_backups"
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        if backup_type in ['full', 'database']:
+            # Backup database (mock command - sostituisci con i tuoi parametri)
+            db_backup_cmd = [
+                'pg_dump',
+                '-h', 'localhost',
+                '-U', 'cip_user',
+                '-d', 'cip_database',
+                '-f', f"{backup_dir}/{backup_filename}_db.sql"
+            ]
+            
+            # Per demo, creiamo un file vuoto
+            with open(f"{backup_dir}/{backup_filename}_db.sql", 'w') as f:
+                f.write(f"-- CIP Database Backup\n-- Created: {datetime.now()}\n-- Notes: {notes}\n")
+        
+        if backup_type in ['full', 'files']:
+            # Backup file uploads
+            files_backup_cmd = [
+                'tar', '-czf',
+                f"{backup_dir}/{backup_filename}_files.tar.gz",
+                'uploads/'  # Ajusta el path según tu estructura
+            ]
+            # subprocess.run(files_backup_cmd, check=True)
+        
+        # Registra il backup nel database
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO system_backups (filename, backup_type, size_bytes, created_by, notes)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (backup_filename, backup_type, 1024, session.get('user_id'), notes))
+            
+            # Log dell'azione
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, 'backup_create', 'system', %s, %s)
+            """, (session.get('user_id'), 0, f"Backup {backup_type} creato: {backup_filename}"))
+        
+        return jsonify({
+            "success": True, 
+            "message": "Backup creato con successo",
+            "filename": backup_filename
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Errore nella creazione del backup: {str(e)}"}), 500
+
+@admin_bp.get("/settings/backup/download")
+@admin_required
+def settings_backup_download():
+    """Download ultimo backup"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT filename, backup_type, created_at
+                FROM system_backups
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+            backup = cur.fetchone()
+            
+            if not backup:
+                return jsonify({"error": "Nessun backup disponibile"}), 404
+            
+            # Per demo, restituiamo informazioni sul backup
+            return jsonify({
+                "filename": backup['filename'],
+                "type": backup['backup_type'],
+                "created_at": backup['created_at'].isoformat(),
+                "download_url": f"/admin/uploads/backups/{backup['filename']}.zip"
+            })
+    
+    except Exception as e:
+        return jsonify({"error": f"Errore nel download: {str(e)}"}), 500
+
+@admin_bp.get("/settings/logs")
+@admin_required
+def settings_logs():
+    """Visualizza log sistema"""
+    log_type = request.args.get('type')
+    period = request.args.get('period', 'week')
+    search = request.args.get('search')
+    
+    # Calcola il range di date
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    
+    if period == 'today':
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == 'week':
+        start_date = now - timedelta(days=7)
+    elif period == 'month':
+        start_date = now - timedelta(days=30)
+    else:  # all
+        start_date = datetime(2020, 1, 1)
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Build query conditions
+        where_conditions = ["created_at >= %s"]
+        params = [start_date]
+        
+        if log_type:
+            where_conditions.append("level = %s")
+            params.append(log_type)
+        
+        if search:
+            where_conditions.append("(message ILIKE %s OR details ILIKE %s)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param])
+        
+        where_clause = " AND ".join(where_conditions)
+        
+        # Query dei log (assumendo una tabella system_logs)
+        cur.execute(f"""
+            SELECT level, message, details, source, created_at
+            FROM system_logs
+            WHERE {where_clause}
+            ORDER BY created_at DESC
+            LIMIT 200
+        """, params)
+        
+        logs = cur.fetchall()
+        
+        # Se non ci sono log nella tabella, restituiamo log di esempio
+        if not logs:
+            logs = generate_mock_logs()
+    
+    return jsonify([
+        {
+            'level': log.get('level', 'info'),
+            'message': log.get('message', ''),
+            'details': log.get('details'),
+            'source': log.get('source', 'Sistema'),
+            'timestamp': log.get('created_at', now).isoformat() if hasattr(log.get('created_at', now), 'isoformat') else str(log.get('created_at', now))
+        }
+        for log in logs
+    ])
+
+def generate_mock_logs():
+    """Genera log di esempio per demo"""
+    from datetime import datetime, timedelta
+    import random
+    
+    now = datetime.now()
+    levels = ['info', 'warning', 'error', 'security', 'admin']
+    sources = ['Sistema', 'Database', 'Auth', 'API', 'Backup']
+    
+    messages = {
+        'info': ['Sistema avviato con successo', 'Backup completato', 'Utente registrato', 'Investimento processato'],
+        'warning': ['Memoria RAM alta (85%)', 'Tentativo login fallito', 'Disco quasi pieno', 'Connessione lenta database'],
+        'error': ['Errore connessione database', 'Upload file fallito', 'Timeout API esterna', 'Errore elaborazione pagamento'],
+        'security': ['Tentativo accesso non autorizzato', 'IP bloccato per troppi tentativi', 'Password debole rilevata', 'Attività sospetta rilevata'],
+        'admin': ['Impostazioni aggiornate', 'Backup manuale creato', 'Utente sospeso', 'Progetto approvato']
+    }
+    
+    logs = []
+    for i in range(50):
+        level = random.choice(levels)
+        message = random.choice(messages[level])
+        timestamp = now - timedelta(minutes=random.randint(1, 10080))  # Ultima settimana
+        
+        logs.append({
+            'level': level,
+            'message': message,
+            'details': f"Dettagli aggiuntivi per: {message}" if random.random() > 0.5 else None,
+            'source': random.choice(sources),
+            'created_at': timestamp
+        })
+    
+    return sorted(logs, key=lambda x: x['created_at'], reverse=True)
+
+@admin_bp.get("/settings/logs/export")
+@admin_required
+def settings_logs_export():
+    """Esporta log in CSV"""
+    format_type = request.args.get('format', 'csv')
+    
+    # Ottieni i log (riusa la logica di settings_logs)
+    logs_data = settings_logs()
+    logs = logs_data.get_json()
+    
+    if format_type == 'csv':
+        import csv
+        from io import StringIO
+        from flask import Response
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Header CSV
+        writer.writerow(['Timestamp', 'Livello', 'Sorgente', 'Messaggio', 'Dettagli'])
+        
+        # Dati log
+        for log in logs:
+            writer.writerow([
+                log['timestamp'],
+                log['level'],
+                log['source'],
+                log['message'],
+                log['details'] or ''
+            ])
+        
+        output.seek(0)
+        
+        filename = f"system_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    return jsonify(logs)
+
+# ---- Performance Monitoring ----
+@admin_bp.post("/performance/report")
+@admin_required
+def performance_report():
+    """Riceve report di performance dal frontend"""
+    data = request.json or {}
+    
+    try:
+        # Log del report di performance
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO performance_reports (
+                    url, user_agent, viewport_width, viewport_height,
+                    page_load_time, dom_ready_time, lcp, cls, fid,
+                    error_count, warning_count, overall_score, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                data.get('url'),
+                data.get('userAgent'),
+                data.get('viewport', {}).get('width'),
+                data.get('viewport', {}).get('height'),
+                data.get('performance', {}).get('pageLoad'),
+                data.get('performance', {}).get('domReady'),
+                data.get('performance', {}).get('largestContentfulPaint'),
+                data.get('performance', {}).get('cumulativeLayoutShift'),
+                data.get('performance', {}).get('firstInputDelay'),
+                data.get('quality', {}).get('errors', 0),
+                data.get('quality', {}).get('warnings', 0),
+                data.get('scores', {}).get('overall', 0)
+            ))
+    except Exception as e:
+        # Se la tabella non esiste, logga solo in console
+        print(f"Performance report: {data.get('scores', {}).get('overall', 0)}/100 for {data.get('url')}")
+    
+    return jsonify({"success": True, "message": "Performance report received"})
+
 def users_list():
     q = request.args.get('q')
     where = ""

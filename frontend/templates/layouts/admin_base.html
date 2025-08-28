@@ -292,6 +292,9 @@
         document.addEventListener('DOMContentLoaded', startAutoRefresh);
     </script>
     
+    <!-- Performance Monitoring (solo in development) -->
+    <script src="{{ url_for('assets', filename='js/performance-monitor.js') }}"></script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

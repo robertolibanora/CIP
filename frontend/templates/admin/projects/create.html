@@ -664,48 +664,133 @@ class ProjectWizard {
         
         const preview = document.getElementById('project-preview');
         preview.innerHTML = `
-            <div class="admin-grid admin-grid--2">
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-heading-3">Informazioni Progetto</h3>
-                    </div>
-                    <div class="admin-card-body">
-                        <div class="space-y-3">
-                            <div><strong>Codice:</strong> ${data.code}</div>
-                            <div><strong>Titolo:</strong> ${data.title}</div>
-                            <div><strong>Località:</strong> ${data.location}</div>
-                            <div><strong>Tipologia:</strong> ${data.type}</div>
-                            <div><strong>Descrizione:</strong><br>${data.description}</div>
+            <!-- Project Header Preview -->
+            <div class="admin-card admin-card--info mb-6">
+                <div class="admin-card-body">
+                    <div class="admin-flex admin-flex--between">
+                        <div>
+                            <h2 class="admin-heading-2">${data.title || 'Titolo non inserito'}</h2>
+                            <p class="admin-text-body text-gray-600">${data.code || 'Codice non generato'}</p>
+                            <span class="admin-badge admin-badge--${this.getStatusColor(data.status)} mt-2">
+                                ${this.getStatusLabel(data.status)}
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <p class="admin-text-large font-bold text-green-600">€${parseInt(data.target_amount || 0).toLocaleString()}</p>
+                            <p class="admin-text-small text-gray-500">Target finanziamento</p>
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Project Details Grid -->
+            <div class="admin-grid admin-grid--2 mb-6">
+                <!-- Basic Information -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-heading-3">Informazioni Base</h3>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="space-y-3">
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Località:</span>
+                                <span class="admin-text-small font-medium">${data.location || 'Non specificata'}</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Tipologia:</span>
+                                <span class="admin-text-small font-medium">${data.type || 'Non specificata'}</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Data inizio:</span>
+                                <span class="admin-text-small font-medium">${data.start_date || 'Non specificata'}</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Data fine:</span>
+                                <span class="admin-text-small font-medium">${data.end_date || 'Non specificata'}</span>
+                            </div>
+                        </div>
+                        
+                        ${data.description ? `
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <h4 class="admin-text-small font-medium text-gray-700 mb-2">Descrizione:</h4>
+                                <p class="admin-text-small text-gray-600">${data.description}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
                 
+                <!-- Financial Details -->
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-heading-3">Dettagli Finanziari</h3>
                     </div>
                     <div class="admin-card-body">
                         <div class="space-y-3">
-                            <div><strong>Target:</strong> €${parseFloat(data.target_amount).toLocaleString()}</div>
-                            <div><strong>Min. Investimento:</strong> €${parseFloat(data.min_investment).toLocaleString()}</div>
-                            <div><strong>ROI:</strong> ${data.roi}% annuo</div>
-                            <div><strong>Durata:</strong> ${data.duration} mesi</div>
-                            <div><strong>Periodo:</strong> ${data.start_date} - ${data.end_date}</div>
-                            <div><strong>Stato:</strong> ${data.status}</div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Target:</span>
+                                <span class="admin-text-small font-bold text-green-600">€${parseInt(data.target_amount || 0).toLocaleString()}</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Min. investimento:</span>
+                                <span class="admin-text-small font-medium">€${parseInt(data.min_investment || 0).toLocaleString()}</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">ROI annuo:</span>
+                                <span class="admin-text-small font-bold text-blue-600">${data.roi || 0}%</span>
+                            </div>
+                            <div class="admin-flex admin-flex--between">
+                                <span class="admin-text-small text-gray-600">Durata:</span>
+                                <span class="admin-text-small font-medium">${data.duration || 0} mesi</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Calculated Metrics -->
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <h4 class="admin-text-small font-medium text-gray-700 mb-3">Metriche Calcolate:</h4>
+                            <div class="admin-grid admin-grid--3 text-center">
+                                <div class="p-3 bg-blue-50 rounded-lg">
+                                    <p class="admin-text-large font-bold text-blue-600">${this.calculateTotalROI(data)}%</p>
+                                    <p class="admin-text-caption text-blue-500">ROI Totale</p>
+                                </div>
+                                <div class="p-3 bg-green-50 rounded-lg">
+                                    <p class="admin-text-large font-bold text-green-600">€${this.calculateYield1000(data)}</p>
+                                    <p class="admin-text-caption text-green-500">Resa €1000</p>
+                                </div>
+                                <div class="p-3 bg-orange-50 rounded-lg">
+                                    <p class="admin-text-large font-bold text-orange-600">${this.calculateMinInvestors(data)}</p>
+                                    <p class="admin-text-caption text-orange-500">Min Investitori</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="admin-card">
+            <!-- Media Preview -->
+            ${this.renderMediaPreview()}
+            
+            <!-- Documents Preview -->
+            ${this.renderDocumentsPreview()}
+            
+            <!-- Project Card Preview -->
+            <div class="admin-card mb-6">
                 <div class="admin-card-header">
-                    <h3 class="admin-heading-3">Media e Documenti</h3>
+                    <h3 class="admin-heading-3">Anteprima Card Progetto</h3>
+                    <p class="admin-text-small">Come apparirà agli utenti nella lista progetti</p>
                 </div>
                 <div class="admin-card-body">
-                    <div class="space-y-3">
-                        <div><strong>Immagine principale:</strong> ${this.uploadedFiles.mainImage ? '✅ Caricata' : '❌ Non caricata'}</div>
-                        <div><strong>Galleria:</strong> ${this.uploadedFiles.gallery.length} immagini</div>
-                        <div><strong>Documenti:</strong> ${this.uploadedFiles.documents.length} PDF</div>
+                    <div class="max-w-md mx-auto">
+                        ${this.renderProjectCardPreview(data)}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Validation Summary -->
+            <div class="admin-card admin-card--${this.getValidationSummaryColor()}">
+                <div class="admin-card-body">
+                    <h3 class="admin-heading-3 mb-4">Riepilogo Validazione</h3>
+                    <div id="validation-summary">
+                        ${this.generateValidationSummary(data)}
                     </div>
                 </div>
             </div>
@@ -788,6 +873,327 @@ class ProjectWizard {
             if (alert) alert.remove();
         }, 5000);
     }
+    
+    // Preview helper functions
+    calculateTotalROI(data) {
+        const roi = parseFloat(data.roi) || 0;
+        const duration = parseInt(data.duration) || 0;
+        return duration > 0 ? (roi * duration / 12).toFixed(1) : '0.0';
+    }
+    
+    calculateYield1000(data) {
+        const totalRoi = this.calculateTotalROI(data);
+        return (1000 * parseFloat(totalRoi) / 100).toFixed(0);
+    }
+    
+    calculateMinInvestors(data) {
+        const target = parseFloat(data.target_amount) || 0;
+        const min = parseFloat(data.min_investment) || 0;
+        return min > 0 ? Math.ceil(target / min) : 0;
+    }
+    
+    renderMediaPreview() {
+        if (!this.uploadedFiles.mainImage && this.uploadedFiles.gallery.length === 0) {
+            return '';
+        }
+        
+        return `
+            <div class="admin-card mb-6">
+                <div class="admin-card-header">
+                    <h3 class="admin-heading-3">Media Caricati</h3>
+                </div>
+                <div class="admin-card-body">
+                    ${this.uploadedFiles.mainImage ? `
+                        <div class="mb-4">
+                            <h4 class="admin-text-small font-medium mb-2">Immagine Principale:</h4>
+                            <div class="w-32 h-32 rounded-lg overflow-hidden">
+                                <img src="${this.uploadedFiles.mainImage.preview}" alt="Immagine principale" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${this.uploadedFiles.gallery.length > 0 ? `
+                        <div>
+                            <h4 class="admin-text-small font-medium mb-2">Galleria (${this.uploadedFiles.gallery.length} immagini):</h4>
+                            <div class="admin-grid admin-grid--6">
+                                ${this.uploadedFiles.gallery.map(img => `
+                                    <div class="w-16 h-16 rounded overflow-hidden">
+                                        <img src="${img.preview}" alt="Galleria" class="w-full h-full object-cover">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderDocumentsPreview() {
+        if (this.uploadedFiles.documents.length === 0) {
+            return '';
+        }
+        
+        return `
+            <div class="admin-card mb-6">
+                <div class="admin-card-header">
+                    <h3 class="admin-heading-3">Documenti Caricati</h3>
+                </div>
+                <div class="admin-card-body">
+                    <div class="space-y-2">
+                        ${this.uploadedFiles.documents.map(doc => `
+                            <div class="admin-flex admin-flex--between p-3 bg-gray-50 rounded-lg">
+                                <div class="admin-flex admin-flex--center">
+                                    <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <span class="admin-text-small font-medium">${doc.name}</span>
+                                </div>
+                                <span class="admin-text-caption text-gray-500">${this.formatFileSize(doc.size)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderProjectCardPreview(data) {
+        return `
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div class="relative">
+                    ${this.uploadedFiles.mainImage ? `
+                        <img src="${this.uploadedFiles.mainImage.preview}" alt="Progetto" class="w-full h-48 object-cover">
+                    ` : `
+                        <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    `}
+                    <div class="absolute top-2 right-2">
+                        <span class="admin-badge admin-badge--${this.getStatusColor(data.status)}">
+                            ${this.getStatusLabel(data.status)}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                    <h3 class="admin-text-body font-bold mb-2">${data.title || 'Titolo Progetto'}</h3>
+                    <p class="admin-text-small text-gray-600 mb-3">${data.location || 'Località'} • ${data.type || 'Tipologia'}</p>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="admin-flex admin-flex--between">
+                            <span class="admin-text-caption">Target:</span>
+                            <span class="admin-text-caption font-medium">€${parseInt(data.target_amount || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="admin-flex admin-flex--between">
+                            <span class="admin-text-caption">Min. investimento:</span>
+                            <span class="admin-text-caption font-medium">€${parseInt(data.min_investment || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="admin-flex admin-flex--between">
+                            <span class="admin-text-caption">ROI:</span>
+                            <span class="admin-text-caption font-bold text-green-600">${data.roi || 0}% annuo</span>
+                        </div>
+                        <div class="admin-flex admin-flex--between">
+                            <span class="admin-text-caption">Durata:</span>
+                            <span class="admin-text-caption font-medium">${data.duration || 0} mesi</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="mb-3">
+                        <div class="admin-flex admin-flex--between mb-1">
+                            <span class="admin-text-caption">Finanziamento</span>
+                            <span class="admin-text-caption">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-flex admin-flex--between">
+                        <button class="admin-btn admin-btn--primary admin-btn--sm flex-1 mr-2">
+                            Investi Ora
+                        </button>
+                        <button class="admin-btn admin-btn--secondary admin-btn--sm">
+                            Dettagli
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    generateValidationSummary(data) {
+        const validations = [];
+        
+        // Required fields validation
+        if (!data.code) validations.push({ type: 'error', message: 'Codice progetto mancante' });
+        if (!data.title) validations.push({ type: 'error', message: 'Titolo progetto mancante' });
+        if (!data.description) validations.push({ type: 'error', message: 'Descrizione progetto mancante' });
+        if (!data.location) validations.push({ type: 'warning', message: 'Località non specificata' });
+        if (!data.type) validations.push({ type: 'warning', message: 'Tipologia non specificata' });
+        
+        // Financial validation
+        if (!data.target_amount || parseFloat(data.target_amount) <= 0) {
+            validations.push({ type: 'error', message: 'Target amount deve essere maggiore di 0' });
+        }
+        if (!data.min_investment || parseFloat(data.min_investment) <= 0) {
+            validations.push({ type: 'error', message: 'Investimento minimo deve essere maggiore di 0' });
+        }
+        if (!data.roi || parseFloat(data.roi) <= 0) {
+            validations.push({ type: 'error', message: 'ROI deve essere maggiore di 0' });
+        }
+        if (!data.duration || parseInt(data.duration) <= 0) {
+            validations.push({ type: 'error', message: 'Durata deve essere maggiore di 0 mesi' });
+        }
+        
+        // Business logic validation
+        if (data.min_investment && data.target_amount && parseFloat(data.min_investment) > parseFloat(data.target_amount)) {
+            validations.push({ type: 'error', message: 'Investimento minimo non può essere maggiore del target' });
+        }
+        
+        if (data.description && data.description.length < 50) {
+            validations.push({ type: 'warning', message: 'Descrizione molto breve (consigliato almeno 50 caratteri)' });
+        }
+        
+        // Media validation
+        if (!this.uploadedFiles.mainImage) {
+            validations.push({ type: 'warning', message: 'Nessuna immagine principale caricata' });
+        }
+        
+        if (this.uploadedFiles.gallery.length === 0) {
+            validations.push({ type: 'info', message: 'Nessuna immagine galleria caricata' });
+        }
+        
+        if (this.uploadedFiles.documents.length === 0) {
+            validations.push({ type: 'info', message: 'Nessun documento PDF caricato' });
+        }
+        
+        // Generate summary HTML
+        if (validations.length === 0) {
+            return `
+                <div class="admin-flex admin-flex--center text-green-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="admin-text-body font-medium">Tutti i controlli superati! Il progetto è pronto per la creazione.</span>
+                </div>
+            `;
+        }
+        
+        const errors = validations.filter(v => v.type === 'error');
+        const warnings = validations.filter(v => v.type === 'warning');
+        const infos = validations.filter(v => v.type === 'info');
+        
+        return `
+            <div class="space-y-3">
+                ${errors.length > 0 ? `
+                    <div class="space-y-2">
+                        <h4 class="admin-text-small font-medium text-red-600">🚨 Errori da correggere (${errors.length}):</h4>
+                        ${errors.map(error => `
+                            <div class="admin-flex admin-flex--start">
+                                <svg class="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                                </svg>
+                                <span class="admin-text-small text-red-600">${error.message}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${warnings.length > 0 ? `
+                    <div class="space-y-2">
+                        <h4 class="admin-text-small font-medium text-orange-600">⚠️ Avvisi (${warnings.length}):</h4>
+                        ${warnings.map(warning => `
+                            <div class="admin-flex admin-flex--start">
+                                <svg class="w-4 h-4 text-orange-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                                <span class="admin-text-small text-orange-600">${warning.message}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${infos.length > 0 ? `
+                    <div class="space-y-2">
+                        <h4 class="admin-text-small font-medium text-blue-600">ℹ️ Informazioni (${infos.length}):</h4>
+                        ${infos.map(info => `
+                            <div class="admin-flex admin-flex--start">
+                                <svg class="w-4 h-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="admin-text-small text-blue-600">${info.message}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${errors.length === 0 ? `
+                    <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="admin-flex admin-flex--center text-green-600">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="admin-text-body font-medium">Il progetto può essere creato!</span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="admin-flex admin-flex--center text-red-600">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                            </svg>
+                            <span class="admin-text-body font-medium">Correggi gli errori prima di procedere</span>
+                        </div>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+    
+    getValidationSummaryColor() {
+        const data = Object.fromEntries(new FormData(document.getElementById('wizard-form')));
+        const hasErrors = !data.code || !data.title || !data.description || 
+                         !data.target_amount || parseFloat(data.target_amount) <= 0 ||
+                         !data.min_investment || parseFloat(data.min_investment) <= 0 ||
+                         !data.roi || parseFloat(data.roi) <= 0 ||
+                         !data.duration || parseInt(data.duration) <= 0;
+        
+        return hasErrors ? 'error' : 'success';
+    }
+    
+    getStatusColor(status) {
+        const colors = {
+            'draft': 'gray',
+            'active': 'success',
+            'funded': 'info',
+            'completed': 'success',
+            'cancelled': 'error'
+        };
+        return colors[status] || 'gray';
+    }
+    
+    getStatusLabel(status) {
+        const labels = {
+            'draft': 'Bozza',
+            'active': 'Attivo',
+            'funded': 'Finanziato',
+            'completed': 'Completato',
+            'cancelled': 'Annullato'
+        };
+        return labels[status] || status;
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
 }
 
 // Global functions
@@ -837,5 +1243,6 @@ document.addEventListener('DOMContentLoaded', function() {
     projectWizard = new ProjectWizard();
 });
 </script>
+{% endblock %}
 {% endblock %}
 {% endblock %}

@@ -1,0 +1,1471 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Configurazione Sistema - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Configurazione</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Configurazione Sistema</h1>
+            <p class="admin-text-small">Gestione parametri e impostazioni della piattaforma</p>
+        </div>
+        <div class="admin-flex">
+            <button onclick="refreshSettings()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Ricarica
+            </button>
+            <button onclick="saveAllSettings()" class="admin-btn admin-btn--success admin-btn--sm mr-2" id="save-all-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Salva Tutto
+            </button>
+            <button onclick="openBackupModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Backup Database
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="settings-alerts" class="mb-6"></div>
+
+<!-- Settings Navigation Tabs -->
+<div class="admin-card mb-6">
+    <div class="admin-card-header">
+        <nav class="flex space-x-8" aria-label="Tabs">
+            <button onclick="switchTab('general')" class="settings-tab active" data-tab="general">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Generali
+            </button>
+            <button onclick="switchTab('financial')" class="settings-tab" data-tab="financial">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                Parametri Finanziari
+            </button>
+            <button onclick="switchTab('security')" class="settings-tab" data-tab="security">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Sicurezza e KYC
+            </button>
+            <button onclick="switchTab('system')" class="settings-tab" data-tab="system">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-.42-.94l1.321-2.043a2 2 0 00-.279-2.478l-1.06-1.061a2 2 0 00-2.479-.278L11.059 9.05a6 6 0 00-.94-.42L9.642 6.243a2 2 0 00-1.96-1.608H6.318a2 2 0 00-1.96 1.608L3.88 8.63a6 6 0 00-.94.42L.896 7.697a2 2 0 00-2.478.278L-2.643 9.036a2 2 0 00-.278 2.478L-1.6 13.557a6 6 0 00-.42.94l-2.387.477a2 2 0 00-1.022.547L-6.5 16.582a2 2 0 00-.392 2.002l.613 1.387a2 2 0 001.61 1.185l2.387-.477a6 6 0 00.94.42l1.353 2.043a2 2 0 002.478.278l1.061-1.06a2 2 0 00.278-2.479L1.486 17.838a6 6 0 00.42-.94l2.387-.477a2 2 0 001.022-.547z"/>
+                </svg>
+                Sistema
+            </button>
+            <button onclick="switchTab('logs')" class="settings-tab" data-tab="logs">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Log Sistema
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- General Settings Tab -->
+<div id="general-tab" class="settings-tab-content">
+    <div class="admin-grid admin-grid--2 mb-6">
+        <!-- Platform Information -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Informazioni Piattaforma</h2>
+                <p class="admin-text-small">Dati generali del sistema</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Nome Piattaforma</label>
+                        <input type="text" id="platform-name" class="admin-input" value="CIP Immobiliare" placeholder="Nome della piattaforma">
+                        <p class="admin-help-text">Nome visualizzato agli utenti</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Descrizione</label>
+                        <textarea id="platform-description" class="admin-input admin-textarea" rows="3" placeholder="Descrizione della piattaforma">Piattaforma di investimenti immobiliari innovativa</textarea>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Email Contatto</label>
+                        <input type="email" id="contact-email" class="admin-input" value="info@cipimmobiliare.it" placeholder="Email di contatto">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Telefono Supporto</label>
+                        <input type="tel" id="support-phone" class="admin-input" value="+39 02 1234567" placeholder="Telefono supporto">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Indirizzo Sede</label>
+                        <textarea id="company-address" class="admin-input admin-textarea" rows="2" placeholder="Indirizzo della sede">Via Roma 123, 20121 Milano (MI)</textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="saveGeneralSettings()" class="admin-btn admin-btn--primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Salva Informazioni
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IBAN Configuration -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Configurazione IBAN</h2>
+                <p class="admin-text-small">Gestione conti bancari per depositi e prelievi</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">IBAN Principale</label>
+                        <input type="text" id="main-iban" class="admin-input" placeholder="IT60 X054 2811 1010 0000 0123 456" 
+                               pattern="[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}" maxlength="34">
+                        <p class="admin-help-text">IBAN per ricevere i depositi degli utenti</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Nome Beneficiario</label>
+                        <input type="text" id="beneficiary-name" class="admin-input" value="CIP Immobiliare S.R.L." placeholder="Nome intestatario conto">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Banca</label>
+                        <input type="text" id="bank-name" class="admin-input" placeholder="Nome della banca">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">BIC/SWIFT</label>
+                        <input type="text" id="bic-swift" class="admin-input" placeholder="BCITITMM" maxlength="11">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Causale Predefinita</label>
+                        <input type="text" id="default-causale" class="admin-input" value="Ricarica portafoglio CIP - ID: {USER_ID}" placeholder="Causale per i bonifici">
+                        <p class="admin-help-text">Usa {USER_ID} per inserire automaticamente l'ID utente</p>
+                    </div>
+                    
+                    <div class="admin-flex admin-flex--center">
+                        <input type="checkbox" id="iban-active" class="mr-2" checked>
+                        <label for="iban-active" class="admin-text-body">IBAN attivo per depositi</label>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <div class="admin-flex">
+                        <button onclick="validateIBAN()" class="admin-btn admin-btn--secondary mr-2">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Valida IBAN
+                        </button>
+                        <button onclick="saveIBANSettings()" class="admin-btn admin-btn--primary">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Salva Configurazione
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Parameters Tab -->
+<div id="financial-tab" class="settings-tab-content hidden">
+    <div class="admin-grid admin-grid--2 mb-6">
+        <!-- Investment Limits -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Limiti Investimenti</h2>
+                <p class="admin-text-small">Parametri per la gestione degli investimenti</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Investimento Minimo</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="min-investment" class="admin-input pl-8" value="500" min="0" step="50" placeholder="500">
+                        </div>
+                        <p class="admin-help-text">Importo minimo per un singolo investimento</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Investimento Massimo</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="max-investment" class="admin-input pl-8" value="100000" min="0" step="1000" placeholder="100000">
+                        </div>
+                        <p class="admin-help-text">Importo massimo per un singolo investimento (0 = illimitato)</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Limite Giornaliero Utente</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="daily-limit" class="admin-input pl-8" value="10000" min="0" step="500" placeholder="10000">
+                        </div>
+                        <p class="admin-help-text">Limite massimo di investimento giornaliero per utente</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Limite Mensile Utente</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="monthly-limit" class="admin-input pl-8" value="50000" min="0" step="1000" placeholder="50000">
+                        </div>
+                        <p class="admin-help-text">Limite massimo di investimento mensile per utente</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commission Settings -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Commissioni</h2>
+                <p class="admin-text-small">Configurazione commissioni e referral</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Commissione Piattaforma</label>
+                        <div class="relative">
+                            <input type="number" id="platform-commission" class="admin-input pr-8" value="2.0" min="0" max="20" step="0.1" placeholder="2.0">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                        <p class="admin-help-text">Commissione trattenuta su ogni investimento</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Commissione Referral</label>
+                        <div class="relative">
+                            <input type="number" id="referral-commission" class="admin-input pr-8" value="1.0" min="0" max="10" step="0.1" placeholder="1.0">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                        <p class="admin-help-text">Commissione per chi invita nuovi utenti</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Commissione Prelievo</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="withdrawal-fee" class="admin-input pl-8" value="5.0" min="0" step="0.5" placeholder="5.0">
+                        </div>
+                        <p class="admin-help-text">Commissione fissa per ogni prelievo</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Soglia Prelievo Gratuito</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="free-withdrawal-threshold" class="admin-input pl-8" value="1000" min="0" step="100" placeholder="1000">
+                        </div>
+                        <p class="admin-help-text">Importo minimo per prelievo senza commissioni</p>
+                    </div>
+                    
+                    <div class="admin-flex admin-flex--center">
+                        <input type="checkbox" id="referral-active" class="mr-2" checked>
+                        <label for="referral-active" class="admin-text-body">Sistema referral attivo</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-card mb-6">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-2">Anteprima Calcoli</h2>
+            <p class="admin-text-small">Simulazione commissioni con parametri attuali</p>
+        </div>
+        <div class="admin-card-body">
+            <div class="admin-grid admin-grid--3">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <h3 class="admin-text-body font-medium">Investimento €1,000</h3>
+                    <p class="admin-text-large font-bold text-blue-600" id="commission-preview-1000">€20</p>
+                    <p class="admin-text-caption text-blue-500">Commissione piattaforma</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <h3 class="admin-text-body font-medium">Referral €1,000</h3>
+                    <p class="admin-text-large font-bold text-green-600" id="referral-preview-1000">€10</p>
+                    <p class="admin-text-caption text-green-500">Bonus referral</p>
+                </div>
+                <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                    <h3 class="admin-text-body font-medium">Prelievo €500</h3>
+                    <p class="admin-text-large font-bold text-yellow-600" id="withdrawal-preview-500">€5</p>
+                    <p class="admin-text-caption text-yellow-500">Commissione prelievo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-flex admin-flex--between">
+        <button onclick="resetFinancialDefaults()" class="admin-btn admin-btn--secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Ripristina Default
+        </button>
+        <button onclick="saveFinancialSettings()" class="admin-btn admin-btn--primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Salva Parametri Finanziari
+        </button>
+    </div>
+</div>
+
+<!-- Security & KYC Tab -->
+<div id="security-tab" class="settings-tab-content hidden">
+    <div class="admin-grid admin-grid--2 mb-6">
+        <!-- KYC Settings -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Parametri KYC</h2>
+                <p class="admin-text-small">Configurazione verifiche e timeout</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Timeout Verifica KYC</label>
+                        <div class="relative">
+                            <input type="number" id="kyc-timeout" class="admin-input pr-12" value="7" min="1" max="30" placeholder="7">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">giorni</span>
+                        </div>
+                        <p class="admin-help-text">Tempo massimo per completare la verifica KYC</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Documenti Richiesti</label>
+                        <div class="space-y-2">
+                            <label class="admin-flex admin-flex--center">
+                                <input type="checkbox" id="require-id-card" class="mr-2" checked>
+                                <span class="admin-text-body">Carta d'identità</span>
+                            </label>
+                            <label class="admin-flex admin-flex--center">
+                                <input type="checkbox" id="require-fiscal-code" class="mr-2" checked>
+                                <span class="admin-text-body">Codice fiscale</span>
+                            </label>
+                            <label class="admin-flex admin-flex--center">
+                                <input type="checkbox" id="require-address-proof" class="mr-2">
+                                <span class="admin-text-body">Prova di residenza</span>
+                            </label>
+                            <label class="admin-flex admin-flex--center">
+                                <input type="checkbox" id="require-income-proof" class="mr-2">
+                                <span class="admin-text-body">Prova di reddito</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Limite Investimento Senza KYC</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                            <input type="number" id="no-kyc-limit" class="admin-input pl-8" value="0" min="0" step="100" placeholder="0">
+                        </div>
+                        <p class="admin-help-text">Importo massimo investibile prima della verifica KYC (0 = verifica obbligatoria)</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Auto-Approva KYC se</label>
+                        <select id="auto-approve-kyc" class="admin-input admin-select">
+                            <option value="never">Mai (sempre revisione manuale)</option>
+                            <option value="simple">Documenti semplici validi</option>
+                            <option value="ai_verified">Verificati tramite AI</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Sicurezza Account</h2>
+                <p class="admin-text-small">Parametri di sicurezza e autenticazione</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label">Durata Sessione</label>
+                        <div class="relative">
+                            <input type="number" id="session-duration" class="admin-input pr-12" value="24" min="1" max="168" placeholder="24">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">ore</span>
+                        </div>
+                        <p class="admin-help-text">Durata massima di una sessione utente</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Tentativi Login Massimi</label>
+                        <input type="number" id="max-login-attempts" class="admin-input" value="5" min="3" max="10" placeholder="5">
+                        <p class="admin-help-text">Numero massimo di tentativi di login prima del blocco</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Durata Blocco Account</label>
+                        <div class="relative">
+                            <input type="number" id="account-lockout-duration" class="admin-input pr-12" value="30" min="5" max="1440" placeholder="30">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">min</span>
+                        </div>
+                        <p class="admin-help-text">Durata del blocco account dopo troppi tentativi</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Password Minima Lunghezza</label>
+                        <input type="number" id="min-password-length" class="admin-input" value="8" min="6" max="20" placeholder="8">
+                        <p class="admin-help-text">Lunghezza minima richiesta per le password</p>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="require-password-uppercase" class="mr-2" checked>
+                            <span class="admin-text-body">Richiedi lettere maiuscole</span>
+                        </label>
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="require-password-numbers" class="mr-2" checked>
+                            <span class="admin-text-body">Richiedi numeri</span>
+                        </label>
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="require-password-symbols" class="mr-2">
+                            <span class="admin-text-body">Richiedi simboli speciali</span>
+                        </label>
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="enable-2fa" class="mr-2">
+                            <span class="admin-text-body">Abilita autenticazione a due fattori</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-flex admin-flex--between">
+        <button onclick="testSecuritySettings()" class="admin-btn admin-btn--secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Testa Configurazione
+        </button>
+        <button onclick="saveSecuritySettings()" class="admin-btn admin-btn--primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Salva Impostazioni Sicurezza
+        </button>
+    </div>
+</div>
+
+<!-- System Tab -->
+<div id="system-tab" class="settings-tab-content hidden">
+    <div class="admin-grid admin-grid--2 mb-6">
+        <!-- System Information -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Informazioni Sistema</h2>
+                <p class="admin-text-small">Stato e configurazione del server</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-3">
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Versione Piattaforma:</span>
+                        <span class="admin-text-body font-medium" id="platform-version">v2.1.0</span>
+                    </div>
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Database:</span>
+                        <span class="admin-badge admin-badge--success" id="database-status">PostgreSQL 14.2</span>
+                    </div>
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Spazio Disco:</span>
+                        <span class="admin-text-body font-medium" id="disk-space">45.2 GB / 100 GB</span>
+                    </div>
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Memoria RAM:</span>
+                        <span class="admin-text-body font-medium" id="memory-usage">2.1 GB / 8 GB</span>
+                    </div>
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Uptime Server:</span>
+                        <span class="admin-text-body font-medium" id="server-uptime">12 giorni, 4 ore</span>
+                    </div>
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-body">Ultimo Backup:</span>
+                        <span class="admin-text-body font-medium" id="last-backup">Ieri alle 03:00</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="checkSystemHealth()" class="admin-btn admin-btn--secondary mr-2">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Verifica Stato
+                    </button>
+                    <button onclick="clearSystemCache()" class="admin-btn admin-btn--warning">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Pulisci Cache
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup & Maintenance -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Backup e Manutenzione</h2>
+                <p class="admin-text-small">Gestione backup e operazioni di sistema</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <div class="admin-form-group">
+                        <label class="admin-label">Backup Automatico</label>
+                        <select id="auto-backup-frequency" class="admin-input admin-select">
+                            <option value="disabled">Disabilitato</option>
+                            <option value="daily" selected>Giornaliero</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly">Mensile</option>
+                        </select>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Orario Backup</label>
+                        <input type="time" id="backup-time" class="admin-input" value="03:00">
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Conserva Backup</label>
+                        <div class="relative">
+                            <input type="number" id="backup-retention" class="admin-input pr-12" value="30" min="7" max="365" placeholder="30">
+                            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">giorni</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="backup-database" class="mr-2" checked>
+                            <span class="admin-text-body">Backup database</span>
+                        </label>
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="backup-files" class="mr-2" checked>
+                            <span class="admin-text-body">Backup file caricati</span>
+                        </label>
+                        <label class="admin-flex admin-flex--center">
+                            <input type="checkbox" id="backup-logs" class="mr-2">
+                            <span class="admin-text-body">Backup log sistema</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <div class="admin-flex">
+                        <button onclick="createManualBackup()" class="admin-btn admin-btn--primary mr-2" id="manual-backup-btn">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Backup Manuale
+                        </button>
+                        <button onclick="downloadBackup()" class="admin-btn admin-btn--secondary">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Download Ultimo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-flex admin-flex--between">
+        <button onclick="restartSystem()" class="admin-btn admin-btn--error">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Riavvia Sistema
+        </button>
+        <button onclick="saveSystemSettings()" class="admin-btn admin-btn--primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Salva Configurazione Sistema
+        </button>
+    </div>
+</div>
+
+<!-- Logs Tab -->
+<div id="logs-tab" class="settings-tab-content hidden">
+    <!-- Log Filters -->
+    <div class="admin-card admin-card-body mb-6">
+        <div class="admin-grid admin-grid--4">
+            <div class="admin-form-group">
+                <label class="admin-label">Tipo Log</label>
+                <select id="log-type-filter" class="admin-input admin-select" onchange="filterLogs()">
+                    <option value="">Tutti i tipi</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="security">Security</option>
+                    <option value="admin">Admin Actions</option>
+                </select>
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">Periodo</label>
+                <select id="log-period-filter" class="admin-input admin-select" onchange="filterLogs()">
+                    <option value="today">Oggi</option>
+                    <option value="week" selected>Ultima settimana</option>
+                    <option value="month">Ultimo mese</option>
+                    <option value="all">Tutti</option>
+                </select>
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">Cerca</label>
+                <input type="text" id="log-search" class="admin-input" placeholder="Cerca nei log..." oninput="searchLogs()">
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">Azioni</label>
+                <div class="admin-flex">
+                    <button onclick="refreshLogs()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                    <button onclick="exportLogs()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"/>
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Display -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-2">Log Sistema</h2>
+            <p class="admin-text-small">Cronologia eventi e attività della piattaforma</p>
+        </div>
+        <div class="admin-card-body">
+            <!-- Loading -->
+            <div id="logs-loading" class="text-center py-8 hidden">
+                {% include 'admin/components/loading.html' with loading_text='Caricamento log...', loading_size='md' %}
+            </div>
+            
+            <!-- Logs List -->
+            <div id="logs-container" class="space-y-2">
+                <!-- Logs will be loaded here -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="logs-empty" class="hidden text-center py-8">
+                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h3 class="admin-heading-3 text-gray-500 mb-2">Nessun log trovato</h3>
+                <p class="admin-text-body text-gray-400">Non ci sono log che corrispondono ai filtri selezionati</p>
+            </div>
+            
+            <!-- Pagination -->
+            <div id="logs-pagination" class="mt-6 hidden">
+                <div class="admin-flex admin-flex--between">
+                    <div class="admin-text-small text-gray-600">
+                        Mostrando <span id="logs-page-info">0-0 di 0</span> log
+                    </div>
+                    <div class="admin-flex" id="logs-pagination-controls"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Modal -->
+{% include 'admin/components/modal.html' with modal_id='backup-modal', modal_title='Backup Database', modal_size='lg' %}
+
+{% block modal_body %}
+<div class="space-y-4">
+    <div class="admin-form-group">
+        <label class="admin-label">Tipo Backup</label>
+        <div class="space-y-2">
+            <label class="admin-flex admin-flex--center">
+                <input type="radio" name="backup-type" value="full" class="mr-2" checked>
+                <span class="admin-text-body">Backup Completo (Database + File)</span>
+            </label>
+            <label class="admin-flex admin-flex--center">
+                <input type="radio" name="backup-type" value="database" class="mr-2">
+                <span class="admin-text-body">Solo Database</span>
+            </label>
+            <label class="admin-flex admin-flex--center">
+                <input type="radio" name="backup-type" value="files" class="mr-2">
+                <span class="admin-text-body">Solo File Caricati</span>
+            </label>
+        </div>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Compressione</label>
+        <select id="backup-compression" class="admin-input admin-select">
+            <option value="gzip">GZIP (Raccomandato)</option>
+            <option value="zip">ZIP</option>
+            <option value="none">Nessuna</option>
+        </select>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Note Backup</label>
+        <input type="text" id="backup-notes" class="admin-input" placeholder="Backup manuale prima dell'aggiornamento...">
+    </div>
+    
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="admin-flex">
+            <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <div>
+                <h3 class="admin-text-body font-medium text-yellow-800">Attenzione</h3>
+                <p class="admin-text-small text-yellow-700 mt-1">
+                    Il backup potrebbe richiedere alcuni minuti. Non chiudere questa finestra durante l'operazione.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="admin-flex admin-flex--between w-full">
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('backup-modal')">
+        Annulla
+    </button>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="executeBackup()" id="execute-backup-btn">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Avvia Backup
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Settings Management System
+class SettingsManager {
+    constructor() {
+        this.settings = {};
+        this.logs = [];
+        this.currentTab = 'general';
+        this.logsPage = 1;
+        this.logsPerPage = 20;
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadSettings();
+        this.setupEventListeners();
+        this.updateCommissionPreviews();
+        await this.loadLogs();
+    }
+    
+    async loadSettings() {
+        try {
+            const response = await fetch('/admin/settings/data?format=json');
+            if (response.ok) {
+                this.settings = await response.json();
+                this.populateFields();
+            }
+        } catch (error) {
+            console.error('Errore caricamento impostazioni:', error);
+            this.showAlert('error', 'Errore nel caricamento delle impostazioni');
+        }
+    }
+    
+    populateFields() {
+        const settings = this.settings;
+        
+        // General settings
+        if (settings.general) {
+            document.getElementById('platform-name').value = settings.general.platform_name || 'CIP Immobiliare';
+            document.getElementById('platform-description').value = settings.general.description || '';
+            document.getElementById('contact-email').value = settings.general.contact_email || '';
+            document.getElementById('support-phone').value = settings.general.support_phone || '';
+            document.getElementById('company-address').value = settings.general.company_address || '';
+        }
+        
+        // IBAN settings
+        if (settings.iban) {
+            document.getElementById('main-iban').value = settings.iban.main_iban || '';
+            document.getElementById('beneficiary-name').value = settings.iban.beneficiary_name || '';
+            document.getElementById('bank-name').value = settings.iban.bank_name || '';
+            document.getElementById('bic-swift').value = settings.iban.bic_swift || '';
+            document.getElementById('default-causale').value = settings.iban.default_causale || '';
+            document.getElementById('iban-active').checked = settings.iban.active !== false;
+        }
+        
+        // Financial settings
+        if (settings.financial) {
+            document.getElementById('min-investment').value = settings.financial.min_investment || 500;
+            document.getElementById('max-investment').value = settings.financial.max_investment || 100000;
+            document.getElementById('daily-limit').value = settings.financial.daily_limit || 10000;
+            document.getElementById('monthly-limit').value = settings.financial.monthly_limit || 50000;
+            document.getElementById('platform-commission').value = settings.financial.platform_commission || 2.0;
+            document.getElementById('referral-commission').value = settings.financial.referral_commission || 1.0;
+            document.getElementById('withdrawal-fee').value = settings.financial.withdrawal_fee || 5.0;
+            document.getElementById('free-withdrawal-threshold').value = settings.financial.free_withdrawal_threshold || 1000;
+            document.getElementById('referral-active').checked = settings.financial.referral_active !== false;
+        }
+        
+        // Security settings
+        if (settings.security) {
+            document.getElementById('kyc-timeout').value = settings.security.kyc_timeout || 7;
+            document.getElementById('no-kyc-limit').value = settings.security.no_kyc_limit || 0;
+            document.getElementById('auto-approve-kyc').value = settings.security.auto_approve_kyc || 'never';
+            document.getElementById('session-duration').value = settings.security.session_duration || 24;
+            document.getElementById('max-login-attempts').value = settings.security.max_login_attempts || 5;
+            document.getElementById('account-lockout-duration').value = settings.security.account_lockout_duration || 30;
+            document.getElementById('min-password-length').value = settings.security.min_password_length || 8;
+            
+            // Document requirements
+            document.getElementById('require-id-card').checked = settings.security.require_id_card !== false;
+            document.getElementById('require-fiscal-code').checked = settings.security.require_fiscal_code !== false;
+            document.getElementById('require-address-proof').checked = settings.security.require_address_proof === true;
+            document.getElementById('require-income-proof').checked = settings.security.require_income_proof === true;
+            
+            // Password requirements
+            document.getElementById('require-password-uppercase').checked = settings.security.require_password_uppercase !== false;
+            document.getElementById('require-password-numbers').checked = settings.security.require_password_numbers !== false;
+            document.getElementById('require-password-symbols').checked = settings.security.require_password_symbols === true;
+            document.getElementById('enable-2fa').checked = settings.security.enable_2fa === true;
+        }
+        
+        // System settings
+        if (settings.system) {
+            document.getElementById('auto-backup-frequency').value = settings.system.auto_backup_frequency || 'daily';
+            document.getElementById('backup-time').value = settings.system.backup_time || '03:00';
+            document.getElementById('backup-retention').value = settings.system.backup_retention || 30;
+            document.getElementById('backup-database').checked = settings.system.backup_database !== false;
+            document.getElementById('backup-files').checked = settings.system.backup_files !== false;
+            document.getElementById('backup-logs').checked = settings.system.backup_logs === true;
+        }
+    }
+    
+    setupEventListeners() {
+        // Commission calculation updates
+        ['platform-commission', 'referral-commission', 'withdrawal-fee'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                this.updateCommissionPreviews();
+            });
+        });
+        
+        // IBAN formatting
+        document.getElementById('main-iban').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\s/g, '').toUpperCase();
+            e.target.value = value.replace(/(.{4})/g, '$1 ').trim();
+        });
+    }
+    
+    updateCommissionPreviews() {
+        const platformCommission = parseFloat(document.getElementById('platform-commission').value) || 0;
+        const referralCommission = parseFloat(document.getElementById('referral-commission').value) || 0;
+        const withdrawalFee = parseFloat(document.getElementById('withdrawal-fee').value) || 0;
+        
+        // Update preview calculations
+        document.getElementById('commission-preview-1000').textContent = `€${(1000 * platformCommission / 100).toFixed(0)}`;
+        document.getElementById('referral-preview-1000').textContent = `€${(1000 * referralCommission / 100).toFixed(0)}`;
+        document.getElementById('withdrawal-preview-500').textContent = `€${withdrawalFee.toFixed(0)}`;
+    }
+    
+    // Tab switching
+    switchTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.settings-tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Show selected tab
+        document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+        
+        // Update tab buttons
+        document.querySelectorAll('.settings-tab').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        
+        this.currentTab = tabName;
+        
+        // Load logs if switching to logs tab
+        if (tabName === 'logs') {
+            this.loadLogs();
+        }
+    }
+    
+    // IBAN validation
+    validateIBAN() {
+        const iban = document.getElementById('main-iban').value.replace(/\s/g, '');
+        
+        if (!iban) {
+            this.showAlert('warning', 'Inserisci un IBAN');
+            return;
+        }
+        
+        // Basic IBAN validation (simplified)
+        const ibanRegex = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/;
+        
+        if (ibanRegex.test(iban)) {
+            this.showAlert('success', 'IBAN valido');
+        } else {
+            this.showAlert('error', 'IBAN non valido');
+        }
+    }
+    
+    // Save functions
+    async saveGeneralSettings() {
+        const generalData = {
+            platform_name: document.getElementById('platform-name').value,
+            description: document.getElementById('platform-description').value,
+            contact_email: document.getElementById('contact-email').value,
+            support_phone: document.getElementById('support-phone').value,
+            company_address: document.getElementById('company-address').value
+        };
+        
+        await this.saveSettings('general', generalData);
+    }
+    
+    async saveIBANSettings() {
+        const ibanData = {
+            main_iban: document.getElementById('main-iban').value.replace(/\s/g, ''),
+            beneficiary_name: document.getElementById('beneficiary-name').value,
+            bank_name: document.getElementById('bank-name').value,
+            bic_swift: document.getElementById('bic-swift').value,
+            default_causale: document.getElementById('default-causale').value,
+            active: document.getElementById('iban-active').checked
+        };
+        
+        await this.saveSettings('iban', ibanData);
+    }
+    
+    async saveFinancialSettings() {
+        const financialData = {
+            min_investment: parseFloat(document.getElementById('min-investment').value),
+            max_investment: parseFloat(document.getElementById('max-investment').value),
+            daily_limit: parseFloat(document.getElementById('daily-limit').value),
+            monthly_limit: parseFloat(document.getElementById('monthly-limit').value),
+            platform_commission: parseFloat(document.getElementById('platform-commission').value),
+            referral_commission: parseFloat(document.getElementById('referral-commission').value),
+            withdrawal_fee: parseFloat(document.getElementById('withdrawal-fee').value),
+            free_withdrawal_threshold: parseFloat(document.getElementById('free-withdrawal-threshold').value),
+            referral_active: document.getElementById('referral-active').checked
+        };
+        
+        await this.saveSettings('financial', financialData);
+    }
+    
+    async saveSecuritySettings() {
+        const securityData = {
+            kyc_timeout: parseInt(document.getElementById('kyc-timeout').value),
+            no_kyc_limit: parseFloat(document.getElementById('no-kyc-limit').value),
+            auto_approve_kyc: document.getElementById('auto-approve-kyc').value,
+            session_duration: parseInt(document.getElementById('session-duration').value),
+            max_login_attempts: parseInt(document.getElementById('max-login-attempts').value),
+            account_lockout_duration: parseInt(document.getElementById('account-lockout-duration').value),
+            min_password_length: parseInt(document.getElementById('min-password-length').value),
+            require_id_card: document.getElementById('require-id-card').checked,
+            require_fiscal_code: document.getElementById('require-fiscal-code').checked,
+            require_address_proof: document.getElementById('require-address-proof').checked,
+            require_income_proof: document.getElementById('require-income-proof').checked,
+            require_password_uppercase: document.getElementById('require-password-uppercase').checked,
+            require_password_numbers: document.getElementById('require-password-numbers').checked,
+            require_password_symbols: document.getElementById('require-password-symbols').checked,
+            enable_2fa: document.getElementById('enable-2fa').checked
+        };
+        
+        await this.saveSettings('security', securityData);
+    }
+    
+    async saveSystemSettings() {
+        const systemData = {
+            auto_backup_frequency: document.getElementById('auto-backup-frequency').value,
+            backup_time: document.getElementById('backup-time').value,
+            backup_retention: parseInt(document.getElementById('backup-retention').value),
+            backup_database: document.getElementById('backup-database').checked,
+            backup_files: document.getElementById('backup-files').checked,
+            backup_logs: document.getElementById('backup-logs').checked
+        };
+        
+        await this.saveSettings('system', systemData);
+    }
+    
+    async saveSettings(category, data) {
+        try {
+            const response = await fetch('/admin/settings/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category, data })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', `Impostazioni ${category} salvate con successo`);
+                this.settings[category] = data;
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nel salvataggio');
+            }
+        } catch (error) {
+            console.error('Errore salvataggio impostazioni:', error);
+            this.showAlert('error', 'Errore di connessione');
+        }
+    }
+    
+    async saveAllSettings() {
+        const saveBtn = document.getElementById('save-all-btn');
+        setButtonLoading(saveBtn, true, 'Salvando...');
+        
+        try {
+            await Promise.all([
+                this.saveGeneralSettings(),
+                this.saveIBANSettings(),
+                this.saveFinancialSettings(),
+                this.saveSecuritySettings(),
+                this.saveSystemSettings()
+            ]);
+            
+            this.showAlert('success', 'Tutte le impostazioni sono state salvate');
+        } catch (error) {
+            this.showAlert('error', 'Errore nel salvataggio di alcune impostazioni');
+        } finally {
+            setButtonLoading(saveBtn, false);
+        }
+    }
+    
+    // System functions
+    resetFinancialDefaults() {
+        if (confirm('Sei sicuro di voler ripristinare i valori predefiniti?')) {
+            document.getElementById('min-investment').value = 500;
+            document.getElementById('max-investment').value = 100000;
+            document.getElementById('daily-limit').value = 10000;
+            document.getElementById('monthly-limit').value = 50000;
+            document.getElementById('platform-commission').value = 2.0;
+            document.getElementById('referral-commission').value = 1.0;
+            document.getElementById('withdrawal-fee').value = 5.0;
+            document.getElementById('free-withdrawal-threshold').value = 1000;
+            document.getElementById('referral-active').checked = true;
+            
+            this.updateCommissionPreviews();
+        }
+    }
+    
+    testSecuritySettings() {
+        this.showAlert('info', 'Test configurazione sicurezza in sviluppo');
+    }
+    
+    checkSystemHealth() {
+        this.showAlert('info', 'Verifica stato sistema in corso...');
+        // TODO: Implement system health check
+    }
+    
+    clearSystemCache() {
+        if (confirm('Sei sicuro di voler pulire la cache del sistema?')) {
+            this.showAlert('success', 'Cache del sistema pulita');
+            // TODO: Implement cache clearing
+        }
+    }
+    
+    restartSystem() {
+        if (confirm('Sei sicuro di voler riavviare il sistema? Tutti gli utenti saranno disconnessi.')) {
+            this.showAlert('warning', 'Riavvio sistema in corso...');
+            // TODO: Implement system restart
+        }
+    }
+    
+    // Backup functions
+    openBackupModal() {
+        openModal('backup-modal');
+    }
+    
+    async createManualBackup() {
+        const backupBtn = document.getElementById('manual-backup-btn');
+        setButtonLoading(backupBtn, true, 'Creando backup...');
+        
+        try {
+            const response = await fetch('/admin/settings/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'manual' })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'Backup creato con successo');
+            } else {
+                this.showAlert('error', 'Errore nella creazione del backup');
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(backupBtn, false);
+        }
+    }
+    
+    async executeBackup() {
+        const backupType = document.querySelector('input[name="backup-type"]:checked').value;
+        const compression = document.getElementById('backup-compression').value;
+        const notes = document.getElementById('backup-notes').value;
+        
+        const executeBtn = document.getElementById('execute-backup-btn');
+        setButtonLoading(executeBtn, true, 'Creando backup...');
+        
+        try {
+            const response = await fetch('/admin/settings/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: backupType, compression, notes })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'Backup completato con successo');
+                closeModal('backup-modal');
+            } else {
+                this.showAlert('error', 'Errore nella creazione del backup');
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(executeBtn, false);
+        }
+    }
+    
+    downloadBackup() {
+        window.open('/admin/settings/backup/download', '_blank');
+    }
+    
+    // Logs functions
+    async loadLogs() {
+        try {
+            document.getElementById('logs-loading').classList.remove('hidden');
+            
+            const response = await fetch('/admin/settings/logs?format=json');
+            if (response.ok) {
+                this.logs = await response.json();
+                this.renderLogs();
+            }
+        } catch (error) {
+            console.error('Errore caricamento log:', error);
+        } finally {
+            document.getElementById('logs-loading').classList.add('hidden');
+        }
+    }
+    
+    renderLogs() {
+        const container = document.getElementById('logs-container');
+        const empty = document.getElementById('logs-empty');
+        
+        if (this.logs.length === 0) {
+            container.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        const startIndex = (this.logsPage - 1) * this.logsPerPage;
+        const endIndex = startIndex + this.logsPerPage;
+        const pageLogs = this.logs.slice(startIndex, endIndex);
+        
+        container.innerHTML = pageLogs.map(log => this.renderLogEntry(log)).join('');
+        
+        this.updateLogsPagination();
+    }
+    
+    renderLogEntry(log) {
+        const levelColors = {
+            info: 'blue',
+            warning: 'yellow',
+            error: 'red',
+            security: 'purple',
+            admin: 'green'
+        };
+        
+        const levelIcons = {
+            info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+            warning: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z',
+            error: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+            security: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+            admin: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+        };
+        
+        const color = levelColors[log.level] || 'gray';
+        const icon = levelIcons[log.level] || levelIcons.info;
+        
+        return `
+            <div class="admin-flex admin-flex--start p-3 border border-gray-200 rounded-lg">
+                <div class="p-2 bg-${color}-100 rounded-lg mr-3">
+                    <svg class="w-4 h-4 text-${color}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div class="admin-flex admin-flex--between">
+                        <div class="admin-flex admin-flex--center">
+                            <span class="admin-badge admin-badge--${color} mr-2">${log.level.toUpperCase()}</span>
+                            <span class="admin-text-caption text-gray-500">${new Date(log.timestamp).toLocaleString('it-IT')}</span>
+                        </div>
+                        <span class="admin-text-caption text-gray-500">${log.source || 'Sistema'}</span>
+                    </div>
+                    <p class="admin-text-body mt-1">${log.message}</p>
+                    ${log.details ? `<p class="admin-text-small text-gray-600 mt-1">${log.details}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    updateLogsPagination() {
+        const pagination = document.getElementById('logs-pagination');
+        const pageInfo = document.getElementById('logs-page-info');
+        const controls = document.getElementById('logs-pagination-controls');
+        
+        if (this.logs.length === 0) {
+            pagination.classList.add('hidden');
+            return;
+        }
+        
+        pagination.classList.remove('hidden');
+        
+        const totalPages = Math.ceil(this.logs.length / this.logsPerPage);
+        const startItem = (this.logsPage - 1) * this.logsPerPage + 1;
+        const endItem = Math.min(this.logsPage * this.logsPerPage, this.logs.length);
+        
+        pageInfo.textContent = `${startItem}-${endItem} di ${this.logs.length}`;
+        
+        let controlsHTML = '';
+        
+        if (this.logsPage > 1) {
+            controlsHTML += `
+                <button onclick="settingsManager.goToLogsPage(${this.logsPage - 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm mr-1">
+                    Precedente
+                </button>
+            `;
+        }
+        
+        for (let i = Math.max(1, this.logsPage - 2); 
+             i <= Math.min(totalPages, this.logsPage + 2); i++) {
+            const activeClass = i === this.logsPage ? 'admin-btn--primary' : 'admin-btn--secondary';
+            controlsHTML += `
+                <button onclick="settingsManager.goToLogsPage(${i})" 
+                        class="admin-btn ${activeClass} admin-btn--sm mr-1">
+                    ${i}
+                </button>
+            `;
+        }
+        
+        if (this.logsPage < totalPages) {
+            controlsHTML += `
+                <button onclick="settingsManager.goToLogsPage(${this.logsPage + 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm">
+                    Successiva
+                </button>
+            `;
+        }
+        
+        controls.innerHTML = controlsHTML;
+    }
+    
+    goToLogsPage(page) {
+        this.logsPage = page;
+        this.renderLogs();
+    }
+    
+    filterLogs() {
+        // TODO: Implement log filtering
+        this.loadLogs();
+    }
+    
+    searchLogs() {
+        // TODO: Implement log search
+        this.loadLogs();
+    }
+    
+    refreshLogs() {
+        this.loadLogs();
+    }
+    
+    exportLogs() {
+        window.open('/admin/settings/logs/export?format=csv', '_blank');
+    }
+    
+    refreshSettings() {
+        this.loadSettings();
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('settings-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let settingsManager;
+
+function switchTab(tabName) {
+    settingsManager.switchTab(tabName);
+}
+
+function validateIBAN() {
+    settingsManager.validateIBAN();
+}
+
+function saveGeneralSettings() {
+    settingsManager.saveGeneralSettings();
+}
+
+function saveIBANSettings() {
+    settingsManager.saveIBANSettings();
+}
+
+function saveFinancialSettings() {
+    settingsManager.saveFinancialSettings();
+}
+
+function saveSecuritySettings() {
+    settingsManager.saveSecuritySettings();
+}
+
+function saveSystemSettings() {
+    settingsManager.saveSystemSettings();
+}
+
+function saveAllSettings() {
+    settingsManager.saveAllSettings();
+}
+
+function resetFinancialDefaults() {
+    settingsManager.resetFinancialDefaults();
+}
+
+function testSecuritySettings() {
+    settingsManager.testSecuritySettings();
+}
+
+function checkSystemHealth() {
+    settingsManager.checkSystemHealth();
+}
+
+function clearSystemCache() {
+    settingsManager.clearSystemCache();
+}
+
+function restartSystem() {
+    settingsManager.restartSystem();
+}
+
+function openBackupModal() {
+    settingsManager.openBackupModal();
+}
+
+function createManualBackup() {
+    settingsManager.createManualBackup();
+}
+
+function executeBackup() {
+    settingsManager.executeBackup();
+}
+
+function downloadBackup() {
+    settingsManager.downloadBackup();
+}
+
+function filterLogs() {
+    settingsManager.filterLogs();
+}
+
+function searchLogs() {
+    settingsManager.searchLogs();
+}
+
+function refreshLogs() {
+    settingsManager.refreshLogs();
+}
+
+function exportLogs() {
+    settingsManager.exportLogs();
+}
+
+function refreshSettings() {
+    settingsManager.refreshSettings();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    settingsManager = new SettingsManager();
+});
+</script>
+
+<style>
+.settings-tab {
+    @apply admin-flex admin-flex--center px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap;
+}
+
+.settings-tab.active {
+    @apply text-blue-600 border-blue-500;
+}
+
+.settings-tab svg {
+    @apply flex-shrink-0;
+}
+</style>
+
+{% endblock %}
+{% endblock %}

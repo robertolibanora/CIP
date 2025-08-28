@@ -1,0 +1,1380 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Gestione Utenti - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Gestione Utenti</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Gestione Utenti</h1>
+            <p class="admin-text-small">Amministrazione completa utenti e investitori</p>
+        </div>
+        <div class="admin-flex">
+            <button onclick="refreshUsers()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Aggiorna
+            </button>
+            <button onclick="exportUsers()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="export-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Esporta CSV
+            </button>
+            <button onclick="openCreateUserModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Nuovo Utente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="users-alerts" class="mb-6"></div>
+
+<!-- Users Statistics -->
+<div class="admin-grid admin-grid--4 mb-6">
+    <div class="admin-card admin-card--info">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-blue-800">Utenti Totali</h3>
+                    <p class="admin-text-small text-blue-600">Tutti gli account</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-blue-800" id="total-users">0</p>
+                <p class="admin-text-caption text-blue-600" id="users-growth">+0% questo mese</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--success">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-green-800">KYC Verificati</h3>
+                    <p class="admin-text-small text-green-600">Pronti per investire</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-green-800" id="verified-users">0</p>
+                <p class="admin-text-caption text-green-600" id="verification-rate">0% verificati</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--warning">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-orange-800">Investitori Attivi</h3>
+                    <p class="admin-text-small text-orange-600">Con investimenti</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-orange-800" id="active-investors">0</p>
+                <p class="admin-text-caption text-orange-600" id="investment-volume">€0 totale</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--error">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-red-800">Account Sospesi</h3>
+                    <p class="admin-text-small text-red-600">Richiedono attenzione</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-red-800" id="suspended-users">0</p>
+                <p class="admin-text-caption text-red-600">Da rivedere</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Filters -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-grid admin-grid--4">
+        <div class="admin-form-group">
+            <label class="admin-label">Stato KYC</label>
+            <select id="kyc-filter" class="admin-input admin-select" onchange="applyFilters()">
+                <option value="">Tutti gli stati</option>
+                <option value="verified">✅ Verificati</option>
+                <option value="pending">⏳ In attesa</option>
+                <option value="rejected">❌ Rifiutati</option>
+                <option value="unverified">⚪ Non verificati</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Ruolo</label>
+            <select id="role-filter" class="admin-input admin-select" onchange="applyFilters()">
+                <option value="">Tutti i ruoli</option>
+                <option value="investor">👤 Investitori</option>
+                <option value="admin">🔧 Amministratori</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Con Investimenti</label>
+            <select id="investment-filter" class="admin-input admin-select" onchange="applyFilters()">
+                <option value="">Tutti</option>
+                <option value="with_investments">💰 Con investimenti</option>
+                <option value="without_investments">🚫 Senza investimenti</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Data Registrazione</label>
+            <select id="date-filter" class="admin-input admin-select" onchange="applyFilters()">
+                <option value="">Tutte le date</option>
+                <option value="today">📅 Oggi</option>
+                <option value="week">📊 Ultima settimana</option>
+                <option value="month">📈 Ultimo mese</option>
+                <option value="quarter">📋 Ultimo trimestre</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="admin-grid admin-grid--2 mt-4">
+        <div class="admin-form-group">
+            <label class="admin-label">Ricerca Utente</label>
+            <input type="text" id="search-input" class="admin-input" placeholder="Nome, email, telefono..." 
+                   oninput="searchUsers()" autocomplete="off">
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Ordina per</label>
+            <select id="sort-filter" class="admin-input admin-select" onchange="applySorting()">
+                <option value="created_at_desc">📅 Data registrazione (più recenti)</option>
+                <option value="created_at_asc">📅 Data registrazione (più vecchie)</option>
+                <option value="name_asc">🔤 Nome (A-Z)</option>
+                <option value="name_desc">🔤 Nome (Z-A)</option>
+                <option value="kyc_status">✅ Stato KYC</option>
+                <option value="investment_volume">💰 Volume investimenti</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Bar (hidden by default) -->
+<div id="bulk-actions-bar" class="admin-card admin-card-body mb-6 hidden">
+    <div class="admin-flex admin-flex--between">
+        <div class="admin-flex admin-flex--center">
+            <input type="checkbox" id="select-all-users" class="mr-3" onchange="toggleSelectAll()">
+            <span class="admin-text-body">
+                <span id="selected-count">0</span> utenti selezionati
+            </span>
+        </div>
+        <div class="admin-flex">
+            <select id="bulk-action-select" class="admin-input admin-select admin-btn--sm mr-2">
+                <option value="">Scegli azione...</option>
+                <option value="approve_kyc">✅ Approva KYC</option>
+                <option value="reject_kyc">❌ Rifiuta KYC</option>
+                <option value="suspend">🔒 Sospendi account</option>
+                <option value="activate">🔓 Attiva account</option>
+                <option value="export">📊 Esporta selezionati</option>
+                <option value="send_notification">📧 Invia notifica</option>
+            </select>
+            <button onclick="executeBulkAction()" class="admin-btn admin-btn--warning admin-btn--sm mr-2" id="bulk-execute-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Applica
+            </button>
+            <button onclick="clearUserSelection()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                Deseleziona
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Bar -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div class="admin-flex">
+            <button onclick="toggleBulkMode()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="bulk-mode-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Selezione Multipla
+            </button>
+            <button onclick="openAdvancedFilters()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+                </svg>
+                Filtri Avanzati
+            </button>
+            <button onclick="openUserAnalytics()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                Analytics
+            </button>
+        </div>
+        <div class="admin-flex">
+            <span class="admin-text-small text-gray-500 mr-4" id="total-users-indicator">
+                <span id="filtered-users-count">0</span> utenti visualizzati
+            </span>
+            <button onclick="resetAllFilters()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset Filtri
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="users-loading" class="text-center py-12">
+    {% include 'admin/components/loading.html' with loading_text='Caricamento utenti...', loading_size='lg' %}
+</div>
+
+<!-- Users Content -->
+<div id="users-content" class="hidden">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Lista Utenti</h2>
+                    <p class="admin-text-small">Gestione completa account utenti e investitori</p>
+                </div>
+                <div class="admin-flex">
+                    <select id="view-mode" class="admin-input admin-select admin-btn--sm mr-2" onchange="changeViewMode()">
+                        <option value="cards">🔲 Vista Card</option>
+                        <option value="table">📊 Vista Tabella</option>
+                        <option value="compact">📋 Vista Compatta</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <!-- Users Grid (Card View) -->
+            <div id="users-grid" class="admin-grid admin-grid--3">
+                <!-- Users will be loaded here -->
+            </div>
+            
+            <!-- Users Table (Table View) -->
+            <div id="users-table" class="hidden overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left admin-text-caption">Utente</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Contatti</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">KYC</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Investimenti</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Data Registrazione</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Table rows will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="users-empty" class="hidden text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <h3 class="admin-heading-3 text-gray-500 mb-2">Nessun utente trovato</h3>
+                <p class="admin-text-body text-gray-400">Non ci sono utenti che corrispondono ai filtri selezionati</p>
+                <button onclick="resetAllFilters()" class="admin-btn admin-btn--secondary mt-4">
+                    Reset Filtri
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="users-pagination" class="mt-6 hidden">
+        <div class="admin-flex admin-flex--between">
+            <div class="admin-text-small text-gray-600">
+                Mostrando <span id="page-info">0-0 di 0</span> utenti
+            </div>
+            <div class="admin-flex" id="pagination-controls"></div>
+        </div>
+    </div>
+</div>
+
+<!-- User Detail Modal -->
+{% include 'admin/components/modal.html' with modal_id='user-detail-modal', modal_title='Dettaglio Utente', modal_size='xl' %}
+
+{% block modal_body %}
+<div id="user-detail-content">
+    <!-- Content will be loaded dynamically -->
+</div>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="admin-flex admin-flex--between w-full">
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('user-detail-modal')">
+        Chiudi
+    </button>
+    <div class="admin-flex">
+        <button type="button" class="admin-btn admin-btn--warning mr-2" onclick="editUser()" id="edit-user-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Modifica
+        </button>
+        <button type="button" class="admin-btn admin-btn--primary" onclick="manageUserPortfolio()" id="portfolio-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            </svg>
+            Gestisci Portfolio
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+<!-- Create User Modal -->
+{% include 'admin/components/modal.html' with modal_id='create-user-modal', modal_title='Nuovo Utente', modal_size='lg' %}
+
+{% block extra_js %}
+<script>
+// Users Management System
+class UsersManager {
+    constructor() {
+        this.users = [];
+        this.filteredUsers = [];
+        this.currentFilters = {
+            kyc_status: '',
+            role: '',
+            investment_status: '',
+            date_range: '',
+            search: '',
+            sort: 'created_at_desc'
+        };
+        this.pagination = { page: 1, perPage: 12, total: 0 };
+        this.selectedUsers = new Set();
+        this.bulkModeActive = false;
+        this.currentViewMode = 'cards';
+        this.currentUser = null;
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadUsers();
+        await this.loadUserStats();
+        this.bindEvents();
+        
+        // Hide loading, show content
+        document.getElementById('users-loading').classList.add('hidden');
+        document.getElementById('users-content').classList.remove('hidden');
+    }
+    
+    async loadUsers() {
+        try {
+            const params = new URLSearchParams(this.currentFilters);
+            params.append('format', 'json');
+            
+            const response = await fetch(`/admin/users?${params.toString()}`);
+            if (response.ok) {
+                this.users = await response.json();
+                this.applyFilters();
+                this.renderUsers();
+                this.updatePagination();
+            }
+        } catch (error) {
+            console.error('Errore caricamento utenti:', error);
+            this.showAlert('error', 'Errore nel caricamento degli utenti');
+        }
+    }
+    
+    async loadUserStats() {
+        try {
+            const response = await fetch('/admin/users/stats?format=json');
+            if (response.ok) {
+                const stats = await response.json();
+                this.renderStats(stats);
+            }
+        } catch (error) {
+            console.error('Errore caricamento statistiche utenti:', error);
+        }
+    }
+    
+    renderStats(stats) {
+        document.getElementById('total-users').textContent = stats.total || 0;
+        document.getElementById('verified-users').textContent = stats.verified || 0;
+        document.getElementById('active-investors').textContent = stats.active_investors || 0;
+        document.getElementById('suspended-users').textContent = stats.suspended || 0;
+        
+        const verificationRate = stats.total > 0 ? ((stats.verified / stats.total) * 100) : 0;
+        document.getElementById('verification-rate').textContent = `${verificationRate.toFixed(1)}% verificati`;
+        
+        const usersGrowth = stats.growth || 0;
+        document.getElementById('users-growth').textContent = 
+            `${usersGrowth > 0 ? '+' : ''}${usersGrowth.toFixed(1)}% questo mese`;
+        
+        document.getElementById('investment-volume').textContent = 
+            `€${(stats.investment_volume || 0).toLocaleString()}`;
+    }
+    
+    applyFilters() {
+        this.filteredUsers = [...this.users];
+        
+        // KYC Status filter
+        if (this.currentFilters.kyc_status) {
+            this.filteredUsers = this.filteredUsers.filter(user => 
+                user.kyc_status === this.currentFilters.kyc_status);
+        }
+        
+        // Role filter
+        if (this.currentFilters.role) {
+            this.filteredUsers = this.filteredUsers.filter(user => 
+                user.role === this.currentFilters.role);
+        }
+        
+        // Investment status filter
+        if (this.currentFilters.investment_status) {
+            if (this.currentFilters.investment_status === 'with_investments') {
+                this.filteredUsers = this.filteredUsers.filter(user => user.has_investments);
+            } else if (this.currentFilters.investment_status === 'without_investments') {
+                this.filteredUsers = this.filteredUsers.filter(user => !user.has_investments);
+            }
+        }
+        
+        // Date range filter
+        if (this.currentFilters.date_range) {
+            const now = new Date();
+            const filterDate = new Date();
+            
+            switch (this.currentFilters.date_range) {
+                case 'today':
+                    filterDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'week':
+                    filterDate.setDate(now.getDate() - 7);
+                    break;
+                case 'month':
+                    filterDate.setMonth(now.getMonth() - 1);
+                    break;
+                case 'quarter':
+                    filterDate.setMonth(now.getMonth() - 3);
+                    break;
+            }
+            
+            this.filteredUsers = this.filteredUsers.filter(user => 
+                new Date(user.created_at) >= filterDate);
+        }
+        
+        // Search filter
+        if (this.currentFilters.search) {
+            const search = this.currentFilters.search.toLowerCase();
+            this.filteredUsers = this.filteredUsers.filter(user =>
+                user.full_name?.toLowerCase().includes(search) ||
+                user.email?.toLowerCase().includes(search) ||
+                user.telefono?.toLowerCase().includes(search)
+            );
+        }
+        
+        // Sort
+        this.sortUsers();
+        
+        this.pagination.total = this.filteredUsers.length;
+        this.pagination.page = 1; // Reset to first page
+        
+        // Update filtered count
+        document.getElementById('filtered-users-count').textContent = this.filteredUsers.length;
+    }
+    
+    sortUsers() {
+        const [field, order] = this.currentFilters.sort.split('_');
+        
+        this.filteredUsers.sort((a, b) => {
+            let aVal, bVal;
+            
+            switch (field) {
+                case 'created':
+                    aVal = new Date(a.created_at);
+                    bVal = new Date(b.created_at);
+                    break;
+                case 'name':
+                    aVal = a.full_name || '';
+                    bVal = b.full_name || '';
+                    break;
+                case 'kyc':
+                    // Sort by KYC priority: verified, pending, rejected, unverified
+                    const kycPriority = { verified: 1, pending: 2, rejected: 3, unverified: 4 };
+                    aVal = kycPriority[a.kyc_status] || 5;
+                    bVal = kycPriority[b.kyc_status] || 5;
+                    break;
+                case 'investment':
+                    aVal = a.investment_volume || 0;
+                    bVal = b.investment_volume || 0;
+                    break;
+                default:
+                    return 0;
+            }
+            
+            if (order === 'desc') {
+                return aVal > bVal ? -1 : 1;
+            } else {
+                return aVal < bVal ? -1 : 1;
+            }
+        });
+    }
+    
+    renderUsers() {
+        if (this.currentViewMode === 'cards') {
+            this.renderUsersGrid();
+        } else if (this.currentViewMode === 'table') {
+            this.renderUsersTable();
+        } else {
+            this.renderUsersCompact();
+        }
+        
+        // Add bulk mode checkboxes if active
+        if (this.bulkModeActive) {
+            setTimeout(() => this.addBulkCheckboxes(), 100);
+        }
+    }
+    
+    renderUsersGrid() {
+        const grid = document.getElementById('users-grid');
+        const table = document.getElementById('users-table');
+        const empty = document.getElementById('users-empty');
+        
+        table.classList.add('hidden');
+        
+        if (this.filteredUsers.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        grid.classList.remove('hidden');
+        
+        const startIndex = (this.pagination.page - 1) * this.pagination.perPage;
+        const endIndex = startIndex + this.pagination.perPage;
+        const pageUsers = this.filteredUsers.slice(startIndex, endIndex);
+        
+        grid.innerHTML = pageUsers.map(user => this.renderUserCard(user)).join('');
+    }
+    
+    renderUserCard(user) {
+        const kycColors = {
+            verified: 'success',
+            pending: 'warning',
+            rejected: 'error',
+            unverified: 'gray'
+        };
+        
+        const kycLabels = {
+            verified: 'Verificato',
+            pending: 'In attesa',
+            rejected: 'Rifiutato',
+            unverified: 'Non verificato'
+        };
+        
+        const roleIcons = {
+            admin: '🔧',
+            investor: '👤'
+        };
+        
+        return `
+            <div class="admin-card admin-card-body user-card" data-user-id="${user.id}">
+                <div class="admin-flex admin-flex--between mb-4">
+                    <div class="admin-flex admin-flex--center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white font-bold text-lg">
+                                ${(user.full_name || 'U').charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div>
+                            <h3 class="admin-heading-3">${user.full_name || 'Nome non disponibile'}</h3>
+                            <p class="admin-text-small text-gray-600">${user.email}</p>
+                            <div class="admin-flex admin-flex--center mt-1">
+                                <span class="admin-text-caption text-gray-500 mr-2">
+                                    ${roleIcons[user.role] || '👤'} ${user.role === 'admin' ? 'Admin' : 'Investitore'}
+                                </span>
+                                <span class="admin-badge admin-badge--${kycColors[user.kyc_status] || 'gray'} admin-badge--sm">
+                                    ${kycLabels[user.kyc_status] || user.kyc_status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-small text-gray-600">Portfolio:</span>
+                        <span class="admin-text-small font-medium">
+                            €${(user.portfolio_balance || 0).toLocaleString()}
+                        </span>
+                    </div>
+                    
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-small text-gray-600">Investimenti:</span>
+                        <span class="admin-text-small font-medium">
+                            ${user.investments_count || 0} attivi
+                        </span>
+                    </div>
+                    
+                    <div class="admin-flex admin-flex--between">
+                        <span class="admin-text-small text-gray-600">Registrato:</span>
+                        <span class="admin-text-small text-gray-500">
+                            ${new Date(user.created_at).toLocaleDateString('it-IT')}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="admin-flex admin-flex--between mt-4 pt-4 border-t border-gray-200">
+                    <div class="admin-flex">
+                        ${user.kyc_status === 'pending' ? `
+                            <button onclick="quickApproveKYC(${user.id})" class="admin-btn admin-btn--success admin-btn--sm mr-2">
+                                ✅ Approva
+                            </button>
+                        ` : ''}
+                        ${user.role !== 'admin' ? `
+                            <button onclick="toggleUserStatus(${user.id}, ${user.is_active || true})" 
+                                    class="admin-btn admin-btn--${user.is_active ? 'warning' : 'success'} admin-btn--sm mr-2">
+                                ${user.is_active ? '🔒 Sospendi' : '🔓 Attiva'}
+                            </button>
+                        ` : ''}
+                    </div>
+                    
+                    <button onclick="viewUserDetail(${user.id})" class="admin-btn admin-btn--primary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Dettagli
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderUsersTable() {
+        const grid = document.getElementById('users-grid');
+        const table = document.getElementById('users-table');
+        const tbody = document.getElementById('users-table-body');
+        const empty = document.getElementById('users-empty');
+        
+        grid.classList.add('hidden');
+        
+        if (this.filteredUsers.length === 0) {
+            table.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        table.classList.remove('hidden');
+        
+        const startIndex = (this.pagination.page - 1) * this.pagination.perPage;
+        const endIndex = startIndex + this.pagination.perPage;
+        const pageUsers = this.filteredUsers.slice(startIndex, endIndex);
+        
+        tbody.innerHTML = pageUsers.map(user => this.renderUserTableRow(user)).join('');
+    }
+    
+    renderUserTableRow(user) {
+        const kycColors = {
+            verified: 'success',
+            pending: 'warning', 
+            rejected: 'error',
+            unverified: 'gray'
+        };
+        
+        const kycLabels = {
+            verified: 'Verificato',
+            pending: 'In attesa',
+            rejected: 'Rifiutato',
+            unverified: 'Non verificato'
+        };
+        
+        return `
+            <tr class="border-t border-gray-200 hover:bg-gray-50 user-table-row" data-user-id="${user.id}">
+                <td class="px-4 py-3">
+                    <div class="admin-flex admin-flex--center">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white font-medium text-sm">
+                                ${(user.full_name || 'U').charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div>
+                            <p class="admin-text-body font-medium">${user.full_name || 'Nome non disponibile'}</p>
+                            <p class="admin-text-caption text-gray-500">
+                                ${user.role === 'admin' ? '🔧 Admin' : '👤 Investitore'}
+                            </p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <p class="admin-text-small">${user.email}</p>
+                    <p class="admin-text-caption text-gray-500">${user.telefono || 'N/A'}</p>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="admin-badge admin-badge--${kycColors[user.kyc_status] || 'gray'}">
+                        ${kycLabels[user.kyc_status] || user.kyc_status}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <p class="admin-text-small font-medium">€${(user.portfolio_balance || 0).toLocaleString()}</p>
+                    <p class="admin-text-caption text-gray-500">${user.investments_count || 0} investimenti</p>
+                </td>
+                <td class="px-4 py-3">
+                    <p class="admin-text-small">${new Date(user.created_at).toLocaleDateString('it-IT')}</p>
+                </td>
+                <td class="px-4 py-3">
+                    <button onclick="viewUserDetail(${user.id})" class="admin-btn admin-btn--primary admin-btn--sm">
+                        Dettagli
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+    
+    updatePagination() {
+        const paginationDiv = document.getElementById('users-pagination');
+        const pageInfo = document.getElementById('page-info');
+        const controls = document.getElementById('pagination-controls');
+        
+        if (this.pagination.total === 0) {
+            paginationDiv.classList.add('hidden');
+            return;
+        }
+        
+        paginationDiv.classList.remove('hidden');
+        
+        const totalPages = Math.ceil(this.pagination.total / this.pagination.perPage);
+        const startItem = (this.pagination.page - 1) * this.pagination.perPage + 1;
+        const endItem = Math.min(this.pagination.page * this.pagination.perPage, this.pagination.total);
+        
+        pageInfo.textContent = `${startItem}-${endItem} di ${this.pagination.total}`;
+        
+        // Generate pagination controls
+        let paginationHTML = '';
+        
+        // Previous button
+        if (this.pagination.page > 1) {
+            paginationHTML += `
+                <button onclick="usersManager.goToPage(${this.pagination.page - 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm mr-1">
+                    Precedente
+                </button>
+            `;
+        }
+        
+        // Page numbers
+        for (let i = Math.max(1, this.pagination.page - 2); 
+             i <= Math.min(totalPages, this.pagination.page + 2); i++) {
+            const activeClass = i === this.pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary';
+            paginationHTML += `
+                <button onclick="usersManager.goToPage(${i})" 
+                        class="admin-btn ${activeClass} admin-btn--sm mr-1">
+                    ${i}
+                </button>
+            `;
+        }
+        
+        // Next button
+        if (this.pagination.page < totalPages) {
+            paginationHTML += `
+                <button onclick="usersManager.goToPage(${this.pagination.page + 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm">
+                    Successiva
+                </button>
+            `;
+        }
+        
+        controls.innerHTML = paginationHTML;
+    }
+    
+    goToPage(page) {
+        this.pagination.page = page;
+        this.renderUsers();
+        this.updatePagination();
+        document.getElementById('users-content').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Filter functions
+    applyFilters() {
+        this.currentFilters.kyc_status = document.getElementById('kyc-filter').value;
+        this.currentFilters.role = document.getElementById('role-filter').value;
+        this.currentFilters.investment_status = document.getElementById('investment-filter').value;
+        this.currentFilters.date_range = document.getElementById('date-filter').value;
+        
+        this.applyFilters();
+        this.renderUsers();
+        this.updatePagination();
+    }
+    
+    applySorting() {
+        this.currentFilters.sort = document.getElementById('sort-filter').value;
+        this.applyFilters();
+        this.renderUsers();
+        this.updatePagination();
+    }
+    
+    searchUsers() {
+        this.currentFilters.search = document.getElementById('search-input').value;
+        this.applyFilters();
+        this.renderUsers();
+        this.updatePagination();
+    }
+    
+    resetAllFilters() {
+        document.getElementById('kyc-filter').value = '';
+        document.getElementById('role-filter').value = '';
+        document.getElementById('investment-filter').value = '';
+        document.getElementById('date-filter').value = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('sort-filter').value = 'created_at_desc';
+        
+        this.currentFilters = {
+            kyc_status: '',
+            role: '',
+            investment_status: '',
+            date_range: '',
+            search: '',
+            sort: 'created_at_desc'
+        };
+        
+        this.applyFilters();
+        this.renderUsers();
+        this.updatePagination();
+    }
+    
+    // View mode functions
+    changeViewMode() {
+        this.currentViewMode = document.getElementById('view-mode').value;
+        this.renderUsers();
+    }
+    
+    // Bulk operations
+    toggleBulkMode() {
+        this.bulkModeActive = !this.bulkModeActive;
+        const bulkBar = document.getElementById('bulk-actions-bar');
+        const bulkBtn = document.getElementById('bulk-mode-btn');
+        
+        if (this.bulkModeActive) {
+            bulkBar.classList.remove('hidden');
+            bulkBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Annulla Selezione
+            `;
+            this.addBulkCheckboxes();
+        } else {
+            bulkBar.classList.add('hidden');
+            bulkBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Selezione Multipla
+            `;
+            this.removeBulkCheckboxes();
+            this.clearSelection();
+        }
+    }
+    
+    addBulkCheckboxes() {
+        const cards = document.querySelectorAll('.user-card, .user-table-row');
+        cards.forEach(card => {
+            const userId = card.dataset.userId;
+            if (!card.querySelector('.user-checkbox')) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'user-checkbox absolute top-2 left-2 z-10';
+                checkbox.dataset.userId = userId;
+                checkbox.addEventListener('change', () => this.updateSelectedCount());
+                
+                card.style.position = 'relative';
+                card.appendChild(checkbox);
+            }
+        });
+    }
+    
+    removeBulkCheckboxes() {
+        document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+            checkbox.remove();
+        });
+    }
+    
+    updateSelectedCount() {
+        this.selectedUsers.clear();
+        document.querySelectorAll('.user-checkbox:checked').forEach(checkbox => {
+            this.selectedUsers.add(parseInt(checkbox.dataset.userId));
+        });
+        
+        document.getElementById('selected-count').textContent = this.selectedUsers.size;
+        
+        const selectAllBox = document.getElementById('select-all-users');
+        const allCheckboxes = document.querySelectorAll('.user-checkbox');
+        const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            selectAllBox.indeterminate = false;
+            selectAllBox.checked = false;
+        } else if (checkedBoxes.length === allCheckboxes.length) {
+            selectAllBox.indeterminate = false;
+            selectAllBox.checked = true;
+        } else {
+            selectAllBox.indeterminate = true;
+        }
+    }
+    
+    toggleSelectAll() {
+        const selectAllBox = document.getElementById('select-all-users');
+        const checkboxes = document.querySelectorAll('.user-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllBox.checked;
+        });
+        
+        this.updateSelectedCount();
+    }
+    
+    clearSelection() {
+        document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        this.updateSelectedCount();
+    }
+    
+    // User detail functions
+    async viewUserDetail(userId) {
+        try {
+            const response = await fetch(`/admin/users/${userId}?format=json`);
+            if (response.ok) {
+                const user = await response.json();
+                this.currentUser = user;
+                this.renderUserDetailModal(user);
+                openModal('user-detail-modal');
+            }
+        } catch (error) {
+            console.error('Errore caricamento dettaglio utente:', error);
+            this.showAlert('error', 'Errore nel caricamento del dettaglio');
+        }
+    }
+    
+    renderUserDetailModal(user) {
+        const content = document.getElementById('user-detail-content');
+        
+        content.innerHTML = `
+            <div class="space-y-6">
+                <!-- User Header -->
+                <div class="admin-flex admin-flex--center pb-4 border-b border-gray-200">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                        <span class="text-white font-bold text-2xl">
+                            ${(user.full_name || 'U').charAt(0).toUpperCase()}
+                        </span>
+                    </div>
+                    <div>
+                        <h2 class="admin-heading-2">${user.full_name || 'Nome non disponibile'}</h2>
+                        <p class="admin-text-body text-gray-600">${user.email}</p>
+                        <div class="admin-flex admin-flex--center mt-2">
+                            <span class="admin-badge admin-badge--${this.getKYCColor(user.kyc_status)} mr-2">
+                                ${this.getKYCLabel(user.kyc_status)}
+                            </span>
+                            <span class="admin-badge admin-badge--${user.role === 'admin' ? 'info' : 'gray'}">
+                                ${user.role === 'admin' ? 'Amministratore' : 'Investitore'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Info Grid -->
+                <div class="admin-grid admin-grid--2">
+                    <div>
+                        <h3 class="admin-heading-3 mb-3">Informazioni Personali</h3>
+                        <div class="space-y-2">
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Telefono:</strong> ${user.telefono || 'Non fornito'}</p>
+                            <p><strong>Indirizzo:</strong> ${user.address || 'Non fornito'}</p>
+                            <p><strong>Data registrazione:</strong> ${new Date(user.created_at).toLocaleDateString('it-IT')}</p>
+                            <p><strong>Ultimo accesso:</strong> ${user.last_login ? new Date(user.last_login).toLocaleDateString('it-IT') : 'Mai'}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="admin-heading-3 mb-3">Portfolio e Investimenti</h3>
+                        <div class="space-y-2">
+                            <p><strong>Saldo portfolio:</strong> €${(user.portfolio_balance || 0).toLocaleString()}</p>
+                            <p><strong>Investimenti attivi:</strong> ${user.investments_count || 0}</p>
+                            <p><strong>Volume totale:</strong> €${(user.investment_volume || 0).toLocaleString()}</p>
+                            <p><strong>Bonus referral:</strong> €${(user.referral_bonus || 0).toLocaleString()}</p>
+                            <p><strong>Profitti maturati:</strong> €${(user.profits || 0).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div>
+                    <h3 class="admin-heading-3 mb-3">Attività Recente</h3>
+                    <div id="user-activity" class="space-y-2">
+                        ${this.renderUserActivity(user.recent_activity || [])}
+                    </div>
+                </div>
+                
+                <!-- KYC Documents -->
+                ${user.kyc_documents && user.kyc_documents.length > 0 ? `
+                    <div>
+                        <h3 class="admin-heading-3 mb-3">Documenti KYC</h3>
+                        <div class="admin-grid admin-grid--3">
+                            ${user.kyc_documents.map(doc => `
+                                <div class="admin-card admin-card-body text-center">
+                                    <h4 class="admin-text-small font-medium">${doc.title}</h4>
+                                    <p class="admin-text-caption text-gray-500">${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}</p>
+                                    <a href="/admin/uploads/${doc.file_path}" target="_blank" 
+                                       class="admin-btn admin-btn--secondary admin-btn--sm mt-2">
+                                        Visualizza
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    renderUserActivity(activities) {
+        if (!activities || activities.length === 0) {
+            return '<p class="admin-text-body text-gray-500">Nessuna attività recente</p>';
+        }
+        
+        return activities.map(activity => `
+            <div class="admin-flex admin-flex--between p-3 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="admin-text-body">${activity.description}</p>
+                    <p class="admin-text-caption text-gray-500">${new Date(activity.created_at).toLocaleDateString('it-IT')}</p>
+                </div>
+                <span class="admin-badge admin-badge--${activity.type === 'investment' ? 'success' : 'info'}">
+                    ${activity.type}
+                </span>
+            </div>
+        `).join('');
+    }
+    
+    getKYCColor(status) {
+        const colors = {
+            verified: 'success',
+            pending: 'warning',
+            rejected: 'error',
+            unverified: 'gray'
+        };
+        return colors[status] || 'gray';
+    }
+    
+    getKYCLabel(status) {
+        const labels = {
+            verified: 'Verificato',
+            pending: 'In attesa',
+            rejected: 'Rifiutato',
+            unverified: 'Non verificato'
+        };
+        return labels[status] || status;
+    }
+    
+    // Quick actions
+    async quickApproveKYC(userId) {
+        if (!confirm('Sei sicuro di voler approvare il KYC di questo utente?')) return;
+        
+        try {
+            const response = await fetch(`/admin/kyc/${userId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: 'Approvazione rapida da gestione utenti' })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'KYC approvato con successo');
+                await this.refreshData();
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'approvazione KYC');
+        }
+    }
+    
+    async toggleUserStatus(userId, currentStatus) {
+        const action = currentStatus ? 'sospendere' : 'attivare';
+        if (!confirm(`Sei sicuro di voler ${action} questo utente?`)) return;
+        
+        try {
+            const response = await fetch(`/admin/users/${userId}/toggle-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', `Utente ${action === 'sospendere' ? 'sospeso' : 'attivato'} con successo`);
+                await this.refreshData();
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'operazione');
+        }
+    }
+    
+    // Bulk actions
+    async executeBulkAction() {
+        if (this.selectedUsers.size === 0) {
+            this.showAlert('warning', 'Seleziona almeno un utente');
+            return;
+        }
+        
+        const action = document.getElementById('bulk-action-select').value;
+        if (!action) {
+            this.showAlert('warning', 'Seleziona un\'azione');
+            return;
+        }
+        
+        const confirmMessages = {
+            approve_kyc: `Approvare KYC per ${this.selectedUsers.size} utenti?`,
+            reject_kyc: `Rifiutare KYC per ${this.selectedUsers.size} utenti?`,
+            suspend: `Sospendere ${this.selectedUsers.size} utenti?`,
+            activate: `Attivare ${this.selectedUsers.size} utenti?`,
+            export: `Esportare ${this.selectedUsers.size} utenti?`,
+            send_notification: `Inviare notifica a ${this.selectedUsers.size} utenti?`
+        };
+        
+        if (!confirm(confirmMessages[action])) return;
+        
+        const executeBtn = document.getElementById('bulk-execute-btn');
+        setButtonLoading(executeBtn, true, 'Elaborando...');
+        
+        try {
+            const response = await fetch('/admin/users/bulk-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action,
+                    user_ids: Array.from(this.selectedUsers)
+                })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', `Azione "${action}" completata`);
+                this.clearSelection();
+                await this.refreshData();
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nell\'azione');
+            }
+        } catch (error) {
+            console.error('Errore bulk action:', error);
+            this.showAlert('error', 'Errore nell\'esecuzione');
+        } finally {
+            setButtonLoading(executeBtn, false);
+        }
+    }
+    
+    // Export function
+    async exportUsers() {
+        const exportBtn = document.getElementById('export-btn');
+        setButtonLoading(exportBtn, true, 'Esportando...');
+        
+        try {
+            const params = new URLSearchParams(this.currentFilters);
+            params.append('format', 'csv');
+            
+            window.open(`/admin/users/export?${params.toString()}`, '_blank');
+            this.showAlert('success', 'Export avviato');
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'export');
+        } finally {
+            setButtonLoading(exportBtn, false);
+        }
+    }
+    
+    // Other functions
+    openCreateUserModal() {
+        openModal('create-user-modal');
+    }
+    
+    openAdvancedFilters() {
+        // TODO: Implement advanced filters modal
+        this.showAlert('info', 'Filtri avanzati in sviluppo');
+    }
+    
+    openUserAnalytics() {
+        // TODO: Implement user analytics
+        this.showAlert('info', 'Analytics utenti in sviluppo');
+    }
+    
+    editUser() {
+        if (!this.currentUser) return;
+        // TODO: Implement user editing
+        this.showAlert('info', 'Modifica utente in sviluppo');
+    }
+    
+    manageUserPortfolio() {
+        if (!this.currentUser) return;
+        window.location.href = `/admin/portfolio?user_id=${this.currentUser.id}`;
+    }
+    
+    // Utility functions
+    async refreshData() {
+        await this.loadUsers();
+        await this.loadUserStats();
+    }
+    
+    bindEvents() {
+        // Search with debounce
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => this.searchUsers(), 300);
+        });
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('users-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let usersManager;
+
+function applyFilters() {
+    usersManager.applyFilters();
+}
+
+function applySorting() {
+    usersManager.applySorting();
+}
+
+function searchUsers() {
+    usersManager.searchUsers();
+}
+
+function resetAllFilters() {
+    usersManager.resetAllFilters();
+}
+
+function changeViewMode() {
+    usersManager.changeViewMode();
+}
+
+function toggleBulkMode() {
+    usersManager.toggleBulkMode();
+}
+
+function toggleSelectAll() {
+    usersManager.toggleSelectAll();
+}
+
+function clearUserSelection() {
+    usersManager.clearSelection();
+}
+
+function executeBulkAction() {
+    usersManager.executeBulkAction();
+}
+
+function viewUserDetail(userId) {
+    usersManager.viewUserDetail(userId);
+}
+
+function quickApproveKYC(userId) {
+    usersManager.quickApproveKYC(userId);
+}
+
+function toggleUserStatus(userId, currentStatus) {
+    usersManager.toggleUserStatus(userId, currentStatus);
+}
+
+function refreshUsers() {
+    usersManager.refreshData();
+}
+
+function exportUsers() {
+    usersManager.exportUsers();
+}
+
+function openCreateUserModal() {
+    usersManager.openCreateUserModal();
+}
+
+function openAdvancedFilters() {
+    usersManager.openAdvancedFilters();
+}
+
+function openUserAnalytics() {
+    usersManager.openUserAnalytics();
+}
+
+function editUser() {
+    usersManager.editUser();
+}
+
+function manageUserPortfolio() {
+    usersManager.manageUserPortfolio();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    usersManager = new UsersManager();
+});
+</script>
+{% endblock %}
+{% endblock %}

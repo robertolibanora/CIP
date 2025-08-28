@@ -1,0 +1,1135 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Gestione KYC - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Verifica KYC</li>
+</ol>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Gestione Verifica KYC</h1>
+            <p class="admin-text-small">Approvazione e gestione documenti di identità utenti</p>
+        </div>
+        <div class="admin-flex">
+            <button onclick="refreshKYCRequests()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Aggiorna
+            </button>
+            <button onclick="openBulkActionsModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Azioni Multiple
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="kyc-alerts" class="mb-6"></div>
+
+<!-- KYC Statistics -->
+<div class="admin-grid admin-grid--4 mb-6">
+    <div class="admin-card admin-card--warning">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-orange-800">Richieste Pendenti</h3>
+                    <p class="admin-text-small text-orange-600">Da verificare</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-orange-800" id="pending-count">0</p>
+                <p class="admin-text-caption text-orange-600">In attesa di revisione</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--success">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-green-800">Approvati</h3>
+                    <p class="admin-text-small text-green-600">KYC verificati</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-green-800" id="verified-count">0</p>
+                <p class="admin-text-caption text-green-600">Utenti verificati</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--error">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-red-800">Rifiutati</h3>
+                    <p class="admin-text-small text-red-600">Documenti non validi</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-red-800" id="rejected-count">0</p>
+                <p class="admin-text-caption text-red-600">Da rivedere</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--info">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-blue-800">Tasso Approvazione</h3>
+                    <p class="admin-text-small text-blue-600">Media mensile</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-blue-800" id="approval-rate">0%</p>
+                <p class="admin-text-caption text-blue-600" id="approval-trend">Trend mensile</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Quick Actions -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-grid admin-grid--3">
+        <div class="admin-form-group">
+            <label class="admin-label">Filtra per Stato</label>
+            <select id="status-filter" class="admin-input admin-select" onchange="filterKYCRequests()">
+                <option value="">Tutti gli stati</option>
+                <option value="pending">In attesa</option>
+                <option value="verified">Verificati</option>
+                <option value="rejected">Rifiutati</option>
+                <option value="unverified">Non verificati</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Ordina per</label>
+            <select id="sort-filter" class="admin-input admin-select" onchange="sortKYCRequests()">
+                <option value="created_at_desc">Data richiesta (più recenti)</option>
+                <option value="created_at_asc">Data richiesta (più vecchie)</option>
+                <option value="name_asc">Nome utente (A-Z)</option>
+                <option value="name_desc">Nome utente (Z-A)</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Ricerca Utente</label>
+            <input type="text" id="search-input" class="admin-input" placeholder="Nome, email, telefono..." 
+                   oninput="searchKYCRequests()" autocomplete="off">
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Bar (hidden by default) -->
+<div id="bulk-actions-bar" class="admin-card admin-card-body mb-6 hidden">
+    <div class="admin-flex admin-flex--between">
+        <div class="admin-flex admin-flex--center">
+            <input type="checkbox" id="select-all-kyc" class="mr-3" onchange="toggleSelectAll()">
+            <span class="admin-text-body">
+                <span id="selected-count">0</span> richieste selezionate
+            </span>
+        </div>
+        <div class="admin-flex">
+            <select id="bulk-action-select" class="admin-input admin-select admin-btn--sm mr-2">
+                <option value="">Scegli azione...</option>
+                <option value="approve">✅ Approva richieste</option>
+                <option value="reject">❌ Rifiuta richieste</option>
+                <option value="pending">⏳ Rimetti in attesa</option>
+                <option value="export">📊 Esporta dati</option>
+                <option value="notify">📧 Invia notifica</option>
+            </select>
+            <button onclick="executeBulkAction()" class="admin-btn admin-btn--warning admin-btn--sm mr-2" id="bulk-execute-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Applica
+            </button>
+            <button onclick="clearKYCSelection()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                Deseleziona
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="kyc-loading" class="text-center py-12">
+    {% include 'admin/components/loading.html' with loading_text='Caricamento richieste KYC...', loading_size='lg' %}
+</div>
+
+<!-- KYC Requests List -->
+<div id="kyc-content" class="hidden">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Richieste KYC</h2>
+                    <p class="admin-text-small">Gestione documenti di identità utenti</p>
+                </div>
+                <div class="admin-flex">
+                    <button onclick="toggleBulkMode()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="bulk-mode-btn">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Selezione Multipla
+                    </button>
+                    <button onclick="exportKYCData()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Esporta
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <!-- KYC Requests Grid -->
+            <div id="kyc-requests-grid" class="space-y-4">
+                <!-- KYC requests will be loaded here -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="kyc-empty" class="hidden text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="admin-heading-3 text-gray-500 mb-2">Nessuna richiesta KYC</h3>
+                <p class="admin-text-body text-gray-400">Non ci sono richieste di verifica che corrispondono ai filtri</p>
+                <button onclick="resetFilters()" class="admin-btn admin-btn--secondary mt-4">
+                    Reset Filtri
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div id="kyc-pagination" class="mt-6 hidden">
+        <div class="admin-flex admin-flex--between">
+            <div class="admin-text-small text-gray-600">
+                Mostrando <span id="page-info">0-0 di 0</span> richieste
+            </div>
+            <div class="admin-flex" id="pagination-controls"></div>
+        </div>
+    </div>
+</div>
+
+<!-- KYC Review Modal -->
+{% include 'admin/components/modal.html' with modal_id='kyc-review-modal', modal_title='Revisione KYC', modal_size='xl' %}
+
+{% block modal_body %}
+<div id="kyc-review-content">
+    <!-- Content will be loaded dynamically -->
+</div>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="admin-flex admin-flex--between w-full">
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('kyc-review-modal')">
+        Chiudi
+    </button>
+    <div class="admin-flex">
+        <button type="button" class="admin-btn admin-btn--error mr-2" onclick="rejectKYC()" id="reject-kyc-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+            </svg>
+            Rifiuta
+        </button>
+        <button type="button" class="admin-btn admin-btn--success" onclick="approveKYC()" id="approve-kyc-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Approva
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// KYC Management System
+class KYCManager {
+    constructor() {
+        this.requests = [];
+        this.filteredRequests = [];
+        this.currentFilter = { status: '', sort: 'created_at_desc', search: '' };
+        this.pagination = { page: 1, perPage: 10, total: 0 };
+        this.selectedRequests = new Set();
+        this.bulkModeActive = false;
+        this.currentReviewRequest = null;
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadKYCRequests();
+        await this.loadKYCStats();
+        this.bindEvents();
+        
+        // Hide loading, show content
+        document.getElementById('kyc-loading').classList.add('hidden');
+        document.getElementById('kyc-content').classList.remove('hidden');
+    }
+    
+    async loadKYCRequests() {
+        try {
+            const response = await fetch('/admin/api/kyc-requests?format=json');
+            if (response.ok) {
+                this.requests = await response.json();
+                this.applyFilters();
+                this.renderRequests();
+                this.updatePagination();
+            }
+        } catch (error) {
+            console.error('Errore caricamento richieste KYC:', error);
+            this.showAlert('error', 'Errore nel caricamento delle richieste KYC');
+        }
+    }
+    
+    async loadKYCStats() {
+        try {
+            const response = await fetch('/admin/api/kyc-stats?format=json');
+            if (response.ok) {
+                const stats = await response.json();
+                this.renderStats(stats);
+            }
+        } catch (error) {
+            console.error('Errore caricamento statistiche KYC:', error);
+        }
+    }
+    
+    renderStats(stats) {
+        document.getElementById('pending-count').textContent = stats.pending || 0;
+        document.getElementById('verified-count').textContent = stats.verified || 0;
+        document.getElementById('rejected-count').textContent = stats.rejected || 0;
+        
+        const approvalRate = stats.total > 0 ? 
+            ((stats.verified / (stats.verified + stats.rejected)) * 100) : 0;
+        document.getElementById('approval-rate').textContent = `${approvalRate.toFixed(1)}%`;
+        
+        const trend = stats.trend > 0 ? `+${stats.trend.toFixed(1)}%` : `${stats.trend.toFixed(1)}%`;
+        document.getElementById('approval-trend').textContent = `${trend} vs mese scorso`;
+    }
+    
+    applyFilters() {
+        this.filteredRequests = [...this.requests];
+        
+        // Status filter
+        if (this.currentFilter.status) {
+            this.filteredRequests = this.filteredRequests.filter(req => 
+                req.kyc_status === this.currentFilter.status);
+        }
+        
+        // Search filter
+        if (this.currentFilter.search) {
+            const search = this.currentFilter.search.toLowerCase();
+            this.filteredRequests = this.filteredRequests.filter(req =>
+                req.full_name?.toLowerCase().includes(search) ||
+                req.email?.toLowerCase().includes(search) ||
+                req.telefono?.toLowerCase().includes(search)
+            );
+        }
+        
+        // Sort
+        this.sortRequests();
+        
+        this.pagination.total = this.filteredRequests.length;
+        this.pagination.page = 1; // Reset to first page
+    }
+    
+    sortRequests() {
+        const [field, order] = this.currentFilter.sort.split('_');
+        
+        this.filteredRequests.sort((a, b) => {
+            let aVal, bVal;
+            
+            switch (field) {
+                case 'created':
+                    aVal = new Date(a.created_at);
+                    bVal = new Date(b.created_at);
+                    break;
+                case 'name':
+                    aVal = a.full_name || '';
+                    bVal = b.full_name || '';
+                    break;
+                default:
+                    return 0;
+            }
+            
+            if (order === 'desc') {
+                return aVal > bVal ? -1 : 1;
+            } else {
+                return aVal < bVal ? -1 : 1;
+            }
+        });
+    }
+    
+    renderRequests() {
+        const grid = document.getElementById('kyc-requests-grid');
+        const empty = document.getElementById('kyc-empty');
+        
+        if (this.filteredRequests.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        grid.classList.remove('hidden');
+        
+        const startIndex = (this.pagination.page - 1) * this.pagination.perPage;
+        const endIndex = startIndex + this.pagination.perPage;
+        const pageRequests = this.filteredRequests.slice(startIndex, endIndex);
+        
+        grid.innerHTML = pageRequests.map(request => this.renderRequestCard(request)).join('');
+        
+        // Add bulk mode checkboxes if active
+        if (this.bulkModeActive) {
+            setTimeout(() => this.addBulkCheckboxes(), 100);
+        }
+    }
+    
+    renderRequestCard(request) {
+        const statusColors = {
+            pending: 'warning',
+            verified: 'success',
+            rejected: 'error',
+            unverified: 'gray'
+        };
+        
+        const statusLabels = {
+            pending: 'In attesa',
+            verified: 'Verificato',
+            rejected: 'Rifiutato',
+            unverified: 'Non verificato'
+        };
+        
+        const priorityClass = request.kyc_status === 'pending' ? 'border-l-4 border-orange-400' : '';
+        
+        return `
+            <div class="admin-card admin-card-body ${priorityClass} kyc-request-card" data-request-id="${request.id}">
+                <div class="admin-flex admin-flex--between">
+                    <div class="admin-flex admin-flex--center">
+                        <div class="mr-4">
+                            <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-1">
+                            <div class="admin-flex admin-flex--between">
+                                <div>
+                                    <h3 class="admin-heading-3">${request.full_name || 'Nome non disponibile'}</h3>
+                                    <p class="admin-text-small text-gray-600">${request.email}</p>
+                                    <p class="admin-text-caption text-gray-500">
+                                        Tel: ${request.telefono || 'N/A'} • 
+                                        Registrato: ${new Date(request.created_at).toLocaleDateString('it-IT')}
+                                    </p>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <span class="admin-badge admin-badge--${statusColors[request.kyc_status] || 'gray'} mb-2">
+                                        ${statusLabels[request.kyc_status] || request.kyc_status}
+                                    </span>
+                                    <br>
+                                    ${request.kyc_status === 'pending' ? `
+                                        <span class="admin-text-caption text-orange-600">
+                                            ${this.getTimeSinceSubmission(request.created_at)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Info -->
+                            <div class="admin-flex admin-flex--between mt-3 pt-3 border-t border-gray-200">
+                                <div class="admin-text-caption text-gray-600">
+                                    <strong>Documenti:</strong> ${request.documents_count || 0} caricati
+                                    ${request.has_portfolio ? '• <span class="text-green-600">Ha portfolio</span>' : '• <span class="text-gray-500">Nessun investimento</span>'}
+                                </div>
+                                
+                                <div class="admin-flex">
+                                    ${request.kyc_status === 'pending' ? `
+                                        <button onclick="quickApprove(${request.id})" class="admin-btn admin-btn--success admin-btn--sm mr-2">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Approva
+                                        </button>
+                                        <button onclick="quickReject(${request.id})" class="admin-btn admin-btn--error admin-btn--sm mr-2">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                            Rifiuta
+                                        </button>
+                                    ` : ''}
+                                    
+                                    <button onclick="reviewKYC(${request.id})" class="admin-btn admin-btn--primary admin-btn--sm">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        Revisiona
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    getTimeSinceSubmission(dateString) {
+        const now = new Date();
+        const submitted = new Date(dateString);
+        const diffHours = Math.floor((now - submitted) / (1000 * 60 * 60));
+        
+        if (diffHours < 1) return 'Appena inviato';
+        if (diffHours < 24) return `${diffHours}h fa`;
+        
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} giorni fa`;
+    }
+    
+    updatePagination() {
+        const paginationDiv = document.getElementById('kyc-pagination');
+        const pageInfo = document.getElementById('page-info');
+        const controls = document.getElementById('pagination-controls');
+        
+        if (this.pagination.total === 0) {
+            paginationDiv.classList.add('hidden');
+            return;
+        }
+        
+        paginationDiv.classList.remove('hidden');
+        
+        const totalPages = Math.ceil(this.pagination.total / this.pagination.perPage);
+        const startItem = (this.pagination.page - 1) * this.pagination.perPage + 1;
+        const endItem = Math.min(this.pagination.page * this.pagination.perPage, this.pagination.total);
+        
+        pageInfo.textContent = `${startItem}-${endItem} di ${this.pagination.total}`;
+        
+        // Generate pagination controls
+        let paginationHTML = '';
+        
+        // Previous button
+        if (this.pagination.page > 1) {
+            paginationHTML += `
+                <button onclick="kycManager.goToPage(${this.pagination.page - 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm mr-1">
+                    Precedente
+                </button>
+            `;
+        }
+        
+        // Page numbers
+        for (let i = Math.max(1, this.pagination.page - 2); 
+             i <= Math.min(totalPages, this.pagination.page + 2); i++) {
+            const activeClass = i === this.pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary';
+            paginationHTML += `
+                <button onclick="kycManager.goToPage(${i})" 
+                        class="admin-btn ${activeClass} admin-btn--sm mr-1">
+                    ${i}
+                </button>
+            `;
+        }
+        
+        // Next button
+        if (this.pagination.page < totalPages) {
+            paginationHTML += `
+                <button onclick="kycManager.goToPage(${this.pagination.page + 1})" 
+                        class="admin-btn admin-btn--secondary admin-btn--sm">
+                    Successiva
+                </button>
+            `;
+        }
+        
+        controls.innerHTML = paginationHTML;
+    }
+    
+    goToPage(page) {
+        this.pagination.page = page;
+        this.renderRequests();
+        this.updatePagination();
+        document.getElementById('kyc-requests-grid').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Bulk operations
+    toggleBulkMode() {
+        this.bulkModeActive = !this.bulkModeActive;
+        const bulkBar = document.getElementById('bulk-actions-bar');
+        const bulkBtn = document.getElementById('bulk-mode-btn');
+        
+        if (this.bulkModeActive) {
+            bulkBar.classList.remove('hidden');
+            bulkBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Annulla Selezione
+            `;
+            this.addBulkCheckboxes();
+        } else {
+            bulkBar.classList.add('hidden');
+            bulkBtn.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Selezione Multipla
+            `;
+            this.removeBulkCheckboxes();
+            this.clearSelection();
+        }
+    }
+    
+    addBulkCheckboxes() {
+        const cards = document.querySelectorAll('.kyc-request-card');
+        cards.forEach(card => {
+            const requestId = card.dataset.requestId;
+            if (!card.querySelector('.kyc-checkbox')) {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'kyc-checkbox absolute top-2 left-2 z-10';
+                checkbox.dataset.requestId = requestId;
+                checkbox.addEventListener('change', () => this.updateSelectedCount());
+                
+                card.style.position = 'relative';
+                card.appendChild(checkbox);
+            }
+        });
+    }
+    
+    removeBulkCheckboxes() {
+        document.querySelectorAll('.kyc-checkbox').forEach(checkbox => {
+            checkbox.remove();
+        });
+    }
+    
+    updateSelectedCount() {
+        this.selectedRequests.clear();
+        document.querySelectorAll('.kyc-checkbox:checked').forEach(checkbox => {
+            this.selectedRequests.add(parseInt(checkbox.dataset.requestId));
+        });
+        
+        document.getElementById('selected-count').textContent = this.selectedRequests.size;
+        
+        const selectAllBox = document.getElementById('select-all-kyc');
+        const allCheckboxes = document.querySelectorAll('.kyc-checkbox');
+        const checkedBoxes = document.querySelectorAll('.kyc-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            selectAllBox.indeterminate = false;
+            selectAllBox.checked = false;
+        } else if (checkedBoxes.length === allCheckboxes.length) {
+            selectAllBox.indeterminate = false;
+            selectAllBox.checked = true;
+        } else {
+            selectAllBox.indeterminate = true;
+        }
+    }
+    
+    toggleSelectAll() {
+        const selectAllBox = document.getElementById('select-all-kyc');
+        const checkboxes = document.querySelectorAll('.kyc-checkbox');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllBox.checked;
+        });
+        
+        this.updateSelectedCount();
+    }
+    
+    clearSelection() {
+        document.querySelectorAll('.kyc-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        this.updateSelectedCount();
+    }
+    
+    // Filter and search functions
+    applyStatusFilter() {
+        this.currentFilter.status = document.getElementById('status-filter').value;
+        this.applyFilters();
+        this.renderRequests();
+        this.updatePagination();
+    }
+    
+    applySortFilter() {
+        this.currentFilter.sort = document.getElementById('sort-filter').value;
+        this.applyFilters();
+        this.renderRequests();
+        this.updatePagination();
+    }
+    
+    applySearchFilter() {
+        this.currentFilter.search = document.getElementById('search-input').value;
+        this.applyFilters();
+        this.renderRequests();
+        this.updatePagination();
+    }
+    
+    resetFilters() {
+        document.getElementById('status-filter').value = '';
+        document.getElementById('sort-filter').value = 'created_at_desc';
+        document.getElementById('search-input').value = '';
+        
+        this.currentFilter = { status: '', sort: 'created_at_desc', search: '' };
+        this.applyFilters();
+        this.renderRequests();
+        this.updatePagination();
+    }
+    
+    // KYC Review functions
+    async reviewKYC(requestId) {
+        try {
+            const response = await fetch(`/admin/api/kyc-requests/${requestId}?format=json`);
+            if (response.ok) {
+                const request = await response.json();
+                this.currentReviewRequest = request;
+                this.renderKYCReviewModal(request);
+                openModal('kyc-review-modal');
+            }
+        } catch (error) {
+            console.error('Errore caricamento dettagli KYC:', error);
+            this.showAlert('error', 'Errore nel caricamento dei dettagli');
+        }
+    }
+    
+    renderKYCReviewModal(request) {
+        const content = document.getElementById('kyc-review-content');
+        
+        content.innerHTML = `
+            <div class="space-y-6">
+                <!-- User Info -->
+                <div class="admin-grid admin-grid--2">
+                    <div>
+                        <h3 class="admin-heading-3 mb-3">Informazioni Utente</h3>
+                        <div class="space-y-2">
+                            <p><strong>Nome:</strong> ${request.full_name}</p>
+                            <p><strong>Email:</strong> ${request.email}</p>
+                            <p><strong>Telefono:</strong> ${request.telefono}</p>
+                            <p><strong>Indirizzo:</strong> ${request.address || 'Non fornito'}</p>
+                            <p><strong>Data registrazione:</strong> ${new Date(request.created_at).toLocaleDateString('it-IT')}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="admin-heading-3 mb-3">Stato KYC</h3>
+                        <div class="space-y-2">
+                            <p><strong>Stato attuale:</strong> 
+                                <span class="admin-badge admin-badge--${this.getStatusColor(request.kyc_status)}">
+                                    ${this.getStatusLabel(request.kyc_status)}
+                                </span>
+                            </p>
+                            ${request.kyc_verified_at ? `
+                                <p><strong>Verificato il:</strong> ${new Date(request.kyc_verified_at).toLocaleDateString('it-IT')}</p>
+                            ` : ''}
+                            ${request.kyc_notes ? `
+                                <p><strong>Note precedenti:</strong></p>
+                                <p class="admin-text-small bg-gray-50 p-2 rounded">${request.kyc_notes}</p>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Documents -->
+                <div>
+                    <h3 class="admin-heading-3 mb-3">Documenti Caricati</h3>
+                    <div id="kyc-documents-grid" class="admin-grid admin-grid--3">
+                        ${this.renderKYCDocuments(request.documents || [])}
+                    </div>
+                </div>
+                
+                <!-- Admin Notes -->
+                <div>
+                    <h3 class="admin-heading-3 mb-3">Note Admin</h3>
+                    <textarea id="admin-notes" class="admin-input admin-textarea" rows="4" 
+                              placeholder="Aggiungi note per questa richiesta KYC...">${request.admin_notes || ''}</textarea>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderKYCDocuments(documents) {
+        if (!documents || documents.length === 0) {
+            return '<p class="admin-text-body text-gray-500 col-span-3">Nessun documento caricato</p>';
+        }
+        
+        return documents.map(doc => `
+            <div class="admin-card admin-card-body">
+                <div class="text-center">
+                    ${doc.file_type === 'image' ? `
+                        <img src="/admin/uploads/${doc.file_path}" alt="${doc.title}" 
+                             class="w-full h-32 object-cover rounded mb-2 cursor-pointer"
+                             onclick="openImagePreview('/admin/uploads/${doc.file_path}', '${doc.title}')">
+                    ` : `
+                        <div class="w-full h-32 bg-gray-100 rounded flex items-center justify-center mb-2">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                    `}
+                    <h4 class="admin-text-small font-medium">${doc.title}</h4>
+                    <p class="admin-text-caption text-gray-500">${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}</p>
+                    <a href="/admin/uploads/${doc.file_path}" target="_blank" 
+                       class="admin-btn admin-btn--secondary admin-btn--sm mt-2">
+                        Visualizza
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    getStatusColor(status) {
+        const colors = {
+            pending: 'warning',
+            verified: 'success',
+            rejected: 'error',
+            unverified: 'gray'
+        };
+        return colors[status] || 'gray';
+    }
+    
+    getStatusLabel(status) {
+        const labels = {
+            pending: 'In attesa',
+            verified: 'Verificato',
+            rejected: 'Rifiutato',
+            unverified: 'Non verificato'
+        };
+        return labels[status] || status;
+    }
+    
+    // KYC Actions
+    async approveKYC() {
+        if (!this.currentReviewRequest) return;
+        
+        const notes = document.getElementById('admin-notes').value;
+        const approveBtn = document.getElementById('approve-kyc-btn');
+        
+        setButtonLoading(approveBtn, true, 'Approvando...');
+        
+        try {
+            const response = await fetch(`/admin/kyc/${this.currentReviewRequest.id}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'KYC approvato con successo');
+                closeModal('kyc-review-modal');
+                await this.refreshData();
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nell\'approvazione');
+            }
+        } catch (error) {
+            console.error('Errore approvazione KYC:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(approveBtn, false);
+        }
+    }
+    
+    async rejectKYC() {
+        if (!this.currentReviewRequest) return;
+        
+        const notes = document.getElementById('admin-notes').value;
+        if (!notes.trim()) {
+            this.showAlert('warning', 'Le note sono obbligatorie per il rifiuto');
+            return;
+        }
+        
+        const rejectBtn = document.getElementById('reject-kyc-btn');
+        setButtonLoading(rejectBtn, true, 'Rifiutando...');
+        
+        try {
+            const response = await fetch(`/admin/kyc/${this.currentReviewRequest.id}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'KYC rifiutato');
+                closeModal('kyc-review-modal');
+                await this.refreshData();
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nel rifiuto');
+            }
+        } catch (error) {
+            console.error('Errore rifiuto KYC:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            setButtonLoading(rejectBtn, false);
+        }
+    }
+    
+    // Quick actions
+    async quickApprove(requestId) {
+        if (!confirm('Sei sicuro di voler approvare questo KYC?')) return;
+        
+        try {
+            const response = await fetch(`/admin/kyc/${requestId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: 'Approvazione rapida' })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'KYC approvato');
+                await this.refreshData();
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'approvazione');
+        }
+    }
+    
+    async quickReject(requestId) {
+        const reason = prompt('Motivo del rifiuto:');
+        if (!reason) return;
+        
+        try {
+            const response = await fetch(`/admin/kyc/${requestId}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: reason })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', 'KYC rifiutato');
+                await this.refreshData();
+            }
+        } catch (error) {
+            this.showAlert('error', 'Errore nel rifiuto');
+        }
+    }
+    
+    // Bulk actions
+    async executeBulkAction() {
+        if (this.selectedRequests.size === 0) {
+            this.showAlert('warning', 'Seleziona almeno una richiesta');
+            return;
+        }
+        
+        const action = document.getElementById('bulk-action-select').value;
+        if (!action) {
+            this.showAlert('warning', 'Seleziona un\'azione');
+            return;
+        }
+        
+        const confirmMessages = {
+            approve: `Approvare ${this.selectedRequests.size} richieste KYC?`,
+            reject: `Rifiutare ${this.selectedRequests.size} richieste KYC?`,
+            pending: `Rimettere in attesa ${this.selectedRequests.size} richieste?`,
+            export: `Esportare ${this.selectedRequests.size} richieste?`,
+            notify: `Inviare notifica a ${this.selectedRequests.size} utenti?`
+        };
+        
+        if (!confirm(confirmMessages[action])) return;
+        
+        const executeBtn = document.getElementById('bulk-execute-btn');
+        setButtonLoading(executeBtn, true, 'Elaborando...');
+        
+        try {
+            const response = await fetch('/admin/kyc/bulk-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action,
+                    request_ids: Array.from(this.selectedRequests)
+                })
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', `Azione "${action}" completata`);
+                this.clearSelection();
+                await this.refreshData();
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nell\'azione');
+            }
+        } catch (error) {
+            console.error('Errore bulk action:', error);
+            this.showAlert('error', 'Errore nell\'esecuzione');
+        } finally {
+            setButtonLoading(executeBtn, false);
+        }
+    }
+    
+    // Export function
+    async exportKYCData() {
+        const exportBtn = document.querySelector('[onclick="exportKYCData()"]');
+        setButtonLoading(exportBtn, true, 'Esportando...');
+        
+        try {
+            const params = new URLSearchParams(this.currentFilter);
+            params.append('format', 'csv');
+            
+            window.open(`/admin/kyc/export?${params.toString()}`, '_blank');
+            this.showAlert('success', 'Export avviato');
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'export');
+        } finally {
+            setButtonLoading(exportBtn, false);
+        }
+    }
+    
+    // Utility functions
+    async refreshData() {
+        await this.loadKYCRequests();
+        await this.loadKYCStats();
+    }
+    
+    bindEvents() {
+        // Search with debounce
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => this.applySearchFilter(), 300);
+        });
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('kyc-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let kycManager;
+
+function filterKYCRequests() {
+    kycManager.applyStatusFilter();
+}
+
+function sortKYCRequests() {
+    kycManager.applySortFilter();
+}
+
+function searchKYCRequests() {
+    kycManager.applySearchFilter();
+}
+
+function resetFilters() {
+    kycManager.resetFilters();
+}
+
+function toggleBulkMode() {
+    kycManager.toggleBulkMode();
+}
+
+function toggleSelectAll() {
+    kycManager.toggleSelectAll();
+}
+
+function clearKYCSelection() {
+    kycManager.clearSelection();
+}
+
+function executeBulkAction() {
+    kycManager.executeBulkAction();
+}
+
+function reviewKYC(requestId) {
+    kycManager.reviewKYC(requestId);
+}
+
+function approveKYC() {
+    kycManager.approveKYC();
+}
+
+function rejectKYC() {
+    kycManager.rejectKYC();
+}
+
+function quickApprove(requestId) {
+    kycManager.quickApprove(requestId);
+}
+
+function quickReject(requestId) {
+    kycManager.quickReject(requestId);
+}
+
+function refreshKYCRequests() {
+    kycManager.refreshData();
+}
+
+function exportKYCData() {
+    kycManager.exportKYCData();
+}
+
+function openBulkActionsModal() {
+    kycManager.toggleBulkMode();
+}
+
+function openImagePreview(src, title) {
+    window.open(src, '_blank');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    kycManager = new KYCManager();
+});
+</script>
+{% endblock %}
+{% endblock %}

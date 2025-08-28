@@ -1,0 +1,1261 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Analytics e Reporting - Admin CIP Immobiliare{% endblock %}
+
+{% set show_breadcrumb = true %}
+
+{% block breadcrumb %}
+<ol class="flex items-center space-x-2 text-sm">
+    <li>
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+            </svg>
+        </a>
+    </li>
+    <li class="text-gray-400">/</li>
+    <li class="text-gray-700 font-medium">Analytics</li>
+</ol>
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Analytics e Reporting</h1>
+            <p class="admin-text-small">Dashboard avanzata per analisi dati e metriche business</p>
+        </div>
+        <div class="admin-flex">
+            <button onclick="refreshAnalytics()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Aggiorna
+            </button>
+            <button onclick="openExportModal()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="export-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Esporta Report
+            </button>
+            <button onclick="openFilterModal()" class="admin-btn admin-btn--primary admin-btn--sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+                </svg>
+                Filtri Avanzati
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="analytics-alerts" class="mb-6"></div>
+
+<!-- Time Filter Bar -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div class="admin-flex">
+            <h3 class="admin-heading-3 mr-4">Periodo di Analisi:</h3>
+            <div class="admin-flex">
+                <button onclick="setTimePeriod('today')" class="time-filter-btn admin-btn admin-btn--secondary admin-btn--sm mr-1" data-period="today">
+                    Oggi
+                </button>
+                <button onclick="setTimePeriod('week')" class="time-filter-btn admin-btn admin-btn--secondary admin-btn--sm mr-1" data-period="week">
+                    7 Giorni
+                </button>
+                <button onclick="setTimePeriod('month')" class="time-filter-btn admin-btn admin-btn--primary admin-btn--sm mr-1" data-period="month">
+                    30 Giorni
+                </button>
+                <button onclick="setTimePeriod('quarter')" class="time-filter-btn admin-btn admin-btn--secondary admin-btn--sm mr-1" data-period="quarter">
+                    3 Mesi
+                </button>
+                <button onclick="setTimePeriod('year')" class="time-filter-btn admin-btn admin-btn--secondary admin-btn--sm mr-1" data-period="year">
+                    1 Anno
+                </button>
+                <button onclick="setTimePeriod('all')" class="time-filter-btn admin-btn admin-btn--secondary admin-btn--sm" data-period="all">
+                    Tutto
+                </button>
+            </div>
+        </div>
+        <div class="admin-flex">
+            <input type="date" id="start-date" class="admin-input admin-btn--sm mr-2" onchange="setCustomDateRange()">
+            <input type="date" id="end-date" class="admin-input admin-btn--sm mr-2" onchange="setCustomDateRange()">
+            <span class="admin-text-small text-gray-500 flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Aggiornato: <span id="last-update">-</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Key Performance Indicators -->
+<div class="admin-grid admin-grid--4 mb-6">
+    <div class="admin-card admin-card--success">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-green-800">Revenue Totale</h3>
+                    <p class="admin-text-small text-green-600">Ricavi periodo</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-green-800" id="total-revenue">€0</p>
+                <p class="admin-text-caption text-green-600" id="revenue-change">+0% vs periodo precedente</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--info">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-blue-800">Nuovi Utenti</h3>
+                    <p class="admin-text-small text-blue-600">Registrazioni periodo</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-blue-800" id="new-users">0</p>
+                <p class="admin-text-caption text-blue-600" id="users-change">+0% vs periodo precedente</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--warning">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-orange-800">Volume Investimenti</h3>
+                    <p class="admin-text-small text-orange-600">Capitale investito</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-orange-800" id="investment-volume">€0</p>
+                <p class="admin-text-caption text-orange-600" id="investment-change">+0% vs periodo precedente</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--error">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-red-800">Progetti Attivi</h3>
+                    <p class="admin-text-small text-red-600">In finanziamento</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-red-800" id="active-projects">0</p>
+                <p class="admin-text-caption text-red-600" id="projects-change">+0 vs mese scorso</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary KPIs -->
+<div class="admin-grid admin-grid--6 mb-6">
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">Tasso Conversione</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="conversion-rate">0%</p>
+        <p class="admin-text-caption text-gray-500">Registrati → Investitori</p>
+    </div>
+    
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">Ticket Medio</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="avg-investment">€0</p>
+        <p class="admin-text-caption text-gray-500">Per investimento</p>
+    </div>
+    
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">ROI Medio</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="avg-roi">0%</p>
+        <p class="admin-text-caption text-gray-500">Progetti attivi</p>
+    </div>
+    
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">Richieste KYC</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="kyc-pending">0</p>
+        <p class="admin-text-caption text-gray-500">In attesa</p>
+    </div>
+    
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">Tempo Approvazione</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="avg-approval-time">0</p>
+        <p class="admin-text-caption text-gray-500">Giorni medi KYC</p>
+    </div>
+    
+    <div class="admin-card admin-card-body text-center">
+        <h4 class="admin-text-small font-medium text-gray-600">Retention Rate</h4>
+        <p class="admin-text-large font-bold text-gray-800" id="retention-rate">0%</p>
+        <p class="admin-text-caption text-gray-500">Utenti 30gg</p>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="admin-grid admin-grid--2 mb-6">
+    <!-- User Growth Chart -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Crescita Utenti</h2>
+                    <p class="admin-text-small">Andamento registrazioni nel tempo</p>
+                </div>
+                <div class="admin-flex">
+                    <button onclick="changeChartType('users', 'line')" class="chart-type-btn admin-btn admin-btn--secondary admin-btn--sm mr-1" data-chart="users" data-type="line">
+                        Linea
+                    </button>
+                    <button onclick="changeChartType('users', 'bar')" class="chart-type-btn admin-btn admin-btn--primary admin-btn--sm" data-chart="users" data-type="bar">
+                        Barre
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="usersGrowthChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Investment Volume Chart -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Volume Investimenti</h2>
+                    <p class="admin-text-small">Capitale investito nel tempo</p>
+                </div>
+                <div class="admin-flex">
+                    <button onclick="changeChartType('investments', 'line')" class="chart-type-btn admin-btn admin-btn--primary admin-btn--sm mr-1" data-chart="investments" data-type="line">
+                        Linea
+                    </button>
+                    <button onclick="changeChartType('investments', 'bar')" class="chart-type-btn admin-btn admin-btn--secondary admin-btn--sm" data-chart="investments" data-type="bar">
+                        Barre
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="investmentVolumeChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Projects Performance and Distribution -->
+<div class="admin-grid admin-grid--2 mb-6">
+    <!-- Projects Performance Chart -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Performance Progetti</h2>
+                    <p class="admin-text-small">ROI e stato finanziamento</p>
+                </div>
+                <div class="admin-flex">
+                    <select id="projects-metric" class="admin-input admin-select admin-btn--sm" onchange="updateProjectsChart()">
+                        <option value="roi">ROI %</option>
+                        <option value="funding">% Finanziamento</option>
+                        <option value="volume">Volume €</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="projectsPerformanceChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Investment Distribution Chart -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Distribuzione Investimenti</h2>
+                    <p class="admin-text-small">Per tipologia progetto</p>
+                </div>
+                <div class="admin-flex">
+                    <button onclick="changeChartType('distribution', 'pie')" class="chart-type-btn admin-btn admin-btn--primary admin-btn--sm mr-1" data-chart="distribution" data-type="pie">
+                        Torta
+                    </button>
+                    <button onclick="changeChartType('distribution', 'doughnut')" class="chart-type-btn admin-btn admin-btn--secondary admin-btn--sm" data-chart="distribution" data-type="doughnut">
+                        Ciambella
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="investmentDistributionChart" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue and Conversion Analysis -->
+<div class="admin-grid admin-grid--2 mb-6">
+    <!-- Revenue Breakdown -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-2">Breakdown Revenue</h2>
+            <p class="admin-text-small">Composizione ricavi</p>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="revenueBreakdownChart" height="250"></canvas>
+        </div>
+    </div>
+
+    <!-- Conversion Funnel -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-2">Funnel di Conversione</h2>
+            <p class="admin-text-small">Dalla registrazione all'investimento</p>
+        </div>
+        <div class="admin-card-body">
+            <div class="space-y-4" id="conversion-funnel">
+                <!-- Funnel steps will be populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Analytics Tables -->
+<div class="admin-grid admin-grid--1 mb-6">
+    <!-- Top Performing Projects -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h2 class="admin-heading-2">Top 10 Progetti Performance</h2>
+                    <p class="admin-text-small">Ordinati per ROI e volume investimenti</p>
+                </div>
+                <div class="admin-flex">
+                    <select id="projects-sort" class="admin-input admin-select admin-btn--sm mr-2" onchange="updateTopProjectsTable()">
+                        <option value="roi">ROI %</option>
+                        <option value="volume">Volume Investimenti</option>
+                        <option value="investors">Numero Investitori</option>
+                        <option value="funding">% Finanziamento</option>
+                    </select>
+                    <button onclick="exportProjectsData()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"/>
+                        </svg>
+                        Esporta
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="min-w-full" id="top-projects-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left admin-text-caption">Progetto</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">ROI %</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Volume €</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Investitori</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Finanziamento</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">Stato</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-projects-tbody">
+                        <!-- Table rows will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Segments Analysis -->
+<div class="admin-grid admin-grid--3 mb-6">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-heading-3">Segmenti Utenti</h3>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="userSegmentsChart" height="200"></canvas>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-heading-3">Geografia Investimenti</h3>
+        </div>
+        <div class="admin-card-body">
+            <div id="geographic-data">
+                <!-- Geographic breakdown will be populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-heading-3">Trend Mensili</h3>
+        </div>
+        <div class="admin-card-body">
+            <canvas id="monthlyTrendsChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="analytics-loading" class="text-center py-12 hidden">
+    {% include 'admin/components/loading.html' with loading_text='Caricamento analytics...', loading_size='lg' %}
+</div>
+
+<!-- Export Modal -->
+{% include 'admin/components/modal.html' with modal_id='export-modal', modal_title='Esporta Report Analytics', modal_size='lg' %}
+
+{% block modal_body %}
+<div class="space-y-4">
+    <div class="admin-form-group">
+        <label class="admin-label">Formato Export</label>
+        <select id="export-format" class="admin-input admin-select">
+            <option value="csv">CSV - Comma Separated Values</option>
+            <option value="excel">Excel - Foglio di Calcolo</option>
+            <option value="pdf">PDF - Report Completo</option>
+            <option value="json">JSON - Dati Strutturati</option>
+        </select>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Sezioni da Includere</label>
+        <div class="space-y-2">
+            <label class="admin-flex admin-flex--center">
+                <input type="checkbox" id="include-kpis" checked class="mr-2">
+                <span class="admin-text-body">KPI e Metriche Principali</span>
+            </label>
+            <label class="admin-flex admin-flex--center">
+                <input type="checkbox" id="include-charts" checked class="mr-2">
+                <span class="admin-text-body">Dati Grafici (Crescita, Volume, Performance)</span>
+            </label>
+            <label class="admin-flex admin-flex--center">
+                <input type="checkbox" id="include-projects" checked class="mr-2">
+                <span class="admin-text-body">Top Progetti Performance</span>
+            </label>
+            <label class="admin-flex admin-flex--center">
+                <input type="checkbox" id="include-users" class="mr-2">
+                <span class="admin-text-body">Segmentazione Utenti</span>
+            </label>
+        </div>
+    </div>
+    
+    <div class="admin-form-group">
+        <label class="admin-label">Periodo Personalizzato</label>
+        <div class="admin-grid admin-grid--2">
+            <input type="date" id="export-start-date" class="admin-input">
+            <input type="date" id="export-end-date" class="admin-input">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="admin-flex admin-flex--between w-full">
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('export-modal')">
+        Annulla
+    </button>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="executeExport()" id="execute-export-btn">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"/>
+        </svg>
+        Esporta Report
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Analytics Management System
+class AnalyticsManager {
+    constructor() {
+        this.currentPeriod = 'month';
+        this.customDateRange = null;
+        this.charts = {};
+        this.analyticsData = {};
+        
+        this.init();
+    }
+    
+    async init() {
+        await this.loadAnalyticsData();
+        this.setupCharts();
+        this.renderKPIs();
+        this.renderSecondaryMetrics();
+        this.renderConversionFunnel();
+        this.renderTopProjectsTable();
+        this.renderGeographicData();
+        this.updateLastUpdateTime();
+        
+        // Set default time period
+        this.setTimePeriod('month');
+    }
+    
+    async loadAnalyticsData() {
+        try {
+            const params = new URLSearchParams({
+                period: this.currentPeriod,
+                format: 'json'
+            });
+            
+            if (this.customDateRange) {
+                params.append('start_date', this.customDateRange.start);
+                params.append('end_date', this.customDateRange.end);
+            }
+            
+            const response = await fetch(`/admin/analytics/data?${params.toString()}`);
+            if (response.ok) {
+                this.analyticsData = await response.json();
+                console.log('Analytics data loaded:', this.analyticsData);
+            }
+        } catch (error) {
+            console.error('Errore caricamento analytics:', error);
+            this.showAlert('error', 'Errore nel caricamento dei dati analytics');
+        }
+    }
+    
+    renderKPIs() {
+        const data = this.analyticsData;
+        
+        document.getElementById('total-revenue').textContent = 
+            `€${(data.kpis?.total_revenue || 0).toLocaleString()}`;
+        document.getElementById('revenue-change').textContent = 
+            `${data.kpis?.revenue_change > 0 ? '+' : ''}${(data.kpis?.revenue_change || 0).toFixed(1)}% vs periodo precedente`;
+        
+        document.getElementById('new-users').textContent = data.kpis?.new_users || 0;
+        document.getElementById('users-change').textContent = 
+            `${data.kpis?.users_change > 0 ? '+' : ''}${(data.kpis?.users_change || 0).toFixed(1)}% vs periodo precedente`;
+        
+        document.getElementById('investment-volume').textContent = 
+            `€${(data.kpis?.investment_volume || 0).toLocaleString()}`;
+        document.getElementById('investment-change').textContent = 
+            `${data.kpis?.investment_change > 0 ? '+' : ''}${(data.kpis?.investment_change || 0).toFixed(1)}% vs periodo precedente`;
+        
+        document.getElementById('active-projects').textContent = data.kpis?.active_projects || 0;
+        document.getElementById('projects-change').textContent = 
+            `${data.kpis?.projects_change > 0 ? '+' : ''}${data.kpis?.projects_change || 0} vs mese scorso`;
+    }
+    
+    renderSecondaryMetrics() {
+        const data = this.analyticsData;
+        
+        document.getElementById('conversion-rate').textContent = 
+            `${(data.metrics?.conversion_rate || 0).toFixed(1)}%`;
+        document.getElementById('avg-investment').textContent = 
+            `€${(data.metrics?.avg_investment || 0).toLocaleString()}`;
+        document.getElementById('avg-roi').textContent = 
+            `${(data.metrics?.avg_roi || 0).toFixed(1)}%`;
+        document.getElementById('kyc-pending').textContent = data.metrics?.kyc_pending || 0;
+        document.getElementById('avg-approval-time').textContent = 
+            `${(data.metrics?.avg_approval_time || 0).toFixed(1)}`;
+        document.getElementById('retention-rate').textContent = 
+            `${(data.metrics?.retention_rate || 0).toFixed(1)}%`;
+    }
+    
+    setupCharts() {
+        // Users Growth Chart
+        this.setupUsersGrowthChart();
+        
+        // Investment Volume Chart
+        this.setupInvestmentVolumeChart();
+        
+        // Projects Performance Chart
+        this.setupProjectsPerformanceChart();
+        
+        // Investment Distribution Chart
+        this.setupInvestmentDistributionChart();
+        
+        // Revenue Breakdown Chart
+        this.setupRevenueBreakdownChart();
+        
+        // User Segments Chart
+        this.setupUserSegmentsChart();
+        
+        // Monthly Trends Chart
+        this.setupMonthlyTrendsChart();
+    }
+    
+    setupUsersGrowthChart() {
+        const ctx = document.getElementById('usersGrowthChart').getContext('2d');
+        
+        this.charts.usersGrowth = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: this.analyticsData.charts?.users_growth?.labels || [],
+                datasets: [{
+                    label: 'Nuovi Utenti',
+                    data: this.analyticsData.charts?.users_growth?.data || [],
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    setupInvestmentVolumeChart() {
+        const ctx = document.getElementById('investmentVolumeChart').getContext('2d');
+        
+        this.charts.investmentVolume = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: this.analyticsData.charts?.investment_volume?.labels || [],
+                datasets: [{
+                    label: 'Volume Investimenti (€)',
+                    data: this.analyticsData.charts?.investment_volume?.data || [],
+                    borderColor: 'rgb(245, 158, 11)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toLocaleString();
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    setupProjectsPerformanceChart() {
+        const ctx = document.getElementById('projectsPerformanceChart').getContext('2d');
+        
+        this.charts.projectsPerformance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: this.analyticsData.charts?.projects_performance?.labels || [],
+                datasets: [{
+                    label: 'ROI %',
+                    data: this.analyticsData.charts?.projects_performance?.roi_data || [],
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgb(34, 197, 94)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    setupInvestmentDistributionChart() {
+        const ctx = document.getElementById('investmentDistributionChart').getContext('2d');
+        
+        this.charts.investmentDistribution = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: this.analyticsData.charts?.investment_distribution?.labels || [],
+                datasets: [{
+                    data: this.analyticsData.charts?.investment_distribution?.data || [],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(139, 92, 246, 0.8)',
+                        'rgba(236, 72, 153, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    setupRevenueBreakdownChart() {
+        const ctx = document.getElementById('revenueBreakdownChart').getContext('2d');
+        
+        this.charts.revenueBreakdown = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Commissioni Progetti', 'Fee Gestione', 'Commissioni Referral', 'Altri'],
+                datasets: [{
+                    data: this.analyticsData.charts?.revenue_breakdown?.data || [65, 20, 10, 5],
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(107, 114, 128, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    setupUserSegmentsChart() {
+        const ctx = document.getElementById('userSegmentsChart').getContext('2d');
+        
+        this.charts.userSegments = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Investitori Attivi', 'KYC Verificati', 'In Attesa KYC', 'Non Verificati'],
+                datasets: [{
+                    data: this.analyticsData.charts?.user_segments?.data || [40, 30, 20, 10],
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            fontSize: 10
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    setupMonthlyTrendsChart() {
+        const ctx = document.getElementById('monthlyTrendsChart').getContext('2d');
+        
+        this.charts.monthlyTrends = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: this.analyticsData.charts?.monthly_trends?.labels || [],
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: this.analyticsData.charts?.monthly_trends?.revenue || [],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Utenti',
+                        data: this.analyticsData.charts?.monthly_trends?.users || [],
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    renderConversionFunnel() {
+        const funnelContainer = document.getElementById('conversion-funnel');
+        const funnelData = this.analyticsData.funnel || [
+            { step: 'Visitatori', count: 10000, percentage: 100 },
+            { step: 'Registrazioni', count: 1500, percentage: 15 },
+            { step: 'KYC Completato', count: 800, percentage: 8 },
+            { step: 'Primo Investimento', count: 400, percentage: 4 }
+        ];
+        
+        funnelContainer.innerHTML = funnelData.map((step, index) => `
+            <div class="relative">
+                <div class="admin-flex admin-flex--between mb-2">
+                    <span class="admin-text-body font-medium">${step.step}</span>
+                    <span class="admin-text-small text-gray-600">${step.count.toLocaleString()} (${step.percentage}%)</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-gradient-to-r from-blue-500 to-green-500 h-4 rounded-full transition-all duration-500"
+                         style="width: ${step.percentage}%"></div>
+                </div>
+                ${index < funnelData.length - 1 ? `
+                    <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+    
+    renderTopProjectsTable() {
+        const tbody = document.getElementById('top-projects-tbody');
+        const projects = this.analyticsData.top_projects || [];
+        
+        tbody.innerHTML = projects.map(project => `
+            <tr class="border-t border-gray-200 hover:bg-gray-50">
+                <td class="px-4 py-3">
+                    <div>
+                        <p class="admin-text-body font-medium">${project.title}</p>
+                        <p class="admin-text-caption text-gray-500">${project.code}</p>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="admin-badge admin-badge--${project.roi >= 10 ? 'success' : project.roi >= 5 ? 'warning' : 'error'}">
+                        ${project.roi}%
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="admin-text-body font-medium">€${project.volume.toLocaleString()}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="admin-text-body">${project.investors}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: ${project.funding_percentage}%"></div>
+                    </div>
+                    <span class="admin-text-caption text-gray-500">${project.funding_percentage}%</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="admin-badge admin-badge--${project.status === 'active' ? 'success' : 'warning'}">
+                        ${project.status === 'active' ? 'Attivo' : 'Completato'}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    renderGeographicData() {
+        const geoContainer = document.getElementById('geographic-data');
+        const geoData = this.analyticsData.geographic || [
+            { region: 'Nord Italia', percentage: 45, amount: 450000 },
+            { region: 'Centro Italia', percentage: 30, amount: 300000 },
+            { region: 'Sud Italia', percentage: 20, amount: 200000 },
+            { region: 'Estero', percentage: 5, amount: 50000 }
+        ];
+        
+        geoContainer.innerHTML = geoData.map(region => `
+            <div class="mb-3">
+                <div class="admin-flex admin-flex--between mb-1">
+                    <span class="admin-text-small font-medium">${region.region}</span>
+                    <span class="admin-text-caption text-gray-600">${region.percentage}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: ${region.percentage}%"></div>
+                </div>
+                <span class="admin-text-caption text-gray-500">€${region.amount.toLocaleString()}</span>
+            </div>
+        `).join('');
+    }
+    
+    // Time period management
+    setTimePeriod(period) {
+        this.currentPeriod = period;
+        this.customDateRange = null;
+        
+        // Update UI
+        document.querySelectorAll('.time-filter-btn').forEach(btn => {
+            btn.classList.remove('admin-btn--primary');
+            btn.classList.add('admin-btn--secondary');
+        });
+        
+        document.querySelector(`[data-period="${period}"]`).classList.remove('admin-btn--secondary');
+        document.querySelector(`[data-period="${period}"]`).classList.add('admin-btn--primary');
+        
+        // Reload data
+        this.refreshAnalytics();
+    }
+    
+    setCustomDateRange() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        
+        if (startDate && endDate) {
+            this.customDateRange = { start: startDate, end: endDate };
+            this.currentPeriod = 'custom';
+            
+            // Update UI to show custom period
+            document.querySelectorAll('.time-filter-btn').forEach(btn => {
+                btn.classList.remove('admin-btn--primary');
+                btn.classList.add('admin-btn--secondary');
+            });
+            
+            this.refreshAnalytics();
+        }
+    }
+    
+    // Chart type management
+    changeChartType(chartName, type) {
+        if (this.charts[chartName]) {
+            this.charts[chartName].config.type = type;
+            this.charts[chartName].update();
+            
+            // Update UI buttons
+            document.querySelectorAll(`[data-chart="${chartName}"]`).forEach(btn => {
+                btn.classList.remove('admin-btn--primary');
+                btn.classList.add('admin-btn--secondary');
+            });
+            
+            document.querySelector(`[data-chart="${chartName}"][data-type="${type}"]`).classList.remove('admin-btn--secondary');
+            document.querySelector(`[data-chart="${chartName}"][data-type="${type}"]`).classList.add('admin-btn--primary');
+        }
+    }
+    
+    // Projects chart update
+    updateProjectsChart() {
+        const metric = document.getElementById('projects-metric').value;
+        if (this.charts.projectsPerformance && this.analyticsData.charts?.projects_performance) {
+            let data, label;
+            
+            switch (metric) {
+                case 'roi':
+                    data = this.analyticsData.charts.projects_performance.roi_data;
+                    label = 'ROI %';
+                    break;
+                case 'funding':
+                    data = this.analyticsData.charts.projects_performance.funding_data;
+                    label = 'Finanziamento %';
+                    break;
+                case 'volume':
+                    data = this.analyticsData.charts.projects_performance.volume_data;
+                    label = 'Volume €';
+                    break;
+            }
+            
+            this.charts.projectsPerformance.data.datasets[0].data = data;
+            this.charts.projectsPerformance.data.datasets[0].label = label;
+            this.charts.projectsPerformance.update();
+        }
+    }
+    
+    updateTopProjectsTable() {
+        const sortBy = document.getElementById('projects-sort').value;
+        // TODO: Resort table data
+        this.renderTopProjectsTable();
+    }
+    
+    // Export functions
+    openExportModal() {
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        document.getElementById('export-start-date').value = monthAgo;
+        document.getElementById('export-end-date').value = today;
+        
+        openModal('export-modal');
+    }
+    
+    async executeExport() {
+        const format = document.getElementById('export-format').value;
+        const includeKPIs = document.getElementById('include-kpis').checked;
+        const includeCharts = document.getElementById('include-charts').checked;
+        const includeProjects = document.getElementById('include-projects').checked;
+        const includeUsers = document.getElementById('include-users').checked;
+        const startDate = document.getElementById('export-start-date').value;
+        const endDate = document.getElementById('export-end-date').value;
+        
+        const exportBtn = document.getElementById('execute-export-btn');
+        setButtonLoading(exportBtn, true, 'Esportando...');
+        
+        try {
+            const params = new URLSearchParams({
+                format,
+                period: this.currentPeriod,
+                include_kpis: includeKPIs,
+                include_charts: includeCharts,
+                include_projects: includeProjects,
+                include_users: includeUsers,
+                start_date: startDate,
+                end_date: endDate
+            });
+            
+            window.open(`/admin/analytics/export?${params.toString()}`, '_blank');
+            this.showAlert('success', 'Export avviato con successo');
+            closeModal('export-modal');
+        } catch (error) {
+            this.showAlert('error', 'Errore durante l\'export');
+        } finally {
+            setButtonLoading(exportBtn, false);
+        }
+    }
+    
+    exportProjectsData() {
+        const params = new URLSearchParams({
+            format: 'csv',
+            type: 'projects_performance',
+            period: this.currentPeriod
+        });
+        
+        window.open(`/admin/analytics/export?${params.toString()}`, '_blank');
+    }
+    
+    // Other functions
+    openFilterModal() {
+        this.showAlert('info', 'Filtri avanzati in sviluppo');
+    }
+    
+    async refreshAnalytics() {
+        document.getElementById('analytics-loading').classList.remove('hidden');
+        
+        try {
+            await this.loadAnalyticsData();
+            this.updateAllCharts();
+            this.renderKPIs();
+            this.renderSecondaryMetrics();
+            this.renderConversionFunnel();
+            this.renderTopProjectsTable();
+            this.renderGeographicData();
+            this.updateLastUpdateTime();
+            
+            this.showAlert('success', 'Dati analytics aggiornati');
+        } catch (error) {
+            this.showAlert('error', 'Errore nell\'aggiornamento dei dati');
+        } finally {
+            document.getElementById('analytics-loading').classList.add('hidden');
+        }
+    }
+    
+    updateAllCharts() {
+        Object.keys(this.charts).forEach(chartName => {
+            if (this.charts[chartName]) {
+                // Update chart data based on new analyticsData
+                this.updateChartData(chartName);
+                this.charts[chartName].update();
+            }
+        });
+    }
+    
+    updateChartData(chartName) {
+        const chart = this.charts[chartName];
+        const data = this.analyticsData.charts;
+        
+        switch (chartName) {
+            case 'usersGrowth':
+                chart.data.labels = data?.users_growth?.labels || [];
+                chart.data.datasets[0].data = data?.users_growth?.data || [];
+                break;
+            case 'investmentVolume':
+                chart.data.labels = data?.investment_volume?.labels || [];
+                chart.data.datasets[0].data = data?.investment_volume?.data || [];
+                break;
+            // Add other chart updates as needed
+        }
+    }
+    
+    updateLastUpdateTime() {
+        const now = new Date();
+        document.getElementById('last-update').textContent = 
+            now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    showAlert(type, message) {
+        const container = document.getElementById('analytics-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let analyticsManager;
+
+function setTimePeriod(period) {
+    analyticsManager.setTimePeriod(period);
+}
+
+function setCustomDateRange() {
+    analyticsManager.setCustomDateRange();
+}
+
+function changeChartType(chartName, type) {
+    analyticsManager.changeChartType(chartName, type);
+}
+
+function updateProjectsChart() {
+    analyticsManager.updateProjectsChart();
+}
+
+function updateTopProjectsTable() {
+    analyticsManager.updateTopProjectsTable();
+}
+
+function refreshAnalytics() {
+    analyticsManager.refreshAnalytics();
+}
+
+function openExportModal() {
+    analyticsManager.openExportModal();
+}
+
+function executeExport() {
+    analyticsManager.executeExport();
+}
+
+function exportProjectsData() {
+    analyticsManager.exportProjectsData();
+}
+
+function openFilterModal() {
+    analyticsManager.openFilterModal();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    analyticsManager = new AnalyticsManager();
+});
+</script>
+{% endblock %}
+{% endblock %}
