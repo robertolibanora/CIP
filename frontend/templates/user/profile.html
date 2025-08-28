@@ -2,6 +2,10 @@
 
 {% block title %}Profilo - CIP Immobiliare{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('assets', filename='css/profile-fix.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-white">
     <!-- Header -->
@@ -195,7 +199,7 @@
         <div class="mt-8 bg-white rounded-xl border border-gray-200 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-6">Informazioni Account</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <p class="text-sm text-gray-500">Data Registrazione</p>
                     <p class="font-semibold text-gray-900">
@@ -207,6 +211,26 @@
                     <p class="text-sm text-gray-500">ID Utente</p>
                     <p class="font-semibold text-gray-900">{{ user.id or 'N/A' }}</p>
                 </div>
+            </div>
+            
+            <!-- Separatore -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Azioni Account</h3>
+                
+                <!-- Pulsante Logout -->
+                <div class="flex justify-center">
+                    <a href="{{ url_for('auth.logout') }}" 
+                       class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all duration-300 shadow-md hover:shadow-lg">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        Esci dall'Account
+                    </a>
+                </div>
+                
+                <p class="text-xs text-gray-500 text-center mt-3">
+                    Clicca per terminare la sessione e tornare alla pagina di login
+                </p>
             </div>
         </div>
     </div>

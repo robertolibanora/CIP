@@ -105,16 +105,30 @@ input, textarea, select {
     font-size: 0.875rem;
     transition: var(--cip-transition);
     background: var(--cip-primary);
+    color: var(--cip-neutral-800);
 }
 
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--cip-bg);
     box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    background: var(--cip-primary);
+    color: var(--cip-neutral-800);
 }
 
 input::placeholder, textarea::placeholder {
     color: var(--cip-neutral-400);
+}
+
+/* Assicura che gli input abbiano sempre testo visibile */
+input, textarea, select {
+    background-color: var(--cip-primary) !important;
+    color: var(--cip-neutral-800) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    background-color: var(--cip-primary) !important;
+    color: var(--cip-neutral-800) !important;
 }
 
 /* Cards - Design immobiliare.it */

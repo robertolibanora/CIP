@@ -1,0 +1,383 @@
+/* =====================================================
+   PROFILE FIX - Correzione visibilità campi profilo
+   Risolve problemi specifici della pagina profilo
+   ===================================================== */
+
+/* =====================================================
+   FIX PER CAMPI INFORMAZIONI PERSONALI
+   ===================================================== */
+
+/* Campo Nome Completo */
+#full_name,
+input[name="full_name"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+#full_name:focus,
+input[name="full_name"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#full_name:hover,
+input[name="full_name"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* Campo Email */
+#email,
+input[name="email"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+#email:focus,
+input[name="email"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#email:hover,
+input[name="email"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* Campo Codice Referral - SOVRASCRIVE bg-gray-50 */
+#referral_code,
+input[id="referral_code"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+    border-right: none !important;
+}
+
+#referral_code:focus,
+input[id="referral_code"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#referral_code:hover,
+input[id="referral_code"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* =====================================================
+   FIX PER CAMPI CAMBIO PASSWORD
+   ===================================================== */
+
+/* Password Attuale */
+#current_password,
+input[name="current_password"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+#current_password:focus,
+input[name="current_password"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#current_password:hover,
+input[name="current_password"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* Nuova Password */
+#new_password,
+input[name="new_password"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+#new_password:focus,
+input[name="new_password"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#new_password:hover,
+input[name="new_password"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* =====================================================
+   FIX PER CAMPI KYC
+   ===================================================== */
+
+/* Tipo Documento */
+#document_category,
+select[name="category"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+#document_category:focus,
+select[name="category"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+#document_category:hover,
+select[name="category"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA COMPLETA PER TUTTI GLI INPUT DEL PROFILO
+   ===================================================== */
+
+/* Qualsiasi input nella pagina profilo */
+.profile input,
+.profile textarea,
+.profile select,
+#profile-form input,
+#profile-form textarea,
+#profile-form select,
+#password-form input,
+#password-form textarea,
+#password-form select,
+#kyc-upload-form input,
+#kyc-upload-form textarea,
+#kyc-upload-form select {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+.profile input:focus,
+.profile textarea:focus,
+.profile select:focus,
+#profile-form input:focus,
+#profile-form textarea:focus,
+#profile-form select:focus,
+#password-form input:focus,
+#password-form textarea:focus,
+#password-form select:focus,
+#kyc-upload-form input:focus,
+#kyc-upload-form textarea:focus,
+#kyc-upload-form select:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.profile input:hover,
+.profile textarea:hover,
+.profile select:hover,
+#profile-form input:hover,
+#profile-form textarea:hover,
+#profile-form select:hover,
+#password-form input:hover,
+#password-form textarea:hover,
+#password-form select:hover,
+#kyc-upload-form input:hover,
+#kyc-upload-form textarea:hover,
+#kyc-upload-form select:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA PER CLASSI TAILWIND SPECIFICHE
+   ===================================================== */
+
+/* Sovrascrive bg-gray-50 e altre classi Tailwind */
+.bg-gray-50,
+.bg-gray-100,
+.bg-gray-200,
+.bg-gray-300,
+.bg-gray-400,
+.bg-gray-500,
+.bg-gray-600,
+.bg-gray-700,
+.bg-gray-800,
+.bg-gray-900 {
+    background-color: white !important;
+}
+
+/* Sovrascrive classi di input specifiche */
+input[class*="bg-"],
+textarea[class*="bg-"],
+select[class*="bg-"] {
+    background-color: white !important;
+}
+
+/* =====================================================
+   FIX PER PLACEHOLDER
+   ===================================================== */
+
+/* Placeholder sempre visibili */
+.profile input::placeholder,
+.profile textarea::placeholder,
+#profile-form input::placeholder,
+#profile-form textarea::placeholder,
+#password-form input::placeholder,
+#password-form textarea::placeholder,
+#kyc-upload-form input::placeholder,
+#kyc-upload-form textarea::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+}
+
+/* =====================================================
+   DARK MODE SUPPORT
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    /* Dark mode per tutti gli input del profilo */
+    .profile input,
+    .profile textarea,
+    .profile select,
+    #profile-form input,
+    #profile-form textarea,
+    #profile-form select,
+    #password-form input,
+    #password-form textarea,
+    #password-form select,
+    #kyc-upload-form input,
+    #kyc-upload-form textarea,
+    #kyc-upload-form select {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #404040 !important;
+    }
+    
+    .profile input:focus,
+    .profile textarea:focus,
+    .profile select:focus,
+    #profile-form input:focus,
+    #profile-form textarea:focus,
+    #profile-form select:focus,
+    #password-form input:focus,
+    #password-form textarea:focus,
+    #password-form select:focus,
+    #kyc-upload-form input:focus,
+    #kyc-upload-form textarea:focus,
+    #kyc-upload-form select:focus {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
+    }
+    
+    .profile input:hover,
+    .profile textarea:hover,
+    .profile select:hover,
+    #profile-form input:hover,
+    #profile-form textarea:hover,
+    #profile-form select:hover,
+    #password-form input:hover,
+    #password-form textarea:hover,
+    #password-form select:hover,
+    #kyc-upload-form input:hover,
+    #kyc-upload-form textarea:hover,
+    #kyc-upload-form select:hover {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #4a4a4a !important;
+    }
+    
+    /* Dark mode per classi Tailwind */
+    .bg-gray-50,
+    .bg-gray-100,
+    .bg-gray-200,
+    .bg-gray-300,
+    .bg-gray-400,
+    .bg-gray-500,
+    .bg-gray-600,
+    .bg-gray-700,
+    .bg-gray-800,
+    .bg-gray-900 {
+        background-color: #2a2a2a !important;
+    }
+}
+
+/* =====================================================
+   PRIORITÀ MASSIMA ASSOLUTA
+   ===================================================== */
+
+/* Queste regole hanno priorità massima e sovrascrivono TUTTO */
+.profile input,
+.profile textarea,
+.profile select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.profile input:focus,
+.profile textarea:focus,
+.profile select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.profile input:hover,
+.profile textarea:hover,
+.profile select:hover {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Dark mode con priorità massima */
+@media (prefers-color-scheme: dark) {
+    .profile input,
+    .profile textarea,
+    .profile select {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    .profile input:focus,
+    .profile textarea:focus,
+    .profile select:focus {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    .profile input:hover,
+    .profile textarea:hover,
+    .profile select:hover {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+}

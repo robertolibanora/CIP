@@ -46,6 +46,11 @@
     <link rel="stylesheet" href="{{ url_for('assets', filename='css/mobile-optimizations.css') }}">
     <link rel="stylesheet" href="{{ url_for('assets', filename='css/output.css') }}">
     <link rel="stylesheet" href="{{ url_for('assets', filename='css/brand-colors.css') }}">
+    <link rel="stylesheet" href="{{ url_for('assets', filename='css/form-fix.css') }}">
+    <link rel="stylesheet" href="{{ url_for('assets', filename='css/kyc-popups.css') }}">
+    <link rel="stylesheet" href="{{ url_for('assets', filename='css/input-override.css') }}">
+    
+    {% block extra_css %}{% endblock %}
     
     <!-- CSS URGENTE per bottom navbar - garantisce funzionamento -->
     <style>
@@ -160,6 +165,7 @@
     
     <!-- PWA JavaScript -->
     <script src="{{ url_for('assets', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('assets', filename='js/kyc-popups.js') }}"></script>
     
     <!-- Service Worker Registration -->
     <script>

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session, redirect, url_for, render_template, flash
 from backend.shared.database import get_connection
-from backend.shared.validators import validate_email, validate_password
+from backend.shared.validators import validate_email, validate_password, ValidationError
 from backend.auth.middleware import create_secure_session, destroy_session
 import hashlib
 
@@ -50,7 +50,7 @@ def login():
 
                 # Reindirizza admin alla dashboard admin, utenti normali alla dashboard utente
                 if user["role"] == "admin":
-                    return redirect(url_for("admin.dashboard"))
+                    return redirect(url_for("admin.admin_dashboard"))
                 else:
                     return redirect(url_for("user.dashboard"))
             else:
@@ -77,12 +77,16 @@ def register():
             flash("Tutti i campi obbligatori sono richiesti", "error")
             return render_template("auth/register.html")
 
-        if not validate_email(email):
-            flash("Email non valida", "error")
+        try:
+            validate_email(email)
+        except ValidationError as e:
+            flash(str(e), "error")
             return render_template("auth/register.html")
 
-        if not validate_password(password):
-            flash("Password deve essere di almeno 6 caratteri", "error")
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            flash(str(e), "error")
             return render_template("auth/register.html")
 
         with get_conn() as conn, conn.cursor() as cur:

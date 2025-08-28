@@ -47,8 +47,8 @@ def dashboard():
         
         # Investimenti attivi dettagliati - TABELLE: investments + projects
         cur.execute("""
-            SELECT i.id, i.amount, i.created_at as date_invested, p.title as project_name,
-                   CASE WHEN p.target_amount > 0 THEN (i.amount / p.target_amount * 100) ELSE 0 END as percentage
+            SELECT i.id, i.amount, i.created_at as date_invested, p.name as project_name,
+                   CASE WHEN p.total_amount > 0 THEN (i.amount / p.total_amount * 100) ELSE 0 END as percentage
             FROM investments i 
             JOIN projects p ON p.id = i.project_id 
             WHERE i.user_id = %s AND i.status = 'active'

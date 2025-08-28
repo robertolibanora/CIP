@@ -47,7 +47,7 @@ def search():
         if query:
             # Ricerca con query - TABELLA: projects + investments
             cur.execute("""
-                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code,
                        CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
                        COALESCE(i.amount, 0) as user_investment_amount,
@@ -55,13 +55,13 @@ def search():
                 FROM projects p 
                 LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
                 WHERE p.status = 'active' 
-                AND (p.title ILIKE %s OR p.description ILIKE %s)
+                AND (p.name ILIKE %s OR p.description ILIKE %s)
                 ORDER BY p.created_at DESC
             """, (uid, f'%{query}%', f'%{query}%'))
         else:
             # Tutti i progetti attivi - TABELLA: projects + investments
             cur.execute("""
-                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code,
                        CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
                        COALESCE(i.amount, 0) as user_investment_amount,
@@ -77,8 +77,8 @@ def search():
         # 3. ELABORAZIONE DATI PROGETTI
         for project in projects:
             # Calcola percentuale completamento
-            if project['target_amount'] and project['target_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            if project['total_amount'] and project['total_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             

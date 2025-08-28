@@ -51,8 +51,8 @@ def dashboard():
         
         # Investimenti attivi dettagliati
         cur.execute("""
-            SELECT i.id, i.amount, i.created_at as date_invested, p.title as project_name,
-                   CASE WHEN p.target_amount > 0 THEN (i.amount / p.target_amount * 100) ELSE 0 END as percentage
+            SELECT i.id, i.amount, i.created_at as date_invested, p.name as project_name,
+                   CASE WHEN p.total_amount > 0 THEN (i.amount / p.total_amount * 100) ELSE 0 END as percentage
             FROM investments i 
             JOIN projects p ON p.id = i.project_id 
             WHERE i.user_id = %s AND i.status = 'active'
@@ -138,7 +138,7 @@ def search():
         if query:
             # Ricerca con query - TABELLA: projects + investments
             cur.execute("""
-                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code,
                        CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
                        COALESCE(i.amount, 0) as user_investment_amount,
@@ -146,13 +146,13 @@ def search():
                 FROM projects p 
                 LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
                 WHERE p.status = 'active' 
-                AND (p.title ILIKE %s OR p.description ILIKE %s)
+                AND (p.name ILIKE %s OR p.description ILIKE %s)
                 ORDER BY p.created_at DESC
             """, (uid, f'%{query}%', f'%{query}%'))
         else:
             # Tutti i progetti attivi - TABELLA: projects + investments
             cur.execute("""
-                SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code,
                        CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
                        COALESCE(i.amount, 0) as user_investment_amount,
@@ -168,8 +168,8 @@ def search():
         # 3. ELABORAZIONE DATI PROGETTI
         for project in projects:
             # Calcola percentuale completamento
-            if project['target_amount'] and project['target_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            if project['total_amount'] and project['total_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             
@@ -250,7 +250,7 @@ def new_project():
         
         # 5. PROGETTI DISPONIBILI
         cur.execute("""
-            SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment
             FROM projects p 
             WHERE p.status = 'active'
@@ -260,8 +260,8 @@ def new_project():
         
         # Calcola percentuale completamento e aggiungi campi mancanti
         for project in available_projects:
-            if project['target_amount'] and project['target_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            if project['total_amount'] and project['total_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             
@@ -335,7 +335,7 @@ def invest(project_id):
         
         # 5. VERIFICA PROGETTO
         cur.execute("""
-            SELECT id, title, min_investment, target_amount, raised_amount, status
+            SELECT id, name, min_investment, total_amount, funded_amount, status
             FROM projects 
             WHERE id = %s AND status = 'active'
         """, (project_id,))
@@ -396,7 +396,7 @@ def invest(project_id):
             # Aggiorna progetto
             cur.execute("""
                 UPDATE projects 
-                SET raised_amount = raised_amount + %s
+                SET funded_amount = funded_amount + %s
                 WHERE id = %s
             """, (amount, project_id))
             
@@ -405,13 +405,13 @@ def invest(project_id):
                 INSERT INTO portfolio_transactions 
                 (user_id, type, amount, description, status, reference_type, reference_id)
                 VALUES (%s, 'investment', %s, %s, 'completed', 'investment', %s)
-            """, (uid, amount, f"Investimento in {project['title']}", investment_id))
+            """, (uid, amount, f"Investimento in {project['name']}", investment_id))
             
             # Commit transazione
             conn.commit()
             conn.autocommit = True
             
-            flash(f"Investimento di €{amount:.2f} in {project['title']} completato con successo!", "success")
+            flash(f"Investimento di €{amount:.2f} in {project['name']} completato con successo!", "success")
             return redirect(url_for('user.portfolio'))
             
         except Exception as e:
@@ -435,7 +435,7 @@ def portfolio():
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni investimenti
         cur.execute("""
-            SELECT i.id, p.title AS project_title, i.amount, i.status, i.created_at
+            SELECT i.id, p.name AS project_title, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s AND i.status = ANY(%s)
             ORDER BY i.created_at DESC
@@ -469,7 +469,7 @@ def portfolio_detail(investment_id):
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.*, p.title AS project_title
+            SELECT i.*, p.name AS project_title
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.id=%s AND i.user_id=%s
         """, (investment_id, uid))
@@ -496,7 +496,7 @@ def projects():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code
             FROM projects p 
             WHERE p.status = 'active'
@@ -506,8 +506,8 @@ def projects():
         
         # Calcola percentuale completamento
         for project in projects:
-            if project['target_amount'] and project['target_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            if project['total_amount'] and project['total_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             

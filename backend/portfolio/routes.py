@@ -6,6 +6,7 @@ API per gestione portfolio e investimenti
 from flask import Blueprint, request, session, jsonify
 import json
 from backend.shared.database import get_connection
+from backend.shared.validators import ValidationError
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
@@ -29,7 +30,7 @@ def get_investments():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.id, i.amount, i.status, i.created_at, p.title as project_title
+            SELECT i.id, i.amount, i.status, i.created_at, p.name as project_title
             FROM investments i 
             JOIN projects p ON p.id = i.project_id
             WHERE i.user_id = %s
@@ -46,7 +47,7 @@ def get_yields():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT iy.amount, iy.period_end, p.title as project_title
+            SELECT iy.amount, iy.period_end, p.name as project_title
             FROM investment_yields iy
             JOIN investments i ON i.id = iy.investment_id
             JOIN projects p ON p.id = i.project_id
@@ -171,9 +172,12 @@ def create_withdrawal_request():
             validate_bank_details
         )
         
-        amount = validate_withdrawal_amount(data.get('amount'))
-        source_section = validate_withdrawal_source(data.get('source_section'))
-        bank_details = validate_bank_details(data.get('bank_details'))
+        try:
+            amount = validate_withdrawal_amount(data.get('amount'))
+            source_section = validate_withdrawal_source(data.get('source_section'))
+            bank_details = validate_bank_details(data.get('bank_details'))
+        except ValidationError as e:
+            return jsonify({'error': str(e)}), 400
         
         with get_conn() as conn, conn.cursor() as cur:
             # Verifica disponibilità nella sezione selezionata
@@ -283,7 +287,7 @@ def get_profits_and_yields():
         # Ottieni profitti dai rendimenti investimenti
         cur.execute("""
             SELECT 
-                p.title as project_title,
+                p.name as project_title,
                 i.amount as invested_amount,
                 i.roi_earned as profit,
                 ROUND((i.roi_earned / i.amount * 100), 2) as roi_percentage,

@@ -239,7 +239,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div class="flex space-x-2">
-                            <a href="{{ url_for('admin.admin_user_detail', user_id=user.id) }}" 
+                            <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
                                class="text-cip-primary hover:text-blue-700">
                                 Dettagli
                             </a>
@@ -309,7 +309,7 @@ function applyFilters() {
     const queryString = params.toString();
     const url = queryString ? `?${queryString}` : '';
     
-    window.location.href = `{{ url_for('admin.admin_users_list') }}${url}`;
+            window.location.href = `{{ url_for('admin.users_list') }}${url}`;
 }
 
 function toggleUserStatus(userId, currentStatus) {
@@ -346,7 +346,7 @@ function exportUsers() {
     if (status !== 'all') params.append('status', status);
     params.append('export', 'csv');
     
-    window.open(`{{ url_for('admin.admin_users_list') }}?${params.toString()}`, '_blank');
+            window.open(`{{ url_for('admin.users_list') }}?${params.toString()}`, '_blank');
 }
 
 // Applica filtri con Enter nella ricerca

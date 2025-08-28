@@ -1,0 +1,275 @@
+/* =====================================================
+   INPUT OVERRIDE - Sovrascrive conflitti CSS specifici
+   Risolve problemi con --cip-primary e altre variabili problematiche
+   ===================================================== */
+
+/* =====================================================
+   SOVRASCRITTURA COMPLETA PER --cip-primary
+   ===================================================== */
+
+/* Forza background bianco per tutti gli input, indipendentemente da --cip-primary */
+input, textarea, select,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="number"], input[type="search"],
+input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"] {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    background-size: auto !important;
+    background-repeat: repeat !important;
+    background-position: 0% 0% !important;
+    background-attachment: scroll !important;
+}
+
+/* Forza colore testo scuro per tutti gli input */
+input, textarea, select,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="number"], input[type="search"],
+input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"] {
+    color: #333 !important;
+    color: rgb(51, 51, 51) !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA PER CLASSI SPECIFICHE
+   ===================================================== */
+
+/* Sovrascrive .bg-white e .bg-cip-primary */
+.bg-white input,
+.bg-white textarea,
+.bg-white select,
+.bg-cip-primary input,
+.bg-cip-primary textarea,
+.bg-cip-primary select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* Sovrascrive input con classi specifiche */
+.input-field,
+.form-input,
+.search-input,
+.form-control,
+.form-select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA PER STATI INTERATTIVI
+   ===================================================== */
+
+/* Focus state - mantiene sempre bianco */
+input:focus, textarea:focus, select:focus,
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+input[type="tel"]:focus, input[type="number"]:focus, input[type="search"]:focus,
+input[type="url"]:focus, input[type="date"]:focus, input[type="time"]:focus,
+input[type="datetime-local"]:focus, input[type="month"]:focus, input[type="week"]:focus {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* Hover state - mantiene sempre bianco */
+input:hover, textarea:hover, select:hover,
+input[type="text"]:hover, input[type="email"]:hover, input[type="password"]:hover,
+input[type="tel"]:hover, input[type="number"]:hover, input[type="search"]:hover,
+input[type="url"]:hover, input[type="date"]:hover, input[type="time"]:hover,
+input[type="datetime-local"]:hover, input[type="month"]:hover, input[type="week"]:hover {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* Active state - mantiene sempre bianco */
+input:active, textarea:active, select:active,
+input[type="text"]:active, input[type="email"]:active, input[type="password"]:active,
+input[type="tel"]:active, input[type="number"]:active, input[type="search"]:active,
+input[type="url"]:active, input[type="date"]:active, input[type="time"]:active,
+input[type="datetime-local"]:active, input[type="month"]:active, input[type="week"]:active {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA PER CONTAINER E WRAPPER
+   ===================================================== */
+
+/* Qualsiasi container che potrebbe ereditare --cip-primary */
+[class*="bg-"] input,
+[class*="bg-"] textarea,
+[class*="bg-"] select,
+[class*="bg-cip-"] input,
+[class*="bg-cip-"] textarea,
+[class*="bg-cip-"] select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* Container specifici */
+.input-field-container input,
+.input-field-container textarea,
+.input-field-container select,
+.form-group input,
+.form-group textarea,
+.form-group select,
+.auth-form input,
+.auth-form textarea,
+.auth-form select,
+.dashboard input,
+.dashboard textarea,
+.dashboard select,
+.profile input,
+.profile textarea,
+.profile select,
+.portfolio input,
+.portfolio textarea,
+.portfolio select,
+.projects input,
+.projects textarea,
+.projects select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* =====================================================
+   SOVRASCRITTURA PER PLACEHOLDER
+   ===================================================== */
+
+/* Placeholder sempre visibile */
+input::placeholder, textarea::placeholder,
+input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder,
+input[type="tel"]::placeholder, input[type="number"]::placeholder, input[type="search"]::placeholder,
+input[type="url"]::placeholder, input[type="date"]::placeholder, input[type="time"]::placeholder,
+input[type="datetime-local"]::placeholder, input[type="month"]::placeholder, input[type="week"]::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+}
+
+/* =====================================================
+   DARK MODE OVERRIDE
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    /* Dark mode - forza grigio scuro */
+    input, textarea, select,
+    input[type="text"], input[type="email"], input[type="password"],
+    input[type="tel"], input[type="number"], input[type="search"],
+    input[type="url"], input[type="date"], input[type="time"],
+    input[type="datetime-local"], input[type="month"], input[type="week"] {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    /* Focus, hover, active in dark mode */
+    input:focus, textarea:focus, select:focus,
+    input:hover, textarea:hover, select:hover,
+    input:active, textarea:active, select:active {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    /* Classi specifiche in dark mode */
+    .input-field, .form-input, .search-input,
+    .form-control, .form-select {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    /* Container in dark mode */
+    [class*="bg-"] input,
+    [class*="bg-"] textarea,
+    [class*="bg-"] select,
+    [class*="bg-cip-"] input,
+    [class*="bg-cip-"] textarea,
+    [class*="bg-cip-"] select {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+}
+
+/* =====================================================
+   PRIORITÀ MASSIMA ASSOLUTA
+   ===================================================== */
+
+/* Queste regole hanno priorità massima e sovrascrivono TUTTO */
+input, textarea, select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+input:hover, textarea:hover, select:hover {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+input:active, textarea:active, select:active {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: #333 !important;
+}
+
+/* Dark mode con priorità massima */
+@media (prefers-color-scheme: dark) {
+    input, textarea, select {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    input:hover, textarea:hover, select:hover {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+    
+    input:active, textarea:active, select:active {
+        background: #2a2a2a !important;
+        background-color: #2a2a2a !important;
+        background-image: none !important;
+        color: white !important;
+    }
+}

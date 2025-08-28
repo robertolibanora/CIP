@@ -193,13 +193,15 @@
     font-size: 16px;
     transition: all 0.3s ease;
     box-sizing: border-box;
-    background: #f9fafb;
+    background: white;
+    color: #333;
 }
 
 .input-field:focus {
     outline: none;
     border-color: #3b82f6;
     background: white;
+    color: #333;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -261,11 +263,14 @@
 /* Hover e focus states per input con icone */
 .input-field-container:hover .input-field {
     border-color: #d1d5db;
+    background: white;
+    color: #333;
 }
 
 .input-field-container:focus-within .input-field {
     border-color: #3b82f6;
     background: white;
+    color: #333;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -321,8 +326,9 @@
     }
     
     .input-field:focus {
-        background: #1a1a1a;
+        background: #2a2a2a;
         border-color: #3b82f6;
+        color: white;
     }
     
     .left-icon,

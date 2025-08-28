@@ -129,7 +129,7 @@ def user_detail(uid):
         cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
         cur.execute("""
-            SELECT i.id, p.title, i.amount, i.status, i.created_at
+            SELECT i.id, p.name, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s ORDER BY i.created_at DESC
         """, (uid,))
@@ -190,7 +190,7 @@ def investments_list():
     if project_id: q.append("i.project_id=%s"); params.append(project_id)
     where = ("WHERE "+" AND ".join(q)) if q else ""
     sql = f"""
-        SELECT i.id, u.full_name, p.title, i.amount, i.status, i.created_at
+        SELECT i.id, u.full_name, p.name, i.amount, i.status, i.created_at
         FROM investments i
         JOIN users u ON u.id=i.user_id
         JOIN projects p ON p.id=i.project_id
@@ -207,7 +207,7 @@ def investments_list():
 def investment_detail(iid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.*, u.full_name, p.title AS project_title
+            SELECT i.*, u.full_name, p.name AS project_title
             FROM investments i
             JOIN users u ON u.id=i.user_id
             JOIN projects p ON p.id=i.project_id
@@ -246,7 +246,7 @@ def investment_add_yield(iid):
 def requests_queue():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT r.id, u.full_name, p.title AS project, r.amount, r.state, r.created_at
+            SELECT r.id, u.full_name, p.name AS project, r.amount, r.state, r.created_at
             FROM investment_requests r
             JOIN users u ON u.id=r.user_id
             JOIN projects p ON p.id=r.project_id

@@ -30,7 +30,7 @@ def projects():
     with get_conn() as conn, conn.cursor() as cur:
         # Progetti disponibili - TABELLA: projects
         cur.execute("""
-            SELECT p.id, p.title, p.description, p.target_amount, p.raised_amount,
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code
             FROM projects p 
             WHERE p.status = 'active'
@@ -40,8 +40,8 @@ def projects():
         
         # Calcola percentuale completamento
         for project in projects:
-            if project['target_amount'] and project['target_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['raised_amount'] / project['target_amount']) * 100))
+            if project['total_amount'] and project['total_amount'] > 0:
+                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             

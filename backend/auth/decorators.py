@@ -127,6 +127,16 @@ def kyc_verified(f: Callable) -> Callable:
         
         # Utenti normali devono avere KYC verificato
         if user.get('kyc_status') != KYCStatus.VERIFIED.value:
+            # Se è una richiesta AJAX, restituisci errore JSON
+            from flask import request, jsonify
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'error': 'kyc_required',
+                    'message': 'Verifica KYC richiesta per accedere a questa funzionalità',
+                    'kyc_status': user.get('kyc_status')
+                }), 403
+            
+            # Altrimenti, reindirizza al profilo (fallback per browser senza JS)
             flash("Verifica KYC richiesta per accedere a questa funzionalità", "warning")
             return redirect(url_for('user.profile'))
         
@@ -182,6 +192,16 @@ def can_invest(f: Callable) -> Callable:
         
         # Utenti normali devono avere KYC verificato
         if user.get('kyc_status') != KYCStatus.VERIFIED.value:
+            # Se è una richiesta AJAX, restituisci errore JSON
+            from flask import request, jsonify
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'error': 'kyc_required',
+                    'message': 'Verifica KYC richiesta per investire',
+                    'kyc_status': user.get('kyc_status')
+                }), 403
+            
+            # Altrimenti, reindirizza al profilo (fallback per browser senza JS)
             flash("Verifica KYC richiesta per investire", "warning")
             return redirect(url_for('user.profile'))
         
@@ -232,6 +252,16 @@ def can_access_portfolio(f: Callable) -> Callable:
         
         # Utenti normali devono avere KYC verificato
         if user.get('kyc_status') != KYCStatus.VERIFIED.value:
+            # Se è una richiesta AJAX, restituisci errore JSON
+            from flask import request, jsonify
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'error': 'kyc_required',
+                    'message': 'Verifica KYC richiesta per accedere al portafoglio',
+                    'kyc_status': user.get('kyc_status')
+                }), 403
+            
+            # Altrimenti, reindirizza al profilo (fallback per browser senza JS)
             flash("Verifica KYC richiesta per accedere al portafoglio", "warning")
             return redirect(url_for('user.profile'))
         

@@ -1,0 +1,357 @@
+/* =====================================================
+   FORM FIX GLOBALE - Risoluzione problema visibilità testo
+   Assicura che tutti gli input abbiano sempre testo visibile in TUTTA l'app
+   ===================================================== */
+
+/* =====================================================
+   REGOLE GLOBALI PER TUTTI GLI INPUT
+   ===================================================== */
+
+/* Fix per TUTTI gli input - testo sempre visibile */
+input, textarea, select, 
+input[type="text"], input[type="email"], input[type="password"], 
+input[type="tel"], input[type="number"], input[type="search"],
+input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"] {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Focus state - mantiene testo visibile */
+input:focus, textarea:focus, select:focus,
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+input[type="tel"]:focus, input[type="number"]:focus, input[type="search"]:focus,
+input[type="url"]:focus, input[type="date"]:focus, input[type="time"]:focus,
+input[type="datetime-local"]:focus, input[type="month"]:focus, input[type="week"]:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Hover state - mantiene testo visibile */
+input:hover, textarea:hover, select:hover,
+input[type="text"]:hover, input[type="email"]:hover, input[type="password"]:hover,
+input[type="tel"]:hover, input[type="number"]:hover, input[type="search"]:hover,
+input[type="url"]:hover, input[type="date"]:hover, input[type="time"]:hover,
+input[type="datetime-local"]:hover, input[type="month"]:hover, input[type="week"]:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* Placeholder sempre visibile */
+input::placeholder, textarea::placeholder,
+input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder,
+input[type="tel"]::placeholder, input[type="number"]::placeholder, input[type="search"]::placeholder,
+input[type="url"]::placeholder, input[type="date"]::placeholder, input[type="time"]::placeholder,
+input[type="datetime-local"]::placeholder, input[type="month"]::placeholder, input[type="week"]::placeholder {
+    color: #9ca3af !important;
+}
+
+/* =====================================================
+   FIX SPECIFICI PER CLASSI COMUNI
+   ===================================================== */
+
+/* Input con icone - mantiene testo visibile */
+.input-field,
+.form-input,
+.search-input,
+.form-control,
+.form-control-lg,
+.form-control-sm,
+.form-select,
+.form-select-lg,
+.form-select-sm {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #e1e5e9 !important;
+}
+
+.input-field:focus,
+.form-input:focus,
+.search-input:focus,
+.form-control:focus,
+.form-control-lg:focus,
+.form-control-sm:focus,
+.form-select:focus,
+.form-select-lg:focus,
+.form-select-sm:focus {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #3b82f6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.input-field:hover,
+.form-input:hover,
+.search-input:hover,
+.form-control:hover,
+.form-control-lg:hover,
+.form-control-sm:hover,
+.form-select:hover,
+.form-select-lg:hover,
+.form-select-sm:hover {
+    background-color: white !important;
+    color: #333 !important;
+    border-color: #d1d5db !important;
+}
+
+/* Fix per input con container */
+.input-field-container input,
+.input-field-container textarea,
+.input-field-container select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.input-field-container input:focus,
+.input-field-container textarea:focus,
+.input-field-container select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per form groups */
+.form-group input,
+.form-group textarea,
+.form-group select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input con icone laterali */
+.input-with-left-icon,
+.input-with-right-icon {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.input-with-left-icon:focus,
+.input-with-right-icon:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input di ricerca */
+.search-input,
+.search-input:focus,
+.search-input:hover {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input di autenticazione */
+.auth-form input,
+.auth-form textarea,
+.auth-form select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.auth-form input:focus,
+.auth-form textarea:focus,
+.auth-form select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input del dashboard */
+.dashboard input,
+.dashboard textarea,
+.dashboard select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.dashboard input:focus,
+.dashboard textarea:focus,
+.dashboard select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input del profilo */
+.profile input,
+.profile textarea,
+.profile select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.profile input:focus,
+.profile textarea:focus,
+.profile select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input del portfolio */
+.portfolio input,
+.portfolio textarea,
+.portfolio select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.portfolio input:focus,
+.portfolio textarea:focus,
+.portfolio select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Fix per input dei progetti */
+.projects input,
+.projects textarea,
+.projects select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+.projects input:focus,
+.projects textarea:focus,
+.projects select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* =====================================================
+   FIX PER CONFLITTI CSS SPECIFICI
+   ===================================================== */
+
+/* Sovrascrive eventuali conflitti con --cip-primary */
+input, textarea, select,
+.input-field, .form-input, .search-input,
+.form-control, .form-select {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+}
+
+/* Sovrascrive eventuali conflitti con Tailwind */
+.bg-white input,
+.bg-white textarea,
+.bg-white select {
+    background-color: white !important;
+}
+
+/* Sovrascrive eventuali conflitti con brand colors */
+[class*="bg-cip-"] input,
+[class*="bg-cip-"] textarea,
+[class*="bg-cip-"] select {
+    background-color: white !important;
+}
+
+/* =====================================================
+   DARK MODE SUPPORT
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    /* Dark mode per tutti gli input */
+    input, textarea, select,
+    input[type="text"], input[type="email"], input[type="password"],
+    input[type="tel"], input[type="number"], input[type="search"],
+    input[type="url"], input[type="date"], input[type="time"],
+    input[type="datetime-local"], input[type="month"], input[type="week"] {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #404040 !important;
+    }
+    
+    input:focus, textarea:focus, select:focus,
+    input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+    input[type="tel"]:focus, input[type="number"]:focus, input[type="search"]:focus,
+    input[type="url"]:focus, input[type="date"]:focus, input[type="time"]:focus,
+    input[type="datetime-local"]:focus, input[type="month"]:focus, input[type="week"]:focus {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
+    }
+    
+    input:hover, textarea:hover, select:hover,
+    input[type="text"]:hover, input[type="email"]:hover, input[type="password"]:hover,
+    input[type="tel"]:hover, input[type="number"]:hover, input[type="search"]:hover,
+    input[type="url"]:hover, input[type="date"]:hover, input[type="time"]:hover,
+    input[type="datetime-local"]:hover, input[type="month"]:hover, input[type="week"]:hover {
+        background-color: #2a2a2a !important;
+        color: white !important;
+        border-color: #4a4a4a !important;
+    }
+    
+    input::placeholder, textarea::placeholder,
+    input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder,
+    input[type="tel"]::placeholder, input[type="number"]::placeholder, input[type="search"]::placeholder,
+    input[type="url"]::placeholder, input[type="date"]::placeholder, input[type="time"]::placeholder,
+    input[type="datetime-local"]::placeholder, input[type="month"]::placeholder, input[type="week"]::placeholder {
+        color: #9ca3af !important;
+    }
+    
+    /* Dark mode per classi specifiche */
+    .input-field, .form-input, .search-input,
+    .form-control, .form-select {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    .input-field:focus, .form-input:focus, .search-input:focus,
+    .form-control:focus, .form-select:focus {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    .input-field:hover, .form-input:hover, .search-input:hover,
+    .form-control:hover, .form-select:hover {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+}
+
+/* =====================================================
+   PRIORITÀ MASSIMA - Sovrascrive tutto
+   ===================================================== */
+
+/* Queste regole hanno priorità massima e sovrascrivono qualsiasi altro stile */
+input, textarea, select {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+input:hover, textarea:hover, select:hover {
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Dark mode con priorità massima */
+@media (prefers-color-scheme: dark) {
+    input, textarea, select {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+    
+    input:hover, textarea:hover, select:hover {
+        background-color: #2a2a2a !important;
+        color: white !important;
+    }
+}
