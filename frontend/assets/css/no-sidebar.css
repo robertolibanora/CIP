@@ -1,0 +1,75 @@
+/* ===== NO SIDEBAR CSS - FORZARE RIMOZIONE SIDEBAR ADMIN ===== */
+
+/* Nascondere completamente qualsiasi sidebar */
+.admin-sidebar,
+.sidebar,
+aside[class*="sidebar"],
+nav[class*="sidebar"],
+[class*="admin-sidebar"],
+[class*="mobile-menu"],
+[class*="admin-mobile-menu"],
+#admin-sidebar,
+#sidebar,
+#mobile-admin-menu {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    z-index: -1 !important;
+}
+
+/* Assicurarsi che il main content sia sempre full-width */
+main,
+.main-content,
+.admin-main,
+[class*="main"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    flex: 1 !important;
+}
+
+/* Nascondere breadcrumb */
+.admin-breadcrumb,
+.breadcrumb,
+nav[class*="breadcrumb"],
+[class*="breadcrumb"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Nascondere qualsiasi elemento di navigazione laterale */
+nav[class*="side"],
+aside[class*="nav"],
+.navigation-sidebar,
+.nav-sidebar {
+    display: none !important;
+}
+
+/* Layout forzato full-width */
+.flex {
+    flex-direction: column !important;
+}
+
+.flex main {
+    flex-direction: column !important;
+    width: 100% !important;
+}
+
+/* Nascondere toggle menu mobile */
+#mobile-menu-toggle,
+.mobile-menu-toggle,
+[class*="menu-toggle"] {
+    display: none !important;
+}

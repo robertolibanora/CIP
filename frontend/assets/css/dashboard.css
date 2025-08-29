@@ -1,0 +1,142 @@
+/* Dashboard Admin Minimal - Stili per Azioni Rapide */
+
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Header rimosso - ora è nel layout base */
+
+.grid-actions {
+  display: grid; 
+  gap: 20px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) { 
+  .grid-actions { 
+    grid-template-columns: repeat(2, 1fr); 
+  } 
+}
+
+@media (min-width: 1280px) { 
+  .grid-actions { 
+    grid-template-columns: repeat(4, 1fr); 
+  } 
+}
+
+.action-card {
+  border: 1px solid #edf0f3; 
+  border-radius: 16px; 
+  padding: 22px; 
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(16,24,40,0.04);
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px; 
+  min-height: 180px;
+  transition: all 160ms ease;
+}
+
+.action-card:hover { 
+  box-shadow: 0 6px 20px rgba(2,6,23,0.06); 
+  transform: translateY(-1px); 
+}
+
+.action-card .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.action-card .title { 
+  font-size: 20px; 
+  font-weight: 700; 
+  color: #0f172a; 
+  margin: 0;
+}
+
+.action-card .desc { 
+  color: #475569; 
+  line-height: 1.5; 
+  margin: 0;
+  flex-grow: 1;
+}
+
+.action-card .btn {
+  margin-top: auto; 
+  display: inline-block; 
+  padding: 12px 16px; 
+  border-radius: 12px;
+  color: #fff; 
+  text-align: center; 
+  font-weight: 700; 
+  text-decoration: none;
+  transition: all 160ms ease;
+}
+
+.action-card .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Varianti pulsante */
+.variant-gold .icon { background: #fef3c7; color: #b88400; }
+.variant-gold .btn { background: #b88400; }
+.variant-gold .btn:hover { background: #a16207; }
+
+.variant-green .icon { background: #dcfce7; color: #15803d; }
+.variant-green .btn { background: #15803d; }
+.variant-green .btn:hover { background: #166534; }
+
+.variant-red .icon { background: #fee2e2; color: #dc2626; }
+.variant-red .btn { background: #dc2626; }
+.variant-red .btn:hover { background: #b91c1c; }
+
+.variant-blue .icon { background: #dbeafe; color: #2563eb; }
+.variant-blue .btn { background: #2563eb; }
+.variant-blue .btn:hover { background: #1d4ed8; }
+
+.variant-purple .icon { background: #e9d5ff; color: #7c3aed; }
+.variant-purple .btn { background: #7c3aed; }
+.variant-purple .btn:hover { background: #6d28d9; }
+
+.variant-indigo .icon { background: #e0e7ff; color: #4f46e5; }
+.variant-indigo .btn { background: #4f46e5; }
+.variant-indigo .btn:hover { background: #4338ca; }
+
+.variant-magenta .icon { background: #fce7f3; color: #db2777; }
+.variant-magenta .btn { background: #db2777; }
+.variant-magenta .btn:hover { background: #be185d; }
+
+.variant-gray .icon { background: #f3f4f6; color: #374151; }
+.variant-gray .btn { background: #374151; }
+.variant-gray .btn:hover { background: #1f2937; }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+          .page {
+            padding: 16px;
+          }
+
+          /* Header rimosso - ora è nel layout base */
+  
+  .action-card { 
+    padding: 16px; 
+    min-height: 160px; 
+  }
+  
+  .action-card .title { 
+    font-size: 18px; 
+  }
+  
+  .action-card .btn { 
+    padding: 10px 14px; 
+    font-size: 14px; 
+  }
+}

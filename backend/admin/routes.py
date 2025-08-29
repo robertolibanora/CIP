@@ -2,7 +2,7 @@ import os
 import uuid
 import time
 from datetime import datetime
-from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify
+from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -38,7 +38,6 @@ def admin_dashboard():
         m = cur.fetchone()
     
     # Renderizza il template admin
-    from flask import render_template
     return render_template("admin/dashboard.html", metrics=m or {})
 
 @admin_bp.get("/metrics")
@@ -68,7 +67,6 @@ def projects_list():
         return jsonify(rows)
     
     # Altrimenti restituisce il template HTML con metriche
-    from flask import render_template
     
     # Ottieni metriche progetti per il sidebar
     with get_conn() as conn, conn.cursor() as cur:
@@ -2748,10 +2746,102 @@ def analytics_legacy():
     return jsonify({"investments": inv_month, "users": users_month, "bonuses": bonus_month})
 
 # ---- TASK 2.7 - Gestione Ricariche ----
+@admin_bp.get("/deposits")
+@admin_required
+def deposits_dashboard():
+    """Dashboard dedicata per gestione ricariche"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se la tabella esiste
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'deposit_requests'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                # Tabella non esiste, restituisci dashboard vuota
+                return render_template('admin/deposits/dashboard.html', 
+                                     deposits=[], 
+                                     metrics={
+                                         'deposits_pending': 0,
+                                         'deposits_completed': 0,
+                                         'deposits_rejected': 0,
+                                         'deposits_total_amount': 0.0
+                                     },
+                                     page=1,
+                                     per_page=20,
+                                     total_count=0)
+            
+            # Statistiche ricariche
+            cur.execute("""
+                SELECT 
+                    COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+                    COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
+                    COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
+                    COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount
+                FROM deposit_requests
+            """)
+            stats = cur.fetchone()
+            
+            # Lista ricariche con paginazione
+            page = request.args.get('page', 1, type=int)
+            per_page = 20
+            offset = (page - 1) * per_page
+            
+            cur.execute("""
+                SELECT dr.id, dr.user_id, u.full_name, u.email, dr.amount, 
+                       dr.unique_key, dr.payment_reference, dr.status, dr.created_at,
+                       dr.iban, dr.admin_notes, dr.payment_reference
+                FROM deposit_requests dr
+                JOIN users u ON u.id = dr.user_id
+                ORDER BY 
+                    CASE WHEN dr.status = 'pending' THEN 1 ELSE 2 END,
+                    dr.created_at DESC
+                LIMIT %s OFFSET %s
+            """, (per_page, offset))
+            deposits = cur.fetchall()
+            
+            # Conta totale per paginazione
+            cur.execute("SELECT COUNT(*) FROM deposit_requests")
+            total_count_result = cur.fetchone()
+            total_count = total_count_result[0] if total_count_result else 0
+        
+        metrics = {
+            'deposits_pending': stats[0] if stats and len(stats) > 0 else 0,
+            'deposits_completed': stats[1] if stats and len(stats) > 1 else 0,
+            'deposits_rejected': stats[2] if stats and len(stats) > 2 else 0,
+            'deposits_total_amount': float(stats[3]) if stats and len(stats) > 3 and stats[3] else 0.0
+        }
+        
+        return render_template('admin/deposits/dashboard.html', 
+                             deposits=deposits, 
+                             metrics=metrics,
+                             page=page,
+                             per_page=per_page,
+                             total_count=total_count)
+                             
+    except Exception as e:
+        # In caso di errore, restituisci dashboard vuota
+        print(f"Errore in deposits_dashboard: {e}")
+        return render_template('admin/deposits/dashboard.html', 
+                             deposits=[], 
+                             metrics={
+                                 'deposits_pending': 0,
+                                 'deposits_completed': 0,
+                                 'deposits_rejected': 0,
+                                 'deposits_total_amount': 0.0
+                             },
+                             page=1,
+                             per_page=20,
+                             total_count=0)
+
 @admin_bp.get("/api/deposit-requests")
 @admin_required
 def deposit_requests_list():
-    """Gestione ricariche: lista richieste pending"""
+    """API per lista richieste ricarica (per AJAX)"""
     status = request.args.get('status', 'pending')
     
     with get_conn() as conn, conn.cursor() as cur:
@@ -2865,10 +2955,103 @@ def reject_deposit_request():
         return jsonify({'error': f'Errore nel rifiuto: {str(e)}'}), 500
 
 # ---- TASK 2.7 - Gestione Prelievi ----
+@admin_bp.get("/withdrawals")
+@admin_required
+def withdrawals_dashboard():
+    """Dashboard dedicata per gestione prelievi"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se la tabella esiste
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'withdrawal_requests'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                # Tabella non esiste, restituisci dashboard vuota
+                return render_template('admin/withdrawals/dashboard.html', 
+                                     withdrawals=[], 
+                                     metrics={
+                                         'withdrawals_pending': 0,
+                                         'withdrawals_completed': 0,
+                                         'withdrawals_rejected': 0,
+                                         'withdrawals_total_amount': 0.0
+                                     },
+                                     page=1,
+                                     per_page=20,
+                                     total_count=0)
+            
+            # Statistiche prelievi
+            cur.execute("""
+                SELECT 
+                    COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+                    COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
+                    COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
+                    COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount
+                FROM withdrawal_requests
+            """)
+            stats = cur.fetchone()
+            
+            # Lista prelievi con paginazione
+            page = request.args.get('page', 1, type=int)
+            per_page = 20
+            offset = (page - 1) * per_page
+            
+            cur.execute("""
+                SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, 
+                       wr.source_section, wr.bank_details, wr.status, wr.created_at,
+                       wr.admin_notes,
+                       EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
+                FROM withdrawal_requests wr
+            JOIN users u ON u.id = wr.user_id
+            ORDER BY 
+                CASE WHEN wr.status = 'pending' THEN 1 ELSE 2 END,
+                wr.created_at DESC
+            LIMIT %s OFFSET %s
+        """, (per_page, offset))
+            withdrawals = cur.fetchall()
+            
+            # Conta totale per paginazione
+            cur.execute("SELECT COUNT(*) FROM withdrawal_requests")
+            total_count_result = cur.fetchone()
+            total_count = total_count_result[0] if total_count_result else 0
+        
+        metrics = {
+            'withdrawals_pending': stats[0] if stats and len(stats) > 0 else 0,
+            'withdrawals_completed': stats[1] if stats and len(stats) > 1 else 0,
+            'withdrawals_rejected': stats[2] if stats and len(stats) > 2 else 0,
+            'withdrawals_total_amount': float(stats[3]) if stats and len(stats) > 3 and stats[3] else 0.0
+        }
+        
+        return render_template('admin/withdrawals/dashboard.html', 
+                             withdrawals=withdrawals, 
+                             metrics=metrics,
+                             page=page,
+                             per_page=per_page,
+                             total_count=total_count)
+                             
+    except Exception as e:
+        # In caso di errore, restituisci dashboard vuota
+        print(f"Errore in withdrawals_dashboard: {e}")
+        return render_template('admin/withdrawals/dashboard.html', 
+                             withdrawals=[], 
+                             metrics={
+                                 'withdrawals_pending': 0,
+                                 'withdrawals_completed': 0,
+                                 'withdrawals_rejected': 0,
+                                 'withdrawals_total_amount': 0.0
+                             },
+                             page=1,
+                             per_page=20,
+                             total_count=0)
+
 @admin_bp.get("/api/withdrawal-requests")
 @admin_required
 def withdrawal_requests_list():
-    """Gestione prelievi: lista richieste pending (48h max)"""
+    """API per lista richieste prelievo (per AJAX)"""
     status = request.args.get('status', 'pending')
     
     with get_conn() as conn, conn.cursor() as cur:
@@ -2940,7 +3123,433 @@ def approve_withdrawal_request():
     except Exception as e:
         return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
 
+def get_admin_metrics():
+    """Funzione helper per ottenere metriche generali admin"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Metriche utenti
+            cur.execute("SELECT COUNT(*) FROM users")
+            users_total_result = cur.fetchone()
+            users_total = users_total_result[0] if users_total_result else 0
+            
+            cur.execute("SELECT COUNT(*) FROM users WHERE kyc_status = 'verified'")
+            users_verified_result = cur.fetchone()
+            users_verified = users_verified_result[0] if users_verified_result else 0
+            
+            # Metriche progetti
+            cur.execute("SELECT COUNT(*) FROM projects WHERE status = 'active'")
+            projects_active_result = cur.fetchone()
+            projects_active = projects_active_result[0] if projects_active_result else 0
+            
+            # Metriche investimenti (placeholder)
+            investments_total = 0.0
+            
+            # Metriche richieste
+            cur.execute("SELECT COUNT(*) FROM deposit_requests WHERE status = 'pending'")
+            requests_pending_result = cur.fetchone()
+            requests_pending = requests_pending_result[0] if requests_pending_result else 0
+            
+            # Metriche transazioni
+            cur.execute("SELECT COUNT(*) FROM portfolio_transactions WHERE DATE(created_at) = CURRENT_DATE")
+            transactions_today_result = cur.fetchone()
+            transactions_today = transactions_today_result[0] if transactions_today_result else 0
+            
+            return {
+                'users_total': users_total,
+                'users_verified': users_verified,
+                'projects_active': projects_active,
+                'investments_total': investments_total,
+                'requests_pending': requests_pending,
+                'transactions_today': transactions_today
+            }
+    except Exception as e:
+        print(f"Errore nel recupero metriche admin: {e}")
+        return {
+            'users_total': 0,
+            'users_verified': 0,
+            'projects_active': 0,
+            'investments_total': 0.0,
+            'requests_pending': 0,
+            'transactions_today': 0
+        }
+
+# ---- TASK 2.7 - Transazioni Sistema ----
+@admin_bp.get("/transactions")
+@admin_required
+def transactions_dashboard():
+    """Dashboard per visualizzazione transazioni sistema"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se le tabelle esistono
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'portfolio_transactions'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                return render_template('admin/transactions/dashboard.html', 
+                                     transactions=[],
+                                     metrics={
+                                         'total_transactions': 0,
+                                         'today_transactions': 0,
+                                         'total_volume': 0.0,
+                                         'pending_transactions': 0
+                                     })
+            
+            # Statistiche transazioni
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_transactions,
+                    COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as today_transactions,
+                    COALESCE(SUM(ABS(amount)), 0) as total_volume,
+                    COUNT(*) FILTER (WHERE status = 'pending') as pending_transactions
+                FROM portfolio_transactions
+            """)
+            metrics = cur.fetchone()
+            
+            # Lista transazioni recenti
+            page = request.args.get('page', 1, type=int)
+            per_page = 20
+            offset = (page - 1) * per_page
+            
+            cur.execute("""
+                SELECT pt.*, u.full_name, u.email
+                FROM portfolio_transactions pt
+                JOIN users u ON u.id = pt.user_id
+                ORDER BY pt.created_at DESC
+                LIMIT %s OFFSET %s
+            """, (per_page, offset))
+            transactions = cur.fetchall()
+            
+            # Conta totale per paginazione
+            cur.execute("SELECT COUNT(*) FROM portfolio_transactions")
+            total_count_result = cur.fetchone()
+            total_count = total_count_result[0] if total_count_result else 0
+        
+        # Ottieni metriche generali per il sidebar
+        admin_metrics = get_admin_metrics()
+        
+        return render_template('admin/transactions/dashboard.html', 
+                             transactions=transactions,
+                             metrics={
+                                 'total_transactions': metrics[0] if metrics else 0,
+                                 'today_transactions': metrics[1] if metrics else 0,
+                                 'total_volume': float(metrics[2]) if metrics and metrics[2] else 0.0,
+                                 'pending_transactions': metrics[3] if metrics else 0,
+                                 **admin_metrics  # Unpack metriche generali
+                             },
+                             page=page,
+                             per_page=per_page,
+                             total_count=total_count)
+                             
+    except Exception as e:
+        print(f"Errore in transactions_dashboard: {e}")
+        return render_template('admin/transactions/dashboard.html', 
+                             transactions=[],
+                             metrics={
+                                 'total_transactions': 0,
+                                 'today_transactions': 0,
+                                 'total_volume': 0.0,
+                                 'pending_transactions': 0,
+                                 **get_admin_metrics()  # Unpack metriche generali
+                             },
+                             page=1,
+                             per_page=20,
+                             total_count=0)
+
+# ---- TASK 2.7 - Sistema Referral ----
+@admin_bp.get("/referral")
+@admin_required
+def referral_dashboard():
+    """Dashboard per gestione sistema referral"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se le tabelle esistono
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'user_referrals'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                return render_template('admin/referral/dashboard.html', 
+                                     referrals=[],
+                                     metrics={
+                                         'total_referrals': 0,
+                                         'active_referrals': 0,
+                                         'total_bonus_paid': 0.0,
+                                         'pending_bonus': 0.0
+                                     })
+            
+            # Statistiche referral
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_referrals,
+                    COUNT(*) FILTER (WHERE status = 'active') as active_referrals,
+                    COALESCE(SUM(bonus_amount), 0) as total_bonus_paid,
+                    COALESCE(SUM(CASE WHEN status = 'pending' THEN bonus_amount ELSE 0 END), 0) as pending_bonus
+                FROM user_referrals
+            """)
+            metrics = cur.fetchone()
+            
+            # Lista referral
+            page = request.args.get('page', 1, type=int)
+            per_page = 20
+            offset = (page - 1) * per_page
+            
+            cur.execute("""
+                SELECT ur.*, 
+                       u1.full_name as referrer_name, u1.email as referrer_email,
+                       u2.full_name as referred_name, u2.email as referred_email
+                FROM user_referrals ur
+                JOIN users u1 ON u1.id = ur.referrer_id
+                JOIN users u2 ON u2.id = ur.referred_id
+                ORDER BY ur.created_at DESC
+                LIMIT %s OFFSET %s
+            """, (per_page, offset))
+            referrals = cur.fetchall()
+            
+            # Conta totale per paginazione
+            cur.execute("SELECT COUNT(*) FROM user_referrals")
+            total_count_result = cur.fetchone()
+            total_count = total_count_result[0] if total_count_result else 0
+        
+        # Ottieni metriche generali per il sidebar
+        admin_metrics = get_admin_metrics()
+        
+        return render_template('admin/referral/dashboard.html', 
+                             referrals=referrals,
+                             metrics={
+                                 'total_referrals': metrics[0] if metrics else 0,
+                                 'active_referrals': metrics[1] if metrics else 0,
+                                 'total_bonus_paid': float(metrics[2]) if metrics and metrics[2] else 0.0,
+                                 'pending_bonus': float(metrics[3]) if metrics and metrics[3] else 0.0,
+                                 **admin_metrics  # Unpack metriche generali
+                             },
+                             page=page,
+                             per_page=per_page,
+                             total_count=total_count)
+                             
+    except Exception as e:
+        print(f"Errore in referral_dashboard: {e}")
+        return render_template('admin/referral/dashboard.html', 
+                             referrals=[],
+                             metrics={
+                                 'total_referrals': 0,
+                                 'active_referrals': 0,
+                                 'total_bonus_paid': 0.0,
+                                 'pending_bonus': 0.0,
+                                 **get_admin_metrics()  # Unpack metriche generali
+                             },
+                             page=1,
+                             per_page=20,
+                             total_count=0)
+
+# ---- TASK 2.7 - API Referral ----
+@admin_bp.post("/api/referral/<int:referral_id>/approve")
+@admin_required
+def approve_referral(referral_id):
+    """Approva un referral"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se la tabella esiste
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'user_referrals'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                return jsonify({'error': 'Tabella referral non trovata'}), 404
+            
+            # Ottieni referral
+            cur.execute("SELECT * FROM user_referrals WHERE id = %s", (referral_id,))
+            referral = cur.fetchone()
+            
+            if not referral:
+                return jsonify({'error': 'Referral non trovato'}), 404
+            
+            if referral[4] != 'pending':  # status
+                return jsonify({'error': 'Referral non in attesa di approvazione'}), 400
+            
+            # Approva referral
+            cur.execute("""
+                UPDATE user_referrals 
+                SET status = 'active', updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (referral_id,))
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Referral approvato con successo'})
+        
+    except Exception as e:
+        print(f"Errore approvazione referral: {e}")
+        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+
+@admin_bp.post("/api/referral/<int:referral_id>/reject")
+@admin_required
+def reject_referral(referral_id):
+    """Rifiuta un referral"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se la tabella esiste
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'user_referrals'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                return jsonify({'error': 'Tabella referral non trovata'}), 404
+            
+            # Ottieni referral
+            cur.execute("SELECT * FROM user_referrals WHERE id = %s", (referral_id,))
+            referral = cur.fetchone()
+            
+            if not referral:
+                return jsonify({'error': 'Referral non trovato'}), 404
+            
+            if referral[4] != 'pending':  # status
+                return jsonify({'error': 'Referral non in attesa di approvazione'}), 400
+            
+            # Rifiuta referral
+            cur.execute("""
+                UPDATE user_referrals 
+                SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (referral_id,))
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Referral rifiutato con successo'})
+        
+    except Exception as e:
+        print(f"Errore rifiuto referral: {e}")
+        return jsonify({'error': f'Errore nel rifiuto: {str(e)}'}), 500
+
 # ---- TASK 2.7 - Configurazione IBAN ----
+@admin_bp.get("/iban-config")
+@admin_required
+def iban_config_dashboard():
+    """Dashboard per configurazione IBAN sistema"""
+    try:
+        # Ottieni metriche generali per il sidebar
+        admin_metrics = get_admin_metrics()
+        
+        # Verifica se la tabella IBAN esiste
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'iban_configurations'
+                );
+            """)
+            table_exists = cur.fetchone()[0]
+            
+            if not table_exists:
+                # Tabella non esiste, restituisci dashboard vuota con metriche
+                return render_template('admin/settings/iban_config.html', 
+                                     iban_configs=[],
+                                     current_config=None,
+                                     metrics=admin_metrics)
+            
+            # Ottieni configurazione corrente
+            cur.execute("""
+                SELECT * FROM iban_configurations 
+                WHERE is_active = true 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """)
+            current_config = cur.fetchone()
+            
+            # Ottieni storico configurazioni
+            cur.execute("""
+                SELECT * FROM iban_configurations 
+                ORDER BY created_at DESC 
+                LIMIT 10
+            """)
+            iban_configs = cur.fetchall()
+        
+        return render_template('admin/settings/iban_config.html', 
+                             iban_configs=iban_configs,
+                             current_config=current_config,
+                             metrics=admin_metrics)
+                             
+    except Exception as e:
+        print(f"Errore in iban_config_dashboard: {e}")
+        # Restituisci dashboard vuota con metriche di default
+        return render_template('admin/settings/iban_config.html', 
+                             iban_configs=[],
+                             current_config=None,
+                             metrics=get_admin_metrics())
+
+@admin_bp.post("/api/iban-config")
+@admin_required
+def save_iban_configuration():
+    """Salva nuova configurazione IBAN"""
+    try:
+        data = request.get_json()
+        
+        # Validazione dati
+        if not data.get('iban'):
+            return jsonify({'error': 'IBAN è obbligatorio'}), 400
+        
+        # Validazione formato IBAN (base)
+        iban = data['iban'].replace(' ', '').upper()
+        if len(iban) < 15 or len(iban) > 34:
+            return jsonify({'error': 'Formato IBAN non valido'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se la tabella esiste, altrimenti creala
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS iban_configurations (
+                    id SERIAL PRIMARY KEY,
+                    iban VARCHAR(34) NOT NULL,
+                    bank_name VARCHAR(255),
+                    account_holder VARCHAR(255),
+                    notes TEXT,
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            
+            # Disattiva tutte le configurazioni precedenti
+            cur.execute("""
+                UPDATE iban_configurations 
+                SET is_active = false, updated_at = CURRENT_TIMESTAMP
+            """)
+            
+            # Inserisci nuova configurazione
+            cur.execute("""
+                INSERT INTO iban_configurations (iban, bank_name, account_holder, notes, is_active)
+                VALUES (%s, %s, %s, %s, true)
+                RETURNING id
+            """, (
+                iban,
+                data.get('bank_name'),
+                data.get('account_holder'),
+                data.get('notes')
+            ))
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Configurazione IBAN salvata con successo'})
+        
+    except Exception as e:
+        print(f"Errore salvataggio IBAN: {e}")
+        return jsonify({'error': f'Errore nel salvataggio: {str(e)}'}), 500
+
 @admin_bp.get("/api/iban-config")
 @admin_required
 def get_iban_configuration():

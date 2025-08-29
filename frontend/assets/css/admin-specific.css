@@ -1,0 +1,162 @@
+/* ===== CSS SPECIFICO SOLO PER ADMIN ===== */
+
+/* Layout Admin */
+.admin-layout {
+    min-height: 100vh;
+    background-color: #f8fafc;
+}
+
+/* Header Admin Minimal */
+.admin-header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Main Content Admin */
+.admin-main {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Dashboard Admin */
+.admin-dashboard {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+/* Action Cards Admin */
+.admin-action-card {
+    border: 1px solid #edf0f3;
+    border-radius: 16px;
+    padding: 22px;
+    background: #fff;
+    box-shadow: 0 1px 0 rgba(16,24,40,0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 180px;
+    transition: all 160ms ease;
+}
+
+.admin-action-card:hover {
+    box-shadow: 0 6px 20px rgba(2,6,23,0.06);
+    transform: translateY(-1px);
+}
+
+.admin-action-card .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.admin-action-card .title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.admin-action-card .desc {
+    color: #475569;
+    line-height: 1.5;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.admin-action-card .btn {
+    margin-top: auto;
+    display: inline-block;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #fff;
+    text-align: center;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 160ms ease;
+}
+
+.admin-action-card .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Grid Admin */
+.admin-grid-actions {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .admin-grid-actions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1280px) {
+    .admin-grid-actions {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Varianti pulsante Admin */
+.admin-variant-gold .icon { background: #fef3c7; color: #b88400; }
+.admin-variant-gold .btn { background: #b88400; }
+.admin-variant-gold .btn:hover { background: #a16207; }
+
+.admin-variant-green .icon { background: #dcfce7; color: #15803d; }
+.admin-variant-green .btn { background: #15803d; }
+.admin-variant-green .btn:hover { background: #166534; }
+
+.admin-variant-red .icon { background: #fee2e2; color: #dc2626; }
+.admin-variant-red .btn { background: #dc2626; }
+.admin-variant-red .btn:hover { background: #b91c1c; }
+
+.admin-variant-blue .icon { background: #dbeafe; color: #2563eb; }
+.admin-variant-blue .btn { background: #2563eb; }
+.admin-variant-blue .btn:hover { background: #1d4ed8; }
+
+.admin-variant-purple .icon { background: #e9d5ff; color: #7c3aed; }
+.admin-variant-purple .btn { background: #7c3aed; }
+.admin-variant-purple .btn:hover { background: #6d28d9; }
+
+.admin-variant-indigo .icon { background: #e0e7ff; color: #4f46e5; }
+.admin-variant-indigo .btn { background: #4f46e5; }
+.admin-variant-indigo .btn:hover { background: #4338ca; }
+
+.admin-variant-magenta .icon { background: #fce7f3; color: #db2777; }
+.admin-variant-magenta .btn { background: #db2777; }
+.admin-variant-magenta .btn:hover { background: #be185d; }
+
+.admin-variant-gray .icon { background: #f3f4f6; color: #374151; }
+.admin-variant-gray .btn { background: #374151; }
+.admin-variant-gray .btn:hover { background: #1f2937; }
+
+/* Responsive Admin */
+@media (max-width: 640px) {
+    .admin-dashboard {
+        padding: 16px;
+    }
+    
+    .admin-action-card {
+        padding: 16px;
+        min-height: 160px;
+    }
+    
+    .admin-action-card .title {
+        font-size: 18px;
+    }
+    
+    .admin-action-card .btn {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+}

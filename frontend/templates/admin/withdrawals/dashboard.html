@@ -1,0 +1,522 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Gestione Prelievi - Admin{% endblock %}
+
+{% block content %}
+<!-- Dashboard Gestione Prelievi -->
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div>
+                <h1 class="admin-heading-1">Gestione Prelievi</h1>
+                <p class="admin-text-small">Gestisci tutte le richieste di prelievo del sistema (48h max)</p>
+            </div>
+            <!-- Status Badge -->
+            <div class="mt-3 sm:mt-0">
+                <div class="admin-badge admin-badge--warning">
+                    <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
+                    Sistema Prelievi (48h)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metriche Prelievi -->
+    <div class="admin-grid admin-grid--4">
+        {% with 
+            metric_title='In Attesa',
+            metric_value=metrics.withdrawals_pending or 0,
+            metric_icon='pending',
+            metric_color='warning',
+            metric_subtitle='Richieste da approvare' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Completati',
+            metric_value=metrics.withdrawals_completed or 0,
+            metric_icon='success',
+            metric_color='success',
+            metric_subtitle='Prelievi approvati' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Rifiutati',
+            metric_value=metrics.withdrawals_rejected or 0,
+            metric_icon='error',
+            metric_color='error',
+            metric_subtitle='Richieste rifiutate' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Totale Prelievi',
+            metric_value='€' + ('{:,.0f}'.format(metrics.withdrawals_total_amount or 0)),
+            metric_icon='money',
+            metric_color='info',
+            metric_subtitle='Importo totale prelevato' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+    </div>
+
+    <!-- Alert Prelievi Urgenti -->
+    {% if metrics.withdrawals_pending > 0 %}
+    <div class="admin-alert admin-alert--warning">
+        <div class="admin-alert-icon">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+        </div>
+        <div class="admin-alert-content">
+            <h4 class="admin-alert-title">Prelievi Urgenti!</h4>
+            <p class="admin-alert-message">Ci sono {{ metrics.withdrawals_pending }} richieste di prelievo in attesa. Ricorda che i prelievi devono essere processati entro 48 ore.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtri e Azioni -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div class="admin-flex admin-flex--gap-4">
+                <div>
+                    <label for="status-filter" class="admin-label">Stato</label>
+                    <select id="status-filter" class="admin-select" onchange="filterWithdrawals()">
+                        <option value="">Tutti gli stati</option>
+                        <option value="pending">In attesa</option>
+                        <option value="completed">Completati</option>
+                        <option value="rejected">Rifiutati</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="urgency-filter" class="admin-label">Urgenza</label>
+                    <select id="urgency-filter" class="admin-select" onchange="filterWithdrawals()">
+                        <option value="">Tutte le urgenze</option>
+                        <option value="urgent">Urgenti (>24h)</option>
+                        <option value="normal">Normali (<24h)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="search-filter" class="admin-label">Ricerca</label>
+                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="filterWithdrawals()">
+                </div>
+            </div>
+            
+            <div class="admin-flex admin-flex--gap-2">
+                <button onclick="refreshWithdrawals()" class="admin-btn admin-btn--secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Richieste Prelievo -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Richieste di Prelievo</h2>
+            <span class="admin-text-small text-gray-500">{{ withdrawals|length }} richieste trovate</span>
+        </div>
+
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th class="admin-table-th">Utente</th>
+                            <th class="admin-table-th">Importo</th>
+                            <th class="admin-table-th">Sezione</th>
+                            <th class="admin-table-th">Stato</th>
+                            <th class="admin-table-th">Data & Urgenza</th>
+                            <th class="admin-table-th">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawals-table-body">
+                        {% for withdrawal in withdrawals %}
+                        <tr class="admin-table-tr" 
+                            data-status="{{ withdrawal.status }}" 
+                            data-urgency="{{ 'urgent' if withdrawal.hours_pending > 24 else 'normal' }}"
+                            data-search="{{ withdrawal.full_name|lower }} {{ withdrawal.email|lower }}">
+                            <td class="admin-table-td">
+                                <div>
+                                    <div class="admin-text-body font-medium">{{ withdrawal.full_name }}</div>
+                                    <div class="admin-text-small text-gray-500">{{ withdrawal.email }}</div>
+                                </div>
+                            </td>
+                            <td class="admin-table-td">
+                                <span class="admin-text-body font-medium">€{{ "%.2f"|format(withdrawal.amount) }}</span>
+                            </td>
+                            <td class="admin-table-td">
+                                <div>
+                                    <div class="admin-text-body font-medium">{{ withdrawal.source_section or 'N/A' }}</div>
+                                    <div class="admin-text-small text-gray-500">{{ withdrawal.bank_details[:20] }}...</div>
+                                </div>
+                            </td>
+                            <td class="admin-table-td">
+                                {% if withdrawal.status == 'pending' %}
+                                    <span class="admin-badge admin-badge--warning">In attesa</span>
+                                {% elif withdrawal.status == 'completed' %}
+                                    <span class="admin-badge admin-badge--success">Completato</span>
+                                {% elif withdrawal.status == 'rejected' %}
+                                    <span class="admin-badge admin-badge--error">Rifiutato</span>
+                                {% endif %}
+                            </td>
+                            <td class="admin-table-td">
+                                <div class="admin-text-body">{{ withdrawal.created_at.strftime('%d/%m/%Y') }}</div>
+                                <div class="admin-text-small text-gray-500">{{ withdrawal.created_at.strftime('%H:%M') }}</div>
+                                {% if withdrawal.status == 'pending' %}
+                                    <div class="admin-text-small {% if withdrawal.hours_pending > 24 %}text-red-600 font-medium{% else %}text-gray-500{% endif %}">
+                                        {{ "%.1f"|format(withdrawal.hours_pending) }}h fa
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="admin-table-td">
+                                <div class="admin-flex admin-flex--gap-2">
+                                    {% if withdrawal.status == 'pending' %}
+                                        <button onclick="approveWithdrawal({{ withdrawal.id }})" class="admin-btn admin-btn--success admin-btn--sm">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                        <button onclick="rejectWithdrawal({{ withdrawal.id }})" class="admin-btn admin-btn--error admin-btn--sm">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    {% endif %}
+                                    <button onclick="viewWithdrawalDetails({{ withdrawal.id }})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+        
+        <!-- Paginazione -->
+        {% if total_count > per_page %}
+        <div class="admin-card-footer">
+            <div class="admin-flex admin-flex--between admin-flex--items-center">
+                <div class="admin-text-small text-gray-500">
+                    Mostrando {{ (page - 1) * per_page + 1 }} - {{ [page * per_page, total_count]|min }} di {{ total_count }} risultati
+                </div>
+                <div class="admin-flex admin-flex--gap-2">
+                    {% if page > 1 %}
+                        <a href="?page={{ page - 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Precedente</a>
+                    {% endif %}
+                    
+                    {% for p in range(1, (total_count // per_page) + 2) %}
+                        {% if p <= total_count // per_page + 1 %}
+                            <a href="?page={{ p }}" class="admin-btn {% if p == page %}admin-btn--primary{% else %}admin-btn--secondary{% endif %} admin-btn--sm">{{ p }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < (total_count // per_page) %}
+                        <a href="?page={{ page + 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Successiva</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Withdrawal Details Modal -->
+<div id="withdrawal-details-modal" class="admin-modal hidden">
+    <div class="admin-modal-overlay" onclick="closeWithdrawalModal()"></div>
+    <div class="admin-modal-content">
+        <div class="admin-modal-header">
+            <h3 class="admin-heading-3">Dettagli Prelievo</h3>
+            <button onclick="closeWithdrawalModal()" class="admin-modal-close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="withdrawal-details-content" class="admin-modal-body">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+{% with modal_id="loading-modal", modal_title="Caricamento..." %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
+
+<!-- Success/Error Alerts -->
+{% with alert_id="success-alert", alert_type="success", alert_message="Operazione completata con successo!" %}
+    {% include 'admin/components/alert.html' %}
+{% endwith %}
+
+{% with alert_id="error-alert", alert_type="error", alert_message="Si è verificato un errore!" %}
+    {% include 'admin/components/alert.html' %}
+{% endwith %}
+
+<script>
+// Global variables
+let currentWithdrawals = {{ withdrawals|tojson }};
+let currentFilters = {
+    status: '',
+    urgency: '',
+    search: ''
+};
+
+// Filter withdrawals based on current filters
+function filterWithdrawals() {
+    const statusFilter = document.getElementById('status-filter').value;
+    const urgencyFilter = document.getElementById('urgency-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    
+    currentFilters.status = statusFilter;
+    currentFilters.urgency = urgencyFilter;
+    currentFilters.search = searchFilter;
+    
+    const rows = document.querySelectorAll('#withdrawals-table-body tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const urgency = row.dataset.urgency;
+        const searchText = row.dataset.search;
+        
+        const statusMatch = !statusFilter || status === statusFilter;
+        const urgencyMatch = !urgencyFilter || urgency === urgencyFilter;
+        const searchMatch = !searchFilter || searchText.includes(searchFilter);
+        
+        if (statusMatch && urgencyMatch && searchMatch) {
+            row.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+    
+    // Update subtitle
+    const subtitle = document.querySelector('.admin-card-subtitle');
+    if (subtitle) {
+        subtitle.textContent = `${visibleCount} richieste trovate`;
+    }
+}
+
+// Refresh withdrawals list
+async function refreshWithdrawals() {
+    try {
+        showLoading();
+        const response = await fetch('/admin/withdrawals');
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Errore nel refresh');
+        }
+    } catch (error) {
+        console.error('Errore refresh:', error);
+        showError('Errore nell\'aggiornamento della lista');
+    } finally {
+        hideLoading();
+    }
+}
+
+// View withdrawal details
+async function viewWithdrawalDetails(withdrawalId) {
+    try {
+        showLoading();
+        const response = await fetch(`/admin/api/withdrawal-requests/${withdrawalId}`);
+        if (response.ok) {
+            const withdrawal = await response.json();
+            showWithdrawalDetailsModal(withdrawal);
+        } else {
+            throw new Error('Errore nel caricamento dettagli');
+        }
+    } catch (error) {
+        console.error('Errore dettagli:', error);
+        showError('Errore nel caricamento dei dettagli');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Show withdrawal details modal
+function showWithdrawalDetailsModal(withdrawal) {
+    const modal = document.getElementById('withdrawal-details-modal');
+    const content = document.getElementById('withdrawal-details-content');
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Utente</label>
+                    <p class="mt-1 text-sm text-gray-900">${withdrawal.full_name}</p>
+                    <p class="text-sm text-gray-500">${withdrawal.email}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Importo</label>
+                    <p class="mt-1 text-lg font-semibold text-gray-900">€${withdrawal.amount}</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Stato</label>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                        ${withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                          withdrawal.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                          'bg-red-100 text-red-800'}">
+                        ${withdrawal.status === 'pending' ? 'In attesa' : 
+                          withdrawal.status === 'completed' ? 'Completato' : 'Rifiutato'}
+                    </span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Data Richiesta</label>
+                    <p class="mt-1 text-sm text-gray-900">${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</p>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Sezione Sorgente</label>
+                <p class="mt-1 text-sm text-gray-900">${withdrawal.source_section || 'N/A'}</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Dettagli Bancari</label>
+                <p class="mt-1 text-sm text-gray-900">${withdrawal.bank_details || 'N/A'}</p>
+            </div>
+            
+            ${withdrawal.status === 'pending' ? `
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tempo in Attesa</label>
+                <p class="mt-1 text-sm ${withdrawal.hours_pending > 24 ? 'text-red-600 font-medium' : 'text-gray-900'}">
+                    ${withdrawal.hours_pending.toFixed(1)} ore
+                    ${withdrawal.hours_pending > 24 ? ' (URGENTE!)' : ''}
+                </p>
+            </div>
+            ` : ''}
+            
+            ${withdrawal.admin_notes ? `
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Note Admin</label>
+                <p class="mt-1 text-sm text-gray-900">${withdrawal.admin_notes}</p>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+}
+
+// Close withdrawal modal
+function closeWithdrawalModal() {
+    document.getElementById('withdrawal-details-modal').classList.add('hidden');
+}
+
+// Approve withdrawal
+async function approveWithdrawal(withdrawalId) {
+    if (!confirm('Sei sicuro di voler approvare questo prelievo?')) return;
+    
+    try {
+        showLoading();
+        const response = await fetch('/admin/api/withdrawal-requests/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ withdrawal_id: withdrawalId })
+        });
+        
+        if (response.ok) {
+            showSuccess('Prelievo approvato con successo!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Errore nell\'approvazione');
+        }
+    } catch (error) {
+        console.error('Errore approvazione:', error);
+        showError(error.message || 'Errore nell\'approvazione del prelievo');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Reject withdrawal
+async function rejectWithdrawal(withdrawalId) {
+    const reason = prompt('Motivo del rifiuto (opzionale):');
+    if (reason === null) return; // User cancelled
+    
+    try {
+        showLoading();
+        const response = await fetch('/admin/api/withdrawal-requests/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                withdrawal_id: withdrawalId,
+                admin_notes: reason || 'Rifiutato da admin'
+            })
+        });
+        
+        if (response.ok) {
+            showSuccess('Prelievo rifiutato!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Errore nel rifiuto');
+        }
+    } catch (error) {
+        console.error('Errore rifiuto:', error);
+        showError(error.message || 'Errore nel rifiuto del prelievo');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Utility functions
+function showLoading() {
+    document.getElementById('loading-modal').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loading-modal').classList.add('hidden');
+}
+
+function showSuccess(message) {
+    const alert = document.getElementById('success-alert');
+    alert.querySelector('.admin-alert-message').textContent = message;
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+}
+
+function showError(message) {
+    const alert = document.getElementById('error-alert');
+    alert.querySelector('.admin-alert-message').textContent = message;
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial filter values
+    if (currentFilters.status) {
+        document.getElementById('status-filter').value = currentFilters.status;
+    }
+    if (currentFilters.urgency) {
+        document.getElementById('urgency-filter').value = currentFilters.urgency;
+    }
+    if (currentFilters.search) {
+        document.getElementById('search-filter').value = currentFilters.search;
+    }
+    
+    // Apply initial filters
+    filterWithdrawals();
+});
+</script>
+{% endblock %}

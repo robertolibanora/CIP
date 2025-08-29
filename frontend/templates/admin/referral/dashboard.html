@@ -1,0 +1,386 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Sistema Referral - Admin{% endblock %}
+
+{% block content %}
+<!-- Dashboard Sistema Referral -->
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div>
+                <h1 class="admin-heading-1">Sistema Referral</h1>
+                <p class="admin-text-small">Gestione e monitoraggio del sistema di referral</p>
+            </div>
+            <!-- Status Badge -->
+            <div class="mt-3 sm:mt-0">
+                <div class="admin-badge admin-badge--success">
+                    <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                    Sistema Referral Attivo
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metriche Referral -->
+    <div class="admin-grid admin-grid--4">
+        {% with 
+            metric_title='Referral Totali',
+            metric_value=metrics.total_referrals or 0,
+            metric_icon='users',
+            metric_color='blue',
+            metric_subtitle='Tutti i referral' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Referral Attivi',
+            metric_value=metrics.active_referrals or 0,
+            metric_icon='success',
+            metric_color='success',
+            metric_subtitle='Referral completati' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Bonus Pagati',
+            metric_value='€' + ('{:,.0f}'.format(metrics.total_bonus_paid or 0)),
+            metric_icon='money',
+            metric_color='green',
+            metric_subtitle='Totale bonus erogati' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+
+        {% with 
+            metric_title='Bonus in Attesa',
+            metric_value='€' + ('{:,.0f}'.format(metrics.pending_bonus or 0)),
+            metric_icon='pending',
+            metric_color='warning',
+            metric_subtitle='Bonus da pagare' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
+    </div>
+
+    <!-- Filtri e Azioni -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div class="admin-flex admin-flex--gap-4">
+                <div>
+                    <label for="status-filter" class="admin-label">Stato</label>
+                    <select id="status-filter" class="admin-select" onchange="filterReferrals()">
+                        <option value="">Tutti gli stati</option>
+                        <option value="pending">In attesa</option>
+                        <option value="active">Attivo</option>
+                        <option value="completed">Completato</option>
+                        <option value="expired">Scaduto</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="search-filter" class="admin-label">Ricerca</label>
+                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="filterReferrals()">
+                </div>
+            </div>
+            
+            <div class="admin-flex admin-flex--gap-2">
+                <button onclick="refreshReferrals()" class="admin-btn admin-btn--secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Aggiorna
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Referral -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Referral Sistema</h2>
+            <span class="admin-text-small text-gray-500">{{ referrals|length }} referral trovati</span>
+        </div>
+
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th class="admin-table-th">Referrer</th>
+                            <th class="admin-table-th">Referred</th>
+                            <th class="admin-table-th">Bonus</th>
+                            <th class="admin-table-th">Stato</th>
+                            <th class="admin-table-th">Data</th>
+                            <th class="admin-table-th">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="referrals-table-body">
+                        {% for referral in referrals %}
+                        <tr class="admin-table-tr" 
+                            data-status="{{ referral.status }}"
+                            data-search="{{ referral.referrer_name|lower }} {{ referral.referrer_email|lower }} {{ referral.referred_name|lower }} {{ referral.referred_email|lower }}">
+                            <td class="admin-table-td">
+                                <div>
+                                    <div class="admin-text-body font-medium">{{ referral.referrer_name }}</div>
+                                    <div class="admin-text-small text-gray-500">{{ referral.referrer_email }}</div>
+                                </div>
+                            </td>
+                            <td class="admin-table-td">
+                                <div>
+                                    <div class="admin-text-body font-medium">{{ referral.referred_name }}</div>
+                                    <div class="admin-text-small text-gray-500">{{ referral.referred_email }}</div>
+                                </div>
+                            </td>
+                            <td class="admin-table-td">
+                                <span class="admin-text-body font-medium text-green-600">
+                                    €{{ "%.2f"|format(referral.bonus_amount) }}
+                                </span>
+                            </td>
+                            <td class="admin-table-td">
+                                {% if referral.status == 'pending' %}
+                                    <span class="admin-badge admin-badge--warning">In attesa</span>
+                                {% elif referral.status == 'active' %}
+                                    <span class="admin-badge admin-badge--success">Attivo</span>
+                                {% elif referral.status == 'completed' %}
+                                    <span class="admin-badge admin-badge--info">Completato</span>
+                                {% elif referral.status == 'expired' %}
+                                    <span class="admin-badge admin-badge--error">Scaduto</span>
+                                {% else %}
+                                    <span class="admin-badge admin-badge--secondary">{{ referral.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="admin-table-td">
+                                <div class="admin-text-body">{{ referral.created_at.strftime('%d/%m/%Y') }}</div>
+                                <div class="admin-text-small text-gray-500">{{ referral.created_at.strftime('%H:%M') }}</div>
+                            </td>
+                            <td class="admin-table-td">
+                                <div class="admin-flex admin-flex--gap-2">
+                                    {% if referral.status == 'pending' %}
+                                        <button onclick="approveReferral({{ referral.id }})" class="admin-btn admin-btn--success admin-btn--sm">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                        <button onclick="rejectReferral({{ referral.id }})" class="admin-btn admin-btn--error admin-btn--sm">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    {% endif %}
+                                    <button onclick="viewReferralDetails({{ referral.id }})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Paginazione -->
+        {% if total_count > per_page %}
+        <div class="admin-card-footer">
+            <div class="admin-flex admin-flex--between admin-flex--items-center">
+                <div class="admin-text-small text-gray-500">
+                    Mostrando {{ (page - 1) * per_page + 1 }} - {{ [page * per_page, total_count]|min }} di {{ total_count }} risultati
+                </div>
+                <div class="admin-flex admin-flex--gap-2">
+                    {% if page > 1 %}
+                        <a href="?page={{ page - 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Precedente</a>
+                    {% endif %}
+                    
+                    {% for p in range(1, (total_count // per_page) + 2) %}
+                        {% if p <= total_count // per_page + 1 %}
+                            <a href="?page={{ p }}" class="admin-btn {% if p == page %}admin-btn--primary{% else %}admin-btn--secondary{% endif %} admin-btn--sm">{{ p }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < (total_count // per_page) %}
+                        <a href="?page={{ page + 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Successiva</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Modal -->
+{% with modal_id="loading-modal", modal_title="Caricamento..." %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
+
+<!-- Success/Error Alerts -->
+{% with alert_id="success-alert", alert_type="success", alert_message="Operazione completata con successo!" %}
+    {% include 'admin/components/alert.html' %}
+{% endwith %}
+
+{% with alert_id="error-alert", alert_type="error", alert_message="Si è verificato un errore!" %}
+    {% include 'admin/components/alert.html' %}
+{% endwith %}
+
+<script>
+// Global variables
+let currentReferrals = {{ referrals|tojson }};
+let currentFilters = {
+    status: '',
+    search: ''
+};
+
+// Filter referrals based on current filters
+function filterReferrals() {
+    const statusFilter = document.getElementById('status-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    
+    currentFilters.status = statusFilter;
+    currentFilters.search = searchFilter;
+    
+    const rows = document.querySelectorAll('#referrals-table-body tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const status = row.dataset.status;
+        const searchText = row.dataset.search;
+        
+        const statusMatch = !statusFilter || status === statusFilter;
+        const searchMatch = !searchFilter || searchText.includes(searchFilter);
+        
+        if (statusMatch && searchMatch) {
+            row.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+    
+    // Update subtitle
+    const subtitle = document.querySelector('.admin-card-subtitle');
+    if (subtitle) {
+        subtitle.textContent = `${visibleCount} referral trovati`;
+    }
+}
+
+// Refresh referrals list
+async function refreshReferrals() {
+    try {
+        showLoading();
+        const response = await fetch('/admin/referral');
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Errore nel refresh');
+        }
+    } catch (error) {
+        console.error('Errore refresh:', error);
+        showError('Errore nell\'aggiornamento della lista');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Approve referral
+async function approveReferral(referralId) {
+    if (!confirm('Confermi l\'approvazione di questo referral?')) return;
+    
+    try {
+        showLoading();
+        const response = await fetch(`/admin/api/referral/${referralId}/approve`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            showSuccess('Referral approvato con successo!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Errore nell\'approvazione');
+        }
+    } catch (error) {
+        console.error('Errore approvazione:', error);
+        showError(error.message || 'Errore nell\'approvazione del referral');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Reject referral
+async function rejectReferral(referralId) {
+    if (!confirm('Confermi il rifiuto di questo referral?')) return;
+    
+    try {
+        showLoading();
+        const response = await fetch(`/admin/api/referral/${referralId}/reject`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            showSuccess('Referral rifiutato con successo!');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Errore nel rifiuto');
+        }
+    } catch (error) {
+        console.error('Errore rifiuto:', error);
+        showError(error.message || 'Errore nel rifiuto del referral');
+    } finally {
+        hideLoading();
+    }
+}
+
+// View referral details
+async function viewReferralDetails(referralId) {
+    try {
+        showLoading();
+        // TODO: Implementare API per dettagli referral
+        showSuccess('Funzionalità in sviluppo');
+    } catch (error) {
+        console.error('Errore dettagli:', error);
+        showError('Errore nel caricamento dei dettagli');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Utility functions
+function showLoading() {
+    document.getElementById('loading-modal').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loading-modal').classList.add('hidden');
+}
+
+function showSuccess(message) {
+    const alert = document.getElementById('success-alert');
+    alert.querySelector('.admin-alert-message').textContent = message;
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+}
+
+function showError(message) {
+    const alert = document.getElementById('error-alert');
+    alert.querySelector('.admin-alert-message').textContent = message;
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial filter values
+    if (currentFilters.status) {
+        document.getElementById('status-filter').value = currentFilters.status;
+    }
+    if (currentFilters.search) {
+        document.getElementById('search-filter').value = currentFilters.search;
+    }
+    
+    // Apply initial filters
+    filterReferrals();
+});
+</script>
+{% endblock %}
