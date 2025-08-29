@@ -40,16 +40,21 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users(telefono);
 CREATE TABLE IF NOT EXISTS projects (
     id              SERIAL PRIMARY KEY,
     code            TEXT UNIQUE NOT NULL,
-    title           TEXT NOT NULL,
+    name            TEXT NOT NULL,
     description     TEXT,
     status          TEXT NOT NULL CHECK (status IN ('draft','active','funded','in_progress','completed','cancelled')) DEFAULT 'draft',
-    target_amount   NUMERIC(14,2),
-    raised_amount   NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_amount    NUMERIC(14,2),
+    funded_amount   NUMERIC(14,2) NOT NULL DEFAULT 0,
     start_date      DATE,
     end_date        DATE,
+    address         TEXT,
+    min_investment  NUMERIC(14,2) DEFAULT 1000,
+    photo_filename  TEXT,
+    documents_filename TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_address ON projects(address);
 
 -- INVESTMENT REQUESTS (wizard + CRO)
 CREATE TABLE IF NOT EXISTS investment_requests (

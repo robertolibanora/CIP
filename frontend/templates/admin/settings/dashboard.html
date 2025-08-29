@@ -686,7 +686,9 @@
         <div class="admin-card-body">
             <!-- Loading -->
             <div id="logs-loading" class="text-center py-8 hidden">
-                {% include 'admin/components/loading.html' with loading_text='Caricamento log...', loading_size='md' %}
+                {% with loading_text='Caricamento log...', loading_size='md' %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
             </div>
             
             <!-- Logs List -->
@@ -717,71 +719,73 @@
 </div>
 
 <!-- Backup Modal -->
-{% include 'admin/components/modal.html' with modal_id='backup-modal', modal_title='Backup Database', modal_size='lg' %}
-
-{% block modal_body %}
-<div class="space-y-4">
-    <div class="admin-form-group">
-        <label class="admin-label">Tipo Backup</label>
-        <div class="space-y-2">
-            <label class="admin-flex admin-flex--center">
-                <input type="radio" name="backup-type" value="full" class="mr-2" checked>
-                <span class="admin-text-body">Backup Completo (Database + File)</span>
-            </label>
-            <label class="admin-flex admin-flex--center">
-                <input type="radio" name="backup-type" value="database" class="mr-2">
-                <span class="admin-text-body">Solo Database</span>
-            </label>
-            <label class="admin-flex admin-flex--center">
-                <input type="radio" name="backup-type" value="files" class="mr-2">
-                <span class="admin-text-body">Solo File Caricati</span>
-            </label>
-        </div>
-    </div>
-    
-    <div class="admin-form-group">
-        <label class="admin-label">Compressione</label>
-        <select id="backup-compression" class="admin-input admin-select">
-            <option value="gzip">GZIP (Raccomandato)</option>
-            <option value="zip">ZIP</option>
-            <option value="none">Nessuna</option>
-        </select>
-    </div>
-    
-    <div class="admin-form-group">
-        <label class="admin-label">Note Backup</label>
-        <input type="text" id="backup-notes" class="admin-input" placeholder="Backup manuale prima dell'aggiornamento...">
-    </div>
-    
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div class="admin-flex">
-            <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
-            </svg>
-            <div>
-                <h3 class="admin-text-body font-medium text-yellow-800">Attenzione</h3>
-                <p class="admin-text-small text-yellow-700 mt-1">
-                    Il backup potrebbe richiedere alcuni minuti. Non chiudere questa finestra durante l'operazione.
-                </p>
+{% with 
+    modal_id='backup-modal', 
+    modal_title='Backup Database', 
+    modal_size='lg',
+    modal_body='
+    <div class="space-y-4">
+        <div class="admin-form-group">
+            <label class="admin-label">Tipo Backup</label>
+            <div class="space-y-2">
+                <label class="admin-flex admin-flex--center">
+                    <input type="radio" name="backup-type" value="full" class="mr-2" checked>
+                    <span class="admin-text-body">Backup Completo (Database + File)</span>
+                </label>
+                <label class="admin-flex admin-flex--center">
+                    <input type="radio" name="backup-type" value="database" class="mr-2">
+                    <span class="admin-text-body">Solo Database</span>
+                </label>
+                <label class="admin-flex admin-flex--center">
+                    <input type="radio" name="backup-type" value="files" class="mr-2">
+                    <span class="admin-text-body">Solo File Caricati</span>
+                </label>
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block modal_footer %}
-<div class="admin-flex admin-flex--between w-full">
-    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('backup-modal')">
-        Annulla
-    </button>
-    <button type="button" class="admin-btn admin-btn--primary" onclick="executeBackup()" id="execute-backup-btn">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-        </svg>
-        Avvia Backup
-    </button>
-</div>
-{% endblock %}
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Compressione</label>
+            <select id="backup-compression" class="admin-input admin-select">
+                <option value="gzip">GZIP (Raccomandato)</option>
+                <option value="zip">ZIP</option>
+                <option value="none">Nessuna</option>
+            </select>
+        </div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label">Note Backup</label>
+            <input type="text" id="backup-notes" class="admin-input" placeholder="Backup manuale prima dell\'aggiornamento...">
+        </div>
+        
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="admin-flex">
+                <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.232 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <div>
+                    <h3 class="admin-text-body font-medium text-yellow-800">Attenzione</h3>
+                    <p class="admin-text-small text-yellow-700 mt-1">
+                        Il backup potrebbe richiedere alcuni minuti. Non chiudere questa finestra durante l\'operazione.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>',
+    modal_footer='
+    <div class="admin-flex admin-flex--between w-full">
+        <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'backup-modal\')">
+            Annulla
+        </button>
+        <button type="button" class="admin-btn admin-btn--primary" onclick="executeBackup()" id="execute-backup-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Avvia Backup
+        </button>
+    </div>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% block extra_js %}
 <script>

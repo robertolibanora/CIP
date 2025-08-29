@@ -31,7 +31,7 @@
     
     <!-- Metriche Sistema Principali -->
     <div class="admin-grid admin-grid--4">
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Utenti Totali',
             metric_value=metrics.users_total or 0,
             metric_icon='users',
@@ -39,10 +39,12 @@
             metric_subtitle='Registrati sulla piattaforma',
             metric_trend='+5%',
             metric_period='Ultimo mese',
-            metric_action_url=url_for('admin.users_list'),
+            metric_action_url=url_for('admin.users_dashboard'),
             metric_action_text='Gestisci Utenti' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
 
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Utenti Verificati',
             metric_value=metrics.users_verified or 0,
             metric_icon='verify',
@@ -50,8 +52,10 @@
             metric_subtitle='KYC completato',
             metric_trend='+8%',
             metric_period='Ultimo mese' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
 
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Progetti Attivi',
             metric_value=metrics.projects_active or 0,
             metric_icon='projects',
@@ -59,8 +63,10 @@
             metric_subtitle='In fase di finanziamento',
             metric_action_url=url_for('admin.projects_list'),
             metric_action_text='Gestisci Progetti' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
 
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Volume Investimenti',
             metric_value='€' + ('{:,.0f}'.format(metrics.investments_total or 0)),
             metric_icon='money',
@@ -68,11 +74,13 @@
             metric_subtitle='Totale investito',
             metric_trend='+12%',
             metric_period='Ultimo mese' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
     </div>
 
     <!-- Metriche Operative -->
     <div class="admin-grid admin-grid--3 mt-6">
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Richieste Pending',
             metric_value=metrics.requests_pending or 0,
             metric_icon='pending',
@@ -80,8 +88,10 @@
             metric_subtitle='Da approvare',
             metric_action_onclick='showPendingRequests()',
             metric_action_text='Visualizza Tutte' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
 
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Transazioni Oggi',
             metric_value=metrics.transactions_today or 0,
             metric_icon='chart',
@@ -89,8 +99,10 @@
             metric_subtitle='Ricariche e prelievi',
             metric_trend='+3',
             metric_period='Rispetto a ieri' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
 
-        {% include 'admin/components/metrics_widget.html' with 
+        {% with 
             metric_title='Commissioni Mese',
             metric_value='€' + ('{:,.0f}'.format(metrics.commissions_month or 0)),
             metric_icon='money',
@@ -98,6 +110,8 @@
             metric_subtitle='Guadagni piattaforma',
             metric_trend='+15%',
             metric_period='Rispetto al mese precedente' %}
+            {% include 'admin/components/metrics_widget.html' %}
+        {% endwith %}
     </div>
         
         <!-- Quick Actions Admin -->
@@ -180,7 +194,7 @@
                     <h3 class="ml-3 text-lg font-semibold text-gray-900">Utenti</h3>
                 </div>
                 <p class="text-sm text-gray-600 mb-4">Gestione utenti e investitori</p>
-                <a href="{{ url_for('admin.users_list') }}" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium block text-center">
+                <a href="{{ url_for('admin.users_dashboard') }}" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium block text-center">
                     Gestisci Utenti
                 </a>
             </div>

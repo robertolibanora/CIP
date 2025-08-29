@@ -497,29 +497,45 @@ def projects():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code
+                   p.status, p.created_at, p.code, p.address, p.min_investment,
+                   p.photo_filename, p.documents_filename
             FROM projects p 
             WHERE p.status = 'active'
             ORDER BY p.created_at DESC
         """)
         projects = cur.fetchall()
         
-        # Calcola percentuale completamento
+        # Calcola percentuale completamento e aggiungi campi calcolati
         for project in projects:
             if project['total_amount'] and project['total_amount'] > 0:
                 project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
                 project['completion_percent'] = 0
             
-            # Aggiungi campi mancanti per compatibilità template
-            project['location'] = 'N/A'  # Non presente nello schema attuale
-            project['roi'] = 8.5  # ROI fisso per ora
-            project['min_investment'] = 1000  # Investimento minimo fisso per ora
+            # Usa i campi reali dal database
+            project['location'] = project['address'] or 'Indirizzo non disponibile'
+            project['roi'] = 8.5  # ROI fisso per ora (da calcolare in futuro)
+            project['min_investment'] = project['min_investment'] or 1000  # Usa il valore dal DB se disponibile
     
     return render_template("user/projects.html", 
                          user_id=uid,
                          projects=projects,
                          current_page="projects")
+
+@user_bp.get("/uploads/projects/<filename>")
+@login_required
+def serve_project_file_user(filename):
+    """Serve i file upload dei progetti per gli utenti (foto e documenti)"""
+    from flask import current_app, send_from_directory
+    import os
+    
+    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+    projects_folder = os.path.join(upload_folder, 'projects')
+    
+    if not os.path.exists(os.path.join(projects_folder, filename)):
+        abort(404)
+    
+    return send_from_directory(projects_folder, filename)
 
 # Rota per dettaglio progetto rimossa - ora gestito tramite modal in projects.html
 

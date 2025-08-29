@@ -271,7 +271,9 @@
 
 <!-- Loading State -->
 <div id="users-loading" class="text-center py-12">
-    {% include 'admin/components/loading.html' with loading_text='Caricamento utenti...', loading_size='lg' %}
+    {% with loading_text='Caricamento utenti...', loading_size='lg' %}
+        {% include 'admin/components/loading.html' %}
+    {% endwith %}
 </div>
 
 <!-- Users Content -->
@@ -343,38 +345,48 @@
 </div>
 
 <!-- User Detail Modal -->
-{% include 'admin/components/modal.html' with modal_id='user-detail-modal', modal_title='Dettaglio Utente', modal_size='xl' %}
-
-{% block modal_body %}
-<div id="user-detail-content">
-    <!-- Content will be loaded dynamically -->
-</div>
-{% endblock %}
-
-{% block modal_footer %}
-<div class="admin-flex admin-flex--between w-full">
-    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('user-detail-modal')">
-        Chiudi
-    </button>
-    <div class="admin-flex">
-        <button type="button" class="admin-btn admin-btn--warning mr-2" onclick="editUser()" id="edit-user-btn">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-            </svg>
-            Modifica
+{% with 
+    modal_id='user-detail-modal', 
+    modal_title='Dettaglio Utente', 
+    modal_size='xl',
+    modal_body='
+    <div id="user-detail-content">
+        <!-- Content will be loaded dynamically -->
+    </div>',
+    modal_footer='
+    <div class="admin-flex admin-flex--between w-full">
+        <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'user-detail-modal\')">
+            Chiudi
         </button>
-        <button type="button" class="admin-btn admin-btn--primary" onclick="manageUserPortfolio()" id="portfolio-btn">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-            </svg>
-            Gestisci Portfolio
-        </button>
-    </div>
-</div>
-{% endblock %}
+        <div class="admin-flex">
+            <button type="button" class="admin-btn admin-btn--warning mr-2" onclick="editUser()" id="edit-user-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Modifica
+            </button>
+            <button type="button" class="admin-btn admin-btn--primary" onclick="manageUserPortfolio()" id="portfolio-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                Gestisci Portfolio
+            </button>
+        </div>
+    </div>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 <!-- Create User Modal -->
-{% include 'admin/components/modal.html' with modal_id='create-user-modal', modal_title='Nuovo Utente', modal_size='lg' %}
+{% with 
+    modal_id='create-user-modal', 
+    modal_title='Nuovo Utente', 
+    modal_size='lg',
+    modal_body='',
+    modal_footer=''
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% block extra_js %}
 <script>

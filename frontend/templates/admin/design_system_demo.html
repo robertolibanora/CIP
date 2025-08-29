@@ -159,10 +159,18 @@
         </div>
         <div class="admin-card-body">
             <div class="space-y-4">
-                {% include 'admin/components/alert.html' with alert_type='success', alert_message='Operazione completata con successo!', alert_dismissible=true %}
-                {% include 'admin/components/alert.html' with alert_type='warning', alert_message='Attenzione: verifica i dati inseriti', alert_dismissible=true %}
-                {% include 'admin/components/alert.html' with alert_type='error', alert_message='Errore: impossibile completare l\'operazione', alert_dismissible=true %}
-                {% include 'admin/components/alert.html' with alert_type='info', alert_message='Informazione: aggiornamento disponibile', alert_dismissible=true %}
+                        {% with alert_type='success', alert_message='Operazione completata con successo!', alert_dismissible=true %}
+            {% include 'admin/components/alert.html' %}
+        {% endwith %}
+        {% with alert_type='warning', alert_message='Attenzione: verifica i dati inseriti', alert_dismissible=true %}
+            {% include 'admin/components/alert.html' %}
+        {% endwith %}
+        {% with alert_type='error', alert_message='Errore: impossibile completare l\'operazione', alert_dismissible=true %}
+            {% include 'admin/components/alert.html' %}
+        {% endwith %}
+        {% with alert_type='info', alert_message='Informazione: aggiornamento disponibile', alert_dismissible=true %}
+            {% include 'admin/components/alert.html' %}
+        {% endwith %}
             </div>
         </div>
     </div>
@@ -176,17 +184,23 @@
             <div class="admin-grid admin-grid--3">
                 <div>
                     <h3 class="admin-heading-3">Inline Loading</h3>
-                    {% include 'admin/components/loading.html' with loading_text='Caricamento dati...', loading_size='sm' %}
+                    {% with loading_text='Caricamento dati...', loading_size='sm' %}
+            {% include 'admin/components/loading.html' %}
+        {% endwith %}
                 </div>
                 
                 <div>
                     <h3 class="admin-heading-3">Loading Skeleton</h3>
-                    {% include 'admin/components/loading.html' with loading_skeleton=true, loading_skeleton_lines=4 %}
+                    {% with loading_skeleton=true, loading_skeleton_lines=4 %}
+            {% include 'admin/components/loading.html' %}
+        {% endwith %}
                 </div>
                 
                 <div>
                     <h3 class="admin-heading-3">Button Loading</h3>
-                    {% include 'admin/components/loading.html' with loading_button=true, loading_text='Salvando...' %}
+                    {% with loading_button=true, loading_text='Salvando...' %}
+            {% include 'admin/components/loading.html' %}
+        {% endwith %}
                 </div>
             </div>
         </div>
@@ -214,23 +228,24 @@
 </div>
 
 <!-- Demo Modal -->
-{% include 'admin/components/modal.html' with modal_id='demo-modal', modal_title='Modal di Demo' %}
-
-{% block modal_body %}
-<p class="admin-text-body">Questo è un esempio di modal usando il design system admin.</p>
-<div class="mt-4">
-    <label class="admin-label">Campo di esempio</label>
-    <input type="text" class="admin-input" placeholder="Inserisci un valore">
-</div>
-{% endblock %}
-
-{% block modal_footer %}
-<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('demo-modal')">
-    Annulla
-</button>
-<button type="button" class="admin-btn admin-btn--primary" onclick="closeModal('demo-modal')">
-    Salva
-</button>
-{% endblock %}
+{% with 
+    modal_id='demo-modal', 
+    modal_title='Modal di Demo',
+    modal_body='
+    <p class="admin-text-body">Questo è un esempio di modal usando il design system admin.</p>
+    <div class="mt-4">
+        <label class="admin-label">Campo di esempio</label>
+        <input type="text" class="admin-input" placeholder="Inserisci un valore">
+    </div>',
+    modal_footer='
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'demo-modal\')">
+        Annulla
+    </button>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="closeModal(\'demo-modal\')">
+        Salva
+    </button>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% endblock %}

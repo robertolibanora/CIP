@@ -194,7 +194,9 @@
 
 <!-- Loading State -->
 <div id="kyc-loading" class="text-center py-12">
-    {% include 'admin/components/loading.html' with loading_text='Caricamento richieste KYC...', loading_size='lg' %}
+    {% with loading_text='Caricamento richieste KYC...', loading_size='lg' %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
 </div>
 
 <!-- KYC Requests List -->
@@ -254,35 +256,37 @@
 </div>
 
 <!-- KYC Review Modal -->
-{% include 'admin/components/modal.html' with modal_id='kyc-review-modal', modal_title='Revisione KYC', modal_size='xl' %}
-
-{% block modal_body %}
-<div id="kyc-review-content">
-    <!-- Content will be loaded dynamically -->
-</div>
-{% endblock %}
-
-{% block modal_footer %}
-<div class="admin-flex admin-flex--between w-full">
-    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('kyc-review-modal')">
-        Chiudi
-    </button>
-    <div class="admin-flex">
-        <button type="button" class="admin-btn admin-btn--error mr-2" onclick="rejectKYC()" id="reject-kyc-btn">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
-            </svg>
-            Rifiuta
+{% with 
+    modal_id='kyc-review-modal', 
+    modal_title='Revisione KYC', 
+    modal_size='xl',
+    modal_body='
+    <div id="kyc-review-content">
+        <!-- Content will be loaded dynamically -->
+    </div>',
+    modal_footer='
+    <div class="admin-flex admin-flex--between w-full">
+        <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'kyc-review-modal\')">
+            Chiudi
         </button>
-        <button type="button" class="admin-btn admin-btn--success" onclick="approveKYC()" id="approve-kyc-btn">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            Approva
-        </button>
-    </div>
-</div>
-{% endblock %}
+        <div class="admin-flex">
+            <button type="button" class="admin-btn admin-btn--error mr-2" onclick="rejectKYC()" id="reject-kyc-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                </svg>
+                Rifiuta
+            </button>
+            <button type="button" class="admin-btn admin-btn--success" onclick="approveKYC()" id="approve-kyc-btn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Approva
+            </button>
+        </div>
+    </div>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% block extra_js %}
 <script>

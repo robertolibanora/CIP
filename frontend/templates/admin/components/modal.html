@@ -1,5 +1,6 @@
 <!-- Modal Component - Admin Design System -->
-<!-- Usage: {% include 'admin/components/modal.html' with modal_id='my-modal', modal_title='Titolo', modal_size='md' %} -->
+<!-- Usage: Passa le variabili modal_id, modal_title, modal_size -->
+<!-- Esempio: usa with per passare le variabili, poi include per includere questo template -->
 
 {% set modal_id = modal_id or 'admin-modal' %}
 {% set modal_title = modal_title or 'Modal' %}
@@ -21,21 +22,25 @@
         
         <!-- Body -->
         <div class="admin-modal-body">
-            {% block modal_body %}
-            <p class="admin-text-body">Contenuto del modal qui...</p>
-            {% endblock %}
+            {% if modal_body %}
+                {{ modal_body | safe }}
+            {% else %}
+                <p class="admin-text-body">Contenuto del modal qui...</p>
+            {% endif %}
         </div>
         
         <!-- Footer -->
         <div class="admin-modal-footer">
-            {% block modal_footer %}
-            <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('{{ modal_id }}')">
-                Annulla
-            </button>
-            <button type="button" class="admin-btn admin-btn--primary">
-                Conferma
-            </button>
-            {% endblock %}
+            {% if modal_footer %}
+                {{ modal_footer | safe }}
+            {% else %}
+                <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('{{ modal_id }}')">
+                    Annulla
+                </button>
+                <button type="button" class="admin-btn admin-btn--primary">
+                    Conferma
+                </button>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -45,7 +45,9 @@
 
 <!-- Loading State -->
 <div id="loading-state" class="text-center py-12">
-    {% include 'admin/components/loading.html' with loading_text='Caricamento portfolio...', loading_size='lg' %}
+    {% with loading_text='Caricamento portfolio...', loading_size='lg' %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
 </div>
 
 <!-- Portfolio Content -->
@@ -244,74 +246,76 @@
 </div>
 
 <!-- Movement Modal -->
-{% include 'admin/components/modal.html' with modal_id='movement-modal', modal_title='Nuovo Movimento Portfolio', modal_size='lg' %}
-
-{% block modal_body %}
-<form id="movement-form" class="space-y-6">
-    <div class="admin-grid admin-grid--2">
-        <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Utente</label>
-            <select name="user_id" class="admin-input admin-select" required id="user-select">
-                <option value="">Seleziona utente...</option>
-                <!-- Options will be loaded dynamically -->
-            </select>
+{% with 
+    modal_id='movement-modal', 
+    modal_title='Nuovo Movimento Portfolio', 
+    modal_size='lg',
+    modal_body='
+    <form id="movement-form" class="space-y-6">
+        <div class="admin-grid admin-grid--2">
+            <div class="admin-form-group">
+                <label class="admin-label admin-label--required">Utente</label>
+                <select name="user_id" class="admin-input admin-select" required id="user-select">
+                    <option value="">Seleziona utente...</option>
+                    <!-- Options will be loaded dynamically -->
+                </select>
+            </div>
+            <div class="admin-form-group">
+                <label class="admin-label admin-label--required">Tipo Movimento</label>
+                <select name="type" class="admin-input admin-select" required id="movement-type">
+                    <option value="">Seleziona tipo...</option>
+                    <option value="deposit">Deposito (+)</option>
+                    <option value="withdrawal">Prelievo (-)</option>
+                    <option value="bonus">Bonus Referral (+)</option>
+                    <option value="profit">Distribuzione Profitti (+)</option>
+                    <option value="adjustment">Rettifica (+/-)</option>
+                </select>
+            </div>
         </div>
-        <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Tipo Movimento</label>
-            <select name="type" class="admin-input admin-select" required id="movement-type">
-                <option value="">Seleziona tipo...</option>
-                <option value="deposit">Deposito (+)</option>
-                <option value="withdrawal">Prelievo (-)</option>
-                <option value="bonus">Bonus Referral (+)</option>
-                <option value="profit">Distribuzione Profitti (+)</option>
-                <option value="adjustment">Rettifica (+/-)</option>
-            </select>
+        
+        <div class="admin-grid admin-grid--2">
+            <div class="admin-form-group">
+                <label class="admin-label admin-label--required">Sezione Portfolio</label>
+                <select name="section" class="admin-input admin-select" required id="portfolio-section">
+                    <option value="">Seleziona sezione...</option>
+                    <option value="free_capital">Capitale Libero</option>
+                    <option value="invested_capital">Capitale Investito</option>
+                    <option value="referral_bonus">Bonus Referral</option>
+                    <option value="profits">Profitti</option>
+                </select>
+            </div>
+            <div class="admin-form-group">
+                <label class="admin-label admin-label--required">Importo (€)</label>
+                <input type="number" name="amount" class="admin-input" required 
+                       min="0.01" step="0.01" placeholder="0.00" id="movement-amount">
+            </div>
         </div>
-    </div>
-    
-    <div class="admin-grid admin-grid--2">
+        
         <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Sezione Portfolio</label>
-            <select name="section" class="admin-input admin-select" required id="portfolio-section">
-                <option value="">Seleziona sezione...</option>
-                <option value="free_capital">Capitale Libero</option>
-                <option value="invested_capital">Capitale Investito</option>
-                <option value="referral_bonus">Bonus Referral</option>
-                <option value="profits">Profitti</option>
-            </select>
+            <label class="admin-label admin-label--required">Descrizione</label>
+            <textarea name="description" class="admin-input admin-textarea" required rows="3"
+                      placeholder="Motivo del movimento..." id="movement-description"></textarea>
         </div>
+        
         <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Importo (€)</label>
-            <input type="number" name="amount" class="admin-input" required 
-                   min="0.01" step="0.01" placeholder="0.00" id="movement-amount">
+            <label class="admin-label">Note Interne (opzionale)</label>
+            <textarea name="admin_notes" class="admin-input admin-textarea" rows="2"
+                      placeholder="Note per uso interno..." id="movement-notes"></textarea>
         </div>
-    </div>
-    
-    <div class="admin-form-group">
-        <label class="admin-label admin-label--required">Descrizione</label>
-        <textarea name="description" class="admin-input admin-textarea" required rows="3"
-                  placeholder="Motivo del movimento..." id="movement-description"></textarea>
-    </div>
-    
-    <div class="admin-form-group">
-        <label class="admin-label">Note Interne (opzionale)</label>
-        <textarea name="admin_notes" class="admin-input admin-textarea" rows="2"
-                  placeholder="Note per uso interno..." id="movement-notes"></textarea>
-    </div>
-</form>
-{% endblock %}
-
-{% block modal_footer %}
-<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('movement-modal')">
-    Annulla
-</button>
-<button type="button" class="admin-btn admin-btn--primary" onclick="submitMovement()" id="submit-movement-btn">
-    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-    </svg>
-    Crea Movimento
-</button>
-{% endblock %}
+    </form>',
+    modal_footer='
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'movement-modal\')">
+        Annulla
+    </button>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="submitMovement()" id="submit-movement-btn">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Crea Movimento
+    </button>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

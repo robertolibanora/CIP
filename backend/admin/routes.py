@@ -1,5 +1,6 @@
 import os
 import uuid
+import time
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
@@ -66,30 +67,102 @@ def projects_list():
             rows = cur.fetchall()
         return jsonify(rows)
     
-    # Altrimenti restituisce il template HTML
+    # Altrimenti restituisce il template HTML con metriche
     from flask import render_template
-    return render_template("admin/projects/list.html")
+    
+    # Ottieni metriche progetti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM projects")
+        projects_total = cur.fetchone()['total']
+        
+        cur.execute("SELECT COUNT(*) as active FROM projects WHERE status = 'active'")
+        projects_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as draft FROM projects WHERE status = 'draft'")
+        projects_draft = cur.fetchone()['draft']
+        
+        cur.execute("SELECT COUNT(*) as completed FROM projects WHERE status = 'completed'")
+        projects_completed = cur.fetchone()['completed']
+    
+    metrics = {
+        'projects_total': projects_total,
+        'projects_active': projects_active,
+        'projects_draft': projects_draft,
+        'projects_completed': projects_completed,
+        'projects_active': projects_active  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/projects/list.html", metrics=metrics)
 
 @admin_bp.post("/projects/new")
 @admin_required
 def projects_new():
     data = request.form or request.json or {}
-    code = data.get('code'); title = data.get('title')
-    if not code or not title:
-        abort(400)
+    
+    # Validazione campi obbligatori
+    required_fields = ['code', 'title', 'address', 'description', 'target_amount']
+    for field in required_fields:
+        if not data.get(field):
+            abort(400, description=f"Campo obbligatorio mancante: {field}")
+    
+    # Gestione file upload
+    photo = request.files.get('photo')
+    documents = request.files.get('documents')
+    
+    if not photo or not documents:
+        abort(400, description="Foto immobile e documenti tecnici sono obbligatori")
+    
+    # Salva i file
+    photo_filename = None
+    documents_filename = None
+    
+    try:
+        if photo:
+            photo_filename = secure_filename(f"{data['code']}_photo_{int(time.time())}.jpg")
+            photo_path = os.path.join(get_upload_folder(), 'projects', photo_filename)
+            os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+            photo.save(photo_path)
+        
+        if documents:
+            documents_filename = secure_filename(f"{data['code']}_docs_{int(time.time())}.pdf")
+            documents_path = os.path.join(get_upload_folder(), 'projects', documents_filename)
+            os.makedirs(os.path.dirname(documents_path), exist_ok=True)
+            documents.save(documents_path)
+    
+    except Exception as e:
+        abort(500, description=f"Errore nel salvataggio dei file: {str(e)}")
+    
+    # Inserisci nel database
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO projects(code,title,description,status,target_amount,start_date,end_date)
-            VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            INSERT INTO projects(
+                code, name, description, status, total_amount, start_date, end_date,
+                address, min_investment, photo_filename, documents_filename
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
             """,
             (
-                code, title, data.get('description'), data.get('status','draft'),
-                data.get('target_amount'), data.get('start_date'), data.get('end_date')
+                data['code'], data['title'], data['description'], data.get('status','draft'),
+                data['target_amount'], data.get('start_date'), data.get('end_date'),
+                data['address'], data.get('min_investment'), photo_filename, documents_filename
             )
         )
         pid = cur.fetchone()['id']
-    return jsonify({"id": pid})
+    
+    return jsonify({"id": pid, "message": "Progetto creato con successo"})
+
+@admin_bp.get("/uploads/projects/<filename>")
+@admin_required
+def serve_project_file(filename):
+    """Serve i file upload dei progetti (foto e documenti)"""
+    upload_folder = get_upload_folder()
+    projects_folder = os.path.join(upload_folder, 'projects')
+    
+    if not os.path.exists(os.path.join(projects_folder, filename)):
+        abort(404)
+    
+    return send_from_directory(projects_folder, filename)
 
 @admin_bp.get("/projects/<int:pid>")
 @admin_required
@@ -144,8 +217,8 @@ def project_detail(pid):
 def projects_edit(pid):
     data = request.form or request.json or {}
     fields = [
-        ('code','code'),('title','title'),('description','description'),('status','status'),
-        ('target_amount','target_amount'),('start_date','start_date'),('end_date','end_date')
+        ('code','code'),('title','name'),('description','description'),('status','status'),
+        ('total_amount','total_amount'),('start_date','start_date'),('end_date','end_date')
     ]
     sets = []
     params = []
@@ -232,7 +305,34 @@ def portfolio_dashboard():
     
     # Altrimenti restituisce il template HTML
     from flask import render_template
-    return render_template("admin/portfolio/dashboard.html")
+    
+    # Ottieni metriche utenti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM users")
+        users_total = cur.fetchone()['total']
+        
+        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
+        users_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+        users_verified = cur.fetchone()['verified']
+        
+        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+        kyc_pending = cur.fetchone()['pending']
+        
+        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
+        users_suspended = cur.fetchone()['suspended']
+    
+    metrics = {
+        'users_total': users_total,
+        'users_active': users_active,
+        'users_verified': users_verified,
+        'kyc_pending': kyc_pending,
+        'users_suspended': users_suspended,
+        'total_users': users_total  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/portfolio/dashboard.html", metrics=metrics)
 
 @admin_bp.get("/portfolio/overview")
 @admin_required
@@ -459,8 +559,8 @@ def projects_export():
         
         # Header CSV
         writer.writerow([
-            'ID', 'Codice', 'Titolo', 'Descrizione', 'Località', 'Tipologia',
-            'Target Amount', 'Min Investment', 'ROI', 'Durata', 'Stato',
+            'ID', 'Codice', 'Nome', 'Descrizione', 'Località', 'Tipologia',
+            'Importo Totale', 'Min Investment', 'ROI', 'Durata', 'Stato',
             'Data Inizio', 'Data Fine', 'Data Creazione'
         ])
         
@@ -469,11 +569,11 @@ def projects_export():
             writer.writerow([
                 project.get('id', ''),
                 project.get('code', ''),
-                project.get('title', ''),
+                project.get('name', ''),
                 project.get('description', ''),
                 project.get('location', ''),
                 project.get('type', ''),
-                project.get('target_amount', ''),
+                project.get('total_amount', ''),
                 project.get('min_investment', ''),
                 project.get('roi', ''),
                 project.get('duration', ''),
@@ -506,7 +606,34 @@ def kyc_dashboard():
     
     # Altrimenti restituisce il template HTML
     from flask import render_template
-    return render_template("admin/kyc/dashboard.html")
+    
+    # Ottieni metriche utenti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM users")
+        users_total = cur.fetchone()['total']
+        
+        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
+        users_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+        users_verified = cur.fetchone()['verified']
+        
+        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+        kyc_pending = cur.fetchone()['pending']
+        
+        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
+        users_suspended = cur.fetchone()['suspended']
+    
+    metrics = {
+        'users_total': users_total,
+        'users_active': users_active,
+        'users_verified': users_verified,
+        'kyc_pending': kyc_pending,
+        'users_suspended': users_suspended,
+        'total_users': users_total  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/kyc/dashboard.html", metrics=metrics)
 
 @admin_bp.get("/api/kyc-requests")
 @admin_required
@@ -522,7 +649,7 @@ def kyc_request_detail(user_id):
         # Dati utente
         cur.execute("""
             SELECT id, full_name, email, telefono, address, kyc_status, 
-                   created_at, kyc_verified_at, kyc_notes
+                   created_at, kyc_notes
             FROM users WHERE id = %s
         """, (user_id,))
         user = cur.fetchone()
@@ -596,7 +723,7 @@ def get_kyc_requests():
         cur.execute("""
             SELECT 
                 u.id, u.full_name, u.email, u.telefono, u.address,
-                u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes,
+                u.kyc_status, u.created_at, u.kyc_notes,
                 COUNT(d.id) as documents_count,
                 CASE WHEN up.id IS NOT NULL AND 
                      (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) > 0 
@@ -607,7 +734,7 @@ def get_kyc_requests():
             LEFT JOIN user_portfolios up ON up.user_id = u.id
             WHERE u.role = 'investor'
             GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
-                     u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes, up.id,
+                     u.kyc_status, u.created_at, u.kyc_notes, up.id,
                      up.free_capital, up.invested_capital, up.referral_bonus, up.profits
             ORDER BY 
                 CASE u.kyc_status 
@@ -632,7 +759,6 @@ def kyc_approve(user_id):
         cur.execute("""
             UPDATE users 
             SET kyc_status = 'verified', 
-                kyc_verified_at = NOW(),
                 kyc_notes = %s
             WHERE id = %s AND role = 'investor'
         """, (notes, user_id))
@@ -696,7 +822,7 @@ def kyc_bulk_action():
         if action == 'approve':
             cur.execute("""
                 UPDATE users 
-                SET kyc_status = 'verified', kyc_verified_at = NOW(),
+                SET kyc_status = 'verified',
                     kyc_notes = 'Approvazione multipla'
                 WHERE id = ANY(%s) AND role = 'investor'
             """, (request_ids,))
@@ -776,14 +902,14 @@ def kyc_export():
         cur.execute(f"""
             SELECT 
                 u.id, u.full_name, u.email, u.telefono, u.address,
-                u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes,
+                u.kyc_status, u.created_at, u.kyc_notes,
                 COUNT(d.id) as documents_count
             FROM users u
             LEFT JOIN documents d ON d.user_id = u.id
             LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
             WHERE {where_clause}
             GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
-                     u.kyc_status, u.created_at, u.kyc_verified_at, u.kyc_notes
+                     u.kyc_status, u.created_at, u.kyc_notes
             ORDER BY u.created_at DESC
         """, params)
         
@@ -800,7 +926,7 @@ def kyc_export():
         # Header CSV
         writer.writerow([
             'ID', 'Nome Completo', 'Email', 'Telefono', 'Indirizzo',
-            'Stato KYC', 'Data Registrazione', 'Data Verifica', 'Note', 'Documenti'
+            'Stato KYC', 'Data Registrazione', 'Note', 'Documenti'
         ])
         
         # Dati utenti
@@ -813,7 +939,6 @@ def kyc_export():
                 user.get('address', ''),
                 user.get('kyc_status', ''),
                 user.get('created_at', ''),
-                user.get('kyc_verified_at', ''),
                 user.get('kyc_notes', ''),
                 user.get('documents_count', 0)
             ])
@@ -839,9 +964,38 @@ def users_dashboard():
     if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
         return jsonify(get_users_list())
     
-    # Altrimenti restituisce il template HTML
+    # Altrimenti restituisce il template HTML con metriche
     from flask import render_template
-    return render_template("admin/users/dashboard.html")
+    
+    # Ottieni metriche utenti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM users")
+        users_total = cur.fetchone()['total']
+        
+        # Utenti attivi = verificati (KYC completato)
+        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
+        users_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+        users_verified = cur.fetchone()['verified']
+        
+        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+        kyc_pending = cur.fetchone()['pending']
+        
+        # Utenti sospesi = KYC rifiutato
+        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
+        users_suspended = cur.fetchone()['suspended']
+    
+    metrics = {
+        'users_total': users_total,
+        'users_active': users_active,
+        'users_verified': users_verified,
+        'kyc_pending': kyc_pending,
+        'users_suspended': users_suspended,
+        'total_users': users_total  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/users/dashboard.html", metrics=metrics)
 
 @admin_bp.get("/users/stats")
 @admin_required
@@ -855,7 +1009,7 @@ def users_stats():
                 COUNT(*) FILTER (WHERE kyc_status = 'verified') as verified,
                 COUNT(*) FILTER (WHERE kyc_status = 'pending') as pending,
                 COUNT(*) FILTER (WHERE kyc_status = 'rejected') as rejected,
-                COUNT(*) FILTER (WHERE is_active = false) as suspended,
+                COUNT(*) FILTER (WHERE kyc_status = 'rejected') as suspended,
                 COUNT(*) FILTER (WHERE role = 'admin') as admins
             FROM users
         """)
@@ -972,7 +1126,7 @@ def get_users_list():
         query = f"""
             SELECT 
                 u.id, u.full_name, u.email, u.telefono, u.address,
-                u.kyc_status, u.role, u.is_active, u.created_at, u.last_login,
+                u.kyc_status, u.role, u.created_at, u.last_login,
                 up.free_capital + up.invested_capital + up.referral_bonus + up.profits as portfolio_balance,
                 COALESCE(inv_stats.investments_count, 0) as investments_count,
                 COALESCE(inv_stats.investment_volume, 0) as investment_volume,
@@ -1073,7 +1227,7 @@ def toggle_user_status(user_id):
     """Attiva/Sospendi utente"""
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni stato attuale
-        cur.execute("SELECT is_active, role FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT kyc_status, role FROM users WHERE id = %s", (user_id,))
         user = cur.fetchone()
         
         if not user:
@@ -1083,24 +1237,24 @@ def toggle_user_status(user_id):
         if user['role'] == 'admin':
             return jsonify({"error": "Non è possibile sospendere un amministratore"}), 400
         
-        new_status = not user['is_active']
+        new_status = 'verified' if user['kyc_status'] == 'rejected' else 'rejected'
         
         cur.execute("""
             UPDATE users 
-            SET is_active = %s
+            SET kyc_status = %s
             WHERE id = %s
         """, (new_status, user_id))
         
         # Log dell'azione admin
-        action = 'user_activate' if new_status else 'user_suspend'
+        action = 'user_activate' if new_status == 'verified' else 'user_suspend'
         cur.execute("""
             INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
             VALUES (%s, %s, 'user', %s, %s)
-        """, (session.get('user_id'), action, user_id, f"Utente {'attivato' if new_status else 'sospeso'}"))
+        """, (session.get('user_id'), action, user_id, f"Utente {'attivato' if new_status == 'verified' else 'sospeso'}"))
     
     return jsonify({
         "success": True, 
-        "message": f"Utente {'attivato' if new_status else 'sospeso'} con successo",
+        "message": f"Utente {'attivato' if new_status == 'verified' else 'sospeso'} con successo",
         "new_status": new_status
     })
 
@@ -1123,7 +1277,7 @@ def users_bulk_action():
         if action == 'approve_kyc':
             cur.execute("""
                 UPDATE users 
-                SET kyc_status = 'verified', kyc_verified_at = NOW(),
+                SET kyc_status = 'verified',
                     kyc_notes = 'Approvazione multipla'
                 WHERE id = ANY(%s) AND role != 'admin'
             """, (user_ids,))
@@ -1140,14 +1294,14 @@ def users_bulk_action():
         elif action == 'suspend':
             cur.execute("""
                 UPDATE users 
-                SET is_active = false
+                SET kyc_status = 'rejected'
                 WHERE id = ANY(%s) AND role != 'admin'
             """, (user_ids,))
             
         elif action == 'activate':
             cur.execute("""
                 UPDATE users 
-                SET is_active = true
+                SET kyc_status = 'verified'
                 WHERE id = ANY(%s)
             """, (user_ids,))
         
@@ -1241,7 +1395,34 @@ def analytics_dashboard():
     
     # Altrimenti restituisce il template HTML
     from flask import render_template
-    return render_template("admin/analytics/dashboard.html")
+    
+    # Ottieni metriche utenti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM users")
+        users_total = cur.fetchone()['total']
+        
+        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
+        users_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+        users_verified = cur.fetchone()['verified']
+        
+        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+        kyc_pending = cur.fetchone()['pending']
+        
+        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
+        users_suspended = cur.fetchone()['suspended']
+    
+    metrics = {
+        'users_total': users_total,
+        'users_active': users_active,
+        'users_verified': users_verified,
+        'kyc_pending': kyc_pending,
+        'users_suspended': users_suspended,
+        'total_users': users_total  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/analytics/dashboard.html", metrics=metrics)
 
 @admin_bp.get("/analytics/data")
 @admin_required
@@ -1455,13 +1636,13 @@ def calculate_secondary_metrics(cur, start_dt, end_dt):
     """)
     kyc_pending = cur.fetchone()['kyc_pending']
     
-    # Average KYC Approval Time (mock calculation)
+    # Average KYC Approval Time (mock calculation - using created_at as approximation)
     cur.execute("""
         SELECT 
-            AVG(EXTRACT(EPOCH FROM (kyc_verified_at - created_at)) / 86400) as avg_approval_days
+            AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400) as avg_approval_days
         FROM users 
         WHERE kyc_status = 'verified' 
-        AND kyc_verified_at IS NOT NULL
+        AND updated_at IS NOT NULL
         AND created_at BETWEEN %s AND %s
     """, (start_dt, end_dt))
     avg_approval_time = cur.fetchone()['avg_approval_days'] or 0
@@ -1531,13 +1712,13 @@ def generate_chart_data(cur, start_dt, end_dt, period):
     
     # Projects Performance (top 10 projects by ROI)
     cur.execute("""
-        SELECT title, roi, 
+        SELECT p.name, p.roi, 
                (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) as volume,
-               (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) / p.target_amount * 100 as funding_percentage
+               (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) / p.total_amount * 100 as funding_percentage
         FROM projects p
-        WHERE created_at BETWEEN %s AND %s
-        AND roi IS NOT NULL
-        ORDER BY roi DESC
+        WHERE p.created_at BETWEEN %s AND %s
+        AND p.roi IS NOT NULL
+        ORDER BY p.roi DESC
         LIMIT 10
     """, (start_dt, end_dt))
     projects_performance = cur.fetchall()
@@ -1566,7 +1747,7 @@ def generate_chart_data(cur, start_dt, end_dt, period):
             'data': [float(row['volume']) for row in investment_volume_data]
         },
         'projects_performance': {
-            'labels': [row['title'][:20] + '...' if len(row['title']) > 20 else row['title'] for row in projects_performance],
+            'labels': [row['name'][:20] + '...' if len(row['name']) > 20 else row['name'] for row in projects_performance],
             'roi_data': [float(row['roi']) for row in projects_performance],
             'volume_data': [float(row['volume']) for row in projects_performance],
             'funding_data': [float(row['funding_percentage']) for row in projects_performance]
@@ -1592,14 +1773,14 @@ def get_top_projects_performance(cur, start_dt, end_dt):
     """Ottiene top progetti per performance"""
     cur.execute("""
         SELECT 
-            p.id, p.code, p.title, p.roi, p.status, p.target_amount,
+            p.id, p.code, p.name, p.roi, p.status, p.total_amount,
             COALESCE(SUM(i.amount), 0) as volume,
             COUNT(DISTINCT i.user_id) as investors,
-            COALESCE(SUM(i.amount), 0) / p.target_amount * 100 as funding_percentage
+            COALESCE(SUM(i.amount), 0) / p.total_amount * 100 as funding_percentage
         FROM projects p
         LEFT JOIN investments i ON i.project_id = p.id AND i.status IN ('active', 'completed')
         WHERE p.created_at BETWEEN %s AND %s
-        GROUP BY p.id, p.code, p.title, p.roi, p.status, p.target_amount
+        GROUP BY p.id, p.code, p.name, p.roi, p.status, p.total_amount
         ORDER BY p.roi DESC, volume DESC
         LIMIT 10
     """, (start_dt, end_dt))
@@ -1610,7 +1791,7 @@ def get_top_projects_performance(cur, start_dt, end_dt):
         {
             'id': project['id'],
             'code': project['code'],
-            'title': project['title'],
+            'name': project['name'],
             'roi': float(project['roi']) if project['roi'] else 0,
             'volume': float(project['volume']),
             'investors': project['investors'],
@@ -1705,7 +1886,7 @@ def export_analytics_csv(analytics_data, export_type):
         for project in analytics_data.get('top_projects', []):
             writer.writerow([
                 project['code'],
-                project['title'],
+                project['name'],
                 project['roi'],
                 project['volume'],
                 project['investors'],
@@ -1764,7 +1945,34 @@ def settings_dashboard():
     
     # Altrimenti restituisce il template HTML
     from flask import render_template
-    return render_template("admin/settings/dashboard.html")
+    
+    # Ottieni metriche utenti per il sidebar
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) as total FROM users")
+        users_total = cur.fetchone()['total']
+        
+        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
+        users_active = cur.fetchone()['active']
+        
+        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+        users_verified = cur.fetchone()['verified']
+        
+        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+        kyc_pending = cur.fetchone()['pending']
+        
+        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
+        users_suspended = cur.fetchone()['suspended']
+    
+    metrics = {
+        'users_total': users_total,
+        'users_active': users_active,
+        'users_verified': users_verified,
+        'kyc_pending': kyc_pending,
+        'users_suspended': users_suspended,
+        'total_users': users_total  # Per compatibilità con sidebar
+    }
+    
+    return render_template("admin/settings/dashboard.html", metrics=metrics)
 
 @admin_bp.get("/settings/data")
 @admin_required
@@ -2193,7 +2401,8 @@ def users_list():
 
 @admin_bp.get("/users/<int:uid>")
 @admin_required
-def user_detail(uid):
+def user_detail_legacy(uid):
+    """Dettaglio utente legacy - mantenuto per compatibilità"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
@@ -2356,7 +2565,8 @@ def kyc_verify(uid):
 
 @admin_bp.post("/kyc/<int:uid>/reject")
 @admin_required
-def kyc_reject(uid):
+def kyc_reject_legacy(uid):
+    """KYC reject legacy - mantenuto per compatibilità"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (uid,))
     return jsonify({"kyc_status": "rejected"})
@@ -2514,10 +2724,11 @@ def notifications_templates_delete(tid):
         cur.execute("DELETE FROM notification_templates WHERE id=%s", (tid,))
     return jsonify({"deleted": tid})
 
-# ---- Analytics ----
-@admin_bp.get("/analytics")
+# ---- Analytics Legacy ----
+@admin_bp.get("/analytics/legacy")
 @admin_required
-def analytics():
+def analytics_legacy():
+    """Analytics legacy - mantenuto per compatibilità"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT date_trunc('month', created_at) AS month, SUM(amount) AS invested
@@ -2956,10 +3167,10 @@ def distribute_referral_bonus():
         return jsonify({'error': f'Errore nella distribuzione: {str(e)}'}), 500
 
 # ---- TASK 2.7 - Enhanced KYC Management ----
-@admin_bp.get("/api/kyc-requests")
+@admin_bp.get("/api/kyc-requests/enhanced")
 @admin_required
-def kyc_requests_list():
-    """Lista documenti KYC da approvare"""
+def kyc_requests_enhanced():
+    """Lista documenti KYC da approvare - versione enhanced"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT u.id, u.full_name, u.email, u.kyc_status, u.created_at,

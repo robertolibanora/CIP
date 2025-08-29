@@ -10,70 +10,270 @@
         <p class="text-gray-600 mt-1">Scopri opportunità di investimento</p>
     </div>
 
-    <!-- Lista progetti essenziale -->
+    <!-- Lista progetti immobiliari -->
     <div class="px-4 py-6">
         {% if projects %}
-            <div class="space-y-4">
+            <div class="space-y-6">
                 {% for project in projects %}
-                <div class="bg-white rounded-lg border p-4">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="font-medium text-gray-900">{{ project['title'] or 'Progetto' }}</h3>
-                            <p class="text-sm text-gray-600">{{ project['location'] or 'Località' }}</p>
+                <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    <!-- Header con foto e info principali -->
+                    <div class="flex flex-col md:flex-row">
+                        <!-- Foto immobile -->
+                        <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
+                            {% if project.photo_filename %}
+                                <img src="/uploads/projects/{{ project.photo_filename }}" 
+                                     alt="Foto {{ project.name }}" 
+                                     class="w-full h-full object-cover">
+                            {% else %}
+                                <div class="text-gray-400 text-center p-4">
+                                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="text-sm">Foto non disponibile</p>
+                                </div>
+                            {% endif %}
                         </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold text-blue-600">{{ "%.1f"|format(project['roi']|float) }}%</div>
-                            <div class="text-xs text-gray-600">ROI</div>
+                        
+                        <!-- Info progetto -->
+                        <div class="flex-1 p-6">
+                            <div class="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                            {{ project.code }}
+                                        </span>
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                            {{ project.status|title }}
+                                        </span>
+                                    </div>
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
+                                    <p class="text-gray-600 mb-3">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        {{ project.location }}
+                                    </p>
+                                    <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
+                                </div>
+                                
+                                <!-- ROI e investimento minimo -->
+                                <div class="text-right mt-4 md:mt-0">
+                                    <div class="text-2xl font-bold text-blue-600 mb-1">{{ "%.1f"|format(project.roi|float) }}%</div>
+                                    <div class="text-sm text-gray-600 mb-3">ROI Atteso</div>
+                                    <div class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.min_investment|float) }}</div>
+                                    <div class="text-xs text-gray-600">Investimento Minimo</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Barra progresso finanziamento -->
+                            <div class="mb-4">
+                                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                    <span>Progresso finanziamento</span>
+                                    <span>{{ project.completion_percent }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ project.completion_percent }}%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-600 mt-1">
+                                    <span>Raccolto: €{{ "{:,.0f}".format(project.funded_amount|float) }}</span>
+                                    <span>Target: €{{ "{:,.0f}".format(project.total_amount|float) }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Azioni -->
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button onclick="openInvestmentModal('{{ project.id }}')" 
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    Investi Ora
+                                </button>
+                                
+                                {% if project.documents_filename %}
+                                <button onclick="viewProjectDocuments('{{ project.id }}', '{{ project.documents_filename }}')" 
+                                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors">
+                                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Documenti
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-600">
-                            Min: €{{ "%.0f"|format(project['min_investment']|float) }}
-                        </div>
-                        <button onclick="openInvestmentModal('{{ project['id'] }}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                            Investi
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         {% else %}
             <div class="bg-white p-8 rounded-lg border text-center">
-                <p class="text-gray-600 mb-4">Nessun progetto disponibile</p>
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <p class="text-gray-600 mb-2">Nessun progetto disponibile al momento</p>
+                <p class="text-gray-500 text-sm">Torna più tardi per nuove opportunità di investimento</p>
             </div>
         {% endif %}
     </div>
 </div>
 
-<!-- Modal investimento semplificato -->
+<!-- Modal investimento migliorato -->
 <div id="investmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg max-w-sm w-full p-6">
-        <h3 class="text-lg font-bold text-gray-900 mb-4">Investi</h3>
-        <form>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Importo</label>
-                <input type="number" class="w-full p-3 border rounded-lg" placeholder="€1000">
+    <div class="bg-white rounded-lg max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Investi nel Progetto</h3>
+            <button onclick="closeInvestmentModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <form id="investmentForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Importo investimento (€)</label>
+                <input type="number" id="investmentAmount" name="amount" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="1000" min="100" step="100" required>
+                <p class="text-xs text-gray-500 mt-1">Importo minimo: €100</p>
             </div>
-            <div class="flex space-x-3">
-                <button type="button" onclick="closeInvestmentModal()" class="flex-1 bg-gray-100 text-gray-700 p-3 rounded-lg font-medium">
+            
+            <div class="bg-blue-50 p-3 rounded-lg">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">ROI atteso:</span>
+                    <span class="font-medium text-blue-600">8.5%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Durata stimata:</span>
+                    <span class="font-medium text-gray-900">12-18 mesi</span>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="closeInvestmentModal()" 
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg font-medium transition-colors">
                     Annulla
                 </button>
-                <button type="submit" class="flex-1 bg-blue-600 text-white p-3 rounded-lg font-medium">
-                    Conferma
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors">
+                    Conferma Investimento
                 </button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Modal visualizzazione documenti -->
+<div id="documentsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex justify-between items-center p-6 border-b">
+            <h3 class="text-lg font-bold text-gray-900">Documenti Progetto</h3>
+            <button onclick="closeDocumentsModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div id="documentsContent" class="space-y-4">
+                <!-- I documenti verranno caricati qui dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+let currentProjectId = null;
+
 function openInvestmentModal(projectId) {
+    currentProjectId = projectId;
     document.getElementById('investmentModal').classList.remove('hidden');
+    document.getElementById('investmentAmount').focus();
 }
 
 function closeInvestmentModal() {
     document.getElementById('investmentModal').classList.add('hidden');
+    document.getElementById('investmentForm').reset();
+    currentProjectId = null;
 }
+
+function viewProjectDocuments(projectId, documentsFilename) {
+    currentProjectId = projectId;
+    const modal = document.getElementById('documentsModal');
+    const content = document.getElementById('documentsContent');
+    
+    // Mostra modal
+    modal.classList.remove('hidden');
+    
+    // Carica contenuto documenti
+    content.innerHTML = `
+        <div class="text-center">
+            <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">Documenti Tecnici</h4>
+            <p class="text-gray-600 mb-4">Visualizza i documenti tecnici e le planimetrie del progetto</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="/uploads/projects/${documentsFilename}" target="_blank" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Scarica PDF
+                </a>
+                
+                <button onclick="viewPdfInBrowser('${documentsFilename}')" 
+                        class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    Visualizza Online
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function closeDocumentsModal() {
+    document.getElementById('documentsModal').classList.add('hidden');
+    currentProjectId = null;
+}
+
+function viewPdfInBrowser(filename) {
+    const url = `/uploads/projects/${filename}`;
+    window.open(url, '_blank');
+}
+
+// Gestione form investimento
+document.getElementById('investmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const amount = document.getElementById('investmentAmount').value;
+    if (!amount || amount < 100) {
+        alert('Inserisci un importo valido (minimo €100)');
+        return;
+    }
+    
+    // TODO: Implementare la logica di investimento
+    alert(`Investimento di €${amount} registrato per il progetto ${currentProjectId}`);
+    closeInvestmentModal();
+});
+
+// Chiudi modal cliccando fuori
+document.getElementById('investmentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeInvestmentModal();
+    }
+});
+
+document.getElementById('documentsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDocumentsModal();
+    }
+});
 </script>
 {% endblock %}

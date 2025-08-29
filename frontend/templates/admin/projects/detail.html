@@ -25,7 +25,9 @@
 {% block content %}
 <!-- Loading State -->
 <div id="page-loading" class="text-center py-12">
-    {% include 'admin/components/loading.html' with loading_text='Caricamento progetto...', loading_size='lg' %}
+    {% with loading_text='Caricamento progetto...', loading_size='lg' %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
 </div>
 
 <!-- Project Content -->
@@ -132,7 +134,9 @@
             </div>
             <div class="admin-card-body">
                 <div class="space-y-4" id="project-stats">
-                    {% include 'admin/components/loading.html' with loading_skeleton=true, loading_skeleton_lines=4 %}
+                    {% with loading_skeleton=true, loading_skeleton_lines=4 %}
+    {% include 'admin/components/loading.html' %}
+{% endwith %}
                 </div>
             </div>
         </div>
@@ -204,44 +208,46 @@
 </div>
 
 <!-- Upload Modal -->
-{% include 'admin/components/modal.html' with modal_id='upload-modal', modal_title='Carica File', modal_size='md' %}
-
-{% block modal_body %}
-<form id="upload-form" class="space-y-4">
-    <div class="admin-form-group">
-        <label class="admin-label">Titolo (opzionale)</label>
-        <input type="text" name="title" class="admin-input" placeholder="Nome descrittivo del file">
-    </div>
-    
-    <div class="admin-form-group">
-        <label class="admin-label admin-label--required">File</label>
-        <div class="relative">
-            <input type="file" name="file" class="admin-input" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
-            <p class="admin-help-text">Formato supportati: JPG, PNG, PDF (max 10MB)</p>
+{% with 
+    modal_id='upload-modal', 
+    modal_title='Carica File', 
+    modal_size='md',
+    modal_body='
+    <form id="upload-form" class="space-y-4">
+        <div class="admin-form-group">
+            <label class="admin-label">Titolo (opzionale)</label>
+            <input type="text" name="title" class="admin-input" placeholder="Nome descrittivo del file">
         </div>
-    </div>
-    
-    <!-- Preview -->
-    <div id="file-preview" class="hidden">
-        <label class="admin-label">Anteprima</label>
-        <div class="border border-gray-200 rounded-lg p-4">
-            <div id="preview-content"></div>
+        
+        <div class="admin-form-group">
+            <label class="admin-label admin-label--required">File</label>
+            <div class="relative">
+                <input type="file" name="file" class="admin-input" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
+                <p class="admin-help-text">Formato supportati: JPG, PNG, PDF (max 10MB)</p>
+            </div>
         </div>
-    </div>
-</form>
-{% endblock %}
-
-{% block modal_footer %}
-<button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('upload-modal')">
-    Annulla
-</button>
-<button type="button" class="admin-btn admin-btn--primary" onclick="submitUpload()" id="upload-btn">
-    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-    </svg>
-    Carica File
-</button>
-{% endblock %}
+        
+        <!-- Preview -->
+        <div id="file-preview" class="hidden">
+            <label class="admin-label">Anteprima</label>
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div id="preview-content"></div>
+            </div>
+        </div>
+    </form>',
+    modal_footer='
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'upload-modal\')">
+        Annulla
+    </button>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="submitUpload()" id="upload-btn">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        Carica File
+    </button>'
+%}
+    {% include 'admin/components/modal.html' %}
+{% endwith %}
 
 {% block extra_js %}
 <script>
