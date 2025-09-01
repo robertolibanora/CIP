@@ -41,6 +41,11 @@ from backend.deposits import deposits_bp
 from backend.withdrawals import withdrawals_bp
 from backend.profits import profits_bp
 
+# Healthcheck minimale per smoke test
+@app.get("/health")
+def health():
+    return {"status": "ok"}, 200
+
 # Registra blueprints principali
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -67,9 +72,18 @@ def assets(filename):
 # Route per file statici (rimossa - cartella static eliminata)
 # Tutti i file sono ora serviti dalla cartella assets
 
-# Route principale
+# Route principale con reindirizzamento intelligente
 @app.route("/")
 def index():
+    from flask import session
+    
+    # Reindirizzamento basato su ruolo se utente già autenticato
+    if 'user_id' in session and 'role' in session:
+        if session.get('role') == 'admin':
+            return redirect(url_for("admin.admin_dashboard"))
+        else:
+            return redirect(url_for("user.dashboard"))
+    
     return redirect(url_for("auth.login"))
 
 if __name__ == "__main__":

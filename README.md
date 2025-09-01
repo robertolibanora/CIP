@@ -136,6 +136,15 @@ Ogni template deve:
 python main.py --host 0.0.0.0 --port 8090
 ```
 
+### Testing helpers (solo in ambiente TESTING)
+
+Quando `TESTING=1`, sono disponibili utility per i test E2E:
+
+- GET `/auth/test-login?role=investor` per creare una sessione fittizia
+- GET `/auth/test-logout` per azzerare la sessione
+
+Queste route sono abilitate soltanto se l'ambiente di test è attivo.
+
 ## 📱 **Mobile-First Features**
 
 - **Safe Area Support**: `env(safe-area-inset-bottom)` per iOS

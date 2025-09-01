@@ -111,6 +111,7 @@ def create_secure_session(user_data: dict):
     session.clear()
     session['user_id'] = user_data['id']
     session['user_role'] = user_data['role']
+    session['role'] = user_data['role']  # Per compatibilità
     session['user_name'] = user_data.get('nome', '') + ' ' + user_data.get('cognome', '')
     session[SESSION_CREATED_KEY] = time.time()
     session[SESSION_LAST_ACTIVITY_KEY] = time.time()
@@ -277,7 +278,7 @@ def setup_auth_middleware(app):
                 'deposits.', 'withdrawals.', 'profits.'
             ]
             
-            if any(request.endpoint.startswith(prefix) for prefix in protected_routes):
+            if request.endpoint and any(request.endpoint.startswith(prefix) for prefix in protected_routes):
                 flash("Accesso richiesto per visualizzare questa pagina", "warning")
                 return redirect(url_for('auth.login'))
         else:
@@ -286,6 +287,24 @@ def setup_auth_middleware(app):
                 destroy_session()
                 flash("Sessione non valida. Effettua nuovamente il login.", "error")
                 return redirect(url_for('auth.login'))
+            
+            # Verifica separazione ruoli Admin/User
+            if request.endpoint:
+                user_role = session.get('user_role', 'investor')
+                
+
+                
+                # Admin NON deve accedere a rotte user
+                if user_role == 'admin' and request.endpoint.startswith('user.'):
+                    logger.warning(f"ADMIN {session.get('email')} ha tentato accesso rotta USER: {request.endpoint}")
+                    flash("Accesso negato: Gli amministratori devono usare il pannello admin", "error")
+                    return redirect(url_for('admin.admin_dashboard'))
+                
+                # User NON deve accedere a rotte admin
+                if user_role == 'investor' and request.endpoint.startswith('admin.'):
+                    logger.warning(f"USER {session.get('email')} ha tentato accesso rotta ADMIN: {request.endpoint}")
+                    flash("Accesso negato: Area riservata agli amministratori", "error")
+                    return redirect(url_for('user.dashboard'))
             
             # Aggiorna attività sessione
             update_session_activity()

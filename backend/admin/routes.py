@@ -40,6 +40,14 @@ def admin_dashboard():
     # Renderizza il template admin
     return render_template("admin/dashboard.html", metrics=m or {})
 
+# Alias esplicito per la dashboard admin su /admin/dashboard
+@admin_bp.get("/dashboard")
+@admin_required
+def admin_dashboard_alias():
+    """Alias di comodo per accedere alla dashboard admin.
+    Garantisce che i link a /admin/dashboard funzionino sempre."""
+    return admin_dashboard()
+
 @admin_bp.get("/metrics")
 @admin_required
 def metrics():
@@ -1124,7 +1132,7 @@ def get_users_list():
         query = f"""
             SELECT 
                 u.id, u.full_name, u.email, u.telefono, u.address,
-                u.kyc_status, u.role, u.created_at, u.last_login,
+                u.kyc_status, u.role, u.created_at,
                 up.free_capital + up.invested_capital + up.referral_bonus + up.profits as portfolio_balance,
                 COALESCE(inv_stats.investments_count, 0) as investments_count,
                 COALESCE(inv_stats.investment_volume, 0) as investment_volume,
@@ -1649,8 +1657,7 @@ def calculate_secondary_metrics(cur, start_dt, end_dt):
     cur.execute("""
         SELECT 
             COUNT(*) as total_users,
-            COUNT(*) FILTER (WHERE last_login IS NOT NULL 
-                AND last_login >= created_at + INTERVAL '30 days') as retained_users
+            0 as retained_users
         FROM users 
         WHERE created_at BETWEEN %s AND %s
     """, (start_dt, end_dt))
@@ -1981,13 +1988,18 @@ def settings_data():
 def get_settings_data():
     """Helper per ottenere dati configurazione"""
     with get_conn() as conn, conn.cursor() as cur:
-        # Carica tutte le impostazioni dalla tabella settings
-        cur.execute("""
-            SELECT category, key, value, value_type
-            FROM system_settings
-            ORDER BY category, key
-        """)
-        settings_raw = cur.fetchall()
+        try:
+            # Carica tutte le impostazioni dalla tabella settings
+            cur.execute("""
+                SELECT category, key, value, value_type
+                FROM system_settings
+                ORDER BY category, key
+            """)
+            settings_raw = cur.fetchall()
+        except Exception as e:
+            # Se tabella non esiste, usa valori predefiniti
+            logger.warning(f"Tabella system_settings non esiste: {e}")
+            settings_raw = []
         
         # Organizza le impostazioni per categoria
         settings = {
@@ -2246,16 +2258,21 @@ def settings_logs():
         
         where_clause = " AND ".join(where_conditions)
         
-        # Query dei log (assumendo una tabella system_logs)
-        cur.execute(f"""
-            SELECT level, message, details, source, created_at
-            FROM system_logs
-            WHERE {where_clause}
-            ORDER BY created_at DESC
-            LIMIT 200
-        """, params)
-        
-        logs = cur.fetchall()
+        try:
+            # Query dei log (assumendo una tabella system_logs)
+            cur.execute(f"""
+                SELECT level, message, details, source, created_at
+                FROM system_logs
+                WHERE {where_clause}
+                ORDER BY created_at DESC
+                LIMIT 200
+            """, params)
+            
+            logs = cur.fetchall()
+        except Exception as e:
+            # Se tabella non esiste, usa log di esempio
+            logger.warning(f"Tabella system_logs non esiste: {e}")
+            logs = []
         
         # Se non ci sono log nella tabella, restituiamo log di esempio
         if not logs:

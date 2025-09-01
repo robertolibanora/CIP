@@ -703,8 +703,43 @@ ADMIN_TELEFONO=+39000000000
 - **Documentazione** - docs.cipimmobiliare.it
 - **GitHub Issues** - Repository GitHub
 
+## 🔧 **GESTIONE ADMIN AUTOMATICA**
+
+### **✅ Creazione Admin Automatica**
+L'utente admin viene creato **automaticamente** all'avvio dell'applicazione tramite il sistema Python integrato:
+
+#### **📝 Configurazione Variabili Ambiente**
+```bash
+# config/env.local
+ADMIN_EMAIL=admin@cipimmobiliare.it
+ADMIN_PASSWORD=SecureAdmin123!
+ADMIN_NOME=Admin
+ADMIN_COGNOME=CIP
+ADMIN_TELEGRAM=admin_cip
+ADMIN_TELEFONO=+39000000000
+```
+
+#### **🚀 Processo Automatico**
+1. **All'avvio** dell'app (`python main.py`)
+2. **Verifica** se esiste già un admin nel database
+3. **Crea automaticamente** l'admin se non esiste
+4. **Logga** il risultato dell'operazione
+5. **Non blocca** l'avvio se fallisce
+
+#### **🛡️ Sicurezza**
+- **Password hashata** con SHA-256
+- **Credenziali** da variabili ambiente (non hardcoded)
+- **Gestione errori** graceful
+- **Logging sicuro** senza esporre credenziali
+
+#### **📊 Vantaggi**
+- ✅ **Automatico** - nessun script SQL manuale
+- ✅ **Sicuro** - credenziali configurabili
+- ✅ **Robusto** - gestione errori completa
+- ✅ **Scalabile** - pronto per deployment
+
 ---
 
-*Ultimo aggiornamento: Dicembre 2024*  
-*Versione: 1.0.0*  
+*Ultimo aggiornamento: 1 Settembre 2025*  
+*Versione: 1.1.0 - Admin Migration*  
 *Autore: Team CIP Immobiliare*

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, session, redirect, url_for, render_template, flash
 from backend.shared.database import get_connection
+import os
 from backend.shared.validators import validate_email, validate_password, ValidationError
 from backend.auth.middleware import create_secure_session, destroy_session
 import hashlib
@@ -171,3 +172,27 @@ def logout():
         flash("Nessuna sessione attiva", "info")
     
     return redirect(url_for("auth.login"))
+
+
+# Route di supporto solo in testing per creare una sessione senza DB
+if os.environ.get("TESTING") == "1":
+    @auth_bp.get("/test-login")
+    def test_login():
+        role = (request.args.get("role") or "investor").strip()
+        user = {
+            "id": 9999,
+            "email": f"test_{role}@example.com",
+            "nome": "Test",
+            "cognome": "User",
+            "role": role,
+        }
+        create_secure_session(user)
+        # Allinea anche la chiave 'role' usata dal middleware
+        from flask import session as flask_session
+        flask_session["role"] = role
+        return redirect(url_for("user.dashboard"))
+
+    @auth_bp.get("/test-logout")
+    def test_logout():
+        destroy_session()
+        return redirect(url_for("auth.login"))

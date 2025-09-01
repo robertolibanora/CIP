@@ -10,7 +10,7 @@ import logging
 import os
 import hashlib
 from config.paths import TEMPLATES_DIR, ASSETS_DIR, UPLOADS_DIR
-from backend.shared.database import get_db_connection
+from backend.shared.database import get_connection
 
 def hash_password(password: str) -> str:
     """Hash della password usando SHA-256 (stesso sistema dell'autenticazione)"""
@@ -33,7 +33,7 @@ def create_admin_user():
     admin_telefono = os.environ.get('ADMIN_TELEFONO', '+39000000000')
     
     try:
-        with get_db_connection() as conn:
+        with get_connection() as conn:
             with conn.cursor() as cur:
                 # Verifica se esiste già un admin
                 cur.execute("SELECT id, email FROM users WHERE role = 'admin' LIMIT 1")
@@ -81,6 +81,10 @@ def create_app():
         template_folder=TEMPLATES_DIR,
         static_folder=ASSETS_DIR
     )
+    
+    # Modalità testing (abilitata se TESTING=1)
+    if os.environ.get('TESTING') == '1':
+        app.config['TESTING'] = True
     
     # Configurazione percorsi
     app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
