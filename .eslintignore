@@ -1,0 +1,27 @@
+# Template files with Jinja2 syntax
+**/*.html
+frontend/templates/**/*
+**/templates/**/*
+
+# Python files
+*.py
+**/__pycache__/**/*
+venv/**/*
+
+# Configuration files
+config/**/*
+*.conf
+*.yml
+*.yaml
+
+# Documentation
+docs/**/*
+*.md
+
+# Build and deployment files
+deploy.sh
+scripts/**/*
+
+# Uploads and assets
+uploads/**/*
+frontend/assets/**/*

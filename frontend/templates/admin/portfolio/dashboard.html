@@ -290,17 +290,17 @@
             <textarea name="admin_notes" class="admin-input admin-textarea" rows="2"
                       placeholder="Note per uso interno..." id="movement-notes"></textarea>
         </div>
-    </form>',
-    modal_footer='
-    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'movement-modal\')">
+    </form>",
+    modal_footer="
+    <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('movement-modal')\">
         Annulla
     </button>
-    <button type="button" class="admin-btn admin-btn--primary" onclick="submitMovement()" id="submit-movement-btn">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    <button type=\"button\" class=\"admin-btn admin-btn--primary\" onclick=\"submitMovement()\" id=\"submit-movement-btn\">
+        <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"/>
         </svg>
         Crea Movimento
-    </button>'
+    </button>"
 %}
     {% include 'admin/components/modal.html' %}
 {% endwith %}

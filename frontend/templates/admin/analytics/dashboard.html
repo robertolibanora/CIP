@@ -24,7 +24,6 @@
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
-                Aggiorna
             </button>
             <button onclick="openExportModal()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="export-btn">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,60 +421,60 @@
     modal_id='export-modal', 
     modal_title='Esporta Report Analytics', 
     modal_size='lg',
-    modal_body='
-    <div class="space-y-4">
-        <div class="admin-form-group">
-            <label class="admin-label">Formato Export</label>
-            <select id="export-format" class="admin-input admin-select">
-                <option value="csv">CSV - Comma Separated Values</option>
-                <option value="excel">Excel - Foglio di Calcolo</option>
-                <option value="pdf">PDF - Report Completo</option>
-                <option value="json">JSON - Dati Strutturati</option>
+    modal_body="
+    <div class=\"space-y-4\">
+        <div class=\"admin-form-group\">
+            <label class=\"admin-label\">Formato Export</label>
+            <select id=\"export-format\" class=\"admin-input admin-select\">
+                <option value=\"csv\">CSV - Comma Separated Values</option>
+                <option value=\"excel\">Excel - Foglio di Calcolo</option>
+                <option value=\"pdf\">PDF - Report Completo</option>
+                <option value=\"json\">JSON - Dati Strutturati</option>
             </select>
         </div>
         
-        <div class="admin-form-group">
-            <label class="admin-label">Sezioni da Includere</label>
-            <div class="space-y-2">
-                <label class="admin-flex admin-flex--center">
-                    <input type="checkbox" id="include-kpis" checked class="mr-2">
-                    <span class="admin-text-body">KPI e Metriche Principali</span>
+        <div class=\"admin-form-group\">
+            <label class=\"admin-label\">Sezioni da Includere</label>
+            <div class=\"space-y-2\">
+                <label class=\"admin-flex admin-flex--center\">
+                    <input type=\"checkbox\" id=\"include-kpis\" checked class=\"mr-2\">
+                    <span class=\"admin-text-body\">KPI e Metriche Principali</span>
                 </label>
-                <label class="admin-flex admin-flex--center">
-                    <input type="checkbox" id="include-charts" checked class="mr-2">
-                    <span class="admin-text-body">Dati Grafici (Crescita, Volume, Performance)</span>
+                <label class=\"admin-flex admin-flex--center\">
+                    <input type=\"checkbox\" id=\"include-charts\" checked class=\"mr-2\">
+                    <span class=\"admin-text-body\">Dati Grafici (Crescita, Volume, Performance)</span>
                 </label>
-                <label class="admin-flex admin-flex--center">
-                    <input type="checkbox" id="include-projects" checked class="mr-2">
-                    <span class="admin-text-body">Top Progetti Performance</span>
+                <label class=\"admin-flex admin-flex--center\">
+                    <input type=\"checkbox\" id=\"include-projects\" checked class=\"mr-2\">
+                    <span class=\"admin-text-body\">Top Progetti Performance</span>
                 </label>
-                <label class="admin-flex admin-flex--center">
-                    <input type="checkbox" id="include-users" class="mr-2">
-                    <span class="admin-text-body">Segmentazione Utenti</span>
+                <label class=\"admin-flex admin-flex--center\">
+                    <input type=\"checkbox\" id=\"include-users\" class=\"mr-2\">
+                    <span class=\"admin-text-body\">Segmentazione Utenti</span>
                 </label>
             </div>
         </div>
         
-        <div class="admin-form-group">
-            <label class="admin-label">Periodo Personalizzato</label>
-            <div class="admin-grid admin-grid--2">
-                <input type="date" id="export-start-date" class="admin-input">
-                <input type="date" id="export-end-date" class="admin-input">
+        <div class=\"admin-form-group\">
+            <label class=\"admin-label\">Periodo Personalizzato</label>
+            <div class=\"admin-grid admin-grid--2\">
+                <input type=\"date\" id=\"export-start-date\" class=\"admin-input\">
+                <input type=\"date\" id=\"export-end-date\" class=\"admin-input\">
             </div>
         </div>
-    </div>',
-    modal_footer='
-    <div class="admin-flex admin-flex--between w-full">
-        <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal(\'export-modal\')">
+    </div>",
+    modal_footer="
+    <div class=\"admin-flex admin-flex--between w-full\">
+        <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('export-modal')\">
             Annulla
         </button>
-        <button type="button" class="admin-btn admin-btn--primary" onclick="executeExport()" id="execute-export-btn">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"/>
+        <button type=\"button\" class=\"admin-btn admin-btn--primary\" onclick=\"executeExport()\" id=\"execute-export-btn\">
+            <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 10v6m0 0l-3-3m3 3l3-3\"/>
             </svg>
             Esporta Report
         </button>
-    </div>'
+    </div>"
 %}
     {% include 'admin/components/modal.html' %}
 {% endwith %}
