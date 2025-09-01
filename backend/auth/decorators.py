@@ -4,7 +4,7 @@ Task 1.3: Ruoli e Permessi
 """
 
 from functools import wraps
-from flask import session, redirect, url_for, flash, request, abort
+from flask import session, redirect, url_for, flash, request, abort, jsonify
 from typing import Callable, Any, Union, List
 import logging
 
@@ -128,7 +128,6 @@ def kyc_verified(f: Callable) -> Callable:
         # Utenti normali devono avere KYC verificato
         if user.get('kyc_status') != KYCStatus.VERIFIED.value:
             # Se è una richiesta AJAX, restituisci errore JSON
-            from flask import request, jsonify
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'error': 'kyc_required',
@@ -136,7 +135,7 @@ def kyc_verified(f: Callable) -> Callable:
                     'kyc_status': user.get('kyc_status')
                 }), 403
             
-            # Altrimenti, reindirizza al profilo (fallback per browser senza JS)
+            # Altrimenti, reindirizza al profilo
             flash("Verifica KYC richiesta per accedere a questa funzionalità", "warning")
             return redirect(url_for('user.profile'))
         

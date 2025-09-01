@@ -735,7 +735,28 @@ function viewTransaction(id) {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     portfolioDashboard = new PortfolioAdminDashboard();
+    // Disable automatic initialization
+    // portfolioDashboard.init();
+    
+    // Show manual start button instead
+    document.getElementById('loading-state').innerHTML = `
+        <div class="text-center py-12">
+            <h3 class="admin-heading-3 mb-4">Dashboard Portfolio Admin</h3>
+            <p class="admin-text-body text-gray-600 mb-6">Clicca per caricare i dati del portfolio</p>
+            <button onclick="startDashboard()" class="admin-btn admin-btn--primary admin-btn--lg">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Avvia Dashboard
+            </button>
+        </div>
+    `;
 });
+
+// Manual start function
+function startDashboard() {
+    portfolioDashboard.init();
+}
 </script>
 {% endblock %}
 {% endblock %}

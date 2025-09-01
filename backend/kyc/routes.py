@@ -6,10 +6,10 @@ API per gestione KYC: Upload, verifica, stati
 import os
 import uuid
 from datetime import datetime
-from flask import Blueprint, request, session, jsonify, current_app
+from flask import Blueprint, request, session, jsonify, current_app, render_template
 from werkzeug.utils import secure_filename
 from backend.shared.database import get_connection
-from backend.shared.models import KYCStatus, DocumentVisibility
+from backend.auth.decorators import login_required, admin_required
 
 kyc_bp = Blueprint("kyc", __name__)
 
@@ -20,11 +20,11 @@ def get_upload_folder():
     """Ottiene la cartella upload dalla configurazione Flask"""
     return current_app.config.get('UPLOAD_FOLDER', 'uploads')
 
-# Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required
-
-# Rimuove il before_request globale e usa decoratori specifici
-# per ogni route che richiede autorizzazione
+def allowed_file(filename):
+    """Verifica se il file è di tipo consentito"""
+    allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 # =====================================================
 # 1. KYC API - Upload, verifica, stati
@@ -92,7 +92,7 @@ def get_kyc_documents():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT d.id, d.title, d.file_path, d.verified_by_admin, d.uploaded_at,
-                   d.admin_notes, dc.name as category_name, dc.slug as category_slug
+                   dc.name as category_name, dc.slug as category_slug
             FROM documents d
             JOIN doc_categories dc ON d.category_id = dc.id
             WHERE d.user_id = %s AND dc.is_kyc = TRUE
@@ -103,7 +103,6 @@ def get_kyc_documents():
     return jsonify({'documents': documents})
 
 @kyc_bp.route('/api/documents/upload', methods=['POST'])
-@kyc_bp.route('/api/upload', methods=['POST'])  # Endpoint aggiuntivo come richiesto
 @login_required
 def upload_kyc_document():
     """Upload di un documento KYC"""
@@ -117,8 +116,8 @@ def upload_kyc_document():
             return jsonify({'error': 'Utente già verificato'}), 400
     
     # Validazione file - supporta file multipli (fronte obbligatorio, retro opzionale)
-    front_file = request.files.get('file_front') or request.files.get('file')  # Retrocompatibilità
-    back_file = request.files.get('file_back')
+    front_file = request.files.get('file')  # File principale (fronte)
+    back_file = request.files.get('file_back')  # File retro (opzionale)
     
     if not front_file or front_file.filename == '':
         return jsonify({'error': 'File fronte del documento è obbligatorio'}), 400
@@ -145,122 +144,49 @@ def upload_kyc_document():
     category_slug = request.form.get('category', 'id_card')
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Verifica categoria esiste
+        # Ottieni categoria
         cur.execute("SELECT id, name FROM doc_categories WHERE slug = %s AND is_kyc = TRUE", (category_slug,))
         category = cur.fetchone()
+        
         if not category:
             return jsonify({'error': 'Categoria documento non valida'}), 400
         
-        # Salva i file
-        upload_folder = get_upload_folder()
-        os.makedirs(upload_folder, exist_ok=True)
+        uploaded_files = []
         
-        uploaded_documents = []
-        
+        # Salva tutti i file
         for file_type, file in files_to_upload:
+            # Genera nome file sicuro
             filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}-{file_type}-{filename}"
-            file_path = os.path.join(upload_folder, unique_filename)
+            unique_filename = f"{uid}_{uuid.uuid4().hex}_{file_type}_{filename}"
             
-            # Salva il file fisico
+            # Salva file
+            upload_folder = get_upload_folder()
+            os.makedirs(upload_folder, exist_ok=True)
+            file_path = os.path.join(upload_folder, unique_filename)
             file.save(file_path)
             
-            # Calcola dimensione file
-            file_size = os.path.getsize(file_path)
-            
-            # Titolo del documento include il tipo (fronte/retro)
-            doc_title = f"{filename} ({file_type.title()})"
-            
-            # Inserisci nel database
+            # Salva nel database
             cur.execute("""
-                INSERT INTO documents (user_id, category_id, title, file_path, mime_type, 
-                                     size_bytes, visibility, verified_by_admin)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
+                INSERT INTO documents (user_id, category_id, title, file_path, mime_type, size_bytes, uploaded_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                uid, category['id'], doc_title, unique_filename, 
-                file.content_type, file_size, 'admin', False
+                uid, 
+                category['id'], 
+                f"Documento {category['name']} - {file_type}", 
+                unique_filename,
+                file.content_type,
+                file_size,
+                datetime.now()
             ))
             
-            doc_id = cur.fetchone()['id']
-            uploaded_documents.append({
-                'id': doc_id,
-                'filename': filename,
-                'file_type': file_type,
-                'size': file_size
-            })
-        
-        # Aggiorna stato utente se era unverified
-        cur.execute("""
-            UPDATE users 
-            SET kyc_status = 'pending' 
-            WHERE id = %s AND kyc_status = 'unverified'
-        """, (uid,))
+            uploaded_files.append(unique_filename)
         
         conn.commit()
     
     return jsonify({
         'success': True,
-        'documents': uploaded_documents,
-        'total_files': len(uploaded_documents),
-        'message': f'Documento caricato con successo ({len(uploaded_documents)} file)'
-    })
-
-@kyc_bp.route('/api/documents/<int:doc_id>', methods=['DELETE'])
-@login_required
-def delete_kyc_document(doc_id):
-    """Elimina un documento KYC dell'utente"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica proprietà documento
-        cur.execute("""
-            SELECT d.id, d.file_path, d.verified_by_admin
-            FROM documents d
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE d.id = %s AND d.user_id = %s AND dc.is_kyc = TRUE
-        """, (doc_id, uid))
-        document = cur.fetchone()
-        
-        if not document:
-            return jsonify({'error': 'Documento non trovato'}), 404
-        
-        if document['verified_by_admin']:
-            return jsonify({'error': 'Non puoi eliminare un documento verificato'}), 400
-        
-        # Elimina file fisico
-        try:
-            if os.path.exists(document['file_path']):
-                os.remove(document['file_path'])
-        except OSError:
-            pass  # Ignora errori eliminazione file
-        
-        # Elimina record database
-        cur.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
-        
-        # Verifica se rimangono documenti KYC
-        cur.execute("""
-            SELECT COUNT(*) as doc_count
-            FROM documents d
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE d.user_id = %s AND dc.is_kyc = TRUE
-        """, (uid,))
-        
-        doc_count = cur.fetchone()['doc_count']
-        
-        # Se non ci sono più documenti, torna a unverified
-        if doc_count == 0:
-            cur.execute("""
-                UPDATE users 
-                SET kyc_status = 'unverified' 
-                WHERE id = %s
-            """, (uid,))
-        
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Documento eliminato con successo'
+        'message': f'Documento caricato con successo ({len(uploaded_files)} file)',
+        'files': uploaded_files
     })
 
 @kyc_bp.route('/api/categories', methods=['GET'])
@@ -268,33 +194,46 @@ def delete_kyc_document(doc_id):
 def get_kyc_categories():
     """Ottiene le categorie di documenti KYC disponibili"""
     with get_conn() as conn, conn.cursor() as cur:
+        # Prima verifica se esistono categorie KYC
+        cur.execute("SELECT COUNT(*) as count FROM doc_categories WHERE is_kyc = TRUE")
+        count = cur.fetchone()['count']
+        
+        # Se non esistono, le crea
+        if count == 0:
+            cur.execute("""
+                INSERT INTO doc_categories (name, slug, description, is_kyc, is_required) VALUES
+                ('Carta d''Identità', 'id_card', 'Documento di identità italiano (fronte e retro)', TRUE, TRUE),
+                ('Patente di Guida', 'drivers_license', 'Patente di guida italiana (fronte e retro)', TRUE, FALSE),
+                ('Passaporto', 'passport', 'Passaporto italiano (pagina principale)', TRUE, FALSE)
+                ON CONFLICT (slug) DO NOTHING
+            """)
+            conn.commit()
+        
+        # Ora ottieni tutte le categorie KYC
         cur.execute("""
-            SELECT id, slug, name, is_kyc
-            FROM doc_categories
+            SELECT id, name, slug, description, is_required
+            FROM doc_categories 
             WHERE is_kyc = TRUE
-            ORDER BY id
+            ORDER BY name
         """)
         categories = cur.fetchall()
     
     return jsonify({'categories': categories})
 
 # =====================================================
-# ENDPOINT ADMIN (richiedono ruolo admin)
+# 2. ADMIN ENDPOINTS
 # =====================================================
 
-from backend.auth.decorators import admin_required
-
-# =====================================================
-# ADMIN ENDPOINTS per Dashboard
-# =====================================================
+@kyc_bp.route('/admin/dashboard')
+@admin_required
+def admin_kyc_dashboard():
+    """Dashboard KYC admin"""
+    return render_template("admin/kyc/dashboard.html")
 
 @kyc_bp.route('/admin/api/kyc-requests', methods=['GET'])
 @admin_required 
 def admin_get_kyc_requests():
     """Ottiene tutte le richieste KYC per il dashboard admin"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-        
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT DISTINCT u.id, u.full_name, u.email, u.telefono, u.created_at, u.kyc_status,
@@ -303,7 +242,7 @@ def admin_get_kyc_requests():
             FROM users u
             LEFT JOIN documents d ON u.id = d.user_id 
             LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
-            LEFT JOIN portfolio p ON u.id = p.user_id
+            LEFT JOIN user_portfolios p ON u.id = p.user_id
             WHERE u.role = 'investor'
             GROUP BY u.id, u.full_name, u.email, u.telefono, u.created_at, u.kyc_status, p.id
             ORDER BY u.created_at DESC
@@ -316,9 +255,6 @@ def admin_get_kyc_requests():
 @admin_required
 def admin_get_kyc_request_detail(user_id):
     """Ottiene dettagli di una richiesta KYC specifica"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-    
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni informazioni utente
         cur.execute("""
@@ -345,302 +281,78 @@ def admin_get_kyc_request_detail(user_id):
         user['documents'] = documents
         return jsonify(user)
 
-@kyc_bp.route('/admin/api/kyc-stats', methods=['GET'])
+@kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/approve', methods=['POST'])
 @admin_required
-def admin_get_kyc_stats():
-    """Ottiene statistiche KYC per il dashboard"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
+def admin_approve_kyc(user_id):
+    """Approva la verifica KYC di un utente"""
+    admin_id = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        # Verifica che l'utente abbia documenti
         cur.execute("""
-            SELECT 
-                COUNT(CASE WHEN kyc_status = 'pending' THEN 1 END) as pending,
-                COUNT(CASE WHEN kyc_status = 'verified' THEN 1 END) as verified,
-                COUNT(CASE WHEN kyc_status = 'rejected' THEN 1 END) as rejected,
-                COUNT(*) as total
-            FROM users WHERE role = 'investor'
-        """)
-        stats = cur.fetchone()
+            SELECT COUNT(*) as doc_count
+            FROM documents d
+            JOIN doc_categories dc ON d.category_id = dc.id
+            WHERE d.user_id = %s AND dc.is_kyc = TRUE
+        """, (user_id,))
+        doc_count = cur.fetchone()['doc_count']
         
-        # Calcola trend (mock data per ora)
-        stats['trend'] = 5.2  # Placeholder
-        
-        return jsonify(stats)
-
-@kyc_bp.route('/admin/kyc/<int:user_id>/approve', methods=['POST'])
-@admin_required
-def admin_approve_kyc_user(user_id):
-    """Approva rapidamente tutti i documenti di un utente"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-        
-    data = request.get_json() or {}
-    notes = data.get('notes', 'Approvazione rapida')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Approva tutti i documenti KYC dell'utente
-        cur.execute("""
-            UPDATE documents 
-            SET verified_by_admin = TRUE, 
-                admin_notes = %s, 
-                verified_at = NOW(),
-                verified_by = %s
-            FROM doc_categories dc 
-            WHERE documents.category_id = dc.id 
-            AND dc.is_kyc = TRUE 
-            AND documents.user_id = %s
-        """, (notes, session.get('user_id'), user_id))
+        if doc_count == 0:
+            return jsonify({'error': 'Utente senza documenti KYC'}), 400
         
         # Aggiorna stato utente
-        cur.execute("UPDATE users SET kyc_status = 'verified' WHERE id = %s", (user_id,))
+        cur.execute("""
+            UPDATE users 
+            SET kyc_status = 'verified', kyc_verified_at = %s, kyc_verified_by = %s
+            WHERE id = %s
+        """, (datetime.now(), admin_id, user_id))
+        
+        # Marca documenti come verificati
+        cur.execute("""
+            UPDATE documents 
+            SET verified_by_admin = TRUE, verified_at = %s, verified_by = %s
+            WHERE user_id = %s AND category_id IN (
+                SELECT id FROM doc_categories WHERE is_kyc = TRUE
+            )
+        """, (datetime.now(), admin_id, user_id))
         
         conn.commit()
     
     return jsonify({'success': True, 'message': 'KYC approvato con successo'})
 
-@kyc_bp.route('/admin/kyc/<int:user_id>/reject', methods=['POST'])
-@admin_required 
-def admin_reject_kyc_user(user_id):
-    """Rifiuta KYC di un utente"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    data = request.get_json() or {}
-    notes = data.get('notes', '')
-    
-    if not notes.strip():
-        return jsonify({'error': 'Le note sono obbligatorie per il rifiuto'}), 400
+@kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/reject', methods=['POST'])
+@admin_required
+def admin_reject_kyc(user_id):
+    """Rifiuta la verifica KYC di un utente"""
+    admin_id = session.get("user_id")
+    reason = request.json.get('reason', 'Documenti non conformi')
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Aggiorna documenti con note di rifiuto
-        cur.execute("""
-            UPDATE documents 
-            SET verified_by_admin = FALSE, 
-                admin_notes = %s, 
-                verified_at = NOW(),
-                verified_by = %s
-            FROM doc_categories dc 
-            WHERE documents.category_id = dc.id 
-            AND dc.is_kyc = TRUE 
-            AND documents.user_id = %s
-        """, (notes, session.get('user_id'), user_id))
-        
         # Aggiorna stato utente
-        cur.execute("UPDATE users SET kyc_status = 'rejected' WHERE id = %s", (user_id,))
+        cur.execute("""
+            UPDATE users 
+            SET kyc_status = 'rejected', kyc_notes = %s, kyc_rejected_at = %s, kyc_rejected_by = %s
+            WHERE id = %s
+        """, (reason, datetime.now(), admin_id, user_id))
         
         conn.commit()
     
     return jsonify({'success': True, 'message': 'KYC rifiutato'})
 
-@kyc_bp.route('/admin/kyc/bulk-action', methods=['POST'])
+@kyc_bp.route('/admin/api/kyc-stats', methods=['GET'])
 @admin_required
-def admin_bulk_kyc_action():
-    """Esegue azioni bulk sui KYC"""
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    data = request.get_json() or {}
-    action = data.get('action')
-    request_ids = data.get('request_ids', [])
-    
-    if not action or not request_ids:
-        return jsonify({'error': 'Azione e IDs richiesti'}), 400
-    
+def admin_get_kyc_stats():
+    """Ottiene statistiche KYC per il dashboard"""
     with get_conn() as conn, conn.cursor() as cur:
-        if action == 'approve':
-            # Approva tutti i documenti degli utenti selezionati
-            for user_id in request_ids:
-                cur.execute("""
-                    UPDATE documents 
-                    SET verified_by_admin = TRUE, 
-                        admin_notes = 'Approvazione bulk', 
-                        verified_at = NOW(),
-                        verified_by = %s
-                    FROM doc_categories dc 
-                    WHERE documents.category_id = dc.id 
-                    AND dc.is_kyc = TRUE 
-                    AND documents.user_id = %s
-                """, (session.get('user_id'), user_id))
-                
-                cur.execute("UPDATE users SET kyc_status = 'verified' WHERE id = %s", (user_id,))
-        
-        elif action == 'reject':
-            # Rifiuta KYC degli utenti selezionati
-            for user_id in request_ids:
-                cur.execute("""
-                    UPDATE documents 
-                    SET verified_by_admin = FALSE, 
-                        admin_notes = 'Rifiuto bulk', 
-                        verified_at = NOW(),
-                        verified_by = %s
-                    FROM doc_categories dc 
-                    WHERE documents.category_id = dc.id 
-                    AND dc.is_kyc = TRUE 
-                    AND documents.user_id = %s
-                """, (session.get('user_id'), user_id))
-                
-                cur.execute("UPDATE users SET kyc_status = 'rejected' WHERE id = %s", (user_id,))
-        
-        elif action == 'pending':
-            # Rimetti in attesa
-            for user_id in request_ids:
-                cur.execute("UPDATE users SET kyc_status = 'pending' WHERE id = %s", (user_id,))
-        
-        conn.commit()
-    
-    return jsonify({'success': True, 'message': f'Azione {action} completata per {len(request_ids)} utenti'})
-
-@kyc_bp.route('/api/kyc/<int:doc_id>', methods=['PATCH'])  # Endpoint richiesto dall'utente
-@kyc_bp.route('/api/admin/verify/<int:doc_id>', methods=['POST'])  # Endpoint esistente
-@admin_required
-def admin_update_document_status(doc_id):
-    """Admin verifica/aggiorna stato di un documento KYC"""
-    # Verifica ruolo admin
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    data = request.get_json() or {}
-    
-    # Supporta sia 'verified' (endpoint POST) che 'status' (endpoint PATCH)
-    if 'status' in data:
-        # Nuovo formato PATCH: status può essere 'verified', 'rejected', 'pending'
-        status = data.get('status', 'pending')
-        if status == 'verified':
-            verified = True
-        elif status == 'rejected':
-            verified = False
-        else:  # pending o altro
-            verified = False
-    else:
-        # Formato originale POST: verified boolean
-        verified = data.get('verified', True)
-    
-    admin_notes = data.get('admin_notes', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica documento esiste
-        cur.execute("""
-            SELECT d.id, d.user_id, d.verified_by_admin
-            FROM documents d
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE d.id = %s AND dc.is_kyc = TRUE
-        """, (doc_id,))
-        document = cur.fetchone()
-        
-        if not document:
-            return jsonify({'error': 'Documento non trovato'}), 404
-        
-        if document['verified_by_admin'] == verified:
-            return jsonify({'error': 'Documento già in questo stato'}), 400
-        
-        # Aggiorna stato documento
-        cur.execute("""
-            UPDATE documents 
-            SET verified_by_admin = %s, admin_notes = %s, verified_at = NOW(), verified_by = %s
-            WHERE id = %s
-        """, (verified, admin_notes, session.get('user_id'), doc_id))
-        
-        # Verifica se tutti i documenti KYC dell'utente sono verificati
-        cur.execute("""
-            SELECT COUNT(*) as total_docs,
-                   COUNT(CASE WHEN verified_by_admin = TRUE THEN 1 END) as verified_docs
-            FROM documents d
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE d.user_id = %s AND dc.is_kyc = TRUE
-        """, (document['user_id'],))
-        
-        doc_stats = cur.fetchone()
-        
-        # Se tutti i documenti sono verificati, approva KYC
-        if doc_stats['total_docs'] > 0 and doc_stats['total_docs'] == doc_stats['verified_docs']:
-            cur.execute("""
-                UPDATE users 
-                SET kyc_status = 'verified' 
-                WHERE id = %s
-            """, (document['user_id'],))
-        
-        conn.commit()
-    
-    # Determina messaggio e status basato sul risultato
-    if verified:
-        status_text = 'verified'
-        message = 'Documento verificato con successo'
-    elif admin_notes:
-        status_text = 'rejected'
-        message = 'Documento rifiutato'
-    else:
-        status_text = 'pending'
-        message = 'Documento rimesso in attesa'
-    
-    return jsonify({
-        'success': True,
-        'verified': verified,
-        'status': status_text,
-        'admin_notes': admin_notes,
-        'message': message
-    })
-
-@kyc_bp.route('/api/kyc/documents', methods=['GET'])  # Endpoint richiesto dall'utente
-@kyc_bp.route('/api/admin/pending', methods=['GET'])  # Endpoint esistente
-@admin_required
-def admin_get_kyc_documents():
-    """Admin ottiene tutti i documenti KYC per gestione"""
-    # Verifica ruolo admin
-    if session.get('role') != 'admin':
-        return jsonify({'error': 'Accesso negato'}), 403
-    
-    # Ottieni filtri dalla query string
-    status_filter = request.args.get('status', '')
-    search = request.args.get('search', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Query base
-        query = """
-            SELECT d.id, d.title, d.file_path, d.uploaded_at, d.admin_notes,
-                   d.verified_by_admin, d.verified_at, d.mime_type, d.size_bytes,
-                   u.id as user_id, u.full_name, u.email, u.kyc_status,
-                   dc.name as category_name, dc.slug as category_slug
-            FROM documents d
-            JOIN users u ON d.user_id = u.id
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE dc.is_kyc = TRUE
-        """
-        params = []
-        
-        # Applica filtri
-        if status_filter == 'pending':
-            query += " AND d.verified_by_admin = FALSE"
-        elif status_filter == 'verified':
-            query += " AND d.verified_by_admin = TRUE"
-        elif status_filter == 'rejected':
-            query += " AND d.verified_by_admin = FALSE AND d.admin_notes IS NOT NULL AND d.admin_notes != ''"
-        
-        if search:
-            query += " AND (u.full_name ILIKE %s OR u.email ILIKE %s OR d.title ILIKE %s)"
-            search_param = f"%{search}%"
-            params.extend([search_param, search_param, search_param])
-        
-        query += " ORDER BY d.uploaded_at DESC"
-        
-        cur.execute(query, params)
-        documents = cur.fetchall()
-        
-        # Aggiungi statistiche
         cur.execute("""
             SELECT 
                 COUNT(*) as total,
-                COUNT(CASE WHEN d.verified_by_admin = FALSE THEN 1 END) as pending,
-                COUNT(CASE WHEN d.verified_by_admin = TRUE THEN 1 END) as verified,
-                COUNT(CASE WHEN d.verified_by_admin = FALSE AND d.admin_notes IS NOT NULL AND d.admin_notes != '' THEN 1 END) as rejected
-            FROM documents d
-            JOIN doc_categories dc ON d.category_id = dc.id
-            WHERE dc.is_kyc = TRUE
+                SUM(CASE WHEN kyc_status = 'verified' THEN 1 ELSE 0 END) as verified,
+                SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN kyc_status = 'unverified' THEN 1 ELSE 0 END) as unverified
+            FROM users WHERE role = 'investor'
         """)
         stats = cur.fetchone()
-    
-    return jsonify({
-        'documents': documents,
-        'stats': stats,
-        'filters': {'status': status_filter, 'search': search}
-    })
+        
+        return jsonify(stats)

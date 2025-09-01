@@ -467,6 +467,7 @@ def invest(project_id):
 
 @user_bp.get("/portfolio")
 @can_access_portfolio
+@kyc_verified
 def portfolio():
     """Portafoglio dettagliato con investimenti attivi e completati"""
     uid = session.get("user_id")
@@ -508,6 +509,7 @@ def portfolio():
 
 @user_bp.get("/portfolio/<int:investment_id>")
 @can_access_portfolio
+@kyc_verified
 def portfolio_detail(investment_id):
     """Dettaglio specifico di un investimento"""
     uid = session.get("user_id")
@@ -535,6 +537,7 @@ def portfolio_detail(investment_id):
 
 @user_bp.get("/projects")
 @login_required
+@kyc_verified
 def projects():
     """Lista progetti disponibili per investimento"""
     uid = session.get("user_id")

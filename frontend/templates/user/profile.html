@@ -45,7 +45,9 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required>
                         <option value="">Seleziona tipo documento</option>
-                        <!-- Opzioni verranno popolate via JavaScript -->
+                        <option value="id_card">Carta d'Identità</option>
+                        <option value="drivers_license">Patente di Guida</option>
+                        <option value="passport">Passaporto</option>
                     </select>
                 </div>
                 
@@ -345,6 +347,8 @@ class KYCManager {
             front: null,
             back: null
         };
+        this.processedFiles = new Set(); // Set per tracciare i file già processati
+        
         this.init();
     }
     
@@ -629,6 +633,11 @@ class KYCManager {
                 document.getElementById('kyc-upload-form').reset();
                 this.clearFileSelection();
                 
+                // Pulisci il set dei file processati dopo upload riuscito
+                if (this.processedFiles) {
+                    this.processedFiles.clear();
+                }
+                
                 // Reload KYC data
                 await this.loadKYCStatus();
                 await this.loadKYCDocuments();
@@ -736,6 +745,12 @@ class KYCManager {
             return;
         }
         
+        // Verifica se è lo stesso file già selezionato per evitare doppio processing
+        const currentFile = this.selectedFiles[fileType];
+        if (currentFile && currentFile.name === file.name && currentFile.size === file.size) {
+            return; // Stesso file, non fare nulla
+        }
+        
         // Validate file
         const maxSize = 16 * 1024 * 1024; // 16MB
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
@@ -752,6 +767,12 @@ class KYCManager {
             return;
         }
         
+        // Pulisci il file precedente dal set se esisteva
+        if (currentFile && this.processedFiles) {
+            const oldFileKey = `${currentFile.name}-${currentFile.size}-${fileType}`;
+            this.processedFiles.delete(oldFileKey);
+        }
+        
         // Salva il file selezionato
         this.selectedFiles[fileType] = file;
         
@@ -763,6 +784,24 @@ class KYCManager {
         const previewContainer = document.getElementById('file-preview');
         const previewContent = document.getElementById('preview-content');
         
+        // Rimuovi preview esistente per questo tipo di file PRIMA di fare qualsiasi altra cosa
+        const existingPreview = previewContent.querySelector(`[data-file-type="${fileType}"]`);
+        if (existingPreview) {
+            existingPreview.remove();
+        }
+        
+        // Verifica se questo file è già stato processato per evitare duplicati
+        const fileKey = `${file.name}-${file.size}-${fileType}`;
+        if (this.processedFiles && this.processedFiles.has(fileKey)) {
+            return; // File già processato, evita duplicato
+        }
+        
+        // Inizializza set dei file processati se non esiste
+        if (!this.processedFiles) {
+            this.processedFiles = new Set();
+        }
+        this.processedFiles.add(fileKey);
+        
         previewContainer.classList.remove('hidden');
         
         const fileName = file.name;
@@ -771,12 +810,6 @@ class KYCManager {
         const categoryText = category.options[category.selectedIndex]?.text || 'Non selezionato';
         
         const fileTypeLabel = fileType === 'front' ? '📄 Fronte' : '📄 Retro';
-        
-        // Rimuovi preview esistente per questo tipo di file
-        const existingPreview = previewContent.querySelector(`[data-file-type="${fileType}"]`);
-        if (existingPreview) {
-            existingPreview.remove();
-        }
         
         const createPreview = (imageSrc = null) => {
             const previewElement = document.createElement('div');
@@ -869,6 +902,13 @@ class KYCManager {
             this.selectedFiles[fileType] = null;
             this.clearFilePreview(fileType);
             this.resetDropZone(fileType);
+            
+            // Pulisci anche dal set dei file processati
+            if (this.processedFiles) {
+                // Rimuovi tutti i file di questo tipo dal set
+                const toRemove = Array.from(this.processedFiles).filter(key => key.endsWith(`-${fileType}`));
+                toRemove.forEach(key => this.processedFiles.delete(key));
+            }
         } else {
             // Clear all files
             document.getElementById('document_file_front').value = '';
@@ -877,6 +917,11 @@ class KYCManager {
             this.clearFilePreview();
             this.resetDropZone('front');
             this.resetDropZone('back');
+            
+            // Pulisci tutto il set dei file processati
+            if (this.processedFiles) {
+                this.processedFiles.clear();
+            }
         }
     }
     
@@ -1016,16 +1061,19 @@ class KYCManager {
         // Eventi drag and drop per desktop
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.add('border-blue-400', 'bg-blue-50');
         });
         
         dropZone.addEventListener('dragleave', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('border-blue-400', 'bg-blue-50');
         });
         
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             dropZone.classList.remove('border-blue-400', 'bg-blue-50');
             
             const files = e.dataTransfer.files;
@@ -1034,19 +1082,308 @@ class KYCManager {
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(files[0]);
                 fileInput.files = dataTransfer.files;
-                this.handleFileSelection(files[0], fileType);
+                // Trigger only one handler to avoid duplicate previews
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
     }
 }
 
+// KYC Manager
+class KYCManager {
+    constructor() {
+        console.log('KYCManager constructor chiamato');
+        this.init();
+    }
+    
+    async init() {
+        await this.loadKYCStatus();
+        await this.loadCategories();
+        this.bindEvents();
+    }
+    
+    async loadKYCStatus() {
+        try {
+            const response = await fetch('/kyc/api/status');
+            if (response.ok) {
+                const data = await response.json();
+                this.renderKYCStatus(data);
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento stato KYC:', error);
+        }
+    }
+    
+    renderKYCStatus(data) {
+        const badge = document.getElementById('kyc-status-badge');
+        const content = document.getElementById('kyc-status-content');
+        const uploadSection = document.getElementById('kyc-upload-section');
+        
+        const statusConfig = {
+            'unverified': {
+                color: 'bg-gray-100 text-gray-800',
+                icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z',
+                text: 'Non Verificato',
+                message: 'Completa la verifica KYC per accedere alle funzionalità di investimento.'
+            },
+            'pending': {
+                color: 'bg-yellow-100 text-yellow-800',
+                icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+                text: 'In Verifica',
+                message: 'I tuoi documenti sono stati ricevuti e sono in fase di verifica. Riceverai una notifica una volta completata la verifica.'
+            },
+            'verified': {
+                color: 'bg-green-100 text-green-800',
+                icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+                text: 'Verificato',
+                message: 'La tua identità è stata verificata. Puoi ora accedere a tutte le funzionalità di investimento.'
+            },
+            'rejected': {
+                color: 'bg-red-100 text-red-800',
+                icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+                text: 'Rifiutato',
+                message: 'La verifica è stata rifiutata. Puoi caricare nuovi documenti per riprovare.'
+            }
+        };
+        
+        const config = statusConfig[data.kyc_status] || statusConfig['unverified'];
+        
+        badge.className = `px-3 py-1 rounded-full text-sm font-medium ${config.color}`;
+        badge.innerHTML = `
+            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${config.icon}"/>
+            </svg>
+            ${config.text}
+        `;
+        
+        content.innerHTML = `
+            <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-gray-700">${config.message}</p>
+            </div>
+        `;
+        
+        // Show/hide upload section
+        if (data.kyc_status === 'verified') {
+            uploadSection.style.display = 'none';
+        } else {
+            uploadSection.style.display = 'block';
+        }
+    }
+    
+    async loadCategories() {
+        try {
+            console.log('Caricamento categorie dal server...');
+            const response = await fetch('/kyc/api/categories');
+            console.log('Risposta categorie:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Categorie ricevute:', data);
+                this.renderCategories(data.categories);
+            } else {
+                console.warn('Errore nel caricamento categorie dal server, uso fallback');
+                this.renderCategories([]); // Usa le opzioni di fallback nel HTML
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento categorie:', error);
+            console.log('Uso categorie di fallback dal HTML');
+            this.renderCategories([]); // Usa le opzioni di fallback nel HTML
+        }
+    }
+    
+    renderCategories(categories) {
+        const select = document.getElementById('document_category');
+        if (!select) {
+            console.error('Select categoria non trovato');
+            return;
+        }
+        
+        // Se non ci sono categorie dal server, usa quelle di fallback
+        if (!categories || categories.length === 0) {
+            console.log('Nessuna categoria dal server, uso fallback');
+            return; // Le opzioni sono già nel HTML
+        }
+        
+        // Altrimenti, aggiorna con quelle dal server
+        select.innerHTML = '<option value="">Seleziona tipo documento</option>';
+        
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.slug;
+            option.textContent = category.name;
+            select.appendChild(option);
+        });
+    }
+    
+    bindEvents() {
+        console.log('Binding events...');
+        
+        // File input change
+        const frontInput = document.getElementById('document_file_front');
+        if (frontInput) {
+            frontInput.addEventListener('change', (e) => {
+                console.log('File front cambiato');
+                this.handleFileSelect(e, 'front');
+            });
+        } else {
+            console.error('Input file_front non trovato');
+        }
+        
+        const backInput = document.getElementById('document_file_back');
+        if (backInput) {
+            backInput.addEventListener('change', (e) => {
+                console.log('File back cambiato');
+                this.handleFileSelect(e, 'back');
+            });
+        } else {
+            console.error('Input file_back non trovato');
+        }
+        
+        // Form submit
+        const form = document.getElementById('kyc-upload-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                console.log('Form submit event');
+                e.preventDefault();
+                this.handleUpload();
+            });
+        } else {
+            console.error('Form KYC non trovato');
+        }
+    }
+    
+    handleFileSelect(event, side) {
+        const file = event.target.files[0];
+        if (file) {
+            this.showFilePreview(file, side);
+        }
+    }
+    
+    showFilePreview(file, side) {
+        const preview = document.getElementById('file-preview');
+        const content = document.getElementById('preview-content');
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'bg-white border border-gray-200 rounded-lg p-3';
+        fileInfo.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <div>
+                    <p class="text-sm font-medium text-gray-900">${file.name}</p>
+                    <p class="text-xs text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+            </div>
+        `;
+        
+        content.appendChild(fileInfo);
+        preview.classList.remove('hidden');
+    }
+    
+    async handleUpload() {
+        console.log('handleUpload chiamato');
+        
+        const form = document.getElementById('kyc-upload-form');
+        if (!form) {
+            console.error('Form KYC non trovato');
+            alert('Errore: Form non trovato');
+            return;
+        }
+        
+        const formData = new FormData();
+        
+        // Aggiungi categoria
+        const categorySelect = form.querySelector('select[name="category"]');
+        if (!categorySelect) {
+            console.error('Select categoria non trovato');
+            alert('Errore: Campo categoria non trovato');
+            return;
+        }
+        
+        const category = categorySelect.value;
+        console.log('Categoria selezionata:', category);
+        
+        if (!category) {
+            alert('Seleziona un tipo di documento');
+            return;
+        }
+        formData.append('category', category);
+        
+        // Aggiungi file fronte (obbligatorio)
+        const frontFileInput = form.querySelector('input[name="file_front"]');
+        if (!frontFileInput) {
+            console.error('Input file_front non trovato');
+            alert('Errore: Campo file fronte non trovato');
+            return;
+        }
+        
+        const frontFile = frontFileInput.files[0];
+        console.log('File fronte:', frontFile);
+        
+        if (!frontFile) {
+            alert('Seleziona almeno il fronte del documento');
+            return;
+        }
+        formData.append('file', frontFile);
+        
+        // Aggiungi file retro (opzionale)
+        const backFileInput = form.querySelector('input[name="file_back"]');
+        if (backFileInput) {
+            const backFile = backFileInput.files[0];
+            if (backFile) {
+                console.log('File retro:', backFile);
+                formData.append('file_back', backFile);
+            }
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (!submitBtn) {
+            console.error('Pulsante submit non trovato');
+            alert('Errore: Pulsante non trovato');
+            return;
+        }
+        
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Caricamento...';
+        submitBtn.disabled = true;
+        
+        console.log('Invio richiesta al server...');
+        
+        try {
+            const response = await fetch('/kyc/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Risposta ricevuta:', response.status);
+            
+            const result = await response.json();
+            console.log('Risultato:', result);
+            
+            if (response.ok) {
+                alert('Documento caricato con successo!');
+                form.reset();
+                const preview = document.getElementById('file-preview');
+                const content = document.getElementById('preview-content');
+                if (preview) preview.classList.add('hidden');
+                if (content) content.innerHTML = '';
+                await this.loadKYCStatus();
+            } else {
+                alert('Errore: ' + (result.error || 'Errore sconosciuto'));
+            }
+        } catch (error) {
+            console.error('Errore upload:', error);
+            alert('Errore durante il caricamento del documento: ' + error.message);
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+}
+
 // Inizializza gestore KYC
 let kycManager;
-
-// Inizializza KYC Manager quando il DOM è pronto
-document.addEventListener('DOMContentLoaded', function() {
-    kycManager = new KYCManager();
-});
 
 // Gestione form profilo
 document.getElementById('profile-form').addEventListener('submit', async function(e) {
@@ -1124,7 +1461,13 @@ function copyReferralCode() {
 
 // Inizializza quando la pagina è caricata
 document.addEventListener('DOMContentLoaded', function() {
-    kycManager = new KYCManager();
+    console.log('DOM caricato, inizializzo KYCManager...');
+    try {
+        kycManager = new KYCManager();
+        console.log('KYCManager inizializzato con successo');
+    } catch (error) {
+        console.error('Errore inizializzazione KYCManager:', error);
+    }
 });
 </script>
 {% endblock %}

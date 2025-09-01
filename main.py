@@ -96,6 +96,7 @@ def index():
 if __name__ == "__main__":
     app.run(
         host=os.environ.get("HOST", "0.0.0.0"),
-        port=int(os.environ.get("PORT", 8090)),
+        port=int(os.environ.get("PORT", 12345)),
         debug=os.environ.get("FLASK_DEBUG", "0") == "1"
     )
+
