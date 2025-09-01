@@ -22,7 +22,7 @@
 
     <!-- Registration Form Card -->
     <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-      <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm">
+      <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off">
         <!-- CSRF Token removed - not configured -->
 
         <!-- Name Fields -->
@@ -137,33 +137,40 @@
         <div class="space-y-2">
           <label for="password" class="block text-sm font-semibold text-gray-700">
             Password *
-          </label>
-          <div class="input-field-container">
-            <div class="left-icon">
-              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <input
-              type="password"
-              name="password"
-              id="password"
-              required
-              class="input-field input-with-left-icon input-with-right-icon bg-gray-50 focus:bg-white transition-colors duration-200"
-              placeholder="Crea una password sicura"
-            />
-            <button
-              type="button"
-              class="right-icon"
-              onclick="togglePassword()"
-            >
-              <svg id="eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
-          </div>
-          <p id="error-password" class="text-red-500 text-xs mt-1 hidden"></p>
+              </label>
+        <div class="input-field-container">
+    <div class="left-icon">
+      <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+    </div>
+    <input
+      type="password"
+      name="password"
+      id="password"
+      autocomplete="new-password"
+      autocapitalize="off"
+      spellcheck="false"
+      inputmode="text"
+      required
+      class="input-field input-with-left-icon input-with-right-icon bg-gray-50 focus:bg-white transition-colors duration-200"
+      placeholder="Password"
+    />
+    <button
+      type="button"
+      class="right-icon"
+      onclick="togglePassword()"
+    >
+      <svg id="eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    </button>
+  </div>
+  <p id="error-password" class="text-red-500 text-xs mt-1 hidden"></p>
         </div>
 
         <!-- Confirm Password -->
@@ -171,15 +178,31 @@
           <label for="confirm_password" class="block text-sm font-semibold text-gray-700">
             Conferma Password *
           </label>
-          <div class="relative">
+          <div class="input-field-container">
             <input
               type="password"
               name="confirm_password"
               id="confirm_password"
+              autocomplete="new-password"
+              autocapitalize="off"
+              spellcheck="false"
+              inputmode="text"
               required
-              class="input-field bg-gray-50 focus:bg-white transition-colors duration-200"
+              class="input-field input-with-right-icon bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Conferma la tua password"
             />
+            <button
+              type="button"
+              class="right-icon"
+              onclick="toggleConfirmPassword()"
+            >
+              <svg id="confirm-eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
           </div>
           <p id="error-confirm_password" class="text-red-500 text-xs mt-1 hidden"></p>
         </div>
@@ -275,6 +298,24 @@ function togglePassword() {
   } else {
     passwordInput.type = 'password';
     eyeIcon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    `;
+  }
+}
+
+function toggleConfirmPassword() {
+  const confirmPasswordInput = document.getElementById('confirm_password');
+  const confirmEyeIcon = document.getElementById('confirm-eye-icon');
+  
+  if (confirmPasswordInput.type === 'password') {
+    confirmPasswordInput.type = 'text';
+    confirmEyeIcon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+    `;
+  } else {
+    confirmPasswordInput.type = 'password';
+    confirmEyeIcon.innerHTML = `
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     `;

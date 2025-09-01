@@ -50,29 +50,70 @@
                 </div>
                 
                 <div>
-                    <label for="document_file" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
                         File Documento
                     </label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-                        <div class="space-y-1 text-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                            <div class="flex flex-col sm:flex-row text-sm text-gray-600">
-                                <label for="document_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                    <span>Carica un file</span>
-                                    <input id="document_file" 
-                                           name="file" 
-                                           type="file" 
-                                           class="sr-only" 
-                                           accept=".pdf,.png,.jpg,.jpeg,.gif"
-                                           capture="environment"
-                                           required>
-                                </label>
-                                <p class="pl-1 mt-1 sm:mt-0">o trascina e rilascia</p>
+                    
+                    <!-- Fronte del documento -->
+                    <div class="mb-4">
+                        <label for="document_file_front" class="block text-xs font-medium text-gray-600 mb-2">
+                            📄 Fronte del documento *
+                        </label>
+                        <div id="drop-zone-front" class="flex justify-center px-4 pt-4 pb-4 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                            <div id="drop-zone-content-front" class="space-y-1 text-center">
+                                <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="text-sm text-gray-600">
+                                    <label for="document_file_front" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>Carica fronte</span>
+                                        <input id="document_file_front" 
+                                               name="file_front" 
+                                               type="file" 
+                                               class="sr-only" 
+                                               accept=".pdf,.png,.jpg,.jpeg,.gif"
+                                               capture="environment"
+                                               required>
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
                             </div>
-                            <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
-                            <p class="text-xs text-blue-600 mt-2">📱 Tocca per scattare foto o selezionare file</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Retro del documento -->
+                    <div class="mb-4">
+                        <label for="document_file_back" class="block text-xs font-medium text-gray-600 mb-2">
+                            📄 Retro del documento (opzionale)
+                        </label>
+                        <div id="drop-zone-back" class="flex justify-center px-4 pt-4 pb-4 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                            <div id="drop-zone-content-back" class="space-y-1 text-center">
+                                <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="text-sm text-gray-600">
+                                    <label for="document_file_back" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>Carica retro</span>
+                                        <input id="document_file_back" 
+                                               name="file_back" 
+                                               type="file" 
+                                               class="sr-only" 
+                                               accept=".pdf,.png,.jpg,.jpeg,.gif"
+                                               capture="environment">
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Area -->
+                    <div id="file-preview" class="mt-4 hidden">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h4 class="text-sm font-medium text-gray-900 mb-3">Anteprima documenti:</h4>
+                            <div id="preview-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Preview content will be inserted here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -141,8 +182,7 @@
                                value="{{ user.referral_code or '' }}"
                                class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50"
                                readonly>
-                        <button type="button" 
-                                onclick="copyReferralCode()"
+                        <button type="button" onclick="copyReferralCode()"
                                 class="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors">
                             Copia
                         </button>
@@ -168,28 +208,48 @@
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-2">
                         Password Attuale
                     </label>
-                    <input type="password" 
-                           id="current_password" 
-                           name="current_password"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           required>
+                    <div class="relative">
+                        <input type="password" 
+                               id="current_password" 
+                               name="current_password"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                               required>
+                        <button type="button" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                onclick="togglePasswordVisibility('current_password','eye_current')">
+                            <svg id="eye_current" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <div>
                     <label for="new_password" class="block text-sm font-medium text-gray-700 mb-2">
                         Nuova Password
                     </label>
-                    <input type="password" 
-                           id="new_password" 
-                           name="new_password"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           required>
+                    <div class="relative">
+                        <input type="password" 
+                               id="new_password" 
+                               name="new_password"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                               required>
+                        <button type="button" 
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                onclick="togglePasswordVisibility('new_password','eye_new')">
+                            <svg id="eye_new" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="pt-4 border-t border-gray-200">
                     <button type="submit" 
                             class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-                        Cambia Password
+                        Salva Nuova Password
                     </button>
                 </div>
             </form>
@@ -237,9 +297,54 @@
 </div>
 
 <script>
+// Referral copy using modern Clipboard API with fallback
+function copyReferralCode() {
+  const input = document.getElementById('referral_code');
+  const text = input ? input.value : '';
+  if (!text) return;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showTempToast('Codice copiato!');
+    }).catch(() => legacyCopy(input));
+  } else {
+    legacyCopy(input);
+  }
+}
+
+function legacyCopy(input) {
+  input.select();
+  document.execCommand('copy');
+  showTempToast('Codice copiato!');
+}
+
+function showTempToast(message) {
+  const n = document.createElement('div');
+  n.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow z-50';
+  n.textContent = message;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 2000);
+}
+// Toggle visibility for password fields
+function togglePasswordVisibility(inputId, eyeId) {
+    const input = document.getElementById(inputId);
+    const eye = document.getElementById(eyeId);
+    if (!input || !eye) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        eye.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />';
+    } else {
+        input.type = 'password';
+        eye.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+    }
+}
+
 // Gestione sistema KYC
 class KYCManager {
     constructor() {
+        this.selectedFiles = {
+            front: null,
+            back: null
+        };
         this.init();
     }
     
@@ -371,7 +476,13 @@ class KYCManager {
         if (!documents || documents.length === 0) {
             container.innerHTML = `
                 <div class="text-center py-8 text-gray-500">
-                    <p>Nessun documento caricato</p>
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-medium text-gray-900 mb-1">Nessun documento caricato</p>
+                    <p class="text-xs text-gray-500">I tuoi documenti appariranno qui dopo il caricamento</p>
                 </div>
             `;
             return;
@@ -380,32 +491,90 @@ class KYCManager {
         let html = '';
         documents.forEach(doc => {
             const statusClass = doc.verified_by_admin ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const statusIcon = doc.verified_by_admin ? '✅' : '⏳';
             const statusText = doc.verified_by_admin ? 'Verificato' : 'In Attesa';
             const deleteBtn = doc.verified_by_admin ? '' : `
                 <button onclick="kycManager.deleteDocument(${doc.id})" 
-                        class="text-red-600 hover:text-red-800 text-sm font-medium">
+                        class="text-red-600 hover:text-red-800 text-sm font-medium ml-3">
                     Elimina
                 </button>
             `;
             
-            html += `
-                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-shrink-0">
-                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">${doc.title}</p>
-                            <p class="text-xs text-gray-500">${doc.category_name} • ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}</p>
-                        </div>
+            // Determine file type and create appropriate preview
+            const isImage = doc.mime_type && doc.mime_type.startsWith('image/');
+            const isPDF = doc.mime_type === 'application/pdf';
+            const fileSize = doc.size_bytes ? (doc.size_bytes / (1024 * 1024)).toFixed(2) : '0.0';
+            
+            let previewElement = '';
+            if (isImage) {
+                previewElement = `
+                    <div class="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                        <img src="/uploads/${doc.file_path}" alt="${doc.title}" 
+                             class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity" 
+                             onclick="window.open('/uploads/${doc.file_path}', '_blank')">
                     </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
-                            ${statusText}
-                        </span>
-                        ${deleteBtn}
+                `;
+            } else if (isPDF) {
+                previewElement = `
+                    <div class="w-12 h-12 bg-red-100 rounded-lg border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-red-200 transition-colors"
+                         onclick="window.open('/uploads/${doc.file_path}', '_blank')">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                `;
+            } else {
+                previewElement = `
+                    <div class="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            ${previewElement}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-900 truncate">${doc.title}</p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        ${doc.category_name} • ${fileSize} MB
+                                    </p>
+                                    <p class="text-xs text-gray-400">
+                                        Caricato: ${new Date(doc.uploaded_at).toLocaleDateString('it-IT', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                    ${doc.admin_notes ? `
+                                        <p class="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-1 rounded">
+                                            💬 ${doc.admin_notes}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                                <div class="flex flex-col items-end space-y-2 ml-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                        ${statusIcon} ${statusText}
+                                    </span>
+                                    <div class="flex items-center space-x-2">
+                                        <a href="/uploads/${doc.file_path}" target="_blank" 
+                                           class="text-blue-600 hover:text-blue-800 text-xs font-medium">
+                                            Visualizza
+                                        </a>
+                                        ${deleteBtn}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -415,33 +584,124 @@ class KYCManager {
     }
     
     async uploadDocument(formData) {
+        const uploadBtn = document.getElementById('upload-btn');
+        const originalText = uploadBtn.textContent;
+        
         try {
-            const uploadBtn = document.getElementById('upload-btn');
+            // Show upload progress
+            this.showUploadProgress(0);
             uploadBtn.disabled = true;
-            uploadBtn.textContent = 'Caricamento...';
+            uploadBtn.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Caricamento in corso...
+                </div>
+            `;
             
-            const response = await fetch('/kyc/api/documents/upload', {
+            // Simulate upload progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                this.updateUploadProgress(progress);
+            }, 200);
+            
+            const response = await fetch('/kyc/api/upload', {
                 method: 'POST',
                 body: formData
             });
             
+            clearInterval(progressInterval);
+            this.updateUploadProgress(100);
+            
             const result = await response.json();
             
             if (result.success) {
-                alert('Documento caricato con successo!');
+                this.showAlert('success', '✅ Documento caricato con successo! Il documento è stato inviato per la verifica.');
+                
+                // Update preview to show uploaded status
+                this.updatePreviewAfterUpload(result);
+                
+                // Clear form and reload data
+                document.getElementById('kyc-upload-form').reset();
+                this.clearFileSelection();
+                
+                // Reload KYC data
                 await this.loadKYCStatus();
                 await this.loadKYCDocuments();
-                document.getElementById('kyc-upload-form').reset();
+                
             } else {
-                alert('Errore: ' + result.error);
+                this.showAlert('error', 'Errore durante il caricamento: ' + result.error);
             }
         } catch (error) {
-            alert('Errore durante il caricamento del documento');
+            this.showAlert('error', 'Errore di connessione durante il caricamento del documento');
             console.error('Errore upload:', error);
         } finally {
-            const uploadBtn = document.getElementById('upload-btn');
             uploadBtn.disabled = false;
-            uploadBtn.textContent = 'Carica Documento';
+            uploadBtn.innerHTML = originalText;
+            this.hideUploadProgress();
+        }
+    }
+    
+    showUploadProgress(progress) {
+        const previewContainer = document.getElementById('file-preview');
+        if (previewContainer && !previewContainer.classList.contains('hidden')) {
+            const previewContent = document.getElementById('preview-content');
+            
+            // Add progress bar to preview
+            let progressBar = previewContent.querySelector('.upload-progress');
+            if (!progressBar) {
+                progressBar = document.createElement('div');
+                progressBar.className = 'upload-progress mt-3';
+                previewContent.appendChild(progressBar);
+            }
+            
+            progressBar.innerHTML = `
+                <div class="bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Caricamento in corso... ${Math.round(progress)}%</p>
+            `;
+        }
+    }
+    
+    updateUploadProgress(progress) {
+        const progressBar = document.querySelector('.upload-progress');
+        if (progressBar) {
+            const bar = progressBar.querySelector('.bg-blue-600');
+            const text = progressBar.querySelector('p');
+            
+            if (bar) bar.style.width = `${progress}%`;
+            if (text) text.textContent = `Caricamento in corso... ${Math.round(progress)}%`;
+            
+            if (progress >= 100) {
+                if (text) text.textContent = 'Caricamento completato! 🎉';
+                setTimeout(() => this.hideUploadProgress(), 1000);
+            }
+        }
+    }
+    
+    hideUploadProgress() {
+        const progressBar = document.querySelector('.upload-progress');
+        if (progressBar) {
+            progressBar.remove();
+        }
+    }
+    
+    updatePreviewAfterUpload(uploadResult) {
+        const previewContent = document.getElementById('preview-content');
+        if (previewContent) {
+            const statusSpan = previewContent.querySelector('span');
+            if (statusSpan) {
+                statusSpan.innerHTML = `
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        ✅ Caricato
+                    </span>
+                `;
+            }
         }
     }
     
@@ -458,16 +718,241 @@ class KYCManager {
             const result = await response.json();
             
             if (result.success) {
-                alert('Documento eliminato con successo!');
+                this.showAlert('success', 'Documento eliminato con successo!');
                 await this.loadKYCStatus();
                 await this.loadKYCDocuments();
             } else {
-                alert('Errore: ' + result.error);
+                this.showAlert('error', 'Errore: ' + result.error);
             }
         } catch (error) {
-            alert('Errore durante l\'eliminazione del documento');
+            this.showAlert('error', 'Errore durante l\'eliminazione del documento');
             console.error('Errore eliminazione:', error);
         }
+    }
+    
+    handleFileSelection(file, fileType = 'front') {
+        if (!file) {
+            this.clearFilePreview(fileType);
+            return;
+        }
+        
+        // Validate file
+        const maxSize = 16 * 1024 * 1024; // 16MB
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+        
+        if (file.size > maxSize) {
+            this.showAlert('error', 'File troppo grande. Massimo 16MB');
+            this.clearFileSelection(fileType);
+            return;
+        }
+        
+        if (!allowedTypes.includes(file.type)) {
+            this.showAlert('error', 'Tipo file non supportato. Usa PDF o immagini (JPG, PNG, GIF)');
+            this.clearFileSelection(fileType);
+            return;
+        }
+        
+        // Salva il file selezionato
+        this.selectedFiles[fileType] = file;
+        
+        this.showFilePreview(file, fileType);
+        this.updateDropZone(file, fileType);
+    }
+    
+    showFilePreview(file, fileType) {
+        const previewContainer = document.getElementById('file-preview');
+        const previewContent = document.getElementById('preview-content');
+        
+        previewContainer.classList.remove('hidden');
+        
+        const fileName = file.name;
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        const category = document.getElementById('document_category');
+        const categoryText = category.options[category.selectedIndex]?.text || 'Non selezionato';
+        
+        const fileTypeLabel = fileType === 'front' ? '📄 Fronte' : '📄 Retro';
+        
+        // Rimuovi preview esistente per questo tipo di file
+        const existingPreview = previewContent.querySelector(`[data-file-type="${fileType}"]`);
+        if (existingPreview) {
+            existingPreview.remove();
+        }
+        
+        const createPreview = (imageSrc = null) => {
+            const previewElement = document.createElement('div');
+            previewElement.className = 'bg-white border border-gray-200 rounded-lg p-4';
+            previewElement.setAttribute('data-file-type', fileType);
+            
+            let thumbnailHtml;
+            if (imageSrc) {
+                // Image preview
+                thumbnailHtml = `
+                    <img src="${imageSrc}" alt="Preview ${fileType}" 
+                         class="w-full h-32 object-cover rounded-lg border border-gray-200 mb-3">
+                `;
+            } else if (file.type === 'application/pdf') {
+                // PDF preview
+                thumbnailHtml = `
+                    <div class="w-full h-32 bg-red-100 rounded-lg border border-gray-200 flex items-center justify-center mb-3">
+                        <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                `;
+            } else {
+                // Generic file preview
+                thumbnailHtml = `
+                    <div class="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center mb-3">
+                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                `;
+            }
+            
+            previewElement.innerHTML = `
+                ${thumbnailHtml}
+                <div class="text-center">
+                    <h5 class="text-sm font-medium text-gray-900 mb-1">${fileTypeLabel}</h5>
+                    <p class="text-xs text-gray-600 truncate">${fileName}</p>
+                    <p class="text-xs text-gray-500">${fileSize} MB</p>
+                    <div class="mt-2 flex justify-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            ⏳ In Attesa
+                        </span>
+                    </div>
+                    <button type="button" onclick="kycManager.clearFileSelection('${fileType}')" 
+                            class="text-xs text-red-600 hover:text-red-800 mt-2">
+                        Rimuovi
+                    </button>
+                </div>
+            `;
+            
+            previewContent.appendChild(previewElement);
+        };
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => createPreview(e.target.result);
+            reader.readAsDataURL(file);
+        } else {
+            createPreview();
+        }
+    }
+    
+    updateDropZone(file, fileType) {
+        const dropZoneContent = document.getElementById(`drop-zone-content-${fileType}`);
+        const fileName = file.name;
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        const label = fileType === 'front' ? 'fronte' : 'retro';
+        
+        dropZoneContent.innerHTML = `
+            <svg class="mx-auto h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="text-sm text-gray-900">
+                <p class="font-medium truncate">${fileName}</p>
+                <p class="text-gray-500">${fileSize} MB</p>
+            </div>
+            <p class="text-xs text-green-600">File selezionato ✓</p>
+            <button type="button" onclick="kycManager.clearFileSelection('${fileType}')" class="text-xs text-gray-500 hover:text-gray-700 mt-2">
+                Cambia ${label}
+            </button>
+        `;
+    }
+    
+    clearFileSelection(fileType = null) {
+        if (fileType) {
+            // Clear specific file type
+            const inputId = `document_file_${fileType}`;
+            document.getElementById(inputId).value = '';
+            this.selectedFiles[fileType] = null;
+            this.clearFilePreview(fileType);
+            this.resetDropZone(fileType);
+        } else {
+            // Clear all files
+            document.getElementById('document_file_front').value = '';
+            document.getElementById('document_file_back').value = '';
+            this.selectedFiles = { front: null, back: null };
+            this.clearFilePreview();
+            this.resetDropZone('front');
+            this.resetDropZone('back');
+        }
+    }
+    
+    clearFilePreview(fileType = null) {
+        const previewContainer = document.getElementById('file-preview');
+        const previewContent = document.getElementById('preview-content');
+        
+        if (fileType) {
+            // Remove specific file preview
+            const existingPreview = previewContent.querySelector(`[data-file-type="${fileType}"]`);
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+            
+            // Hide container if no more previews
+            if (previewContent.children.length === 0) {
+                previewContainer.classList.add('hidden');
+            }
+        } else {
+            // Clear all previews
+            previewContent.innerHTML = '';
+            previewContainer.classList.add('hidden');
+        }
+    }
+    
+    resetDropZone(fileType) {
+        const dropZoneContent = document.getElementById(`drop-zone-content-${fileType}`);
+        const label = fileType === 'front' ? 'fronte' : 'retro';
+        const inputId = `document_file_${fileType}`;
+        
+        dropZoneContent.innerHTML = `
+            <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="text-sm text-gray-600">
+                <label for="${inputId}" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                    <span>Carica ${label}</span>
+                </label>
+            </div>
+            <p class="text-xs text-gray-500">PDF, PNG, JPG fino a 16MB</p>
+        `;
+    }
+    
+    showAlert(type, message) {
+        // Create alert container if it doesn't exist
+        let alertContainer = document.getElementById('kyc-alerts');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.id = 'kyc-alerts';
+            alertContainer.className = 'px-6 mb-4';
+            document.querySelector('.min-h-screen').insertBefore(alertContainer, document.querySelector('.min-h-screen').firstElementChild.nextSibling);
+        }
+        
+        const alertId = 'alert-' + Date.now();
+        const alertColors = {
+            success: 'bg-green-50 text-green-800 border-green-200',
+            error: 'bg-red-50 text-red-800 border-red-200',
+            warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+            info: 'bg-blue-50 text-blue-800 border-blue-200'
+        };
+        
+        alertContainer.innerHTML = `
+            <div id="${alertId}" class="border-l-4 p-4 ${alertColors[type]} rounded-r-lg">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
     }
     
     setupEventListeners() {
@@ -476,23 +961,58 @@ class KYCManager {
             e.preventDefault();
             
             const formData = new FormData();
-            const file = document.getElementById('document_file').files[0];
+            const frontFile = document.getElementById('document_file_front').files[0];
+            const backFile = document.getElementById('document_file_back').files[0];
             const category = document.getElementById('document_category').value;
             
-            if (!file || !category) {
-                alert('Seleziona un file e una categoria');
+            if (!frontFile || !category) {
+                this.showAlert('warning', 'Seleziona almeno il fronte del documento e una categoria');
                 return;
             }
             
-            formData.append('file', file);
+            formData.append('file_front', frontFile);
+            if (backFile) {
+                formData.append('file_back', backFile);
+            }
             formData.append('category', category);
             
             await this.uploadDocument(formData);
         });
         
-        // Drag and drop per mobile e desktop
-        const dropZone = document.querySelector('#kyc-upload-form .border-dashed');
+        // File selection preview per fronte
+        document.getElementById('document_file_front').addEventListener('change', (e) => {
+            this.handleFileSelection(e.target.files[0], 'front');
+        });
         
+        // File selection preview per retro
+        document.getElementById('document_file_back').addEventListener('change', (e) => {
+            this.handleFileSelection(e.target.files[0], 'back');
+        });
+        
+        // Drag and drop per fronte
+        const dropZoneFront = document.getElementById('drop-zone-front');
+        this.setupDropZone(dropZoneFront, 'document_file_front', 'front');
+        
+        // Drag and drop per retro  
+        const dropZoneBack = document.getElementById('drop-zone-back');
+        this.setupDropZone(dropZoneBack, 'document_file_back', 'back');
+        
+        // Ottimizzazioni per mobile
+        if ('ontouchstart' in window) {
+            // Aggiungi feedback visivo per touch sui drop zones
+            [dropZoneFront, dropZoneBack].forEach(zone => {
+                zone.addEventListener('touchstart', () => {
+                    zone.classList.add('bg-blue-50', 'scale-105');
+                });
+                
+                zone.addEventListener('touchend', () => {
+                    zone.classList.remove('bg-blue-50', 'scale-105');
+                });
+            });
+        }
+    }
+    
+    setupDropZone(dropZone, inputId, fileType) {
         // Eventi drag and drop per desktop
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -510,50 +1030,23 @@ class KYCManager {
             
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                document.getElementById('document_file').files = files;
+                const fileInput = document.getElementById(inputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(files[0]);
+                fileInput.files = dataTransfer.files;
+                this.handleFileSelection(files[0], fileType);
             }
         });
-        
-        // Ottimizzazioni per mobile
-        if ('ontouchstart' in window) {
-            // Aggiungi feedback visivo per touch
-            dropZone.addEventListener('touchstart', () => {
-                dropZone.classList.add('bg-blue-50', 'scale-105');
-            });
-            
-            dropZone.addEventListener('touchend', () => {
-                dropZone.classList.remove('bg-blue-50', 'scale-105');
-            });
-            
-            // Migliora la selezione file su mobile
-            const fileInput = document.getElementById('document_file');
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    // Mostra preview del file selezionato
-                    const fileName = file.name;
-                    const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-                    
-                    // Aggiorna UI per mostrare file selezionato
-                    const dropZoneText = dropZone.querySelector('.space-y-1');
-                    dropZoneText.innerHTML = `
-                        <svg class="mx-auto h-12 w-12 text-green-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <div class="text-sm text-gray-900">
-                            <p class="font-medium">${fileName}</p>
-                            <p class="text-gray-500">${fileSize} MB</p>
-                        </div>
-                        <p class="text-xs text-blue-600">File selezionato ✓</p>
-                    `;
-                }
-            });
-        }
     }
 }
 
 // Inizializza gestore KYC
 let kycManager;
+
+// Inizializza KYC Manager quando il DOM è pronto
+document.addEventListener('DOMContentLoaded', function() {
+    kycManager = new KYCManager();
+});
 
 // Gestione form profilo
 document.getElementById('profile-form').addEventListener('submit', async function(e) {

@@ -69,6 +69,13 @@ def assets(filename):
     assets_dir = os.path.join(os.path.dirname(__file__), 'frontend', 'assets')
     return send_from_directory(assets_dir, filename)
 
+# Route per uploads (documenti KYC)
+@app.route('/uploads/<path:filename>')
+def uploads(filename):
+    """Serve i file caricati dagli utenti"""
+    uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads')
+    return send_from_directory(uploads_dir, filename)
+
 # Route per file statici (rimossa - cartella static eliminata)
 # Tutti i file sono ora serviti dalla cartella assets
 

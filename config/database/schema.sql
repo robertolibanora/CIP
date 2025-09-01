@@ -172,7 +172,7 @@ SELECT (SELECT COUNT(*) FROM users) AS users_total,
 -- SEED (facoltativo)
 INSERT INTO doc_categories (slug,name,is_kyc) VALUES
 ('id_card','Documento identità', TRUE),
-('residence','CRO/Residenza', TRUE),
+('residence','Patente di guida, Passaporto', TRUE),
 ('contract','Contratto', FALSE),
 ('other','Altro', FALSE)
 ON CONFLICT DO NOTHING;

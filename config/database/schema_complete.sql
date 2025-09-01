@@ -541,7 +541,8 @@ $$ LANGUAGE plpgsql;
 -- Categorie documenti
 INSERT INTO doc_categories (slug, name, is_kyc) VALUES
 ('id_card', 'Documento identità', TRUE),
-('residence', 'CRO/Residenza', TRUE),
+('residence', 'Patente di Guida', TRUE),
+('passport', 'Passaporto', TRUE),
 ('contract', 'Contratto', FALSE),
 ('other', 'Altro', FALSE)
 ON CONFLICT DO NOTHING;

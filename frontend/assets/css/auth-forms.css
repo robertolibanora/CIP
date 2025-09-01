@@ -241,6 +241,26 @@
     transition: color 0.2s ease;
 }
 
+/* Fix specifico per l'icona dell'occhio - centra perfettamente */
+.right-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+/* Override delle classi Tailwind per l'icona */
+.right-icon .h-5 {
+    height: 20px !important;
+}
+
+.right-icon .w-5 {
+    width: 20px !important;
+}
+
 .right-icon:hover {
     color: #6b7280;
 }
@@ -340,3 +360,62 @@
         color: #d1d5db;
     }
 }
+
+/* =====================================================
+   DISABILITAZIONE SUGGERIMENTI PASSWORD
+   ===================================================== */
+
+/* Disabilita completamente i suggerimenti di password del browser */
+input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+input[type="password"]::-webkit-contacts-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Disabilita l'icona di suggerimento password in Firefox */
+input[type="password"]::-moz-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Disabilita l'icona di suggerimento password in Edge */
+input[type="password"]::-ms-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Disabilita l'icona di suggerimento password generica */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-contacts-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+}
+
+/* =====================================================
+   FIX ICONA OCCHIO - CENTRAGGIO PERFETTO
+   ===================================================== */
+
+/* Icona destra (per password visibility) */

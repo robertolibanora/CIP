@@ -64,5 +64,3 @@ playwright
 - **Report Verifica**: 0% (mancante)
 
 **Completamento Totale**: 0%
-
-
