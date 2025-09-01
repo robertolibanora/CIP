@@ -30,18 +30,8 @@ CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(nome_telegram);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(telefono);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
--- Inserisci un utente admin di default per i test
-INSERT INTO users (email, password_hash, nome, cognome, nome_telegram, telefono, role, referral_code) 
-VALUES (
-    'admin@cipimmobiliare.it',
-    'admin123', -- Cambia questa password in produzione!
-    'Admin',
-    'CIP',
-    'admin_cip',
-    '+39000000000',
-    'admin',
-    'ADMIN001'
-);
+-- Utente admin creato automaticamente dal codice Python all'avvio dell'applicazione
+-- Non è più necessario inserirlo manualmente tramite SQL
 
 -- Commit delle modifiche
 COMMIT;

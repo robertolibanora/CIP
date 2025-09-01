@@ -55,6 +55,33 @@ CIP Immobiliare/
 - **`role`** - Ruolo (admin/investor)
 - **`kyc_status`** - Stato verifica KYC
 
+### **Creazione Admin Automatica**
+Il sistema crea automaticamente l'utente amministratore all'avvio dell'applicazione.
+
+#### **Configurazione Variabili Ambiente**
+Configura le credenziali admin nel file `config/env.local`:
+```bash
+ADMIN_EMAIL=admin@cipimmobiliare.it
+ADMIN_PASSWORD=SecureAdmin123!
+ADMIN_NOME=Admin
+ADMIN_COGNOME=CIP
+ADMIN_TELEGRAM=admin_cip
+ADMIN_TELEFONO=+39000000000
+```
+
+#### **Funzionamento**
+- ✅ **Verifica Esistenza**: Controlla se esiste già un admin nel database
+- ✅ **Creazione Automatica**: Crea l'admin solo se non esiste
+- ✅ **Gestione Errori**: Non blocca l'avvio se c'è un errore database
+- ✅ **Logging Sicuro**: Logga operazioni senza esporre credenziali
+- ✅ **Password Hashata**: Usa SHA-256 come il resto del sistema
+
+#### **Sicurezza**
+- ⚠️ **Mai hardcoded**: Le credenziali sono sempre da variabili ambiente
+- 🔐 **Hash sicuro**: Password hashata con SHA-256
+- 📝 **Audit log**: Ogni tentativo di creazione viene loggato
+- 🚫 **No duplicati**: Impedisce la creazione di admin multipli
+
 ---
 
 ## 👤 **Pagine User**

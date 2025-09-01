@@ -7,7 +7,71 @@ Task 2.2: Configurazione sicura sessioni
 from flask import Flask, url_for
 from werkzeug.routing import BuildError
 import logging
+import os
+import hashlib
 from config.paths import TEMPLATES_DIR, ASSETS_DIR, UPLOADS_DIR
+from backend.shared.database import get_db_connection
+
+def hash_password(password: str) -> str:
+    """Hash della password usando SHA-256 (stesso sistema dell'autenticazione)"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def create_admin_user():
+    """
+    Crea utente admin se non esiste già nel database.
+    Usa variabili ambiente per credenziali.
+    Gestisce errori senza bloccare l'avvio app.
+    """
+    logger = logging.getLogger(__name__)
+    
+    # Ottieni credenziali admin dalle variabili ambiente
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@cipimmobiliare.it')
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    admin_nome = os.environ.get('ADMIN_NOME', 'Admin')
+    admin_cognome = os.environ.get('ADMIN_COGNOME', 'CIP')
+    admin_telegram = os.environ.get('ADMIN_TELEGRAM', 'admin_cip')
+    admin_telefono = os.environ.get('ADMIN_TELEFONO', '+39000000000')
+    
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Verifica se esiste già un admin
+                cur.execute("SELECT id, email FROM users WHERE role = 'admin' LIMIT 1")
+                existing_admin = cur.fetchone()
+                
+                if existing_admin:
+                    logger.info(f"Utente admin già esistente: {existing_admin['email']}")
+                    return existing_admin
+                
+                # Crea nuovo admin
+                password_hash = hash_password(admin_password)
+                
+                cur.execute("""
+                    INSERT INTO users (
+                        email, password_hash, nome, cognome, nome_telegram, telefono,
+                        role, referral_code, kyc_status, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    RETURNING id, email
+                """, (
+                    admin_email,
+                    password_hash,
+                    admin_nome,
+                    admin_cognome,
+                    admin_telegram,
+                    admin_telefono,
+                    'admin',
+                    'ADMIN001',
+                    'verified'
+                ))
+                
+                new_admin = cur.fetchone()
+                logger.info(f"✅ Utente admin creato con successo: {new_admin['email']}")
+                return new_admin
+                
+    except Exception as e:
+        logger.warning(f"⚠️ Impossibile creare utente admin: {e}")
+        # Non bloccare l'avvio dell'app se la creazione admin fallisce
+        return None
 
 def create_app():
     """Crea e configura l'applicazione Flask"""
@@ -64,5 +128,11 @@ def create_app():
         app.logger.info("Middleware di autenticazione configurato con successo")
     except Exception as e:
         app.logger.warning(f"Impossibile configurare middleware di autenticazione: {e}")
+    
+    # Crea utente admin automaticamente se non esiste
+    try:
+        create_admin_user()
+    except Exception as e:
+        app.logger.warning(f"Impossibile creare utente admin: {e}")
     
     return app
