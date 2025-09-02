@@ -116,7 +116,7 @@ def upload_kyc_document():
             return jsonify({'error': 'Utente già verificato'}), 400
     
     # Validazione file - supporta file multipli (fronte obbligatorio, retro opzionale)
-    front_file = request.files.get('file')  # File principale (fronte)
+    front_file = request.files.get('file_front') or request.files.get('file')  # File principale (fronte)
     back_file = request.files.get('file_back')  # File retro (opzionale)
     
     if not front_file or front_file.filename == '':
@@ -189,9 +189,18 @@ def upload_kyc_document():
         'files': uploaded_files
     })
 
-@kyc_bp.route('/api/categories', methods=['GET'])
-@login_required
-def get_kyc_categories():
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_user_api.py
+# @kyc_bp.route('/api/upload', methods=['POST'])
+# @login_required
+def upload_kyc_document_alt_old():
+    """Upload di un documento KYC - endpoint alternativo per compatibilità"""
+    # Delega alla funzione principale
+    return upload_kyc_document()
+
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_user_api.py
+# @kyc_bp.route('/api/categories', methods=['GET'])
+# @login_required
+def get_kyc_categories_old():
     """Ottiene le categorie di documenti KYC disponibili"""
     with get_conn() as conn, conn.cursor() as cur:
         # Prima verifica se esistono categorie KYC
@@ -224,19 +233,41 @@ def get_kyc_categories():
 # 2. ADMIN ENDPOINTS
 # =====================================================
 
-@kyc_bp.route('/admin/dashboard')
+@kyc_bp.route('/admin')
 @admin_required
 def admin_kyc_dashboard():
     """Dashboard KYC admin"""
     return render_template("admin/kyc/dashboard.html")
 
-@kyc_bp.route('/admin/api/kyc-requests', methods=['GET'])
-@admin_required 
-def admin_get_kyc_requests():
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_admin_api.py
+# @kyc_bp.route('/admin/api/kyc-stats', methods=['GET'])
+# @admin_required
+def admin_get_kyc_stats_old():
+    """Ottiene statistiche KYC per il dashboard admin"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN kyc_status = 'verified' THEN 1 ELSE 0 END) as verified,
+                SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN kyc_status = 'unverified' THEN 1 ELSE 0 END) as unverified
+            FROM users WHERE role = 'investor'
+        """)
+        stats = cur.fetchone()
+        
+        return jsonify(stats), 200
+
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_admin_api.py
+# @kyc_bp.route('/admin/api/kyc-requests', methods=['GET'])
+# @admin_required
+def admin_get_kyc_requests_old():
     """Ottiene tutte le richieste KYC per il dashboard admin"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT DISTINCT u.id, u.full_name, u.email, u.telefono, u.created_at, u.kyc_status,
+            SELECT DISTINCT u.id, 
+                   CONCAT(u.nome, ' ', u.cognome) as full_name,
+                   u.email, u.telefono, u.created_at, u.kyc_status,
                    COUNT(d.id) as documents_count,
                    CASE WHEN p.id IS NOT NULL THEN true ELSE false END as has_portfolio
             FROM users u
@@ -244,21 +275,23 @@ def admin_get_kyc_requests():
             LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
             LEFT JOIN user_portfolios p ON u.id = p.user_id
             WHERE u.role = 'investor'
-            GROUP BY u.id, u.full_name, u.email, u.telefono, u.created_at, u.kyc_status, p.id
+            GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.created_at, u.kyc_status, p.id
             ORDER BY u.created_at DESC
         """)
         requests = cur.fetchall()
     
-    return jsonify(requests)
+    return jsonify({"items": requests}), 200
 
-@kyc_bp.route('/admin/api/kyc-requests/<int:user_id>', methods=['GET'])
-@admin_required
-def admin_get_kyc_request_detail(user_id):
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_admin_api.py
+# @kyc_bp.route('/admin/api/kyc-requests/<int:user_id>', methods=['GET'])
+# @admin_required
+def admin_get_kyc_request_detail_old(user_id):
     """Ottiene dettagli di una richiesta KYC specifica"""
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni informazioni utente
         cur.execute("""
-            SELECT id, full_name, email, telefono, address, created_at, kyc_status
+            SELECT id, CONCAT(nome, ' ', cognome) as full_name, 
+                   email, telefono, created_at, kyc_status
             FROM users WHERE id = %s
         """, (user_id,))
         user = cur.fetchone()
@@ -279,15 +312,21 @@ def admin_get_kyc_request_detail(user_id):
         documents = cur.fetchall()
         
         user['documents'] = documents
-        return jsonify(user)
+        return jsonify(user), 200
 
-@kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/approve', methods=['POST'])
-@admin_required
-def admin_approve_kyc(user_id):
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_admin_api.py
+# @kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/approve', methods=['POST'])
+# @admin_required
+def admin_approve_kyc_old(user_id):
     """Approva la verifica KYC di un utente"""
     admin_id = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        # Verifica che l'utente esista
+        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+        if not cur.fetchone():
+            return jsonify({'error': 'Utente non trovato'}), 404
+        
         # Verifica che l'utente abbia documenti
         cur.execute("""
             SELECT COUNT(*) as doc_count
@@ -303,56 +342,49 @@ def admin_approve_kyc(user_id):
         # Aggiorna stato utente
         cur.execute("""
             UPDATE users 
-            SET kyc_status = 'verified', kyc_verified_at = %s, kyc_verified_by = %s
+            SET kyc_status = 'verified'
             WHERE id = %s
-        """, (datetime.now(), admin_id, user_id))
+        """, (user_id,))
         
         # Marca documenti come verificati
         cur.execute("""
             UPDATE documents 
-            SET verified_by_admin = TRUE, verified_at = %s, verified_by = %s
+            SET verified_by_admin = TRUE
             WHERE user_id = %s AND category_id IN (
                 SELECT id FROM doc_categories WHERE is_kyc = TRUE
             )
-        """, (datetime.now(), admin_id, user_id))
+        """, (user_id,))
         
         conn.commit()
     
-    return jsonify({'success': True, 'message': 'KYC approvato con successo'})
+    return jsonify({'ok': True}), 200
 
-@kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/reject', methods=['POST'])
-@admin_required
-def admin_reject_kyc(user_id):
+# VECCHIO ENDPOINT - SOSTITUITO DA routes_admin_api.py
+# @kyc_bp.route('/admin/api/kyc-requests/<int:user_id>/reject', methods=['POST'])
+# @admin_required
+def admin_reject_kyc_old(user_id):
     """Rifiuta la verifica KYC di un utente"""
-    admin_id = session.get("user_id")
-    reason = request.json.get('reason', 'Documenti non conformi')
+    try:
+        data = request.get_json() or {}
+        reason = data.get('reason', 'Documenti non conformi')
+    except:
+        reason = 'Documenti non conformi'
     
     with get_conn() as conn, conn.cursor() as cur:
+        # Verifica che l'utente esista
+        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+        if not cur.fetchone():
+            return jsonify({'error': 'Utente non trovato'}), 404
+            
         # Aggiorna stato utente
         cur.execute("""
             UPDATE users 
-            SET kyc_status = 'rejected', kyc_notes = %s, kyc_rejected_at = %s, kyc_rejected_by = %s
+            SET kyc_status = 'rejected'
             WHERE id = %s
-        """, (reason, datetime.now(), admin_id, user_id))
+        """, (user_id,))
         
         conn.commit()
     
-    return jsonify({'success': True, 'message': 'KYC rifiutato'})
+    return jsonify({'ok': True}), 200
 
-@kyc_bp.route('/admin/api/kyc-stats', methods=['GET'])
-@admin_required
-def admin_get_kyc_stats():
-    """Ottiene statistiche KYC per il dashboard"""
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN kyc_status = 'verified' THEN 1 ELSE 0 END) as verified,
-                SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-                SUM(CASE WHEN kyc_status = 'unverified' THEN 1 ELSE 0 END) as unverified
-            FROM users WHERE role = 'investor'
-        """)
-        stats = cur.fetchone()
-        
-        return jsonify(stats)
+# La route /admin/api/stats è già stata implementata sopra

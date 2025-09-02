@@ -570,6 +570,17 @@ def projects():
                          projects=projects,
                          current_page="projects")
 
+# =====================================================
+# 5.b KYC USER PAGE - Pagina dedicata verifica identità
+# =====================================================
+
+@user_bp.get("/kyc")
+@login_required
+def kyc_page():
+    """Pagina dedicata per upload documenti KYC dell'utente"""
+    uid = session.get("user_id")
+    return render_template("user/kyc.html", user_id=uid, current_page="kyc")
+
 @user_bp.get("/uploads/projects/<filename>")
 @login_required
 def serve_project_file_user(filename):

@@ -36,6 +36,8 @@ from backend.user import user_blueprints
 
 # Importa i nuovi blueprint per le API
 from backend.kyc import kyc_bp
+from backend.kyc.routes_user_api import kyc_user_api
+from backend.kyc.routes_admin_api import kyc_admin_api
 from backend.portfolio_api import portfolio_api_bp
 from backend.deposits import deposits_bp
 from backend.withdrawals import withdrawals_bp
@@ -57,6 +59,8 @@ for blueprint in user_blueprints:
 
 # Registra i nuovi blueprint per le API
 app.register_blueprint(kyc_bp, url_prefix='/kyc')
+app.register_blueprint(kyc_user_api)  # Già ha prefix /kyc/api
+app.register_blueprint(kyc_admin_api)  # Già ha prefix /kyc/admin/api
 app.register_blueprint(portfolio_api_bp, url_prefix='/portfolio')
 app.register_blueprint(deposits_bp, url_prefix='/deposits')
 app.register_blueprint(withdrawals_bp, url_prefix='/withdrawals')
@@ -73,8 +77,25 @@ def assets(filename):
 @app.route('/uploads/<path:filename>')
 def uploads(filename):
     """Serve i file caricati dagli utenti"""
-    uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads')
-    return send_from_directory(uploads_dir, filename)
+    # 1) Prova prima nella cartella KYC in instance (nuovo flusso)
+    kyc_dir = app.config.get('UPLOAD_FOLDER', os.path.join('instance', 'uploads', 'kyc'))
+    kyc_path = os.path.join(kyc_dir, filename)
+    try:
+        if os.path.exists(kyc_path):
+            return send_from_directory(kyc_dir, filename)
+    except Exception:
+        pass
+
+    # 2) Fallback: vecchia cartella /uploads nello stesso repo (compatibilità legacy)
+    legacy_uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads')
+    return send_from_directory(legacy_uploads_dir, filename)
+
+# Route specifica per KYC uploads
+@app.route('/uploads/kyc/<path:filename>')
+def kyc_uploads(filename):
+    """Serve i file KYC caricati"""
+    kyc_dir = app.config.get('UPLOAD_FOLDER', os.path.join('instance', 'uploads', 'kyc'))
+    return send_from_directory(kyc_dir, filename)
 
 # Route per file statici (rimossa - cartella static eliminata)
 # Tutti i file sono ora serviti dalla cartella assets

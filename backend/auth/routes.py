@@ -1,8 +1,9 @@
-from flask import Blueprint, request, session, redirect, url_for, render_template, flash
+from flask import Blueprint, request, session, redirect, url_for, render_template, flash, jsonify
 from backend.shared.database import get_connection
 import os
 from backend.shared.validators import validate_email, validate_password, ValidationError
 from backend.auth.middleware import create_secure_session, destroy_session
+from backend.utils.http import is_api_request
 import hashlib
 
 auth_bp = Blueprint("auth", __name__)
@@ -22,40 +23,69 @@ from backend.auth.decorators import guest_only
 @auth_bp.route("/login", methods=["GET", "POST"])
 @guest_only
 def login():
-    """Login utente"""
-    if request.method == "POST":
+    """Login utente - supporta form HTML e JSON"""
+    print(f"LOGIN: Method={request.method}, Form data={dict(request.form)}")
+    
+    if request.method == "GET":
+        return render_template("auth/login.html")
+    
+    # POST - gestisce sia form che JSON
+    if request.is_json:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
+    else:
         email = request.form.get("email")
         password = request.form.get("password")
+    
+    print(f"LOGIN: Email={email}, Password={'*' * len(password) if password else 'None'}")
 
-        if not email or not password:
-            flash("Email e password sono richiesti", "error")
-            return render_template("auth/login.html")
+    if not email or not password:
+        if is_api_request():
+            return jsonify({"error": "Email e password sono richiesti"}), 400
+        flash("Email e password sono richiesti", "error")
+        return render_template("auth/login.html")
 
-        with get_conn() as conn, conn.cursor() as cur:
-            # Cerca utente per email
-            cur.execute(
-                """
-                SELECT id, email, nome, cognome, password_hash, role
-                FROM users WHERE email = %s
-                """,
-                (email,),
-            )
-            user = cur.fetchone()
+    with get_conn() as conn, conn.cursor() as cur:
+        # Cerca utente per email
+        cur.execute(
+            """
+            SELECT id, email, nome, cognome, password_hash, role
+            FROM users WHERE email = %s
+            """,
+            (email,),
+        )
+        user = cur.fetchone()
 
-            # Verifica password con hash
-            if user and user["password_hash"] == hash_password(password):
-                # Crea sessione sicura
-                create_secure_session(user)
+        # Verifica password con hash
+        if user and user["password_hash"] == hash_password(password):
+            # Crea sessione sicura
+            print(f"LOGIN: Creazione sessione per {user['email']}")
+            create_secure_session(user)
 
-                flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
+            # Se è richiesta API, restituisce JSON
+            if is_api_request():
+                return jsonify({
+                    "ok": True,
+                    "user": {
+                        "id": user["id"],
+                        "email": user["email"],
+                        "nome": user["nome"],
+                        "cognome": user["cognome"],
+                        "role": user["role"]
+                    }
+                }), 200
 
-                # Reindirizza admin alla dashboard admin, utenti normali alla dashboard utente
-                if user["role"] == "admin":
-                    return redirect(url_for("admin.admin_dashboard"))
-                else:
-                    return redirect(url_for("user.dashboard"))
+            # Altrimenti, redirect HTML
+            flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
+            if user["role"] == "admin":
+                return redirect(url_for("admin.admin_dashboard"))
             else:
-                flash("Credenziali non valide", "error")
+                return redirect(url_for("user.dashboard"))
+        else:
+            if is_api_request():
+                return jsonify({"error": "Credenziali non valide"}), 401
+            flash("Credenziali non valide", "error")
 
     return render_template("auth/login.html")
 

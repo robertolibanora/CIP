@@ -5,3 +5,5 @@ INSERT INTO doc_categories (name, slug, description, is_kyc, is_required) VALUES
 ('Passaporto', 'passport', 'Passaporto italiano (pagina principale)', TRUE, FALSE)
 ON CONFLICT (slug) DO NOTHING;
 
+
+

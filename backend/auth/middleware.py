@@ -1,5 +1,5 @@
 """
-Middleware per autenticazione e autorizzazioni
+Middleware per autenticazione e autorizzazioni - VERSIONE CORRETTA
 Task 2.2: Auth System - Verifiche e Blocchi
 """
 
@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from backend.shared.models import UserRole, KYCStatus
 from backend.shared.database import get_connection
+from backend.utils.http import is_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,7 @@ def update_session_activity():
 
 def create_secure_session(user_data: dict):
     """Crea una sessione sicura con tutti i controlli"""
+    logger.info(f"Creazione sessione per utente: {user_data['email']}")
     session.clear()
     session['user_id'] = user_data['id']
     session['user_role'] = user_data['role']
@@ -119,9 +121,11 @@ def create_secure_session(user_data: dict):
     session[SESSION_USER_AGENT_KEY] = request.headers.get('User-Agent', '')
     session.permanent = True
     session.modified = True
+    logger.info(f"Sessione creata con successo per: {user_data['email']}")
 
 def destroy_session():
-    """Distrugge completamente la sessione"""
+    """Distrugge completamente la sessione - USARE SOLO PER LOGOUT ESPLICITO"""
+    logger.info("Distruzione sessione richiesta")
     session.clear()
     session.modified = True
 
@@ -252,7 +256,7 @@ def role_required(required_role: UserRole) -> Callable:
     return decorator
 
 # ============================================================================
-# MIDDLEWARE GLOBALE
+# MIDDLEWARE GLOBALE CORRETTO
 # ============================================================================
 
 def setup_auth_middleware(app):
@@ -261,53 +265,56 @@ def setup_auth_middleware(app):
     @app.before_request
     def before_request():
         """Middleware eseguito prima di ogni richiesta"""
-        # Skip per route pubbliche
-        public_routes = [
-            'auth.login', 'auth.register', 'auth.logout',
-            'static', 'assets'
-        ]
-        
-        if request.endpoint in public_routes:
+        # Skip per route statiche e pubbliche
+        if (request.path.startswith("/static") or 
+            request.path.startswith("/assets") or
+            request.path.startswith("/kyc/api/") or  # Tutte le API KYC
+            request.endpoint in ['auth.login', 'auth.register', 'auth.logout']):
             return
         
-        # Verifica autenticazione per route protette
+        # Aggiorna attività sessione per utenti autenticati (anche per API)
+        if is_authenticated():
+            update_session_activity()
+        
+        # NON fare controlli di redirect/clear per API - lascia ai decorator
+        if is_api_request():
+            logger.info(f"API request detected: {request.path} -> skipping middleware")
+            return
+        
+        # Controlli solo per pagine HTML
         if not is_authenticated():
             # Route che richiedono autenticazione
             protected_routes = [
-                'user.', 'admin.', 'kyc.', 'portfolio.', 
+                'user.', 'admin.', 'portfolio.', 
                 'deposits.', 'withdrawals.', 'profits.'
             ]
+            # Escludi le API KYC dal controllo globale - gestite dai decorator
             
             if request.endpoint and any(request.endpoint.startswith(prefix) for prefix in protected_routes):
                 flash("Accesso richiesto per visualizzare questa pagina", "warning")
                 return redirect(url_for('auth.login'))
         else:
-            # Verifica sicurezza sessione per utenti autenticati
+            # Verifica sicurezza sessione solo per pagine HTML
             if not validate_session_security():
                 destroy_session()
                 flash("Sessione non valida. Effettua nuovamente il login.", "error")
                 return redirect(url_for('auth.login'))
             
-            # Verifica separazione ruoli Admin/User
+            # Verifica separazione ruoli Admin/User solo per pagine HTML
             if request.endpoint:
                 user_role = session.get('user_role', 'investor')
                 
-
-                
                 # Admin NON deve accedere a rotte user
                 if user_role == 'admin' and request.endpoint.startswith('user.'):
-                    logger.warning(f"ADMIN {session.get('email')} ha tentato accesso rotta USER: {request.endpoint}")
+                    logger.warning(f"ADMIN ha tentato accesso rotta USER: {request.endpoint}")
                     flash("Accesso negato: Gli amministratori devono usare il pannello admin", "error")
                     return redirect(url_for('admin.admin_dashboard'))
                 
                 # User NON deve accedere a rotte admin
                 if user_role == 'investor' and request.endpoint.startswith('admin.'):
-                    logger.warning(f"USER {session.get('email')} ha tentato accesso rotta ADMIN: {request.endpoint}")
+                    logger.warning(f"USER ha tentato accesso rotta ADMIN: {request.endpoint}")
                     flash("Accesso negato: Area riservata agli amministratori", "error")
                     return redirect(url_for('user.dashboard'))
-            
-            # Aggiorna attività sessione
-            update_session_activity()
     
     @app.after_request
     def after_request(response):

@@ -90,25 +90,13 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB
     
-    # Configurazione CSRF protection
-    app.config['SECRET_KEY'] = 'your-secret-key-here'  # Cambia con una chiave sicura
-    app.config['WTF_CSRF_ENABLED'] = True
+    # Crea cartella upload KYC se non esiste
+    kyc_upload_dir = app.config.get('UPLOAD_FOLDER', UPLOADS_DIR)
+    os.makedirs(kyc_upload_dir, exist_ok=True)
     
-    # ============================================================================
-    # CONFIGURAZIONE SICUREZZA SESSIONI - Task 2.2
-    # ============================================================================
-    
-    # Timeout sessione (1 ora)
-    app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # secondi
-    
-    # Cookie sicuri
-    app.config['SESSION_COOKIE_SECURE'] = False  # True in produzione con HTTPS
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    
-    # Controlli sicurezza sessione
-    app.config['CHECK_SESSION_IP'] = True
-    app.config['CHECK_SESSION_USER_AGENT'] = True
+    # Controlli sicurezza sessione (disabilitati per sviluppo)
+    app.config['CHECK_SESSION_IP'] = False  # Disabilitato per test
+    app.config['CHECK_SESSION_USER_AGENT'] = False  # Disabilitato per test
     
     # Carica configurazione
     from config.config import config

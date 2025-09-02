@@ -10,6 +10,7 @@ import logging
 
 from backend.shared.models import UserRole, KYCStatus
 from backend.auth.middleware import get_current_user, is_authenticated
+from backend.utils.http import is_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,15 @@ def login_required(f: Callable) -> Callable:
     """Decorator per richiedere autenticazione base"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Debug log
+        logger.info(f"login_required: {request.path} -> is_authenticated: {is_authenticated()}")
+        logger.info(f"Session data: {dict(session)}")
+        
         if not is_authenticated():
+            # Se è una richiesta API, restituisci errore JSON
+            if is_api_request():
+                return jsonify({'error': 'unauthorized'}), 401
+            # Altrimenti redirect HTML
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
@@ -47,11 +56,19 @@ def role_required(required_role: Union[UserRole, str]) -> Callable:
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not is_authenticated():
+                # Se è una richiesta API, restituisci errore JSON
+                if is_api_request():
+                    return jsonify({'error': 'unauthorized'}), 401
+                # Altrimenti redirect HTML
                 flash("Accesso richiesto per visualizzare questa pagina", "warning")
                 return redirect(url_for('auth.login'))
             
             user = get_current_user()
             if not user:
+                # Se è una richiesta API, restituisci errore JSON
+                if is_api_request():
+                    return jsonify({'error': 'unauthorized'}), 401
+                # Altrimenti redirect HTML
                 flash("Sessione utente non valida", "error")
                 return redirect(url_for('auth.login'))
             
@@ -60,6 +77,10 @@ def role_required(required_role: Union[UserRole, str]) -> Callable:
             
             if user_role != required_role_str:
                 logger.warning(f"Accesso negato: {user.get('email')} (ruolo: {user_role}) -> richiesto: {required_role_str}")
+                # Se è una richiesta API, restituisci errore JSON
+                if is_api_request():
+                    return jsonify({'error': 'forbidden'}), 403
+                # Altrimenti redirect HTML
                 flash(f"Accesso negato. Ruolo {required_role_str} richiesto", "error")
                 return redirect(url_for('user.dashboard'))
             
