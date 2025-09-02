@@ -87,10 +87,21 @@ def admin_get_kyc_request_detail(user_id: int):
 
         documents = []
         if req:
-            if req["file_front"]:
-                documents.append({"title": "Documento Fronte", "file_path": req["file_front"], "category_name": req["doc_type"]})
-            if req["file_back"]:
-                documents.append({"title": "Documento Retro", "file_path": req["file_back"], "category_name": req["doc_type"]})
+            uploaded_at_iso = req["created_at"].isoformat() if req.get("created_at") else None
+            if req.get("file_front"):
+                documents.append({
+                    "title": "Documento Fronte",
+                    "file_path": req["file_front"],
+                    "category_name": req["doc_type"],
+                    "uploaded_at": uploaded_at_iso
+                })
+            if req.get("file_back"):
+                documents.append({
+                    "title": "Documento Retro",
+                    "file_path": req["file_back"],
+                    "category_name": req["doc_type"],
+                    "uploaded_at": uploaded_at_iso
+                })
 
         return jsonify({
             "id": user_id,
@@ -188,6 +199,31 @@ def admin_reject_kyc(user_id: int):
     except Exception as e:
         current_app.logger.error(f"Errore rifiuto KYC user {user_id}: {e}")
         return jsonify({"error": "Errore durante il rifiuto"}), 500
+
+
+@kyc_admin_api.route("/kyc-requests/<int:user_id>/revoke", methods=["POST"])
+@admin_required
+def admin_revoke_kyc(user_id: int):
+    """Revoca lo stato KYC di un utente: imposta users.kyc_status='unverified' e inserisce una richiesta 'rejected' di sistema."""
+    try:
+        from backend.shared.database import get_connection
+        with get_connection() as conn, conn.cursor() as cur:
+            # Aggiorna stato utente
+            cur.execute("UPDATE users SET kyc_status='unverified' WHERE id=%s", (user_id,))
+            # Registra riga in kyc_requests come audit (rejected senza file)
+            cur.execute(
+                """
+                INSERT INTO kyc_requests (user_id, doc_type, file_front, file_back, status, created_at, updated_at)
+                VALUES (%s, %s, NULL, NULL, 'rejected', NOW(), NOW())
+                """,
+                (user_id, 'id_card')
+            )
+            conn.commit()
+        current_app.logger.info(f"KYC user {user_id} revoked by admin")
+        return jsonify({"ok": True, "message": "Verifica KYC revocata"})
+    except Exception as e:
+        current_app.logger.error(f"Errore revoca KYC user {user_id}: {e}")
+        return jsonify({"error": "Errore durante la revoca"}), 500
 
 
 @kyc_admin_api.route("/kyc-stats", methods=["GET"])

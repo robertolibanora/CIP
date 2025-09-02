@@ -228,10 +228,7 @@ class KYCAdminDashboard {
     
     async loadStats() {
         try {
-            const response = await fetch('/kyc/admin/api/kyc-stats', {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'include'
-            });
+            const response = await fetch('/kyc/admin/api/kyc-stats');
             if (response.ok) {
                 const stats = await response.json();
                 this.renderStats(stats);
@@ -250,10 +247,7 @@ class KYCAdminDashboard {
     
     async loadRequests() {
         try {
-            const response = await fetch('/kyc/admin/api/kyc-requests', {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'include'
-            });
+            const response = await fetch('/kyc/admin/api/kyc-requests');
             if (response.ok) {
                 const requests = await response.json();
                 this.renderRequests(requests);
@@ -322,10 +316,7 @@ class KYCAdminDashboard {
         this.currentUserId = userId;
         
         try {
-            const response = await fetch(`/kyc/admin/api/kyc-requests/${userId}`, {
-                headers: { 'Accept': 'application/json' },
-                credentials: 'include'
-            });
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${userId}`);
             if (response.ok) {
                 const user = await response.json();
                 this.renderDetail(user);
@@ -341,7 +332,6 @@ class KYCAdminDashboard {
         
         const statusColors = {
             'verified': 'success',
-            'approved': 'success',
             'pending': 'warning',
             'rejected': 'error',
             'unverified': 'gray'
@@ -349,28 +339,11 @@ class KYCAdminDashboard {
         
         const statusLabels = {
             'verified': 'Verificato',
-            'approved': 'Verificato',
             'pending': 'In Attesa',
             'rejected': 'Rifiutato',
             'unverified': 'Non Verificato'
         };
         
-        const normalizeStatus = (s) => {
-            if (!s) return 'unverified';
-            if (s === 'approved') return 'verified';
-            return s;
-        };
-
-        // Preferisci 'pending' se esiste una richiesta pendente; altrimenti usa lo stato utente
-        let effectiveStatus = 'unverified';
-        if (user.request && user.request.status === 'pending') {
-            effectiveStatus = 'pending';
-        } else if (user.kyc_status) {
-            effectiveStatus = normalizeStatus(user.kyc_status);
-        } else if (user.request && user.request.status) {
-            effectiveStatus = normalizeStatus(user.request.status);
-        }
-
         content.innerHTML = `
             <div class="space-y-6">
                 <!-- User Info -->
@@ -391,8 +364,8 @@ class KYCAdminDashboard {
                         </div>
                         <div>
                             <p class="admin-text-caption text-gray-500">Stato KYC</p>
-                            <span class="admin-badge admin-badge--${statusColors[effectiveStatus] || 'gray'}">
-                                ${statusLabels[effectiveStatus] || effectiveStatus}
+                            <span class="admin-badge admin-badge--${statusColors[user.kyc_status] || 'gray'}">
+                                ${statusLabels[user.kyc_status] || user.kyc_status}
                             </span>
                         </div>
                     </div>
@@ -409,7 +382,7 @@ class KYCAdminDashboard {
                                         <div class="flex-1">
                                             <h4 class="admin-text-body font-medium">${doc.category_name}</h4>
                                             <p class="admin-text-caption text-gray-500">
-                                                Caricato il ${doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('it-IT') : '-'}
+                                                Caricato il ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}
                                             </p>
                                             ${doc.verified_by_admin ? `
                                                 <span class="admin-badge admin-badge--success mt-2">Verificato</span>
@@ -438,16 +411,16 @@ class KYCAdminDashboard {
             </div>
         `;
         
-        // Show/hide action buttons based on latest request/user status
+        // Show/hide action buttons based on status
         const approveBtn = document.getElementById('approve-kyc-btn');
         const rejectBtn = document.getElementById('reject-kyc-btn');
         const revokeBtn = document.getElementById('revoke-kyc-btn');
         
-        if (effectiveStatus === 'pending') {
+        if (user.kyc_status === 'pending') {
             approveBtn.style.display = 'inline-flex';
             rejectBtn.style.display = 'inline-flex';
             revokeBtn.style.display = 'none';
-        } else if (effectiveStatus === 'verified') {
+        } else if (user.kyc_status === 'verified') {
             approveBtn.style.display = 'none';
             rejectBtn.style.display = 'none';
             revokeBtn.style.display = 'inline-flex';
@@ -467,17 +440,15 @@ class KYCAdminDashboard {
         try {
             const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/approve`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                credentials: 'include'
+                headers: { 'Content-Type': 'application/json' }
             });
             
             const result = await response.json();
             
             if (response.ok) {
                 alert('KYC approvato con successo');
-                // Ricarica lista e dettaglio per riflettere lo stato
+                closeModal('kyc-detail-modal');
                 await this.refreshData();
-                await this.viewDetail(this.currentUserId);
             } else {
                 alert(result.error || 'Errore nell\'approvazione');
             }
@@ -499,17 +470,15 @@ class KYCAdminDashboard {
         try {
             const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/revoke`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                credentials: 'include'
+                headers: { 'Content-Type': 'application/json' }
             });
             
             const result = await response.json();
             
             if (response.ok) {
                 alert('Verifica KYC revocata con successo');
-                // Mantieni il modal aperto e ricarica i dati
+                closeModal('kyc-detail-modal');
                 await this.refreshData();
-                await this.viewDetail(this.currentUserId);
             } else {
                 alert(result.error || 'Errore nella revoca');
             }
@@ -540,8 +509,7 @@ class KYCAdminDashboard {
         try {
             const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/reject`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason })
             });
             
@@ -550,9 +518,8 @@ class KYCAdminDashboard {
             if (response.ok) {
                 alert('KYC rifiutato con successo');
                 closeModal('reject-kyc-modal');
-                // Ricarica lista e dettaglio
+                closeModal('kyc-detail-modal');
                 await this.refreshData();
-                await this.viewDetail(this.currentUserId);
             } else {
                 alert(result.error || 'Errore nel rifiuto');
             }
