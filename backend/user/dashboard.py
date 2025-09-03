@@ -70,7 +70,7 @@ def dashboard():
         
         # Dati utente completi - TABELLA: users
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code
+            SELECT id, email, full_name, role, referral_code, nome, cognome
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -91,8 +91,14 @@ def dashboard():
     base_url = request.url_root.rstrip('/')
     referral_link = f"{base_url}/auth/register?ref={referral_code}" if referral_code else f"{base_url}/auth/register"
     
+    # Calcola nome da mostrare per saluto
+    full_name_value = ((user_data.get("full_name") if user_data else "") or "").strip()
+    nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
+    greet_name = full_name_value.split()[0] if full_name_value else (nome_value if nome_value else "Utente")
+
     return render_template("user/dashboard.html", 
                          user=user_data,
+                         greet_name=greet_name,
                          total_invested=total_invested,
                          avg_roi=8.5,  # ROI medio simulato
                          current_page="dashboard"

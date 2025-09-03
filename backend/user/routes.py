@@ -24,6 +24,9 @@ def dashboard():
     uid = session.get("user_id")
     if os.environ.get("TESTING") == "1":
         user_data = {"full_name": "Test User", "kyc_status": "verified", "referral_code": "TESTREF"}
+        # Calcola nome da mostrare
+        full_name_value = (user_data.get("full_name") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else "Utente"
         free_capital = 1000
         invested_capital = 5000
         referral_bonus = 50
@@ -38,6 +41,7 @@ def dashboard():
         referral_link = request.url_root.rstrip('/') + '/auth/register?ref=TESTREF'
         return render_template("user/dashboard.html",
                                user=user_data,
+                               greet_name=greet_name,
                                portfolio={},
                                free_capital=free_capital,
                                invested_capital=invested_capital,
@@ -56,10 +60,14 @@ def dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
+        # Calcola nome da mostrare
+        full_name_value = ((user_data.get("full_name") if user_data else "") or "").strip()
+        nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else (nome_value if nome_value else "Utente")
         
         # Portfolio overview - 4 sezioni distinte
         cur.execute("""
@@ -125,6 +133,7 @@ def dashboard():
     
     return render_template("user/dashboard.html", 
                          user=user_data,
+                         greet_name=greet_name,
                          portfolio=portfolio,
                          free_capital=free_capital,
                          invested_capital=invested_capital,

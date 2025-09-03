@@ -1,344 +1,389 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Gestione Utenti - Admin CIP Immobiliare{% endblock %}
-
-
-
-
+{% block title %}Gestione Utenti{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-    <div class="md:flex md:items-center md:justify-between">
-        <div class="flex-1 min-w-0">
-            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                Gestione Utenti
-            </h2>
-            <p class="mt-1 text-sm text-gray-500">
-                Gestisci tutti gli utenti del sistema CIP Immobiliare
-            </p>
-        </div>
-        <div class="mt-4 flex md:mt-0 md:ml-4 space-x-3">
-            <a href="{{ url_for('admin.admin_dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Dashboard
-            </a>
-            <button onclick="exportUsers()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Esporta
-            </button>
-        </div>
-    </div>
-</div>
-<!-- Filtri e Ricerca -->
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-    <div class="flex flex-col sm:flex-row gap-4">
-        <div class="flex-1">
-            <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Cerca Utenti</label>
-            <input type="text" id="search" name="search" value="{{ search }}" 
-                   placeholder="Username, email, nome, cognome..."
-                   class="input-field w-full">
-        </div>
-        <div class="sm:w-48">
-            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Stato</label>
-            <select id="status" name="status" class="input-field w-full">
-                <option value="all" {% if status == 'all' %}selected{% endif %}>Tutti gli stati</option>
-                <option value="active" {% if status == 'active' %}selected{% endif %}>Attivi</option>
-                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inattivi</option>
-                <option value="admin" {% if status == 'admin' %}selected{% endif %}>Amministratori</option>
-            </select>
-        </div>
-        <div class="sm:w-32">
-            <label for="per_page" class="block text-sm font-medium text-gray-700 mb-2">Per Pagina</label>
-            <select id="per_page" name="per_page" class="input-field w-full">
-                <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20</option>
-                <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50</option>
-                <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100</option>
-            </select>
-        </div>
-        <div class="flex items-end">
-            <button onclick="applyFilters()" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                Filtra
-            </button>
-        </div>
-    </div>
-</div>
+<div class="admin-users">
+  <style>
+    .users-header input{border:1px solid #e5e7eb;border-radius:10px;background:#fafafa}
+    .card{border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+    .table thead th{background:#f8fafc;color:#0f172a;border-bottom:1px solid #e5e7eb;font-weight:600}
+    .table tbody tr{border-top:1px solid #f1f5f9}
+    .table tbody tr:hover{background:#f8fafc}
+    .btn{cursor:pointer}
+    .btn-theme{background:#0f766e;color:#fff;border:none;border-radius:8px;padding:8px 12px;transition:all .15s ease}
+    .btn-theme:hover{background:#115e59;transform:translateY(-1px)}
+    .btn-small{padding:6px 10px;font-size:14px}
+    .chip{display:inline-block;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:600}
+    .chip-green{background:#dcfce7;color:#166534}
+    .chip-gray{background:#f1f5f9;color:#334155}
+    .chip-yellow{background:#fef9c3;color:#854d0e}
+    .chip-red{background:#fee2e2;color:#991b1b}
+    .chip-blue{background:#e0f2fe;color:#075985}
+  </style>
+  <div class="users-header" style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+    <input id="user-search" type="text" placeholder="Cerca per email, nome o Telegram" style="flex:1; padding:10px;">
+    <button id="bulk-add" class="btn-theme btn-small">Aggiungi</button>
+    <button id="bulk-remove" class="btn-theme btn-small" style="background:#b91c1c">Rimuovi</button>
+    <button id="refresh-users" class="btn">Aggiorna</button>
+  </div>
 
-<!-- Statistiche Utenti -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <div class="flex items-center">
-            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium text-blue-800">Totale Utenti</p>
-                <p class="text-lg font-bold text-blue-900">{{ pagination.total }}</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="bg-green-50 border border-green-200 rounded-xl p-6">
-        <div class="flex items-center">
-            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium text-green-800">Utenti Attivi</p>
-                <p class="text-lg font-bold text-green-900">{{ users|selectattr('is_active', 'equalto', true)|list|length }}</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-        <div class="flex items-center">
-            <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium text-yellow-800">Investitori</p>
-                <p class="text-lg font-bold text-yellow-900">{{ users|selectattr('investments_count', 'gt', 0)|list|length }}</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="bg-purple-50 border border-purple-200 rounded-xl p-6">
-        <div class="flex items-center">
-            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium text-purple-800">Referral Attivi</p>
-                <p class="text-lg font-bold text-purple-900">{{ users|selectattr('referrals_count', 'gt', 0)|list|length }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tabella Utenti -->
-<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Utente
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Portfolio
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Investimenti
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Referral
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Stato
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Registrazione
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Azioni
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for user in users %}
-                <tr class="hover:bg-gray-50 transition-colors duration-200">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 bg-cip-primary rounded-full flex items-center justify-center">
-                                <span class="text-white font-bold text-sm">{{ user.first_name[0].upper() }}{{ user.last_name[0].upper() }}</span>
-                            </div>
-                            <div class="ml-4">
-                                <div class="text-sm font-medium text-gray-900">{{ user.first_name }} {{ user.last_name }}</div>
-                                <div class="text-sm text-gray-500">@{{ user.username }}</div>
-                                <div class="text-sm text-gray-400">{{ user.email }}</div>
-                                {% if user.is_admin %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                    Admin
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            <div class="font-medium">€{{ "{:,.2f}".format(user.balance|float) if user.balance else '0.00' }}</div>
-                            <div class="text-gray-500">Saldo</div>
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            <div>Investito: €{{ "{:,.2f}".format(user.total_invested|float) if user.total_invested else '0.00' }}</div>
-                            <div>Guadagnato: €{{ "{:,.2f}".format(user.total_earned|float) if user.total_earned else '0.00' }}</div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            <div class="font-medium">{{ user.investments_count }}</div>
-                            <div class="text-gray-500">Investimenti attivi</div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            <div class="font-medium">{{ user.referrals_count }}</div>
-                            <div class="text-gray-500">Utenti invitati</div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% if user.is_active %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                                Attivo
-                            </span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                <span class="w-2 h-2 bg-red-400 rounded-full mr-1"></span>
-                                Inattivo
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ user.created_at.strftime('%d/%m/%Y') }}
-                        <div class="text-gray-500">{{ user.created_at.strftime('%H:%M') }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div class="flex space-x-2">
-                            <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
-                               class="text-cip-primary hover:text-blue-700">
-                                Dettagli
-                            </a>
-                            <button onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|lower }})" 
-                                    class="{% if user.is_active %}text-red-600 hover:text-red-700{% else %}text-green-600 hover:text-green-700{% endif %}">
-                                {% if user.is_active %}Disattiva{% else %}Attiva{% endif %}
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+  <div style="display:flex; gap:16px;">
+    <main style="flex:1;">
+      <div class="card" style="padding:0; overflow:auto;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="padding:14px; width:36px;"><input id="select-all" type="checkbox"></th>
+              <th style="text-align:left; padding:14px;">Nome e cognome</th>
+              <th style="text-align:left; padding:14px;">Username Telegram</th>
+              <th style="text-align:left; padding:14px;">Investitore</th>
+              <th style="text-align:left; padding:14px;">KYC</th>
+              <th style="text-align:right; padding:14px;">Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
         </table>
-    </div>
+      </div>
+    </main>
+  </div>
 
-    <!-- Paginazione -->
-    {% if pagination.pages > 1 %}
-    <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-        <div class="text-sm text-gray-700">
-            Mostrando <span class="font-medium">{{ (pagination.page - 1) * pagination.per_page + 1 }}</span> a 
-            <span class="font-medium">{{ min(pagination.page * pagination.per_page, pagination.total) }}</span> di 
-            <span class="font-medium">{{ pagination.total }}</span> risultati
+  <!-- Dettaglio utente modal -->
+  <div id="user-detail-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);">
+    <div class="modal-content" style="background:#fff; margin:5% auto; padding:20px; width:700px; border-radius:14px; position:relative; box-shadow:0 20px 40px rgba(2,6,23,.18); border:1px solid #e5e7eb;">
+      <button id="close-modal" class="btn" style="position:absolute; right:8px; top:8px;">×</button>
+      <h3 style="margin:0 0 14px 0; font-size:20px;">Dettaglio utente</h3>
+      <form id="user-edit-form" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <input type="hidden" id="detail-id">
+        <div>
+          <label>Nome</label>
+          <input id="detail-nome" type="text" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
         </div>
-        <div class="flex space-x-2">
-            {% if pagination.page > 1 %}
-            <a href="?page={{ pagination.page - 1 }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
-               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                Precedente
-            </a>
-            {% endif %}
-            
-            {% for page_num in range(1, pagination.pages + 1) %}
-                {% if page_num == pagination.page %}
-                <span class="px-3 py-2 text-sm font-medium text-white bg-cip-primary border border-transparent rounded-md">
-                    {{ page_num }}
-                </span>
-                {% else %}
-                <a href="?page={{ page_num }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
-                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                    {{ page_num }}
-                </a>
-                {% endif %}
-            {% endfor %}
-            
-            {% if pagination.page < pagination.pages %}
-            <a href="?page={{ pagination.page + 1 }}&per_page={{ pagination.per_page }}&search={{ search }}&status={{ status }}" 
-               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                Successivo
-            </a>
-            {% endif %}
+        <div>
+          <label>Cognome</label>
+          <input id="detail-cognome" type="text" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
         </div>
+        <div>
+          <label>Email</label>
+          <input id="detail-email" type="email" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+        </div>
+        <div>
+          <label>Telefono</label>
+          <input id="detail-phone" type="text" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+        </div>
+        <div>
+          <label>Telegram</label>
+          <input id="detail-telegram" type="text" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+        </div>
+        <div style="grid-column:1/-1; display:flex; justify-content:space-between; gap:8px; margin-top:8px;">
+          <button type="button" id="delete-user" class="btn-theme btn-small" style="background:#b91c1c">Elimina</button>
+          <div>
+            <button type="button" id="save-user" class="btn-theme btn-small">Salva</button>
+          </div>
+        </div>
+      </form>
     </div>
-    {% endif %}
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" style="display:none; position:fixed; right:16px; bottom:16px; background:#2d6a4f; color:#fff; padding:10px 12px; border-radius:6px;">Utente aggiornato con successo</div>
+
+  <!-- Portfolio modal -->
+  <div id="portfolio-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);">
+    <div class="modal-content" style="background:#fff; margin:4% auto; padding:20px; width:760px; border-radius:14px; position:relative; box-shadow:0 20px 40px rgba(2,6,23,.18); border:1px solid #e5e7eb;">
+      <button id="close-portfolio" class="btn" style="position:absolute; right:8px; top:8px;">×</button>
+      <h3 style="margin:0 0 14px 0; font-size:20px;">Portafoglio utente</h3>
+      <div id="portfolio-summary" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:12px;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+        <button id="save-portfolio" class="btn-theme btn-small">Salva Saldi</button>
+      </div>
+      <div class="card" style="padding:0; overflow:auto;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:14px;">Progetto</th>
+              <th style="text-align:left; padding:14px;">Importo</th>
+              <th style="text-align:left; padding:14px;">Stato</th>
+              <th style="text-align:left; padding:14px;">Data</th>
+            </tr>
+          </thead>
+          <tbody id="portfolio-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-function applyFilters() {
-    const search = document.getElementById('search').value;
-    const status = document.getElementById('status').value;
-    const perPage = document.getElementById('per_page').value;
-    
+(function(){
+  const tbody = document.getElementById('users-tbody');
+  const searchEl = document.getElementById('user-search');
+  const refreshBtn = document.getElementById('refresh-users');
+  const bulkAddBtn = document.getElementById('bulk-add');
+  const bulkRemoveBtn = document.getElementById('bulk-remove');
+  const selectAll = document.getElementById('select-all');
+
+  const modal = document.getElementById('user-detail-modal');
+  const closeModalBtn = document.getElementById('close-modal');
+  const toast = document.getElementById('toast');
+  const portfolioModal = document.getElementById('portfolio-modal');
+  const closePortfolioBtn = document.getElementById('close-portfolio');
+  const portfolioSummary = document.getElementById('portfolio-summary');
+  const portfolioTbody = document.getElementById('portfolio-tbody');
+  const savePortfolioBtn = document.getElementById('save-portfolio');
+  let currentPortfolioUserId = null;
+
+  const dId = document.getElementById('detail-id');
+  const dNome = document.getElementById('detail-nome');
+  const dCognome = document.getElementById('detail-cognome');
+  const dEmail = document.getElementById('detail-email');
+  const dPhone = document.getElementById('detail-phone');
+  const dTelegram = document.getElementById('detail-telegram');
+  const saveBtn = document.getElementById('save-user');
+  const deleteBtn = document.getElementById('delete-user');
+
+  let debounceTimer = null;
+
+  function showToast(msg){
+    toast.textContent = msg || 'Operazione completata';
+    toast.style.display = 'block';
+    setTimeout(()=> toast.style.display='none', 2000);
+  }
+
+  function openModal(){ modal.style.display = 'block'; }
+  function closeModal(){ modal.style.display = 'none'; }
+  function openPortfolio(){ portfolioModal.style.display = 'block'; }
+  function closePortfolio(){ portfolioModal.style.display = 'none'; }
+
+  async function fetchUsers(){
     const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (status !== 'all') params.append('status', status);
-    if (perPage !== '20') params.append('per_page', perPage);
-    
-    const queryString = params.toString();
-    const url = queryString ? `?${queryString}` : '';
-    
-            window.location.href = `{{ url_for('admin.users_list') }}${url}`;
-}
+    if(searchEl.value) params.set('search', searchEl.value);
 
-function toggleUserStatus(userId, currentStatus) {
-    const action = currentStatus ? 'disattivare' : 'attivare';
-    if (confirm(`Sei sicuro di voler ${action} questo utente?`)) {
-        fetch(`/admin/users/${userId}/toggle-status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert('Errore: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Errore:', error);
-            alert('Errore nella richiesta');
-        });
+    const res = await fetch(`/admin/api/admin/users?${params.toString()}`);
+    const data = await res.json();
+    renderRows(data.items || []);
+  }
+
+  function renderRows(items){
+    tbody.innerHTML = '';
+    for(const u of items){
+      const tr = document.createElement('tr');
+      const investorBadge = u.investor_status === 'si'
+        ? '<span class="chip chip-green">Sì</span>'
+        : '<span class="chip chip-gray">No</span>';
+      let kycBadge = '<span class="chip chip-gray">—</span>';
+      if(u.kyc_status === 'verified') kycBadge = '<span class="chip chip-green">Verified</span>';
+      else if(u.kyc_status === 'pending') kycBadge = '<span class="chip chip-yellow">Pending</span>';
+      else if(u.kyc_status === 'rejected') kycBadge = '<span class="chip chip-red">Rejected</span>';
+      else if(u.kyc_status === 'unverified') kycBadge = '<span class="chip chip-blue">Unverified</span>';
+      tr.innerHTML = `
+        <td style="padding:14px; text-align:center;"><input type="checkbox" class="row-sel" data-id="${u.id}"></td>
+        <td style="padding:14px;">${u.full_name || ''}</td>
+        <td style="padding:14px;">${u.telegram_username || ''}</td>
+        <td style="padding:14px;">${investorBadge}</td>
+        <td style="padding:14px;">${kycBadge}</td>
+        <td style="padding:14px; text-align:right; display:flex; gap:8px; justify-content:flex-end;">
+          <button data-id="${u.id}" class="btn-theme btn-small btn-portfolio">Portafoglio</button>
+          <button data-id="${u.id}" class="btn-theme btn-small btn-details">Dettagli</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     }
-}
+  }
 
-function exportUsers() {
-    const search = document.getElementById('search').value;
-    const status = document.getElementById('status').value;
-    
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (status !== 'all') params.append('status', status);
-    params.append('export', 'csv');
-    
-            window.open(`{{ url_for('admin.users_list') }}?${params.toString()}`, '_blank');
-}
+  async function loadDetail(id){
+    const res = await fetch(`/admin/api/admin/users/${id}`);
+    const u = await res.json();
+    dId.value = u.id;
+    dNome.value = u.nome || '';
+    dCognome.value = u.cognome || '';
+    dEmail.value = u.email || '';
+    dPhone.value = u.phone || '';
+    dTelegram.value = u.telegram || '';
+    openModal();
+  }
 
-// Applica filtri con Enter nella ricerca
-document.getElementById('search').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        applyFilters();
+  async function saveDetail(){
+    const id = dId.value;
+    const payload = {
+      nome: dNome.value,
+      cognome: dCognome.value,
+      email: dEmail.value,
+      phone: dPhone.value,
+      telegram: dTelegram.value,
+    };
+    const res = await fetch(`/admin/api/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if(res.ok){
+      showToast('Utente aggiornato con successo');
+      closeModal();
+      fetchUsers();
     }
-});
+  }
 
-// Applica filtri quando cambiano i select
-document.getElementById('status').addEventListener('change', applyFilters);
-document.getElementById('per_page').addEventListener('change', applyFilters);
+  tbody.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-details');
+    if(btn){ loadDetail(btn.getAttribute('data-id')); return; }
+    const pbtn = e.target.closest('.btn-portfolio');
+    if(pbtn){ loadPortfolio(pbtn.getAttribute('data-id')); }
+  });
+
+  closeModalBtn.addEventListener('click', closeModal);
+  closePortfolioBtn.addEventListener('click', closePortfolio);
+  saveBtn.addEventListener('click', saveDetail);
+  deleteBtn.addEventListener('click', async ()=>{
+    const id = dId.value;
+    const adminPwd = prompt('Inserisci la password dell\'admin per confermare l\'eliminazione');
+    if(adminPwd === null || adminPwd === '') return;
+    const res = await fetch(`/admin/api/admin/users/${id}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_password: adminPwd })
+    });
+    if(res.ok){
+      showToast('Utente eliminato');
+      closeModal();
+      fetchUsers();
+    } else {
+      const err = await res.json().catch(()=>({error:'Errore'}));
+      alert(err.error || 'Errore eliminazione');
+    }
+  });
+  savePortfolioBtn?.addEventListener('click', async ()=>{
+    if(!currentPortfolioUserId) return;
+    const payload = {
+      free_capital: parseFloat(document.getElementById('pf-free').value || '0'),
+      invested_capital: parseFloat(document.getElementById('pf-invested').value || '0'),
+      referral_bonus: parseFloat(document.getElementById('pf-referral').value || '0'),
+      profits: parseFloat(document.getElementById('pf-profits').value || '0')
+    };
+    const res = await fetch(`/admin/api/admin/users/${currentPortfolioUserId}/portfolio`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if(res.ok){
+      showToast('Portafoglio aggiornato');
+      fetchUsers();
+    }
+  });
+
+  // Save a single investment row
+  portfolioTbody.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.inv-save');
+    if(!btn) return;
+    const invid = btn.getAttribute('data-invid');
+    const amount = document.querySelector(`input.inv-amount[data-invid="${invid}"]`).value;
+    const status = document.querySelector(`select.inv-status[data-invid="${invid}"]`).value;
+    const res = await fetch(`/admin/api/admin/users/${currentPortfolioUserId}/portfolio/investments/${invid}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: parseFloat(amount || '0'), status })
+    });
+    if(res.ok){
+      showToast('Investimento aggiornato');
+      fetchUsers();
+    }
+  });
+
+  function debouncedFetch(){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(fetchUsers, 250);
+  }
+
+  searchEl.addEventListener('input', debouncedFetch);
+  refreshBtn.addEventListener('click', fetchUsers);
+  selectAll.addEventListener('change', ()=>{
+    document.querySelectorAll('.row-sel').forEach(cb=> cb.checked = selectAll.checked);
+  });
+
+  async function runBulk(op){
+    const ids = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb=> parseInt(cb.getAttribute('data-id')));
+    if(ids.length === 0){ showToast('Seleziona almeno un utente'); return; }
+    const amountStr = prompt(op === 'add' ? 'Inserisci importo da aggiungere (EUR)' : 'Inserisci importo da rimuovere (EUR)');
+    if(amountStr === null) return;
+    const amount = parseFloat(amountStr);
+    if(!(amount > 0)){ showToast('Importo non valido'); return; }
+    const res = await fetch('/admin/api/admin/users/portfolio/bulk-adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_ids: ids, op, amount })
+    });
+    if(res.ok){
+      showToast('Operazione completata');
+      fetchUsers();
+    } else {
+      const err = await res.json().catch(()=>({error:'Errore'}));
+      alert(err.error || 'Errore');
+    }
+  }
+
+  bulkAddBtn.addEventListener('click', ()=> runBulk('add'));
+  bulkRemoveBtn.addEventListener('click', ()=> runBulk('remove'));
+
+  // Auto load latest users on enter of the page
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible') fetchUsers();
+  });
+
+  // Initial load
+  fetchUsers();
+  
+  async function loadPortfolio(id){
+    const res = await fetch(`/admin/api/admin/users/${id}/portfolio`);
+    const data = await res.json();
+    const b = data.balances || {};
+    const formatter = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+    portfolioSummary.innerHTML = `
+      <div class="card" style="padding:10px; text-align:center;">
+        <div class="chip chip-blue">Disponibile</div>
+        <input id="pf-free" type="number" step="0.01" value="${b.free_capital||0}" style="margin-top:6px; width:100%; padding:8px; border:1px solid #e5e7eb; border-radius:10px; text-align:center;" />
+      </div>
+      <div class="card" style="padding:10px; text-align:center;">
+        <div class="chip chip-blue">Investito</div>
+        <input id="pf-invested" type="number" step="0.01" value="${b.invested_capital||0}" style="margin-top:6px; width:100%; padding:8px; border:1px solid #e5e7eb; border-radius:10px; text-align:center;" />
+      </div>
+      <div class="card" style="padding:10px; text-align:center;">
+        <div class="chip chip-blue">Referral</div>
+        <input id="pf-referral" type="number" step="0.01" value="${b.referral_bonus||0}" style="margin-top:6px; width:100%; padding:8px; border:1px solid #e5e7eb; border-radius:10px; text-align:center;" />
+      </div>
+      <div class="card" style="padding:10px; text-align:center;">
+        <div class="chip chip-blue">Profitti</div>
+        <input id="pf-profits" type="number" step="0.01" value="${b.profits||0}" style="margin-top:6px; width:100%; padding:8px; border:1px solid #e5e7eb; border-radius:10px; text-align:center;" />
+      </div>
+      <div class="card" style="padding:10px; text-align:center;">
+        <div class="chip chip-green">Totale</div>
+        <div style="margin-top:6px; font-weight:700;">${formatter.format(b.total||0)}</div>
+      </div>
+    `;
+    portfolioTbody.innerHTML = '';
+    for(const inv of (data.investments||[])){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:14px;">${inv.project_name||'-'}</td>
+        <td style="padding:14px;">
+          <input type="number" step="0.01" value="${inv.amount||0}" data-invid="${inv.id}" class="inv-amount" style="width:120px; padding:6px; border:1px solid #e5e7eb; border-radius:8px;" />
+        </td>
+        <td style="padding:14px; text-transform:capitalize;">
+          <select data-invid="${inv.id}" class="inv-status" style="padding:6px; border:1px solid #e5e7eb; border-radius:8px;">
+            <option value="active" ${inv.status==='active'?'selected':''}>active</option>
+            <option value="completed" ${inv.status==='completed'?'selected':''}>completed</option>
+            <option value="cancelled" ${inv.status==='cancelled'?'selected':''}>cancelled</option>
+          </select>
+        </td>
+        <td style="padding:14px; display:flex; align-items:center; gap:8px;">
+          ${(inv.created_at||'').slice(0,10)}
+          <button class="btn-theme btn-small inv-save" data-invid="${inv.id}">Salva</button>
+        </td>
+      `;
+      portfolioTbody.appendChild(tr);
+    }
+    openPortfolio();
+    currentPortfolioUserId = id;
+  }
+})();
 </script>
 {% endblock %}

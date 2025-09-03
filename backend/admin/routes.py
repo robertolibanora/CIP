@@ -26,6 +26,7 @@ admin_bp = Blueprint("admin", __name__)
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import admin_required
+from backend.auth.routes import hash_password
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione admin
@@ -961,47 +962,7 @@ def kyc_export():
     
     return jsonify(kyc_requests)
 
-# ---- Gestione Utenti ----
-@admin_bp.get("/users")
-@admin_required
-def users_dashboard():
-    """Dashboard gestione utenti admin"""
-    # Se richiesta AJAX, restituisce JSON
-    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
-        return jsonify(get_users_list())
-    
-    # Altrimenti restituisce il template HTML con metriche
-    from flask import render_template
-    
-    # Ottieni metriche utenti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) as total FROM users")
-        users_total = cur.fetchone()['total']
-        
-        # Utenti attivi = verificati (KYC completato)
-        cur.execute("SELECT COUNT(*) as active FROM users WHERE kyc_status = 'verified'")
-        users_active = cur.fetchone()['active']
-        
-        cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
-        users_verified = cur.fetchone()['verified']
-        
-        cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
-        kyc_pending = cur.fetchone()['pending']
-        
-        # Utenti sospesi = KYC rifiutato
-        cur.execute("SELECT COUNT(*) as suspended FROM users WHERE kyc_status = 'rejected'")
-        users_suspended = cur.fetchone()['suspended']
-    
-    metrics = {
-        'users_total': users_total,
-        'users_active': users_active,
-        'users_verified': users_verified,
-        'kyc_pending': kyc_pending,
-        'users_suspended': users_suspended,
-        'total_users': users_total  # Per compatibilità con sidebar
-    }
-    
-    return render_template("admin/users/dashboard.html", metrics=metrics)
+# ---- Gestione Utenti (pagina rimossa) ----
 
 @admin_bp.get("/users/stats")
 @admin_required
@@ -1390,6 +1351,432 @@ def users_export():
     
     return jsonify(users)
 
+# =====================================================
+# API Admin: Users Management (search, filters, detail, update)
+# =====================================================
+
+@admin_bp.get("/api/admin/users")
+@admin_required
+def api_admin_users_list():
+    """Lista utenti con ricerca e filtri per dashboard admin.
+    Supporta query: search, role, kyc, page, page_size.
+    """
+    # Normalizza parametri
+    search = request.args.get('search')
+    role_param = request.args.get('role')  # expected: 'investor' or 'non-investor'
+    kyc_param = request.args.get('kyc')    # expected: 'verified' | 'unverified' | 'pending' | 'rejected'
+    page = int(request.args.get('page', 1))
+    page_size = int(request.args.get('page_size', 25))
+
+    # Mappa ai parametri esistenti di get_users_list
+    # get_users_list usa: role, kyc_status, search
+    # Gestiamo anche conteggio totale per paginazione
+    with get_conn() as conn, conn.cursor() as cur:
+        where_conditions = []
+        params = []
+
+        # Il filtro 'investor' qui NON usa il ruolo utente, ma il saldo portafoglio.
+        # Applicheremo questo filtro dopo la query perché dipende da un calcolo.
+
+        if kyc_param:
+            # mappa 'verified' e 'unverified' alle nostre opzioni
+            if kyc_param == 'unverified':
+                where_conditions.append("u.kyc_status = 'unverified'")
+            elif kyc_param in ('verified', 'pending', 'rejected'):
+                where_conditions.append("u.kyc_status = %s")
+                params.append(kyc_param)
+
+        if search:
+            where_conditions.append("(u.email ILIKE %s OR u.full_name ILIKE %s OR u.nome_telegram ILIKE %s)")
+            like = f"%{search}%"
+            params.extend([like, like, like])
+
+        where_clause = ("WHERE " + " AND ".join(where_conditions)) if where_conditions else ""
+
+        # Conteggio totale
+        cur.execute(f"SELECT COUNT(*) AS total FROM users u {where_clause}", params)
+        total = cur.fetchone()['total']
+
+        # Paginazione
+        offset = (page - 1) * page_size
+
+        # Dati principali per tabella (includiamo saldo portafoglio)
+        cur.execute(f"""
+            SELECT 
+                u.id,
+                u.nome || ' ' || u.cognome AS nome_completo,
+                u.nome_telegram,
+                u.kyc_status,
+                u.created_at,
+                COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) +
+                COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) AS portfolio_total
+            FROM users u
+            LEFT JOIN user_portfolios up ON up.user_id = u.id
+            {where_clause}
+            ORDER BY u.created_at DESC
+            LIMIT %s OFFSET %s
+        """, params + [page_size, offset])
+        rows = cur.fetchall()
+
+    # Normalizza risposta
+    items = []
+    for r in rows:
+        portfolio_total = float(r.get('portfolio_total', 0) or 0)
+        is_investor = portfolio_total >= 100.0
+        # Applica filtro investitori/non investitori se richiesto
+        if role_param == 'investor' and not is_investor:
+            continue
+        if role_param in ('non-investor', 'non_investor', 'notinvestor', 'non') and is_investor:
+            continue
+        items.append({
+            'id': r['id'],
+            'full_name': r.get('nome_completo') or '',
+            'telegram_username': r.get('nome_telegram') or '',
+            'investor_status': 'si' if is_investor else 'no',
+            'kyc_status': r.get('kyc_status'),
+            'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
+            'portfolio_total': portfolio_total,
+        })
+
+    return jsonify({
+        'items': items,
+        'total': total,
+        'page': page,
+        'page_size': page_size
+    })
+
+
+@admin_bp.get("/api/admin/users/<int:user_id>")
+@admin_required
+def api_admin_user_detail(user_id: int):
+    """Dettaglio utente per sidebar/modal admin."""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 
+                u.id,
+                u.email,
+                u.telefono,
+                u.nome,
+                u.cognome,
+                u.nome_telegram,
+                u.role,
+                u.kyc_status,
+                u.created_at,
+                u.address
+            FROM users u
+            WHERE u.id = %s
+            """,
+            (user_id,)
+        )
+        u = cur.fetchone()
+        if not u:
+            return jsonify({'error': 'Utente non trovato'}), 404
+
+    return jsonify({
+        'id': u['id'],
+        'name': f"{u['nome']} {u['cognome']}",
+        'nome': u['nome'],
+        'cognome': u['cognome'],
+        'email': u['email'],
+        'phone': u['telefono'],
+        'telegram': u['nome_telegram'],
+        'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
+        'kyc_status': u['kyc_status'],
+        'created_at': u['created_at'].isoformat() if u['created_at'] else None,
+        'address': u['address']
+    })
+
+
+@admin_bp.patch("/api/admin/users/<int:user_id>")
+@admin_required
+def api_admin_user_update(user_id: int):
+    """Aggiorna dati utente. Solo admin."""
+    data = request.get_json() or {}
+
+    allowed_fields = ['name', 'nome', 'cognome', 'email', 'phone', 'telegram', 'investor_status', 'kyc_status', 'address']
+    updates = {k: v for k, v in data.items() if k in allowed_fields}
+
+    if not updates:
+        return jsonify({'error': 'Nessun campo da aggiornare'}), 400
+
+    # Split name in nome/cognome se presente
+    nome = None
+    cognome = None
+    if 'name' in updates and updates['name']:
+        parts = str(updates['name']).strip().split(' ', 1)
+        nome = parts[0]
+        cognome = parts[1] if len(parts) > 1 else ''
+    # Se arrivano separati, sovrascrivono lo split
+    if 'nome' in updates:
+        nome = updates['nome']
+    if 'cognome' in updates:
+        cognome = updates['cognome']
+
+    # Mappa investor_status a role
+    role_value = None
+    if 'investor_status' in updates:
+        role_value = 'investor' if updates['investor_status'] in (True, 'si', 'investor', 'yes') else 'admin'
+
+    with get_conn() as conn, conn.cursor() as cur:
+        # Esiste utente?
+        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+        if not cur.fetchone():
+            return jsonify({'error': 'Utente non trovato'}), 404
+
+        set_clauses = []
+        params = []
+        if nome is not None:
+            set_clauses.append('nome = %s')
+            params.append(nome)
+        if cognome is not None:
+            set_clauses.append('cognome = %s')
+            params.append(cognome)
+        if 'email' in updates:
+            set_clauses.append('email = %s')
+            params.append(updates['email'])
+        if 'phone' in updates:
+            set_clauses.append('telefono = %s')
+            params.append(updates['phone'])
+        if 'telegram' in updates:
+            set_clauses.append('nome_telegram = %s')
+            params.append(updates['telegram'])
+        if 'kyc_status' in updates:
+            set_clauses.append('kyc_status = %s')
+            params.append(updates['kyc_status'])
+        if role_value is not None:
+            set_clauses.append('role = %s')
+            params.append(role_value)
+        if 'address' in updates:
+            set_clauses.append('address = %s')
+            params.append(updates['address'])
+
+        if not set_clauses:
+            return jsonify({'error': 'Nessun campo valido da aggiornare'}), 400
+
+        params.append(user_id)
+        cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id = %s", params)
+
+    return jsonify({'success': True, 'message': 'Utente aggiornato con successo'})
+
+
+@admin_bp.get("/api/admin/users/<int:user_id>/portfolio")
+@admin_required
+def api_admin_user_portfolio(user_id: int):
+    """Dettagli portafoglio utente: bilanci e investimenti"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Bilanci
+        cur.execute(
+            """
+            SELECT 
+                COALESCE(up.free_capital,0) AS free_capital,
+                COALESCE(up.invested_capital,0) AS invested_capital,
+                COALESCE(up.referral_bonus,0) AS referral_bonus,
+                COALESCE(up.profits,0) AS profits
+            FROM user_portfolios up
+            WHERE up.user_id = %s
+            """,
+            (user_id,)
+        )
+        balances = cur.fetchone() or {
+            'free_capital': 0,
+            'invested_capital': 0,
+            'referral_bonus': 0,
+            'profits': 0,
+        }
+
+        # Investimenti con nome progetto, importo e stato
+        cur.execute(
+            """
+            SELECT i.id, i.amount, i.status, i.created_at, p.name AS project_name
+            FROM investments i
+            LEFT JOIN projects p ON p.id = i.project_id
+            WHERE i.user_id = %s
+            ORDER BY i.created_at DESC
+            """,
+            (user_id,)
+        )
+        investments = cur.fetchall() or []
+
+    total = float(balances.get('free_capital',0) + balances.get('invested_capital',0) + balances.get('referral_bonus',0) + balances.get('profits',0))
+
+    return jsonify({
+        'balances': {
+            'free_capital': float(balances.get('free_capital',0)),
+            'invested_capital': float(balances.get('invested_capital',0)),
+            'referral_bonus': float(balances.get('referral_bonus',0)),
+            'profits': float(balances.get('profits',0)),
+            'total': total,
+        },
+        'investments': [
+            {
+                'id': inv['id'],
+                'amount': float(inv['amount']),
+                'status': inv['status'],
+                'created_at': inv['created_at'].isoformat() if inv.get('created_at') else None,
+                'project_name': inv.get('project_name')
+            }
+            for inv in investments
+        ]
+    })
+
+
+@admin_bp.patch("/api/admin/users/<int:user_id>/portfolio")
+@admin_required
+def api_admin_update_portfolio(user_id: int):
+    """Aggiorna i saldi del portafoglio utente (solo admin)."""
+    data = request.get_json() or {}
+    allowed = ['free_capital', 'invested_capital', 'referral_bonus', 'profits']
+    updates = {k: float(data[k]) for k in allowed if k in data}
+    if not updates:
+        return jsonify({'error': 'Nessun campo da aggiornare'}), 400
+
+    with get_conn() as conn, conn.cursor() as cur:
+        # Assicurati che la riga del portafoglio esista
+        cur.execute("SELECT user_id FROM user_portfolios WHERE user_id = %s", (user_id,))
+        if not cur.fetchone():
+            cur.execute(
+                """
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0, 0, 0, 0)
+                """,
+                (user_id,)
+            )
+
+        set_parts = []
+        params = []
+        for field, value in updates.items():
+            set_parts.append(f"{field} = %s")
+            params.append(value)
+        params.append(user_id)
+
+        cur.execute(f"UPDATE user_portfolios SET {', '.join(set_parts)} WHERE user_id = %s", params)
+
+    return jsonify({'success': True, 'message': 'Portafoglio aggiornato'})
+
+
+@admin_bp.patch("/api/admin/users/<int:user_id>/portfolio/investments/<int:investment_id>")
+@admin_required
+def api_admin_update_investment(user_id: int, investment_id: int):
+    """Aggiorna un investimento dell'utente (importo o stato)."""
+    data = request.get_json() or {}
+    allowed = ['amount', 'status']
+    updates = {k: data[k] for k in allowed if k in data}
+    if not updates:
+        return jsonify({'error': 'Nessun campo da aggiornare'}), 400
+
+    set_parts = []
+    params = []
+    if 'amount' in updates:
+        set_parts.append('amount = %s')
+        params.append(float(updates['amount']))
+    if 'status' in updates:
+        set_parts.append('status = %s')
+        params.append(updates['status'])
+    params.extend([investment_id, user_id])
+
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
+            params
+        )
+
+    return jsonify({'success': True, 'message': 'Investimento aggiornato'})
+
+
+@admin_bp.post("/api/admin/users/portfolio/bulk-adjust")
+@admin_required
+def api_admin_portfolio_bulk_adjust():
+    """Aggiunge o rimuove un importo dalla sezione profits di più utenti.
+    Body: { user_ids: [int], op: 'add'|'remove', amount: number }
+    """
+    data = request.get_json() or {}
+    user_ids = data.get('user_ids') or []
+    op = data.get('op')
+    amount = data.get('amount')
+
+    if not user_ids or op not in ('add', 'remove'):
+        return jsonify({'error': 'Parametri mancanti o non validi'}), 400
+    try:
+        amount = float(amount)
+    except Exception:
+        return jsonify({'error': 'Importo non valido'}), 400
+    if amount <= 0:
+        return jsonify({'error': 'L\'importo deve essere positivo'}), 400
+
+    with get_conn() as conn, conn.cursor() as cur:
+        # Assicura che esistano le righe per ciascun utente
+        for uid in user_ids:
+            cur.execute("SELECT 1 FROM user_portfolios WHERE user_id = %s", (uid,))
+            if not cur.fetchone():
+                cur.execute(
+                    "INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits) VALUES (%s, 0, 0, 0, 0)",
+                    (uid,)
+                )
+
+        if op == 'remove':
+            # Verifica sufficienza profitti per ciascun utente
+            cur.execute(
+                "SELECT user_id, profits FROM user_portfolios WHERE user_id = ANY(%s)",
+                (user_ids,)
+            )
+            rows = cur.fetchall() or []
+            insufficient = [r['user_id'] for r in rows if float(r['profits']) < amount]
+            if insufficient:
+                return jsonify({'error': 'Profitti insufficienti per alcuni utenti', 'user_ids': insufficient}), 400
+            # Esegui sottrazione
+            cur.execute(
+                "UPDATE user_portfolios SET profits = profits - %s WHERE user_id = ANY(%s)",
+                (amount, user_ids)
+            )
+        else:
+            # Esegui addizione
+            cur.execute(
+                "UPDATE user_portfolios SET profits = profits + %s WHERE user_id = ANY(%s)",
+                (amount, user_ids)
+            )
+
+    return jsonify({'success': True})
+
+
+@admin_bp.post("/api/admin/users/<int:user_id>/delete")
+@admin_required
+def api_admin_delete_user(user_id: int):
+    """Elimina definitivamente un utente previa verifica password admin."""
+    data = request.get_json() or {}
+    admin_password = data.get('admin_password')
+    if not admin_password:
+        return jsonify({'error': 'Password admin richiesta'}), 400
+
+    admin_id = session.get('user_id')
+    if not admin_id:
+        return jsonify({'error': 'Non autenticato'}), 401
+
+    with get_conn() as conn, conn.cursor() as cur:
+        # Verifica password admin
+        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+        admin_row = cur.fetchone()
+        if not admin_row or admin_row.get('role') != 'admin':
+            return jsonify({'error': 'Permesso negato'}), 403
+        if admin_row.get('password_hash') != hash_password(admin_password):
+            return jsonify({'error': 'Password admin non corretta'}), 401
+
+        # Non consentire eliminazione di un amministratore
+        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        target = cur.fetchone()
+        if not target:
+            return jsonify({'error': 'Utente non trovato'}), 404
+        if target.get('role') == 'admin':
+            return jsonify({'error': 'Non è possibile eliminare un amministratore'}), 400
+
+        # Elimina record correlati essenziali (investments, documents, portfolio)
+        cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+
+    return jsonify({'success': True, 'message': 'Utente eliminato'})
+
 # ---- Analytics e Reporting ----
 @admin_bp.get("/analytics")
 @admin_required
@@ -1435,6 +1822,16 @@ def analytics_dashboard():
 def analytics_data():
     """Dati analytics con filtri temporali"""
     return jsonify(get_analytics_data())
+
+# =====================================================
+# Admin page: Users management UI
+# =====================================================
+
+@admin_bp.get("/users")
+@admin_required
+def users_management_page():
+    """Render della pagina Gestione Utenti"""
+    return render_template("admin/users/list.html")
 
 def get_analytics_data():
     """Helper per ottenere dati analytics"""
