@@ -15,16 +15,17 @@ def admin_get_kyc_requests():
     """Lista per dashboard admin: una riga per utente con documenti KYC."""
     try:
         with get_connection() as conn, conn.cursor() as cur:
-            # Query unificata che usa la tabella documents (sistema principale)
+            # Query unificata che include sia documents che kyc_requests
             cur.execute("""
                 SELECT DISTINCT u.id AS user_id,
                        u.nome, u.cognome, u.email, u.telefono, u.kyc_status,
                        u.created_at,
-                       COUNT(d.id) AS documents_count,
-                       MAX(d.uploaded_at) AS last_upload
+                       (COUNT(DISTINCT d.id) + COUNT(DISTINCT kr.id)) AS documents_count,
+                       GREATEST(MAX(d.uploaded_at), MAX(kr.created_at)) AS last_upload
                 FROM users u
                 LEFT JOIN documents d ON u.id = d.user_id 
                 LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
+                LEFT JOIN kyc_requests kr ON u.id = kr.user_id
                 WHERE u.role = 'investor'
                 GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.kyc_status, u.created_at
                 ORDER BY u.created_at DESC
@@ -44,7 +45,7 @@ def admin_get_kyc_requests():
                 "last_upload": r["last_upload"].isoformat() if r.get("last_upload") else None
             })
 
-        return jsonify(result)
+        return jsonify({"requests": result})
 
     except Exception as e:
         current_app.logger.error(f"Errore recupero richieste KYC: {e}")
@@ -63,16 +64,44 @@ def admin_get_kyc_request_detail(user_id: int):
             if not user:
                 return jsonify({"error": "Utente non trovato"}), 404
 
-            # Documenti KYC
+            # Documenti KYC - cerca sia nel nuovo sistema (documents) che nel vecchio (kyc_requests)
             cur.execute("""
                 SELECT d.id, d.title, d.file_path, d.uploaded_at, d.admin_notes,
                        d.verified_by_admin, d.mime_type, d.size_bytes,
-                       dc.name as category_name, dc.slug as category_slug
+                       dc.name as category_name, dc.slug as category_slug,
+                       'documents' as source
                 FROM documents d
                 JOIN doc_categories dc ON d.category_id = dc.id
                 WHERE d.user_id = %s AND dc.is_kyc = TRUE
-                ORDER BY d.uploaded_at DESC
-            """, (user_id,))
+                
+                UNION ALL
+                
+                SELECT kr.id, 
+                       CASE kr.doc_type 
+                           WHEN 'id_card' THEN 'Carta d''Identità'
+                           WHEN 'passport' THEN 'Passaporto'
+                           WHEN 'driver_license' THEN 'Patente di Guida'
+                           ELSE kr.doc_type
+                       END as title,
+                       kr.file_front as file_path,
+                       kr.created_at as uploaded_at,
+                       NULL as admin_notes,
+                       CASE kr.status WHEN 'approved' THEN TRUE ELSE FALSE END as verified_by_admin,
+                       'application/pdf' as mime_type,
+                       NULL as size_bytes,
+                       CASE kr.doc_type 
+                           WHEN 'id_card' THEN 'Carta d''Identità'
+                           WHEN 'passport' THEN 'Passaporto'
+                           WHEN 'driver_license' THEN 'Patente di Guida'
+                           ELSE kr.doc_type
+                       END as category_name,
+                       kr.doc_type as category_slug,
+                       'kyc_requests' as source
+                FROM kyc_requests kr
+                WHERE kr.user_id = %s
+                
+                ORDER BY uploaded_at DESC
+            """, (user_id, user_id))
             documents = cur.fetchall()
 
         return jsonify({
@@ -100,16 +129,23 @@ def admin_approve_kyc(user_id: int):
             if not cur.fetchone():
                 return jsonify({'error': 'Utente non trovato'}), 404
             
-            # Verifica che l'utente abbia documenti KYC
+            # Verifica che l'utente abbia documenti KYC (nuovo sistema o vecchio sistema)
             cur.execute("""
                 SELECT COUNT(*) as doc_count
                 FROM documents d
                 JOIN doc_categories dc ON d.category_id = dc.id
                 WHERE d.user_id = %s AND dc.is_kyc = TRUE
-            """, (user_id,))
-            doc_count = cur.fetchone()['doc_count']
+                
+                UNION ALL
+                
+                SELECT COUNT(*) as doc_count
+                FROM kyc_requests kr
+                WHERE kr.user_id = %s
+            """, (user_id, user_id))
+            doc_counts = cur.fetchall()
+            total_docs = sum(row['doc_count'] for row in doc_counts)
             
-            if doc_count == 0:
+            if total_docs == 0:
                 return jsonify({'error': 'Utente senza documenti KYC'}), 400
             
             # Aggiorna stato utente
@@ -119,13 +155,20 @@ def admin_approve_kyc(user_id: int):
                 WHERE id = %s
             """, (user_id,))
             
-            # Marca documenti come verificati
+            # Marca documenti come verificati (nuovo sistema)
             cur.execute("""
                 UPDATE documents 
                 SET verified_by_admin = TRUE, verified_at = NOW(), verified_by = %s
                 WHERE user_id = %s AND category_id IN (
                     SELECT id FROM doc_categories WHERE is_kyc = TRUE
                 )
+            """, (session.get('user_id'), user_id))
+            
+            # Marca richieste KYC come approvate (vecchio sistema)
+            cur.execute("""
+                UPDATE kyc_requests 
+                SET status = 'approved', approved_at = NOW(), approved_by = %s
+                WHERE user_id = %s
             """, (session.get('user_id'), user_id))
             
             conn.commit()
@@ -159,7 +202,7 @@ def admin_reject_kyc(user_id: int):
                 WHERE id = %s
             """, (user_id,))
             
-            # Aggiungi note ai documenti
+            # Aggiungi note ai documenti (nuovo sistema)
             cur.execute("""
                 UPDATE documents 
                 SET admin_notes = %s
@@ -167,6 +210,13 @@ def admin_reject_kyc(user_id: int):
                     SELECT id FROM doc_categories WHERE is_kyc = TRUE
                 )
             """, (reason, user_id))
+            
+            # Marca richieste KYC come rifiutate (vecchio sistema)
+            cur.execute("""
+                UPDATE kyc_requests 
+                SET status = 'rejected', rejected_at = NOW(), rejected_by = %s, rejection_reason = %s
+                WHERE user_id = %s
+            """, (session.get('user_id'), reason, user_id))
             
             conn.commit()
         
@@ -184,10 +234,20 @@ def admin_revoke_kyc(user_id: int):
     """Revoca lo stato KYC di un utente."""
     try:
         with get_connection() as conn, conn.cursor() as cur:
+            # Verifica che l'utente esista
+            cur.execute("SELECT id, kyc_status FROM users WHERE id = %s", (user_id,))
+            user = cur.fetchone()
+            if not user:
+                return jsonify({'error': 'Utente non trovato'}), 404
+            
+            # Verifica che l'utente sia verificato
+            if user['kyc_status'] != 'verified':
+                return jsonify({'error': 'Utente non è verificato'}), 400
+            
             # Aggiorna stato utente
             cur.execute("UPDATE users SET kyc_status='unverified' WHERE id=%s", (user_id,))
             
-            # Rimuovi verifiche dai documenti
+            # Rimuovi verifiche dai documenti (nuovo sistema)
             cur.execute("""
                 UPDATE documents 
                 SET verified_by_admin = FALSE, verified_at = NULL, verified_by = NULL, admin_notes = NULL
@@ -196,10 +256,18 @@ def admin_revoke_kyc(user_id: int):
                 )
             """, (user_id,))
             
+            # Rimuovi verifiche dalle richieste KYC (vecchio sistema)
+            cur.execute("""
+                UPDATE kyc_requests 
+                SET status = 'pending', approved_at = NULL, approved_by = NULL, 
+                    rejected_at = NULL, rejected_by = NULL, rejection_reason = NULL
+                WHERE user_id = %s
+            """, (user_id,))
+            
             conn.commit()
             
-        current_app.logger.info(f"KYC user {user_id} revoked by admin")
-        return jsonify({"ok": True, "message": "Verifica KYC revocata"})
+        current_app.logger.info(f"KYC user {user_id} revoked by admin {session.get('user_id')}")
+        return jsonify({"ok": True, "message": "Verifica KYC revocata con successo"})
     except Exception as e:
         current_app.logger.error(f"Errore revoca KYC user {user_id}: {e}")
         return jsonify({"error": "Errore durante la revoca"}), 500

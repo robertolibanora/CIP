@@ -121,6 +121,16 @@ def create_app():
     except Exception as e:
         app.logger.warning(f"Impossibile configurare middleware di autenticazione: {e}")
     
+    # Registra blueprint KYC
+    try:
+        from backend.kyc import kyc_bp, kyc_user_api, kyc_admin_api
+        app.register_blueprint(kyc_bp)
+        app.register_blueprint(kyc_user_api)
+        app.register_blueprint(kyc_admin_api)
+        app.logger.info("Blueprint KYC registrati con successo")
+    except Exception as e:
+        app.logger.warning(f"Impossibile registrare blueprint KYC: {e}")
+    
     # Crea utente admin automaticamente se non esiste
     try:
         create_admin_user()
