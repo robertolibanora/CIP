@@ -1,9 +1,10 @@
 """
-API KYC per admin - Gestione richieste
+API KYC per admin - Gestione richieste (VERSIONE CORRETTA)
+Unifica i due sistemi KYC: documents + kyc_requests
 """
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, session
 from backend.auth.decorators import admin_required
-from backend.models.kyc import KYCRequest, KYCStatus
+from backend.shared.database import get_connection
 
 kyc_admin_api = Blueprint("kyc_admin_api", __name__, url_prefix="/kyc/admin/api")
 
@@ -11,30 +12,23 @@ kyc_admin_api = Blueprint("kyc_admin_api", __name__, url_prefix="/kyc/admin/api"
 @kyc_admin_api.route("/kyc-requests", methods=["GET"])
 @admin_required
 def admin_get_kyc_requests():
-    """Lista per dashboard admin: una riga per utente con ultima richiesta."""
+    """Lista per dashboard admin: una riga per utente con documenti KYC."""
     try:
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
-            # Ultima richiesta per utente con info utente
-            cur.execute(
-                """
-                SELECT u.id AS user_id,
+            # Query unificata che usa la tabella documents (sistema principale)
+            cur.execute("""
+                SELECT DISTINCT u.id AS user_id,
                        u.nome, u.cognome, u.email, u.telefono, u.kyc_status,
-                       kr.id AS request_id,
-                       kr.created_at,
-                       kr.status AS request_status,
-                       (CASE WHEN kr.file_front IS NOT NULL THEN 1 ELSE 0 END
-                        + CASE WHEN kr.file_back IS NOT NULL THEN 1 ELSE 0 END) AS documents_count
+                       u.created_at,
+                       COUNT(d.id) AS documents_count,
+                       MAX(d.uploaded_at) AS last_upload
                 FROM users u
-                LEFT JOIN LATERAL (
-                    SELECT * FROM kyc_requests r
-                    WHERE r.user_id = u.id
-                    ORDER BY r.created_at DESC
-                    LIMIT 1
-                ) kr ON true
-                ORDER BY COALESCE(kr.created_at, u.created_at) DESC
-                """
-            )
+                LEFT JOIN documents d ON u.id = d.user_id 
+                LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
+                WHERE u.role = 'investor'
+                GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.kyc_status, u.created_at
+                ORDER BY u.created_at DESC
+            """)
             rows = cur.fetchall()
 
         result = []
@@ -45,13 +39,11 @@ def admin_get_kyc_requests():
                 "email": r["email"],
                 "telefono": r.get("telefono"),
                 "kyc_status": r["kyc_status"],
-                "latest_request_status": r.get("request_status"),
                 "documents_count": r.get("documents_count") or 0,
-                "created_at": (r.get("created_at") or r.get("created_at")).isoformat() if r.get("created_at") else None,
-                "latest_request_id": r.get("request_id")
+                "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
+                "last_upload": r["last_upload"].isoformat() if r.get("last_upload") else None
             })
 
-        # Il frontend si aspetta un array, non un oggetto {items:[]}
         return jsonify(result)
 
     except Exception as e:
@@ -62,9 +54,8 @@ def admin_get_kyc_requests():
 @kyc_admin_api.route("/kyc-requests/<int:user_id>", methods=["GET"])
 @admin_required
 def admin_get_kyc_request_detail(user_id: int):
-    """Dettaglio per utente: mostra l'ultima richiesta e info contatto."""
+    """Dettaglio per utente: mostra documenti KYC caricati."""
     try:
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
             # Utente
             cur.execute("SELECT nome, cognome, email, telefono, kyc_status FROM users WHERE id=%s", (user_id,))
@@ -72,36 +63,17 @@ def admin_get_kyc_request_detail(user_id: int):
             if not user:
                 return jsonify({"error": "Utente non trovato"}), 404
 
-            # Ultima richiesta
-            cur.execute(
-                """
-                SELECT id, doc_type, file_front, file_back, status, created_at
-                FROM kyc_requests
-                WHERE user_id=%s
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (user_id,)
-            )
-            req = cur.fetchone()
-
-        documents = []
-        if req:
-            uploaded_at_iso = req["created_at"].isoformat() if req.get("created_at") else None
-            if req.get("file_front"):
-                documents.append({
-                    "title": "Documento Fronte",
-                    "file_path": req["file_front"],
-                    "category_name": req["doc_type"],
-                    "uploaded_at": uploaded_at_iso
-                })
-            if req.get("file_back"):
-                documents.append({
-                    "title": "Documento Retro",
-                    "file_path": req["file_back"],
-                    "category_name": req["doc_type"],
-                    "uploaded_at": uploaded_at_iso
-                })
+            # Documenti KYC
+            cur.execute("""
+                SELECT d.id, d.title, d.file_path, d.uploaded_at, d.admin_notes,
+                       d.verified_by_admin, d.mime_type, d.size_bytes,
+                       dc.name as category_name, dc.slug as category_slug
+                FROM documents d
+                JOIN doc_categories dc ON d.category_id = dc.id
+                WHERE d.user_id = %s AND dc.is_kyc = TRUE
+                ORDER BY d.uploaded_at DESC
+            """, (user_id,))
+            documents = cur.fetchall()
 
         return jsonify({
             "id": user_id,
@@ -109,12 +81,6 @@ def admin_get_kyc_request_detail(user_id: int):
             "email": user["email"],
             "telefono": user.get("telefono"),
             "kyc_status": user["kyc_status"],
-            "request": {
-                "id": req["id"] if req else None,
-                "status": req["status"] if req else "unverified",
-                "doc_type": req["doc_type"] if req else None,
-                "created_at": req["created_at"].isoformat() if req else None,
-            },
             "documents": documents
         })
 
@@ -126,34 +92,45 @@ def admin_get_kyc_request_detail(user_id: int):
 @kyc_admin_api.route("/kyc-requests/<int:user_id>/approve", methods=["POST"])
 @admin_required
 def admin_approve_kyc(user_id: int):
-    """Approva l'ultima richiesta pending dell'utente e aggiorna lo stato."""
+    """Approva la verifica KYC di un utente."""
     try:
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
-            # Trova ultima richiesta pending
-            cur.execute(
-                """
-                SELECT id FROM kyc_requests
-                WHERE user_id=%s AND status='pending'
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (user_id,)
-            )
-            row = cur.fetchone()
-            if not row:
-                return jsonify({"error": "Nessuna richiesta pending"}), 404
-
-            rid = row["id"]
-        
-        req = KYCRequest.get_by_id(rid)
-        req.approve()
-
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute("UPDATE users SET kyc_status='verified' WHERE id=%s", (user_id,))
+            # Verifica che l'utente esista
+            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Utente non trovato'}), 404
+            
+            # Verifica che l'utente abbia documenti KYC
+            cur.execute("""
+                SELECT COUNT(*) as doc_count
+                FROM documents d
+                JOIN doc_categories dc ON d.category_id = dc.id
+                WHERE d.user_id = %s AND dc.is_kyc = TRUE
+            """, (user_id,))
+            doc_count = cur.fetchone()['doc_count']
+            
+            if doc_count == 0:
+                return jsonify({'error': 'Utente senza documenti KYC'}), 400
+            
+            # Aggiorna stato utente
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'verified'
+                WHERE id = %s
+            """, (user_id,))
+            
+            # Marca documenti come verificati
+            cur.execute("""
+                UPDATE documents 
+                SET verified_by_admin = TRUE, verified_at = NOW(), verified_by = %s
+                WHERE user_id = %s AND category_id IN (
+                    SELECT id FROM doc_categories WHERE is_kyc = TRUE
+                )
+            """, (session.get('user_id'), user_id))
+            
             conn.commit()
-
-        current_app.logger.info(f"KYC user {user_id} approved (req {rid})")
+        
+        current_app.logger.info(f"KYC user {user_id} approved by admin {session.get('user_id')}")
         return jsonify({"ok": True, "message": "KYC approvato con successo"})
 
     except Exception as e:
@@ -164,36 +141,36 @@ def admin_approve_kyc(user_id: int):
 @kyc_admin_api.route("/kyc-requests/<int:user_id>/reject", methods=["POST"])
 @admin_required  
 def admin_reject_kyc(user_id: int):
-    """Rifiuta l'ultima richiesta pending dell'utente e aggiorna lo stato."""
+    """Rifiuta la verifica KYC di un utente."""
     try:
         data = request.get_json() or {}
         reason = data.get("reason", "Documenti non conformi")
 
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id FROM kyc_requests
-                WHERE user_id=%s AND status='pending'
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (user_id,)
-            )
-            row = cur.fetchone()
-            if not row:
-                return jsonify({"error": "Nessuna richiesta pending"}), 404
-
-            rid = row["id"]
-
-        req = KYCRequest.get_by_id(rid)
-        req.reject()
-
-        with get_connection() as conn, conn.cursor() as cur:
-            cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (user_id,))
+            # Verifica che l'utente esista
+            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Utente non trovato'}), 404
+                
+            # Aggiorna stato utente
+            cur.execute("""
+                UPDATE users 
+                SET kyc_status = 'rejected'
+                WHERE id = %s
+            """, (user_id,))
+            
+            # Aggiungi note ai documenti
+            cur.execute("""
+                UPDATE documents 
+                SET admin_notes = %s
+                WHERE user_id = %s AND category_id IN (
+                    SELECT id FROM doc_categories WHERE is_kyc = TRUE
+                )
+            """, (reason, user_id))
+            
             conn.commit()
-
-        current_app.logger.info(f"KYC user {user_id} rejected (req {rid}): {reason}")
+        
+        current_app.logger.info(f"KYC user {user_id} rejected: {reason}")
         return jsonify({"ok": True, "message": "KYC rifiutato"})
 
     except Exception as e:
@@ -204,21 +181,23 @@ def admin_reject_kyc(user_id: int):
 @kyc_admin_api.route("/kyc-requests/<int:user_id>/revoke", methods=["POST"])
 @admin_required
 def admin_revoke_kyc(user_id: int):
-    """Revoca lo stato KYC di un utente: imposta users.kyc_status='unverified' e inserisce una richiesta 'rejected' di sistema."""
+    """Revoca lo stato KYC di un utente."""
     try:
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
             # Aggiorna stato utente
             cur.execute("UPDATE users SET kyc_status='unverified' WHERE id=%s", (user_id,))
-            # Registra riga in kyc_requests come audit (rejected senza file)
-            cur.execute(
-                """
-                INSERT INTO kyc_requests (user_id, doc_type, file_front, file_back, status, created_at, updated_at)
-                VALUES (%s, %s, NULL, NULL, 'rejected', NOW(), NOW())
-                """,
-                (user_id, 'id_card')
-            )
+            
+            # Rimuovi verifiche dai documenti
+            cur.execute("""
+                UPDATE documents 
+                SET verified_by_admin = FALSE, verified_at = NULL, verified_by = NULL, admin_notes = NULL
+                WHERE user_id = %s AND category_id IN (
+                    SELECT id FROM doc_categories WHERE is_kyc = TRUE
+                )
+            """, (user_id,))
+            
             conn.commit()
+            
         current_app.logger.info(f"KYC user {user_id} revoked by admin")
         return jsonify({"ok": True, "message": "Verifica KYC revocata"})
     except Exception as e:
@@ -229,17 +208,17 @@ def admin_revoke_kyc(user_id: int):
 @kyc_admin_api.route("/kyc-stats", methods=["GET"])
 @admin_required
 def admin_get_kyc_stats():
-    """Statistiche KYC"""
+    """Statistiche KYC basate sulla tabella users."""
     try:
-        from backend.shared.database import get_connection
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT 
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as verified,
-                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
-                FROM kyc_requests
+                    SUM(CASE WHEN kyc_status = 'verified' THEN 1 ELSE 0 END) as verified,
+                    SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                    SUM(CASE WHEN kyc_status = 'unverified' THEN 1 ELSE 0 END) as unverified
+                FROM users WHERE role = 'investor'
             """)
             stats = cur.fetchone()
             
@@ -251,5 +230,6 @@ def admin_get_kyc_stats():
             "total": 0,
             "verified": 0, 
             "pending": 0,
-            "rejected": 0
+            "rejected": 0,
+            "unverified": 0
         })

@@ -336,6 +336,21 @@ class KYCAdminDashboard {
         }
     }
     
+    async getUserDetail(userId) {
+        try {
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${userId}`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli utente:', error);
+        }
+        return null;
+    }
+    
     renderDetail(user) {
         const content = document.getElementById('kyc-detail-content');
         
@@ -438,20 +453,37 @@ class KYCAdminDashboard {
             </div>
         `;
         
-        // Show/hide action buttons based on latest request/user status
+        // Show/hide action buttons based on user KYC status
         const approveBtn = document.getElementById('approve-kyc-btn');
         const rejectBtn = document.getElementById('reject-kyc-btn');
         const revokeBtn = document.getElementById('revoke-kyc-btn');
         
-        if (effectiveStatus === 'pending') {
+        // Verifica che i bottoni esistano
+        if (!approveBtn || !rejectBtn || !revokeBtn) {
+            console.error('Bottoni KYC non trovati nel DOM');
+            return;
+        }
+        
+        // Logica semplificata: usa direttamente lo stato utente
+        const userStatus = user.kyc_status;
+        
+        if (userStatus === 'pending') {
+            // Utente ha documenti in attesa di verifica
             approveBtn.style.display = 'inline-flex';
             rejectBtn.style.display = 'inline-flex';
             revokeBtn.style.display = 'none';
-        } else if (effectiveStatus === 'verified') {
+        } else if (userStatus === 'verified') {
+            // Utente già verificato - può essere revocato
             approveBtn.style.display = 'none';
             rejectBtn.style.display = 'none';
             revokeBtn.style.display = 'inline-flex';
+        } else if (userStatus === 'rejected') {
+            // Utente rifiutato - può essere riapprovato se ha nuovi documenti
+            approveBtn.style.display = 'inline-flex';
+            rejectBtn.style.display = 'none';
+            revokeBtn.style.display = 'none';
         } else {
+            // Utente non verificato (unverified) - nessuna azione disponibile
             approveBtn.style.display = 'none';
             rejectBtn.style.display = 'none';
             revokeBtn.style.display = 'none';
@@ -460,6 +492,13 @@ class KYCAdminDashboard {
     
     async approveKYC() {
         if (!this.currentUserId) return;
+        
+        // Verifica che l'utente abbia documenti
+        const user = await this.getUserDetail(this.currentUserId);
+        if (!user || !user.documents || user.documents.length === 0) {
+            alert('❌ Impossibile approvare: l\'utente non ha documenti caricati');
+            return;
+        }
         
         const approveBtn = document.getElementById('approve-kyc-btn');
         setButtonLoading(approveBtn, true, 'Approvando...');
@@ -473,13 +512,13 @@ class KYCAdminDashboard {
             
             const result = await response.json();
             
-            if (response.ok) {
-                alert('KYC approvato con successo');
+            if (response.ok && result.ok) {
+                alert('✅ KYC approvato con successo!');
                 // Ricarica lista e dettaglio per riflettere lo stato
                 await this.refreshData();
                 await this.viewDetail(this.currentUserId);
             } else {
-                alert(result.error || 'Errore nell\'approvazione');
+                alert('❌ Errore: ' + (result.error || result.message || 'Errore nell\'approvazione'));
             }
         } catch (error) {
             console.error('Errore:', error);
@@ -505,13 +544,13 @@ class KYCAdminDashboard {
             
             const result = await response.json();
             
-            if (response.ok) {
-                alert('Verifica KYC revocata con successo');
+            if (response.ok && result.ok) {
+                alert('✅ Verifica KYC revocata con successo!');
                 // Mantieni il modal aperto e ricarica i dati
                 await this.refreshData();
                 await this.viewDetail(this.currentUserId);
             } else {
-                alert(result.error || 'Errore nella revoca');
+                alert('❌ Errore: ' + (result.error || result.message || 'Errore nella revoca'));
             }
         } catch (error) {
             console.error('Errore:', error);
@@ -547,14 +586,14 @@ class KYCAdminDashboard {
             
             const result = await response.json();
             
-            if (response.ok) {
-                alert('KYC rifiutato con successo');
+            if (response.ok && result.ok) {
+                alert('✅ KYC rifiutato con successo!');
                 closeModal('reject-kyc-modal');
                 // Ricarica lista e dettaglio
                 await this.refreshData();
                 await this.viewDetail(this.currentUserId);
             } else {
-                alert(result.error || 'Errore nel rifiuto');
+                alert('❌ Errore: ' + (result.error || result.message || 'Errore nel rifiuto'));
             }
         } catch (error) {
             console.error('Errore:', error);
