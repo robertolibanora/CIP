@@ -660,7 +660,9 @@ def profile():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, full_name, email, referral_code, created_at
+            SELECT id, full_name, email, referral_code, created_at,
+                   nome, cognome, telefono, nome_telegram, address, currency_code,
+                   kyc_status
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()

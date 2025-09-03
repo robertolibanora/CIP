@@ -1,151 +1,143 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Dashboard KYC - Admin{% endblock %}
+{% block title %}Gestione KYC - Admin CIP Immobiliare{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <!-- Header -->
-    <div class="admin-header">
-        <div class="admin-header-content">
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Gestione Verifica KYC</h1>
+            <p class="admin-text-small">Approvazione e gestione documenti di identità utenti</p>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="kyc-alerts" class="mb-6"></div>
+
+<!-- KYC Statistics -->
+<div class="admin-grid admin-grid--4 mb-6">
+    <div class="admin-card admin-card--info">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-blue-800">Totale Utenti</h3>
+                    <p class="admin-text-small text-blue-600">Tutti gli utenti registrati</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-blue-800" id="total-users">0</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--success">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-green-800">Verificati</h3>
+                    <p class="admin-text-small text-green-600">KYC approvato</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-green-800" id="verified-users">0</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--warning">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-orange-800">In Attesa</h3>
+                    <p class="admin-text-small text-orange-600">Documenti caricati</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-orange-800" id="pending-users">0</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card admin-card--error">
+        <div class="admin-card-body">
+            <div class="admin-flex admin-flex--between">
+                <div>
+                    <h3 class="admin-heading-3 text-red-800">Rifiutati</h3>
+                    <p class="admin-text-small text-red-600">KYC non approvato</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p class="admin-text-large font-bold text-red-800" id="rejected-users">0</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KYC Requests Table -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <div class="admin-flex admin-flex--between">
             <div>
-                <h1 class="admin-heading-1">Dashboard KYC</h1>
-                <p class="admin-text-small">Approvazione e gestione documenti di identità utenti</p>
+                <h2 class="admin-heading-2">Richieste KYC</h2>
+                <p class="admin-text-small">Gestione verifica documenti utenti</p>
             </div>
             <div class="admin-flex">
-                <button onclick="refreshData()" class="admin-btn admin-btn--secondary admin-btn--sm mr-2" id="refresh-btn">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Aggiorna
-                </button>
+                <input id="search-filter" type="text" placeholder="Cerca per nome o cognome" class="admin-input admin-btn--sm mr-2" style="min-width:220px" />
+                <select id="status-filter" class="admin-input admin-select admin-btn--sm mr-2">
+                    <option value="">Tutti gli stati</option>
+                    <option value="pending">In attesa</option>
+                    <option value="verified">Verificati</option>
+                    <option value="rejected">Rifiutati</option>
+                    <option value="unverified">Non verificati</option>
+                </select>
             </div>
         </div>
     </div>
-
-    <!-- Statistics Cards -->
-    <div class="admin-grid admin-grid--4 mb-6">
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="admin-flex admin-flex--between items-center">
-                    <div>
-                        <p class="admin-text-small text-gray-600">Totale Utenti</p>
-                        <p class="admin-text-large font-bold text-blue-800" id="total-users">0</p>
-                    </div>
-                    <div class="admin-icon admin-icon--primary">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="admin-flex admin-flex--between items-center">
-                    <div>
-                        <p class="admin-text-small text-gray-600">Verificati</p>
-                        <p class="admin-text-large font-bold text-green-800" id="verified-users">0</p>
-                    </div>
-                    <div class="admin-icon admin-icon--success">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="admin-flex admin-flex--between items-center">
-                    <div>
-                        <p class="admin-text-small text-gray-600">In Attesa</p>
-                        <p class="admin-text-large font-bold text-yellow-800" id="pending-users">0</p>
-                    </div>
-                    <div class="admin-icon admin-icon--warning">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="admin-flex admin-flex--between items-center">
-                    <div>
-                        <p class="admin-text-small text-gray-600">Rifiutati</p>
-                        <p class="admin-text-large font-bold text-red-800" id="rejected-users">0</p>
-                    </div>
-                    <div class="admin-icon admin-icon--error">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters and Search -->
-    <div class="admin-card mb-6">
-        <div class="admin-card-body">
-            <div class="admin-grid admin-grid--3 gap-4">
-                <div>
-                    <label class="admin-label">Filtra per Stato</label>
-                    <select id="status-filter" class="admin-input" onchange="filterRequests()">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending">In attesa</option>
-                        <option value="verified">Verificati</option>
-                        <option value="rejected">Rifiutati</option>
-                        <option value="unverified">Non verificati</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="admin-label">Cerca Utente</label>
-                    <input type="text" id="search-input" class="admin-input" placeholder="Email o nome..." onkeyup="searchUsers()">
-                </div>
-                <div class="admin-flex items-end">
-                    <button onclick="clearFilters()" class="admin-btn admin-btn--secondary">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Pulisci Filtri
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- KYC Requests Table -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <h2 class="admin-heading-2">Richieste KYC</h2>
-        </div>
-        <div class="admin-card-body">
-            <div class="admin-table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Utente</th>
-                            <th>Email</th>
-                            <th>Stato</th>
-                            <th>Documenti</th>
-                            <th>Data Creazione</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="kyc-requests-table">
-                        <tr>
-                            <td colspan="6" class="text-center py-8">
-                                <div class="admin-spinner w-6 h-6 mx-auto mb-2"></div>
-                                <p class="admin-text-small text-gray-600">Caricamento richieste...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+    <div class="admin-card-body">
+        <div class="overflow-x-auto">
+            <table class="min-w-full" id="kyc-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left admin-text-caption">Utente</th>
+                        <th class="px-4 py-3 text-left admin-text-caption">Stato</th>
+                        <th class="px-4 py-3 text-left admin-text-caption">Documenti</th>
+                        <th class="px-4 py-3 text-left admin-text-caption">Data Registrazione</th>
+                        <th class="px-4 py-3 text-left admin-text-caption">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="kyc-tbody">
+                    <!-- KYC requests will be loaded here -->
+                </tbody>
+            </table>
+            
+            <div id="kyc-empty" class="hidden text-center py-8">
+                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <h3 class="admin-heading-3 text-gray-500">Nessuna richiesta KYC</h3>
+                <p class="admin-text-body text-gray-400">Non ci sono richieste di verifica da visualizzare</p>
             </div>
         </div>
     </div>
@@ -164,19 +156,19 @@
     <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('kyc-detail-modal')\">
         Chiudi
     </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--error\" onclick=\"rejectKYC()\" id=\"reject-kyc-btn\" style=\"display: none;\">
+    <button type=\"button\" class=\"admin-btn admin-btn--error\" onclick=\"kycDashboard.rejectKYC()\" id=\"reject-kyc-btn\">
         <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
             <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z\"/>
         </svg>
         Rifiuta
     </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--warning\" onclick=\"revokeKYC()\" id=\"revoke-kyc-btn\" style=\"display: none;\">
+    <button type=\"button\" class=\"admin-btn admin-btn--warning\" onclick=\"kycDashboard.revokeKYC()\" id=\"revoke-kyc-btn\">
         <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
             <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728\"/>
         </svg>
         Revoca
     </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--success\" onclick=\"approveKYC()\" id=\"approve-kyc-btn\" style=\"display: none;\">
+    <button type=\"button\" class=\"admin-btn admin-btn--success\" onclick=\"kycDashboard.approveKYC()\" id=\"approve-kyc-btn\">
         <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
             <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"/>
         </svg>
@@ -203,7 +195,7 @@
     <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('reject-kyc-modal')\">
         Annulla
     </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--error\" onclick=\"confirmRejectKYC()\" id=\"confirm-reject-btn\">
+    <button type=\"button\" class=\"admin-btn admin-btn--error\" onclick=\"kycDashboard.confirmRejectKYC()\" id=\"confirm-reject-btn\">
         Conferma Rifiuto
     </button>"
 %}
@@ -214,70 +206,149 @@
 
 {% block extra_js %}
 <script>
-// Variabili globali
-let currentUserId = null;
-let kycRequests = [];
-
-// Inizializzazione
-document.addEventListener('DOMContentLoaded', function() {
-    loadStats();
-    loadRequests();
-});
-
-// Caricamento statistiche
-async function loadStats() {
-    try {
-        const response = await fetch('/kyc/admin/api/kyc-stats', {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const stats = await response.json();
-            document.getElementById('total-users').textContent = stats.total || 0;
-            document.getElementById('verified-users').textContent = stats.verified || 0;
-            document.getElementById('pending-users').textContent = stats.pending || 0;
-            document.getElementById('rejected-users').textContent = stats.rejected || 0;
+// Lightweight fallback if shared loading helpers are not included
+if (typeof setButtonLoading === 'undefined') {
+    function setButtonLoading(buttonElement, loading = true, text = 'Caricamento...') {
+        if (!buttonElement) return;
+        if (loading) {
+            buttonElement.disabled = true;
+            buttonElement.classList.add('opacity-50', 'cursor-not-allowed');
+            const originalContent = buttonElement.innerHTML;
+            buttonElement.dataset.originalContent = originalContent;
+            buttonElement.innerHTML = `
+                <div class="admin-spinner w-4 h-4 mr-2"></div>
+                ${text}
+            `;
+        } else {
+            buttonElement.disabled = false;
+            buttonElement.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (buttonElement.dataset.originalContent) {
+                buttonElement.innerHTML = buttonElement.dataset.originalContent;
+                delete buttonElement.dataset.originalContent;
+            }
         }
-    } catch (error) {
-        console.error('Errore nel caricamento statistiche:', error);
     }
 }
 
-// Caricamento richieste
-async function loadRequests() {
-    try {
-        const response = await fetch('/kyc/admin/api/kyc-requests', {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            kycRequests = data.requests || [];
-            renderRequests(kycRequests);
+// KYC Admin Dashboard Manager
+class KYCAdminDashboard {
+    constructor() {
+        this.currentUserId = null;
+        this.requestsCache = [];
+        this.init();
+    }
+    
+    async init() {
+        await this.loadStats();
+        await this.loadRequests();
+        this.bindEvents();
+    }
+    
+    async loadStats() {
+        try {
+            const response = await fetch('/kyc/admin/api/kyc-stats');
+            if (response.ok) {
+                const stats = await response.json();
+                this.renderStats(stats);
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento statistiche:', error);
         }
-    } catch (error) {
-        console.error('Errore nel caricamento richieste:', error);
-    }
-}
-
-// Rendering richieste
-function renderRequests(requests) {
-    const tbody = document.getElementById('kyc-requests-table');
-    
-    if (requests.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center py-8">
-                    <p class="admin-text-small text-gray-600">Nessuna richiesta KYC trovata</p>
-                </td>
-            </tr>
-        `;
-        return;
     }
     
-    tbody.innerHTML = requests.map(request => {
+    renderStats(stats) {
+        document.getElementById('total-users').textContent = stats.total || 0;
+        document.getElementById('verified-users').textContent = stats.verified || 0;
+        document.getElementById('pending-users').textContent = stats.pending || 0;
+        document.getElementById('rejected-users').textContent = stats.rejected || 0;
+    }
+    
+    async loadRequests() {
+        try {
+            const response = await fetch('/kyc/admin/api/kyc-requests');
+            if (response.ok) {
+                const data = await response.json();
+                this.requestsCache = data.requests || [];
+                this.renderRequests(this.requestsCache);
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento richieste:', error);
+        }
+    }
+    
+    renderRequests(requests) {
+        const tbody = document.getElementById('kyc-tbody');
+        const empty = document.getElementById('kyc-empty');
+        
+        if (!requests || requests.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        
+        tbody.innerHTML = requests.map(request => {
+            const statusColors = {
+                'verified': 'success',
+                'pending': 'warning',
+                'rejected': 'error',
+                'unverified': 'gray'
+            };
+            
+            const statusLabels = {
+                'verified': 'Verificato',
+                'pending': 'In Attesa',
+                'rejected': 'Rifiutato',
+                'unverified': 'Non Verificato'
+            };
+            
+            return `
+                <tr class="border-t border-gray-200 hover:bg-gray-50" data-status="${request.kyc_status}">
+                    <td class="px-4 py-3" data-col="name">
+                        <p class="admin-text-body font-medium">${request.full_name}</p>
+                        <p class="admin-text-caption text-gray-500">${request.email}</p>
+                        ${request.telefono ? `<p class="admin-text-caption text-gray-500">${request.telefono}</p>` : ''}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-badge admin-badge--${statusColors[request.kyc_status] || 'gray'}">
+                            ${statusLabels[request.kyc_status] || request.kyc_status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-text-body">${request.documents_count || 0} documenti</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="admin-text-small">${new Date(request.created_at).toLocaleDateString('it-IT')}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <button onclick="kycDashboard.viewDetail(${request.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                            Dettagli
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    async viewDetail(userId) {
+        this.currentUserId = userId;
+        
+        try {
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${userId}`);
+            if (response.ok) {
+                const user = await response.json();
+                this.renderDetail(user);
+                openModal('kyc-detail-modal');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli:', error);
+        }
+    }
+    
+    renderDetail(user) {
+        const content = document.getElementById('kyc-detail-content');
+        
         const statusColors = {
             'verified': 'success',
             'pending': 'warning',
@@ -292,374 +363,214 @@ function renderRequests(requests) {
             'unverified': 'Non Verificato'
         };
         
-        const status = request.kyc_status || 'unverified';
-        const color = statusColors[status] || 'gray';
-        const label = statusLabels[status] || 'Sconosciuto';
-        
-        return `
-            <tr>
-                <td class="px-4 py-3">
-                    <div class="admin-flex items-center">
-                        <div class="admin-avatar admin-avatar--sm mr-3">
-                            ${request.email.charAt(0).toUpperCase()}
+        content.innerHTML = `
+            <div class="space-y-6">
+                <!-- User Info -->
+                <div class="admin-card admin-card-body">
+                    <h3 class="admin-heading-3 mb-4">Informazioni Utente</h3>
+                    <div class="admin-grid admin-grid--2">
+                        <div>
+                            <p class="admin-text-caption text-gray-500">Nome Completo</p>
+                            <p class="admin-text-body font-medium">${user.full_name}</p>
                         </div>
                         <div>
-                            <p class="admin-text-body font-medium">${request.email}</p>
-                            <p class="admin-text-small text-gray-600">ID: ${request.id}</p>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-4 py-3">
-                    <p class="admin-text-body">${request.email}</p>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="admin-badge admin-badge--${color}">${label}</span>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="admin-text-body">${request.documents_count || 0}</span>
-                </td>
-                <td class="px-4 py-3">
-                    <span class="admin-text-small">${new Date(request.created_at).toLocaleDateString('it-IT')}</span>
-                </td>
-                <td class="px-4 py-3">
-                    <button onclick="viewDetail(${request.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                        Dettagli
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Visualizzazione dettagli
-async function viewDetail(userId) {
-    currentUserId = userId;
-    
-    try {
-        const response = await fetch(`/kyc/admin/api/kyc-requests/${userId}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const user = await response.json();
-            renderDetail(user);
-            updateActionButtons(user);
-            openModal('kyc-detail-modal');
-        }
-    } catch (error) {
-        console.error('Errore nel caricamento dettagli:', error);
-        alert('Errore nel caricamento dettagli utente');
-    }
-}
-
-// Rendering dettagli
-function renderDetail(user) {
-    const content = document.getElementById('kyc-detail-content');
-    
-    const statusColors = {
-        'verified': 'success',
-        'pending': 'warning',
-        'rejected': 'error',
-        'unverified': 'gray'
-    };
-    
-    const statusLabels = {
-        'verified': 'Verificato',
-        'pending': 'In Attesa',
-        'rejected': 'Rifiutato',
-        'unverified': 'Non Verificato'
-    };
-    
-    const status = user.kyc_status || 'unverified';
-    const color = statusColors[status] || 'gray';
-    const label = statusLabels[status] || 'Sconosciuto';
-    
-    content.innerHTML = `
-        <div class="space-y-6">
-            <!-- User Info -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3 class="admin-heading-3">Informazioni Utente</h3>
-                </div>
-                <div class="admin-card-body">
-                    <div class="admin-grid admin-grid--2 gap-4">
-                        <div>
-                            <label class="admin-label">Email</label>
-                            <p class="admin-text-body">${user.email}</p>
+                            <p class="admin-text-caption text-gray-500">Email</p>
+                            <p class="admin-text-body font-medium">${user.email}</p>
                         </div>
                         <div>
-                            <label class="admin-label">Stato KYC</label>
-                            <span class="admin-badge admin-badge--${color}">${label}</span>
+                            <p class="admin-text-caption text-gray-500">Telefono</p>
+                            <p class="admin-text-body font-medium">${user.telefono || 'Non fornito'}</p>
                         </div>
                         <div>
-                            <label class="admin-label">ID Utente</label>
-                            <p class="admin-text-body">${user.id}</p>
-                        </div>
-                        <div>
-                            <label class="admin-label">Data Registrazione</label>
-                            <p class="admin-text-body">${new Date(user.created_at).toLocaleDateString('it-IT')}</p>
+                            <p class="admin-text-caption text-gray-500">Stato KYC</p>
+                            <span class="admin-badge admin-badge--${statusColors[user.kyc_status] || 'gray'}">
+                                ${statusLabels[user.kyc_status] || user.kyc_status}
+                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Documents -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3 class="admin-heading-3">Documenti Caricati</h3>
-                </div>
-                <div class="admin-card-body">
+                
+                <!-- Documents -->
+                <div class="admin-card admin-card-body">
+                    <h3 class="admin-heading-3 mb-4">Documenti Caricati</h3>
                     ${user.documents && user.documents.length > 0 ? `
                         <div class="space-y-4">
                             ${user.documents.map(doc => `
-                                <div class="admin-flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                                    <div class="admin-flex items-center">
-                                        <div class="admin-icon admin-icon--secondary mr-3">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                            </svg>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="admin-flex admin-flex--between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="admin-text-body font-medium">${doc.category_name}</h4>
+                                            <p class="admin-text-caption text-gray-500">
+                                                Caricato il ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}
+                                            </p>
+                                            ${doc.verified_by_admin ? `
+                                                <span class="admin-badge admin-badge--success mt-2">Verificato</span>
+                                            ` : `
+                                                <span class="admin-badge admin-badge--warning mt-2">In attesa verifica</span>
+                                            `}
                                         </div>
-                                        <div>
-                                            <p class="admin-text-body font-medium">${doc.title || 'Documento'}</p>
-                                            <p class="admin-text-small text-gray-600">${doc.file_path}</p>
+                                        <div class="ml-4 admin-flex admin-flex--between">
+                                            <a href="/uploads/${doc.file_path}" target="_blank" 
+                                               class="admin-btn admin-btn--secondary admin-btn--sm">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                                Visualizza
+                                            </a>
+                                            <button class="admin-btn admin-btn--error admin-btn--sm ml-2" onclick="kycDashboard.deleteDocument(${doc.id})">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/>
+                                                </svg>
+                                                Elimina
+                                            </button>
                                         </div>
-                                    </div>
-                                    <div class="admin-flex items-center">
-                                        ${doc.verified_by_admin ? 
-                                            '<span class="admin-badge admin-badge--success">Verificato</span>' : 
-                                            '<span class="admin-badge admin-badge--warning">In Attesa</span>'
-                                        }
                                     </div>
                                 </div>
                             `).join('')}
                         </div>
                     ` : `
-                        <p class="admin-text-body text-gray-600">Nessun documento caricato</p>
+                        <p class="admin-text-body text-gray-500">Nessun documento caricato</p>
                     `}
                 </div>
             </div>
-        </div>
-    `;
-}
-
-// Aggiornamento bottoni azione
-function updateActionButtons(user) {
-    const approveBtn = document.getElementById('approve-kyc-btn');
-    const rejectBtn = document.getElementById('reject-kyc-btn');
-    const revokeBtn = document.getElementById('revoke-kyc-btn');
-    
-    // Nascondi tutti i bottoni
-    approveBtn.style.display = 'none';
-    rejectBtn.style.display = 'none';
-    revokeBtn.style.display = 'none';
-    
-    const kycStatus = user.kyc_status || 'unverified';
-    const hasDocuments = user.documents && user.documents.length > 0;
-    
-    // Logica bottoni basata su stato E presenza documenti
-    switch (kycStatus) {
-        case 'pending':
-            // Utente con documenti in attesa di verifica
-            if (hasDocuments) {
-                approveBtn.style.display = 'inline-flex';
-                rejectBtn.style.display = 'inline-flex';
-            }
-            break;
-        case 'verified':
-            // Utente verificato - può essere revocato
+        `;
+        
+        // Show/hide action buttons based on status and presence of documents
+        const approveBtn = document.getElementById('approve-kyc-btn');
+        const rejectBtn = document.getElementById('reject-kyc-btn');
+        const revokeBtn = document.getElementById('revoke-kyc-btn');
+        
+        const hasDocs = Array.isArray(user.documents) && user.documents.length > 0;
+        if (user.kyc_status === 'verified') {
+            approveBtn.style.display = 'none';
+            rejectBtn.style.display = 'none';
             revokeBtn.style.display = 'inline-flex';
-            break;
-        case 'rejected':
-            // Utente rifiutato - può essere riapprovato se ha documenti
-            if (hasDocuments) {
-                approveBtn.style.display = 'inline-flex';
+        } else {
+            // For 'pending', 'rejected' or 'unverified' allow Approva/Rifiuta when documents exist
+            approveBtn.style.display = hasDocs ? 'inline-flex' : 'none';
+            rejectBtn.style.display = hasDocs ? 'inline-flex' : 'none';
+            revokeBtn.style.display = 'none';
+        }
+    }
+    
+    async approveKYC() {
+        if (!this.currentUserId) return;
+        // Rimosso window.confirm: user asked to remove popup template — proceed directly
+        const approveBtn = document.getElementById('approve-kyc-btn');
+        setButtonLoading(approveBtn, true, 'Approvando...');
+        
+        try {
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (response.ok) {
+                closeModal('kyc-detail-modal');
+                await this.refreshData();
+            } else {
+                alert(result.error || 'Errore nell\'approvazione');
             }
-            break;
-        case 'unverified':
-            // Utente non verificato - può essere approvato se ha documenti
-            if (hasDocuments) {
-                approveBtn.style.display = 'inline-flex';
-                rejectBtn.style.display = 'inline-flex';
+        } catch (error) {
+            console.error('Errore:', error);
+            alert('Errore di connessione');
+        } finally {
+            setButtonLoading(approveBtn, false);
+        }
+    }
+
+    async deleteDocument(docId) {
+        if (!this.currentUserId || !docId) return;
+        const confirmed = confirm('Eliminare definitivamente questo documento?');
+        if (!confirmed) return;
+        try {
+            const resp = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/documents/${docId}`, { method: 'DELETE' });
+            const data = await resp.json();
+            if (resp.ok && data.ok) {
+                // ricarica dettaglio e tabella
+                const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}`);
+                if (response.ok) {
+                    const user = await response.json();
+                    this.renderDetail(user);
+                }
+                await this.refreshData();
+            } else {
+                alert(data.error || 'Errore durante eliminazione');
             }
-            break;
-        default:
-            // Nessun bottone per stati non gestiti
-            break;
-    }
-}
-
-// Approvazione KYC
-async function approveKYC() {
-    if (!currentUserId) {
-        alert('Errore: ID utente non valido');
-        return;
-    }
-    
-    if (!confirm('Sei sicuro di voler approvare la verifica KYC di questo utente?')) {
-        return;
-    }
-    
-    const approveBtn = document.getElementById('approve-kyc-btn');
-    setButtonLoading(approveBtn, true, 'Approvando...');
-    
-    try {
-        const response = await fetch(`/kyc/admin/api/kyc-requests/${currentUserId}/approve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            credentials: 'include'
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.ok) {
-            alert('✅ KYC approvato con successo!');
-            await refreshData();
-            await viewDetail(currentUserId);
-        } else {
-            alert('❌ Errore: ' + (result.error || result.message || 'Errore nell\'approvazione'));
+        } catch (e) {
+            alert('Errore di connessione');
         }
-    } catch (error) {
-        console.error('Errore:', error);
-        alert('❌ Errore di connessione');
-    } finally {
-        setButtonLoading(approveBtn, false);
     }
-}
+    
+    async revokeKYC() {
+        if (!this.currentUserId) return;
+        const revokeBtn = document.getElementById('revoke-kyc-btn');
+        setButtonLoading(revokeBtn, true, 'Revocando...');
+        try {
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/revoke`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (response.ok) {
+                closeModal('kyc-detail-modal');
+                await this.refreshData();
+            } else {
+                alert(result.error || 'Errore nella revoca');
+            }
+        } catch (e) { alert('Errore di connessione'); }
+        finally { setButtonLoading(revokeBtn, false); }
+    }
 
-// Rifiuto KYC
-function rejectKYC() {
-    openModal('reject-kyc-modal');
-}
+    async rejectKYC() { openModal('reject-kyc-modal'); }
 
-// Conferma rifiuto KYC
-async function confirmRejectKYC() {
-    if (!currentUserId) {
-        alert('Errore: ID utente non valido');
-        return;
+    async confirmRejectKYC() {
+        if (!this.currentUserId) return;
+        const reason = document.getElementById('reject-reason').value.trim();
+        if (!reason) { alert('Inserisci un motivo per il rifiuto'); return; }
+        const rejectBtn = document.getElementById('confirm-reject-btn');
+        setButtonLoading(rejectBtn, true, 'Rifiutando...');
+        try {
+            const response = await fetch(`/kyc/admin/api/kyc-requests/${this.currentUserId}/reject`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                closeModal('reject-kyc-modal');
+                closeModal('kyc-detail-modal');
+                await this.refreshData();
+            } else { alert(result.error || 'Errore nel rifiuto'); }
+        } catch (e) { alert('Errore di connessione'); }
+        finally { setButtonLoading(rejectBtn, false); }
     }
+
+    async refreshData() { await this.loadStats(); await this.loadRequests(); }
     
-    const reason = document.getElementById('reject-reason').value.trim();
-    if (!reason) {
-        alert('Inserisci un motivo per il rifiuto');
-        return;
-    }
-    
-    const rejectBtn = document.getElementById('confirm-reject-btn');
-    setButtonLoading(rejectBtn, true, 'Rifiutando...');
-    
-    try {
-        const response = await fetch(`/kyc/admin/api/kyc-requests/${currentUserId}/reject`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ reason })
+    filterByStatus(status) {
+        const rows = document.querySelectorAll('#kyc-tbody tr');
+        const query = (document.getElementById('search-filter').value || '').trim().toLowerCase();
+        rows.forEach(row => {
+            const matchesStatus = (status === '' || row.dataset.status === status);
+            const name = (row.querySelector('[data-col="name"]').textContent || '').toLowerCase();
+            const matchesSearch = !query || name.includes(query);
+            row.style.display = (matchesStatus && matchesSearch) ? '' : 'none';
         });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.ok) {
-            alert('✅ KYC rifiutato con successo!');
-            closeModal('reject-kyc-modal');
-            await refreshData();
-            await viewDetail(currentUserId);
-        } else {
-            alert('❌ Errore: ' + (result.error || result.message || 'Errore nel rifiuto'));
-        }
-    } catch (error) {
-        console.error('Errore:', error);
-        alert('❌ Errore di connessione');
-    } finally {
-        setButtonLoading(rejectBtn, false);
-    }
-}
-
-// Revoca KYC
-async function revokeKYC() {
-    if (!currentUserId) {
-        alert('Errore: ID utente non valido');
-        return;
     }
     
-    if (!confirm('Sei sicuro di voler revocare la verifica KYC di questo utente?')) {
-        return;
-    }
-    
-    const revokeBtn = document.getElementById('revoke-kyc-btn');
-    setButtonLoading(revokeBtn, true, 'Revocando...');
-    
-    try {
-        console.log(`Revocando KYC per utente ${currentUserId}`);
-        
-        const response = await fetch(`/kyc/admin/api/kyc-requests/${currentUserId}/revoke`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            credentials: 'include'
+    bindEvents() {
+        document.getElementById('status-filter').addEventListener('change', (e) => {
+            this.filterByStatus(e.target.value);
         });
-        
-        console.log(`Risposta revoca: ${response.status} ${response.statusText}`);
-        
-        const result = await response.json();
-        console.log('Risultato revoca:', result);
-        
-        if (response.ok && result.ok) {
-            alert('✅ Verifica KYC revocata con successo!');
-            await refreshData();
-            await viewDetail(currentUserId);
-        } else {
-            const errorMsg = result.error || result.message || `Errore HTTP ${response.status}`;
-            alert('❌ Errore: ' + errorMsg);
-            console.error('Errore revoca:', result);
-        }
-    } catch (error) {
-        console.error('Errore revoca:', error);
-        alert('❌ Errore di connessione: ' + error.message);
-    } finally {
-        setButtonLoading(revokeBtn, false);
+        const search = document.getElementById('search-filter');
+        search.addEventListener('input', () => {
+            const status = document.getElementById('status-filter').value;
+            this.filterByStatus(status);
+        });
     }
 }
 
-// Funzioni di supporto
-async function refreshData() {
-    const refreshBtn = document.getElementById('refresh-btn');
-    setButtonLoading(refreshBtn, true, 'Aggiornando...');
-    
-    try {
-        await Promise.all([loadStats(), loadRequests()]);
-    } catch (error) {
-        console.error('Errore nell\'aggiornamento:', error);
-    } finally {
-        setButtonLoading(refreshBtn, false);
-    }
-}
-
-function filterRequests() {
-    const statusFilter = document.getElementById('status-filter').value;
-    const searchInput = document.getElementById('search-input').value.toLowerCase();
-    
-    let filtered = kycRequests;
-    
-    if (statusFilter) {
-        filtered = filtered.filter(req => req.kyc_status === statusFilter);
-    }
-    
-    if (searchInput) {
-        filtered = filtered.filter(req => 
-            req.email.toLowerCase().includes(searchInput)
-        );
-    }
-    
-    renderRequests(filtered);
-}
-
-function searchUsers() {
-    filterRequests();
-}
-
-function clearFilters() {
-    document.getElementById('status-filter').value = '';
-    document.getElementById('search-input').value = '';
-    renderRequests(kycRequests);
-}
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => { window.kycDashboard = new KYCAdminDashboard(); });
+function refreshData() { if (window.kycDashboard) window.kycDashboard.refreshData(); }
 </script>
 {% endblock %}

@@ -3,6 +3,7 @@ API KYC per admin - Gestione richieste (VERSIONE CORRETTA)
 Unifica i due sistemi KYC: documents + kyc_requests
 """
 from flask import Blueprint, jsonify, request, current_app, session
+import os
 from backend.auth.decorators import admin_required
 from backend.shared.database import get_connection
 
@@ -194,8 +195,8 @@ def admin_revoke_kyc(user_id: int):
             if user['kyc_status'] != 'verified':
                 return jsonify({'error': 'Utente non è verificato'}), 400
             
-            # Aggiorna stato utente
-            cur.execute("UPDATE users SET kyc_status='unverified' WHERE id=%s", (user_id,))
+            # Aggiorna stato utente -> passa a "rejected" per comparire tra rifiutati
+            cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (user_id,))
             
             # Rimuovi verifiche dai documenti
             cur.execute("""
@@ -208,8 +209,8 @@ def admin_revoke_kyc(user_id: int):
             
             conn.commit()
             
-        current_app.logger.info(f"KYC user {user_id} revoked by admin {session.get('user_id')}")
-        return jsonify({"ok": True, "message": "Verifica KYC revocata con successo"})
+        current_app.logger.info(f"KYC user {user_id} revoked (set to rejected) by admin {session.get('user_id')}")
+        return jsonify({"ok": True, "message": "Verifica KYC revocata: utente spostato tra rifiutati"})
     except Exception as e:
         current_app.logger.error(f"Errore revoca KYC user {user_id}: {e}")
         return jsonify({"error": "Errore durante la revoca"}), 500
@@ -243,3 +244,71 @@ def admin_get_kyc_stats():
             "rejected": 0,
             "unverified": 0
         })
+
+
+# -----------------------------------------------------
+# Delete single KYC document (admin only)
+# -----------------------------------------------------
+@kyc_admin_api.route("/kyc-requests/<int:user_id>/documents/<int:doc_id>", methods=["DELETE"])
+@admin_required
+def admin_delete_kyc_document(user_id: int, doc_id: int):
+    """Elimina un documento KYC (record DB + file su disco).
+
+    Sicurezza:
+    - Verifica che il documento appartenga all'utente indicato
+    - Consente la cancellazione solo per documenti di categorie KYC
+    """
+    try:
+        with get_connection() as conn, conn.cursor() as cur:
+            # Recupera documento e verifica appartenenza e che sia KYC
+            cur.execute(
+                """
+                SELECT d.file_path
+                FROM documents d
+                JOIN doc_categories dc ON dc.id = d.category_id
+                WHERE d.id = %s AND d.user_id = %s AND dc.is_kyc = TRUE
+                """,
+                (doc_id, user_id)
+            )
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Documento non trovato"}), 404
+
+            file_rel_path = row.get("file_path")
+
+            # Elimina record DB
+            cur.execute("DELETE FROM documents WHERE id = %s", (doc_id,))
+
+            # Se l'utente non ha più documenti KYC e non è verified, rimane pending/unverified
+            cur.execute(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM documents d
+                JOIN doc_categories dc ON dc.id = d.category_id
+                WHERE d.user_id = %s AND dc.is_kyc = TRUE
+                """,
+                (user_id,)
+            )
+            remaining = (cur.fetchone() or {}).get("cnt", 0)
+
+            # Se nessun documento rimasto e utente non verified => metti in unverified
+            if remaining == 0:
+                cur.execute("UPDATE users SET kyc_status = CASE WHEN kyc_status = 'verified' THEN kyc_status ELSE 'unverified' END WHERE id=%s", (user_id,))
+
+            conn.commit()
+
+        # Elimina file su disco (best effort)
+        try:
+            if file_rel_path:
+                upload_dir = current_app.config.get('UPLOAD_FOLDER')
+                if upload_dir:
+                    abs_path = os.path.join(upload_dir, file_rel_path)
+                    if os.path.isfile(abs_path):
+                        os.remove(abs_path)
+        except Exception as fe:
+            current_app.logger.warning(f"Impossibile eliminare file documento {file_rel_path}: {fe}")
+
+        return jsonify({"ok": True})
+    except Exception as e:
+        current_app.logger.error(f"Errore eliminazione documento KYC {doc_id} per user {user_id}: {e}")
+        return jsonify({"error": "Errore durante l'eliminazione"}), 500

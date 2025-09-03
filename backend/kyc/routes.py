@@ -117,14 +117,14 @@ def upload_kyc_document():
     
     # Validazione file - supporta file multipli (fronte obbligatorio, retro opzionale)
     front_file = request.files.get('file_front') or request.files.get('file')  # File principale (fronte)
-    back_file = request.files.get('file_back')  # File retro (opzionale)
+    back_file = request.files.get('file_back')  # File retro (obbligatorio)
     
     if not front_file or front_file.filename == '':
         return jsonify({'error': 'File fronte del documento è obbligatorio'}), 400
+    if not back_file or back_file.filename == '':
+        return jsonify({'error': 'File retro del documento è obbligatorio'}), 400
     
-    files_to_upload = [('front', front_file)]
-    if back_file and back_file.filename != '':
-        files_to_upload.append(('back', back_file))
+    files_to_upload = [('front', front_file), ('back', back_file)]
     
     # Validazione per tutti i file
     allowed_extensions = {'pdf', 'png', 'jpg', 'jpeg', 'gif'}

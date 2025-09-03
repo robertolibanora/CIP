@@ -27,8 +27,8 @@
             <input id="file_front" name="file_front" type="file" accept=".pdf,.png,.jpg,.jpeg" class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Retro (opzionale)</label>
-            <input id="file_back" name="file_back" type="file" accept=".pdf,.png,.jpg,.jpeg" class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            <label class="block text-sm font-medium text-gray-700 mb-2">Retro (obbligatorio)</label>
+            <input id="file_back" name="file_back" type="file" accept=".pdf,.png,.jpg,.jpeg" required class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
           </div>
         </div>
 
@@ -47,12 +47,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('kyc-upload-form');
   const alertBox = document.getElementById('kyc-alert');
   const btn = document.getElementById('upload-btn');
+  const frontInput = document.getElementById('file_front');
+  const backInput = document.getElementById('file_back');
+  const docTypeInput = document.getElementById('doc_type');
 
   function showAlert(type, msg) {
     alertBox.className = 'mt-4 p-3 rounded-lg ' + (type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200');
     alertBox.textContent = msg;
     alertBox.classList.remove('hidden');
   }
+
+  // Guard: se KYC già approvato/verificato, disabilita completamente l'upload
+  (async function enforceKycState() {
+    try {
+      const res = await fetch('/kyc/api/status', { credentials: 'include' });
+      if (!res.ok) return; // fallback: non blocchiamo in caso di errore
+      const data = await res.json();
+      const status = data.kyc_status || data.status;
+      if (status === 'verified' || status === 'approved') {
+        alert('KYC già verificato');
+        window.location.href = '/user/profile';
+        return;
+      }
+    } catch (_) {
+      // ignora errori di rete
+    }
+  })();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -63,14 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const front = document.getElementById('file_front').files[0];
     const back = document.getElementById('file_back').files[0];
 
-    if (!docType || !front) {
-      showAlert('error', 'Seleziona tipo documento e il file fronte.');
+    if (!docType || !front || !back) {
+      showAlert('error', 'Seleziona il tipo documento e carica sia fronte che retro.');
       return;
     }
 
     fd.append('doc_type', docType);
     fd.append('file_front', front);
-    if (back) fd.append('file_back', back);
+    fd.append('file_back', back);
 
     try {
       btn.disabled = true;
