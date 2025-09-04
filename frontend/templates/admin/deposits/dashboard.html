@@ -1,474 +1,152 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Gestione Ricariche - Admin{% endblock %}
+{% block title %}Depositi - Live{% endblock %}
 
 {% block content %}
-<!-- Dashboard Gestione Ricariche -->
 <div class="space-y-6">
-    <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div>
-                <h1 class="admin-heading-1">Gestione Ricariche</h1>
-                <p class="admin-text-small">Gestisci tutte le richieste di ricarica del sistema</p>
-            </div>
-            <!-- Status Badge -->
-            <div class="mt-3 sm:mt-0">
-                <div class="admin-badge admin-badge--info">
-                    <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                    Sistema Ricariche
-                </div>
-            </div>
-        </div>
+  <div class="admin-card admin-card-body">
+    <div class="admin-flex admin-flex--between">
+      <div>
+        <h1 class="admin-heading-1">Depositi</h1>
+        <p class="admin-text-small">Richieste in tempo reale</p>
+      </div>
+      <div class="admin-badge admin-badge--info">Live</div>
     </div>
+  </div>
 
-    <!-- Metriche Ricariche -->
-    <div class="admin-grid admin-grid--4">
-        {% with 
-            metric_title='In Attesa',
-            metric_value=metrics.deposits_pending or 0,
-            metric_icon='pending',
-            metric_color='warning',
-            metric_subtitle='Richieste da approvare' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
+  <div class="admin-grid admin-grid--4" id="metrics">
+    <div class="admin-card admin-card-body"><div class="admin-text-small">In attesa</div><div id="m-pending" class="admin-heading-2">0</div></div>
+    <div class="admin-card admin-card-body"><div class="admin-text-small">Completate</div><div id="m-completed" class="admin-heading-2">0</div></div>
+    <div class="admin-card admin-card-body"><div class="admin-text-small">Rifiutate</div><div id="m-failed" class="admin-heading-2">0</div></div>
+    <div class="admin-card admin-card-body"><div class="admin-text-small">Totale Raccolto</div><div id="m-total" class="admin-heading-2">€0</div></div>
+  </div>
 
-        {% with 
-            metric_title='Completate',
-            metric_value=metrics.deposits_completed or 0,
-            metric_icon='success',
-            metric_color='success',
-            metric_subtitle='Ricariche approvate' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-
-        {% with 
-            metric_title='Rifiutate',
-            metric_value=metrics.deposits_rejected or 0,
-            metric_icon='error',
-            metric_color='error',
-            metric_subtitle='Richieste rifiutate' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-
-        {% with 
-            metric_title='Totale Raccolto',
-            metric_value='€' + ('{:,.0f}'.format(metrics.deposits_total_amount or 0)),
-            metric_icon='money',
-            metric_color='info',
-            metric_subtitle='Importo totale approvato' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
+  <div class="admin-card admin-card-body">
+    <div class="admin-flex admin-flex--between">
+      <div class="admin-flex admin-flex--gap-4">
+        <div>
+          <label class="admin-label">Stato</label>
+          <select id="status-filter" class="admin-select">
+            <option value="">Tutti</option>
+            <option value="pending">In attesa</option>
+            <option value="completed">Completate</option>
+            <option value="failed">Rifiutate</option>
+          </select>
+        </div>
+        <div>
+          <label class="admin-label">Ricerca</label>
+          <input id="search-filter" class="admin-input" placeholder="Nome, email...">
+        </div>
+      </div>
+      <button id="force-refresh" class="admin-btn admin-btn--secondary">Aggiorna</button>
     </div>
+  </div>
 
-    <!-- Filtri e Azioni -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div class="admin-flex admin-flex--gap-4">
-                <div>
-                    <label for="status-filter" class="admin-label">Stato</label>
-                    <select id="status-filter" class="admin-select" onchange="filterDeposits()">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending">In attesa</option>
-                        <option value="completed">Completate</option>
-                        <option value="rejected">Rifiutate</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="search-filter" class="admin-label">Ricerca</label>
-                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="filterDeposits()">
-                </div>
-            </div>
-            
-            <div class="admin-flex admin-flex--gap-2">
-                <button onclick="refreshDeposits()" class="admin-btn admin-btn--secondary">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-            
-                </button>
-            </div>
-        </div>
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2 class="admin-heading-3">Richieste</h2>
+      <span id="rows-count" class="admin-text-small text-gray-500">0 richieste</span>
     </div>
-
-    <!-- Lista Richieste Ricarica -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <h2 class="admin-heading-3">Richieste di Ricarica</h2>
-            <span class="admin-text-small text-gray-500">{{ deposits|length }} richieste trovate</span>
-        </div>
-
-        <div class="admin-card-body">
-            <div class="overflow-x-auto">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th class="admin-table-th">Utente</th>
-                            <th class="admin-table-th">Importo</th>
-                            <th class="admin-table-th">Riferimento</th>
-                            <th class="admin-table-th">Stato</th>
-                            <th class="admin-table-th">Data</th>
-                            <th class="admin-table-th">Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="deposits-table-body">
-                        {% for deposit in deposits %}
-                        <tr class="admin-table-tr" data-status="{{ deposit.status }}" data-search="{{ deposit.full_name|lower }} {{ deposit.email|lower }}">
-                            <td class="admin-table-td">
-                                <div>
-                                    <div class="admin-text-body font-medium">{{ deposit.full_name }}</div>
-                                    <div class="admin-text-small text-gray-500">{{ deposit.email }}</div>
-                                </div>
-                            </td>
-                            <td class="admin-table-td">
-                                <span class="admin-text-body font-medium">€{{ "%.2f"|format(deposit.amount) }}</span>
-                            </td>
-                            <td class="admin-table-td">
-                                <div>
-                                    <div class="admin-text-body font-medium">{{ deposit.payment_reference or 'N/A' }}</div>
-                                    <div class="admin-text-small text-gray-500">{{ deposit.unique_key[:8] }}...</div>
-                                </div>
-                            </td>
-                            <td class="admin-table-td">
-                                {% if deposit.status == 'pending' %}
-                                    <span class="admin-badge admin-badge--warning">In attesa</span>
-                                {% elif deposit.status == 'completed' %}
-                                    <span class="admin-badge admin-badge--success">Completata</span>
-                                {% elif deposit.status == 'rejected' %}
-                                    <span class="admin-badge admin-badge--error">Rifiutata</span>
-                                {% endif %}
-                            </td>
-                            <td class="admin-table-td">
-                                <div class="admin-text-body">{{ deposit.created_at.strftime('%d/%m/%Y') }}</div>
-                                <div class="admin-text-small text-gray-500">{{ deposit.created_at.strftime('%H:%M') }}</div>
-                            </td>
-                            <td class="admin-table-td">
-                                <div class="admin-flex admin-flex--gap-2">
-                                    {% if deposit.status == 'pending' %}
-                                        <button onclick="approveDeposit({{ deposit.id }})" class="admin-btn admin-btn--success admin-btn--sm">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </button>
-                                        <button onclick="rejectDeposit({{ deposit.id }})" class="admin-btn admin-btn--error admin-btn--sm">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                        </button>
-                                    {% endif %}
-                                    <button onclick="viewDepositDetails({{ deposit.id }})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        </div>
-        
-        <!-- Paginazione -->
-        {% if total_count > per_page %}
-        <div class="admin-card-footer">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div class="admin-text-small text-gray-500">
-                    Mostrando {{ (page - 1) * per_page + 1 }} - {{ [page * per_page, total_count]|min }} di {{ total_count }} risultati
-                </div>
-                <div class="admin-flex admin-flex--gap-2">
-                    {% if page > 1 %}
-                        <a href="?page={{ page - 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Precedente</a>
-                    {% endif %}
-                    
-                    {% for p in range(1, (total_count // per_page) + 2) %}
-                        {% if p <= total_count // per_page + 1 %}
-                            <a href="?page={{ p }}" class="admin-btn {% if p == page %}admin-btn--primary{% else %}admin-btn--secondary{% endif %} admin-btn--sm">{{ p }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if page < (total_count // per_page) %}
-                        <a href="?page={{ page + 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Successiva</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
+    <div class="admin-card-body">
+      <div class="overflow-x-auto">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="admin-table-th">Utente</th>
+              <th class="admin-table-th">Importo</th>
+              <th class="admin-table-th">Riferimento</th>
+              <th class="admin-table-th">Stato</th>
+              <th class="admin-table-th">Data</th>
+              <th class="admin-table-th">Azioni</th>
+            </tr>
+          </thead>
+          <tbody id="deposits-table-body"></tbody>
+        </table>
+      </div>
     </div>
-    </div>
+  </div>
 </div>
-
-<!-- Deposit Details Modal -->
-<div id="deposit-details-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay" onclick="closeDepositModal()"></div>
-    <div class="admin-modal-content">
-        <div class="admin-modal-header">
-            <h3 class="admin-heading-3">Dettagli Ricarica</h3>
-            <button onclick="closeDepositModal()" class="admin-modal-close">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        <div id="deposit-details-content" class="admin-modal-body">
-            <!-- Content will be loaded here -->
-        </div>
-    </div>
-</div>
-
-<!-- Loading Modal -->
-{% with modal_id="loading-modal", modal_title="Caricamento..." %}
-    {% include 'admin/components/loading.html' %}
-{% endwith %}
-
-<!-- Success/Error Alerts -->
-{% with alert_id="success-alert", alert_type="success", alert_message="Operazione completata con successo!" %}
-    {% include 'admin/components/alert.html' %}
-{% endwith %}
-
-{% with alert_id="error-alert", alert_type="error", alert_message="Si è verificato un errore!" %}
-    {% include 'admin/components/alert.html' %}
-{% endwith %}
 
 <script>
-// Global variables
-let currentDeposits = {{ deposits|tojson }};
-let currentFilters = {
-    status: '',
-    search: ''
-};
+let deposits = [];
+let lastId = 0;
 
-// Filter deposits based on current filters
-function filterDeposits() {
-    const statusFilter = document.getElementById('status-filter').value;
-    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
-    
-    currentFilters.status = statusFilter;
-    currentFilters.search = searchFilter;
-    
-    const rows = document.querySelectorAll('#deposits-table-body tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const status = row.dataset.status;
-        const searchText = row.dataset.search;
-        
-        const statusMatch = !statusFilter || status === statusFilter;
-        const searchMatch = !searchFilter || searchText.includes(searchFilter);
-        
-        if (statusMatch && searchMatch) {
-            row.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            row.classList.add('hidden');
-        }
-    });
-    
-    // Update subtitle
-    const subtitle = document.querySelector('.admin-card-subtitle');
-    if (subtitle) {
-        subtitle.textContent = `${visibleCount} richieste trovate`;
-    }
+async function fetchStats(){
+  const r = await fetch('/admin/api/deposit-stats');
+  if(!r.ok) return;
+  const s = await r.json();
+  document.getElementById('m-pending').textContent = s.pending;
+  document.getElementById('m-completed').textContent = s.completed;
+  document.getElementById('m-failed').textContent = s.failed;
+  document.getElementById('m-total').textContent = `€${(s.total_amount||0).toLocaleString('it-IT', {minimumFractionDigits:0})}`;
+  lastId = s.last_id || lastId;
 }
 
-// Refresh deposits list
-async function refreshDeposits() {
-    try {
-        showLoading();
-        const response = await fetch('/admin/deposits');
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            throw new Error('Errore nel refresh');
-        }
-    } catch (error) {
-        console.error('Errore refresh:', error);
-        showError('Errore nell\'aggiornamento della lista');
-    } finally {
-        hideLoading();
-    }
+async function fetchList(){
+  const status = document.getElementById('status-filter').value || 'pending';
+  const r = await fetch(`/admin/api/deposit-requests?status=${encodeURIComponent(status)}`);
+  if(!r.ok) return;
+  deposits = await r.json();
+  renderTable();
 }
 
-// View deposit details
-async function viewDepositDetails(depositId) {
-    try {
-        showLoading();
-        const response = await fetch(`/admin/api/deposit-requests/${depositId}`);
-        if (response.ok) {
-            const deposit = await response.json();
-            showDepositDetailsModal(deposit);
-        } else {
-            throw new Error('Errore nel caricamento dettagli');
-        }
-    } catch (error) {
-        console.error('Errore dettagli:', error);
-        showError('Errore nel caricamento dei dettagli');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Show deposit details modal
-function showDepositDetailsModal(deposit) {
-    const modal = document.getElementById('deposit-details-modal');
-    const content = document.getElementById('deposit-details-content');
-    
-    content.innerHTML = `
-        <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Utente</label>
-                    <p class="mt-1 text-sm text-gray-900">${deposit.full_name}</p>
-                    <p class="text-sm text-gray-500">${deposit.email}</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Importo</label>
-                    <p class="mt-1 text-lg font-semibold text-gray-900">€${deposit.amount}</p>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Stato</label>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                        ${deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          deposit.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                          'bg-red-100 text-red-800'}">
-                        ${deposit.status === 'pending' ? 'In attesa' : 
-                          deposit.status === 'completed' ? 'Completata' : 'Rifiutata'}
-                    </span>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Data Richiesta</label>
-                    <p class="mt-1 text-sm text-gray-900">${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Riferimento Pagamento</label>
-                <p class="mt-1 text-sm text-gray-900">${deposit.payment_reference || 'N/A'}</p>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Chiave Unica</label>
-                <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.unique_key}</p>
-            </div>
-            
-            ${deposit.admin_notes ? `
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Note Admin</label>
-                <p class="mt-1 text-sm text-gray-900">${deposit.admin_notes}</p>
-            </div>
-            ` : ''}
+function renderTable(){
+  const search = (document.getElementById('search-filter').value||'').toLowerCase();
+  const tbody = document.getElementById('deposits-table-body');
+  const rows = deposits.filter(d=>{
+    const txt = `${(d.full_name||'').toLowerCase()} ${(d.email||'').toLowerCase()}`;
+    return !search || txt.includes(search);
+  }).map(d=>`
+    <tr class="admin-table-tr" data-id="${d.id}">
+      <td class="admin-table-td"><div><div class="admin-text-body font-medium">${d.full_name||'N/A'}</div><div class="admin-text-small text-gray-500">${d.email||''}</div></div></td>
+      <td class="admin-table-td"><span class="admin-text-body font-medium">€${parseFloat(d.amount).toLocaleString('it-IT',{minimumFractionDigits:2})}</span></td>
+      <td class="admin-table-td"><div><div class="admin-text-body font-medium">${d.payment_reference||'N/A'}</div><div class="admin-text-small text-gray-500">${(d.unique_key||'').slice(0,8)}...</div></div></td>
+      <td class="admin-table-td">${badge(d.status)}</td>
+      <td class="admin-table-td"><div class="admin-text-body">${fmtDate(d.created_at)}</div><div class="admin-text-small text-gray-500">${fmtTime(d.created_at)}</div></td>
+      <td class="admin-table-td">
+        <div class="admin-flex admin-flex--gap-2">
+          ${d.status==='pending'?`<button onclick="approve(${d.id})" class="admin-btn admin-btn--success admin-btn--sm">✓</button><button onclick="reject(${d.id})" class="admin-btn admin-btn--error admin-btn--sm">✕</button>`:''}
         </div>
-    `;
-    
-    modal.classList.remove('hidden');
+      </td>
+    </tr>
+  `).join('');
+  tbody.innerHTML = rows || `<tr><td class="admin-table-td" colspan="6">Nessun risultato</td></tr>`;
+  document.getElementById('rows-count').textContent = `${deposits.length} richieste`;
 }
 
-// Close deposit modal
-function closeDepositModal() {
-    document.getElementById('deposit-details-modal').classList.add('hidden');
+function badge(s){
+  if(s==='completed') return '<span class="admin-badge admin-badge--success">Completata</span>';
+  if(s==='failed') return '<span class="admin-badge admin-badge--error">Rifiutata</span>';
+  return '<span class="admin-badge admin-badge--warning">In attesa</span>';
+}
+function fmtDate(dt){ try{ return new Date(dt).toLocaleDateString('it-IT'); }catch(_){ return '' } }
+function fmtTime(dt){ try{ return new Date(dt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }catch(_){ return '' } }
+
+async function approve(id){
+  const r = await fetch('/admin/api/deposit-requests/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deposit_id:id})});
+  if(r.ok){ await fetchStats(); await fetchList(); }
+}
+async function reject(id){
+  const reason = prompt('Motivo (opzionale):') || 'Rifiutata da admin';
+  const r = await fetch('/admin/api/deposit-requests/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deposit_id:id,admin_notes:reason})});
+  if(r.ok){ await fetchStats(); await fetchList(); }
 }
 
-// Approve deposit
-async function approveDeposit(depositId) {
-    if (!confirm('Sei sicuro di voler approvare questa ricarica?')) return;
-    
-    try {
-        showLoading();
-        const response = await fetch('/admin/api/deposit-requests/approve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deposit_id: depositId })
-        });
-        
-        if (response.ok) {
-            showSuccess('Ricarica approvata con successo!');
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Errore nell\'approvazione');
-        }
-    } catch (error) {
-        console.error('Errore approvazione:', error);
-        showError(error.message || 'Errore nell\'approvazione della ricarica');
-    } finally {
-        hideLoading();
-    }
+// Polling
+let timer;
+function startPolling(){
+  clearInterval(timer);
+  timer = setInterval(async ()=>{ await fetchStats(); await fetchList(); }, 4000);
 }
 
-// Reject deposit
-async function rejectDeposit(depositId) {
-    const reason = prompt('Motivo del rifiuto (opzionale):');
-    if (reason === null) return; // User cancelled
-    
-    try {
-        showLoading();
-        const response = await fetch('/admin/api/deposit-requests/reject', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                deposit_id: depositId,
-                admin_notes: reason || 'Rifiutata da admin'
-            })
-        });
-        
-        if (response.ok) {
-            showSuccess('Ricarica rifiutata!');
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Errore nel rifiuto');
-        }
-    } catch (error) {
-        console.error('Errore rifiuto:', error);
-        showError(error.message || 'Errore nel rifiuto della ricarica');
-    } finally {
-        hideLoading();
-    }
-}
+document.getElementById('status-filter').addEventListener('change', fetchList);
+document.getElementById('search-filter').addEventListener('input', renderTable);
+document.getElementById('force-refresh').addEventListener('click', async ()=>{ await fetchStats(); await fetchList(); });
 
-// Utility functions
-function showLoading() {
-    document.getElementById('loading-modal').classList.remove('hidden');
-}
-
-function hideLoading() {
-    document.getElementById('loading-modal').classList.add('hidden');
-}
-
-function showSuccess(message) {
-    const alert = document.getElementById('success-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
-}
-
-function showError(message) {
-    const alert = document.getElementById('error-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Set initial filter values
-    if (currentFilters.status) {
-        document.getElementById('status-filter').value = currentFilters.status;
-    }
-    if (currentFilters.search) {
-        document.getElementById('search-filter').value = currentFilters.search;
-    }
-    
-    // Apply initial filters
-    filterDeposits();
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await fetchStats();
+  await fetchList();
+  startPolling();
 });
 </script>
 {% endblock %}

@@ -83,7 +83,7 @@
                 </div>
                 <div class="text-right">
                     <p class="text-3xl font-bold text-gray-900" id="total-balance">€0.00</p>
-                    <p class="text-sm text-gray-500" id="last-updated">Aggiornato: mai</p>
+                    <p class="text-sm text-gray-500" id="last-updated"></p>
                 </div>
             </div>
         </div>
@@ -100,7 +100,7 @@
             <button onclick="showSection('deposits')" 
                     class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
                     id="tab-deposits">
-                Ricariche
+                Deposito
             </button>
             <button onclick="showSection('withdrawals')" 
                     class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
@@ -180,17 +180,23 @@
             </div>
         </div>
 
-        <!-- Sezione Ricariche -->
+        <!-- Sezione Deposito (semplificata) -->
         <div id="section-deposits" class="section-content hidden">
-            <div class="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Storico Ricariche</h2>
-                <div id="deposits-list" class="space-y-4">
-                    <div class="text-center py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p class="text-gray-500 mt-2">Caricamento ricariche...</p>
-                    </div>
-                </div>
+          <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Deposita fondi</h2>
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Importo (minimo €500)</label>
+              <div class="flex gap-3 items-center">
+                <input id="deposit-amount-v2" type="number" min="500" step="50" class="px-3 py-2 border rounded-lg w-48" placeholder="500">
+                <button type="button" id="deposit-submit-v2" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Richiedi deposito</button>
+                <span id="deposit-feedback" class="text-sm text-gray-600"></span>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Dopo aver inviato la richiesta, l'admin la visualizzerà e la approverà. Riceverai una notifica.</p>
             </div>
+
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Le tue richieste</h3>
+            <div id="deposits-list-v2" class="space-y-4"></div>
+          </div>
         </div>
 
         <!-- Sezione Prelievi -->
@@ -319,99 +325,90 @@
         </div>
     </div>
 
-    <!-- Form Profilo - Richiesto dalla roadmap -->
-    <div class="px-6 pb-8">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Dati Personali e Preferenze</h2>
-            
-            <form id="portfolio-profile-form" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="portfolio_nome" class="block text-sm font-medium text-gray-700 mb-2">
-                            Nome
-                        </label>
-                        <input type="text" 
-                               id="portfolio_nome" 
-                               name="nome" 
-                               value="{{ user.nome or '' }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label for="portfolio_cognome" class="block text-sm font-medium text-gray-700 mb-2">
-                            Cognome
-                        </label>
-                        <input type="text" 
-                               id="portfolio_cognome" 
-                               name="cognome" 
-                               value="{{ user.cognome or '' }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               required>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="portfolio_telefono" class="block text-sm font-medium text-gray-700 mb-2">
-                            Telefono
-                        </label>
-                        <input type="tel" 
-                               id="portfolio_telefono" 
-                               name="telefono" 
-                               value="{{ user.telefono or '' }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               required>
-                    </div>
-                    
-                    <div>
-                        <label for="portfolio_nome_telegram" class="block text-sm font-medium text-gray-700 mb-2">
-                            Nome Telegram
-                        </label>
-                        <input type="text" 
-                               id="portfolio_nome_telegram" 
-                               name="nome_telegram" 
-                               value="{{ user.nome_telegram or '' }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="@username">
-                    </div>
-                </div>
-                
-                <div>
-                    <label for="portfolio_address" class="block text-sm font-medium text-gray-700 mb-2">
-                        Indirizzo
-                    </label>
-                    <textarea id="portfolio_address" 
-                              name="address" 
-                              rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Via, numero, città, CAP">{{ user.address or '' }}</textarea>
-                </div>
-                
-                <div>
-                    <label for="portfolio_currency" class="block text-sm font-medium text-gray-700 mb-2">
-                        Valuta Preferita
-                    </label>
-                    <select id="portfolio_currency" 
-                            name="currency_code" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required>
-                        <option value="USD" {{ 'selected' if user.currency_code == 'USD' else '' }}>Dollaro USA (USD)</option>
-                        <option value="EUR" {{ 'selected' if user.currency_code == 'EUR' else '' }}>Euro (EUR)</option>
-                        <option value="GBP" {{ 'selected' if user.currency_code == 'GBP' else '' }}>Sterlina (GBP)</option>
-                    </select>
-                </div>
-                
-                <div class="pt-4 border-t border-gray-200">
-                    <button type="submit" 
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-                        Aggiorna Dati Personali
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Sezione Dati Personali e Preferenze rimossa su richiesta -->
 </div>
+
+<!-- Modal scelta metodo deposito -->
+<div id="deposit-method-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
+  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-3">Seleziona metodo di deposito</h3>
+    <p class="text-sm text-gray-600 mb-4">Scegli come desideri effettuare il deposito.</p>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button type="button" id="modal-choose-crypto" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Crypto (USDT · BSC)</button>
+      <button type="button" id="modal-choose-bank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Bonifico bancario</button>
+    </div>
+    <button type="button" id="modal-deposit-cancel" class="mt-4 w-full bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
+  </div>
+  </div>
+
+<!-- Modal indirizzo CRYPTO (USDT · BSC) -->
+<div id="deposit-crypto-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
+  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">Indirizzo USDT su BSC (BEP20)</h3>
+    <p class="text-sm text-gray-600 mb-4">Inviare esclusivamente USDT su rete BSC. Qualsiasi altro asset/rete potrebbe andare perso.</p>
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
+      <p class="text-xs text-green-800 mb-1">Address</p>
+      <div class="flex items-center gap-2">
+        <code id="crypto-address-text" class="text-green-900 text-sm break-all select-all">0x0000000000000000000000000000000000000000</code>
+        <button type="button" id="copy-crypto-address" class="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Copia</button>
+      </div>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3 mt-4">
+      <button type="button" id="crypto-continue" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Continua</button>
+      <button type="button" id="crypto-cancel" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
+    </div>
+  </div>
+  </div>
+
+<!-- Modal dati BONIFICO BANCARIO -->
+<div id="deposit-bank-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
+  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">Dati per Bonifico Bancario</h3>
+    <p class="text-sm text-gray-600 mb-4">Utilizza questi dati di esempio. Ti forniremo quelli reali successivamente.</p>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3 space-y-2">
+      <div class="flex items-center gap-2">
+        <span class="text-blue-900 text-sm font-medium">Beneficiario:</span>
+        <span id="bank-beneficiary" class="text-blue-900 text-sm">CIP Immobiliare SRL</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-900 text-sm font-medium">Banca:</span>
+        <span id="bank-name" class="text-blue-900 text-sm">Banca Esempio</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-900 text-sm font-medium">IBAN:</span>
+        <code id="bank-iban" class="text-blue-900 text-sm break-all">IT00X0000000000000000000000</code>
+        <button type="button" id="copy-bank-iban" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Copia</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-900 text-sm font-medium">BIC:</span>
+        <code id="bank-bic" class="text-blue-900 text-sm">CIPAITMMXXX</code>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-900 text-sm font-medium">Causale:</span>
+        <code id="bank-reason" class="text-blue-900 text-sm break-all">deposito nome cognome</code>
+      </div>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3 mt-4">
+      <button type="button" id="bank-continue" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Continua</button>
+      <button type="button" id="bank-cancel" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
+    </div>
+  </div>
+  </div>
+
+<!-- Rimosso modal: ora inline steps -->
+
+<!-- Popup conferma richiesta deposito -->
+<div id="deposit-pending-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
+  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">Richiesta inviata</h3>
+    <p class="text-sm text-gray-700">La tua richiesta di deposito è stata inviata e verrà revisionata entro 24 ore dall'admin. Riceverai una notifica quando sarà approvata.</p>
+    <button type="button" id="deposit-pending-close" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Ho capito</button>
+  </div>
+  </div>
 
 <script>
 // Gestione sezioni portfolio
@@ -475,7 +472,7 @@ async function loadDeposits() {
         const response = await fetch('/api/portfolio/deposits');
         const data = await response.json();
         
-        const depositsList = document.getElementById('deposits-list');
+        const depositsList = document.getElementById('deposits-list-v2') || document.getElementById('deposits-list');
         
         if (data.deposits && data.deposits.length > 0) {
             depositsList.innerHTML = data.deposits.map(deposit => `
@@ -514,14 +511,35 @@ async function loadDeposits() {
         
         window.depositsLoaded = true;
     } catch (error) {
-        console.error('Errore caricamento ricariche:', error);
+        console.error('Errore caricamento depositi:', error);
         document.getElementById('deposits-list').innerHTML = `
             <div class="text-center py-8 text-red-600">
-                <p>Errore durante il caricamento delle ricariche</p>
+                <p>Errore durante il caricamento dei depositi</p>
             </div>
         `;
     }
 }
+
+// Nuovo invio richiesta deposito (semplificato)
+document.getElementById('deposit-submit-v2')?.addEventListener('click', async ()=>{
+  const amount = parseFloat(document.getElementById('deposit-amount-v2').value || '0');
+  const fb = document.getElementById('deposit-feedback');
+  if(!(amount >= 500)){ fb.textContent = 'Importo minimo €500'; return; }
+  fb.textContent = 'Invio...';
+  try{
+    const res = await fetch('/deposits/api/requests/new', { 
+      method:'POST', 
+      headers:{'Content-Type':'application/json'}, 
+      credentials: 'same-origin',
+      body: JSON.stringify({ amount }) 
+    });
+    let out = {};
+    try { out = await res.json(); } catch(_){ out = {}; }
+    if(!res.ok){ fb.textContent = out.error ? `${out.error}` : `Errore ${res.status}`; return; }
+    fb.textContent = 'Richiesta inviata. In attesa di approvazione.';
+    await loadDeposits();
+  }catch(e){ fb.textContent = 'Errore di rete'; }
+});
 
 // Carica richieste prelievo
 async function loadWithdrawals() {
@@ -725,40 +743,203 @@ document.getElementById('withdrawal-form').addEventListener('submit', async func
 });
 
 // Gestione form profilo portfolio
-document.getElementById('portfolio-profile-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = {
-        nome: formData.get('nome'),
-        cognome: formData.get('cognome'),
-        telefono: formData.get('telefono'),
-        nome_telegram: formData.get('nome_telegram'),
-        address: formData.get('address'),
-        currency_code: formData.get('currency_code')
-    };
-    
-    try {
-        const response = await fetch('{{ url_for("user.profile_update") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert('Dati personali aggiornati con successo!');
-            location.reload();
-        } else {
-            alert('Errore: ' + result.error);
-        }
-    } catch (error) {
-        alert('Errore durante l\'aggiornamento dei dati personali');
-    }
+const portfolioProfileForm = document.getElementById('portfolio-profile-form');
+if (portfolioProfileForm) {
+  portfolioProfileForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const data = {
+          nome: formData.get('nome'),
+          cognome: formData.get('cognome'),
+          telefono: formData.get('telefono'),
+          nome_telegram: formData.get('nome_telegram'),
+          address: formData.get('address'),
+          currency_code: formData.get('currency_code')
+      };
+      try {
+          const response = await fetch('{{ url_for("user.profile_update") }}', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(data)
+          });
+          const result = await response.json();
+          if (result.success) {
+              alert('Dati personali aggiornati con successo!');
+              location.reload();
+          } else {
+              alert('Errore: ' + result.error);
+          }
+      } catch (error) {
+          alert('Errore durante l\'aggiornamento dei dati personali');
+      }
+  });
+}
+
+// Nuovo flusso step-by-step deposito
+const stepAmount = document.getElementById('deposit-step-amount');
+const stepMethod = document.getElementById('deposit-step-method');
+const stepInstructions = document.getElementById('deposit-instructions');
+const methodModal = document.getElementById('deposit-method-modal');
+const cryptoModal = document.getElementById('deposit-crypto-modal');
+const openMethodModal = () => { if(methodModal){ methodModal.classList.remove('hidden'); methodModal.classList.add('flex'); } };
+const closeMethodModal = () => { if(methodModal){ methodModal.classList.add('hidden'); methodModal.classList.remove('flex'); } };
+const openCryptoModal = () => { if(cryptoModal){ cryptoModal.classList.remove('hidden'); cryptoModal.classList.add('flex'); } };
+const closeCryptoModal = () => { if(cryptoModal){ cryptoModal.classList.add('hidden'); cryptoModal.classList.remove('flex'); } };
+const bankModal = document.getElementById('deposit-bank-modal');
+const openBankModal = () => { if(bankModal){ bankModal.classList.remove('hidden'); bankModal.classList.add('flex'); } };
+const closeBankModal = () => { if(bankModal){ bankModal.classList.add('hidden'); bankModal.classList.remove('flex'); } };
+let pendingDepositAmount = null;
+
+// Helper per mostrare subito il popup di conferma
+function showPendingModal(){
+  const m = document.getElementById('deposit-pending-modal');
+  if(m){ m.classList.remove('hidden'); m.classList.add('flex'); }
+}
+
+document.getElementById('deposit-next')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  const amount = parseFloat(document.getElementById('deposit-amount').value || '0');
+  if(!(amount >= 500)){
+    alert('L\'importo minimo è €500');
+    return;
+  }
+  pendingDepositAmount = amount;
+  // Mostra modal scelta metodo invece della sezione inline
+  openMethodModal();
 });
+
+document.getElementById('deposit-cancel')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  stepMethod.classList.add('hidden');
+  stepAmount.classList.remove('hidden');
+});
+
+// Modal handlers
+document.getElementById('modal-deposit-cancel')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  closeMethodModal();
+});
+methodModal?.addEventListener('click', (e)=>{ if(e.target === methodModal) { e.preventDefault(); closeMethodModal(); } });
+
+document.getElementById('deposit-choose-crypto')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeMethodModal();
+  // mostra modal indirizzo e successivamente invia
+  await prepareCryptoAddress();
+  openCryptoModal();
+});
+document.getElementById('deposit-choose-bank')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeMethodModal();
+  openBankModal();
+});
+document.getElementById('modal-choose-crypto')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeMethodModal();
+  await prepareCryptoAddress();
+  openCryptoModal();
+});
+document.getElementById('modal-choose-bank')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeMethodModal();
+  openBankModal();
+});
+
+async function submitDeposit(amount, method){
+  // Crea la richiesta ufficiale lato server (route standard deposits)
+  console.log('[deposit] submitting', { amount, method });
+  const res = await fetch('/deposits/api/requests/new', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount })
+  });
+  const out = await res.json();
+  console.log('[deposit] response', res.status, out);
+  if(!res.ok){
+    alert(out.error || 'Errore');
+    return;
+  }
+  // Mostra popup di conferma solo se il backend ha creato la richiesta
+  showPendingModal();
+  stepMethod.classList.add('hidden');
+  stepInstructions.classList.remove('hidden');
+  const cryptoDiv = document.getElementById('deposit-crypto');
+  const bankDiv = document.getElementById('deposit-bank');
+  cryptoDiv.classList.add('hidden');
+  bankDiv.classList.add('hidden');
+  if(method === 'crypto'){
+    const exampleBscAddress = '0x8b8A56c4f8C2b4dB1aC5D9e7F4AaE1b234567890';
+    const c = { asset: 'USDT', network: 'BSC (BEP20)', address: exampleBscAddress, note: 'Indirizzo di esempio. Invia esclusivamente USDT su rete BSC (BEP20).' };
+    cryptoDiv.innerHTML = `<div class="text-green-900"><p><strong>Metodo:</strong> ${c.asset} - ${c.network}</p><p><strong>Address:</strong> <span style="font-family:monospace">${c.address}</span> <span class=\"text-xs text-green-700\">(esempio)</span></p><p class="mt-2 text-sm">${c.note||''}</p></div>`;
+    cryptoDiv.classList.remove('hidden');
+  } else {
+    const b = { beneficiary: 'CIP Immobiliare SRL', bank_name: 'Banca Esempio', iban: 'IT00X0000000000000000000000', bic: 'CIPAITMMXXX', reason_hint: 'deposito nome cognome' };
+    bankDiv.innerHTML = `<div class="text-blue-900"><p><strong>Beneficiario:</strong> ${b.beneficiary||''}</p><p><strong>Banca:</strong> ${b.bank_name||''}</p><p><strong>IBAN:</strong> ${b.iban||''}</p><p><strong>BIC:</strong> ${b.bic||''}</p><p class="mt-2"><strong>Causale:</strong> ${b.reason_hint||''}</p></div>`;
+    bankDiv.classList.remove('hidden');
+  }
+  loadDeposits();
+  // Mostra popup di conferma revisione 24h
+  const pendingModal = document.getElementById('deposit-pending-modal');
+  if(pendingModal){ pendingModal.classList.remove('hidden'); pendingModal.classList.add('flex'); }
+}
+
+async function prepareCryptoAddress(){
+  // Prendi un indirizzo d'esempio o reale via API veloce (senza creare richiesta)
+  // Qui usiamo l'esempio lato frontend; l'indirizzo reale arriverà nella submit.
+  const exampleBscAddress = '0x8b8A56c4f8C2b4dB1aC5D9e7F4AaE1b234567890';
+  const el = document.getElementById('crypto-address-text');
+  if(el){ el.textContent = exampleBscAddress; }
+}
+
+// Copia indirizzo
+document.getElementById('copy-crypto-address')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const el = document.getElementById('crypto-address-text');
+  try{
+    await navigator.clipboard.writeText(el?.textContent || '');
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.textContent = 'Copiato!';
+    setTimeout(()=>{ btn.textContent = original; }, 1200);
+  } catch(_) {}
+});
+
+// Conferma crypto -> crea richiesta pending e mostra istruzioni
+document.getElementById('crypto-continue')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeCryptoModal();
+  await submitDeposit(pendingDepositAmount, 'crypto');
+});
+
+document.getElementById('crypto-cancel')?.addEventListener('click', (e)=>{ e.preventDefault(); closeCryptoModal(); });
+
+cryptoModal?.addEventListener('click', (e)=>{ if(e.target === cryptoModal){ e.preventDefault(); closeCryptoModal(); } });
+
+// Copia IBAN e causale
+document.getElementById('copy-bank-iban')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  try {
+    await navigator.clipboard.writeText(document.getElementById('bank-iban')?.textContent || '');
+    const btn = e.currentTarget; const original = btn.textContent; btn.textContent = 'Copiato!'; setTimeout(()=>{btn.textContent = original;}, 1200);
+  } catch(_) {}
+});
+// (rimosso copia causale su richiesta)
+
+// Conferma bonifico -> crea richiesta pending
+document.getElementById('bank-continue')?.addEventListener('click', async (e)=>{
+  e.preventDefault();
+  closeBankModal();
+  await submitDeposit(pendingDepositAmount, 'bank');
+});
+document.getElementById('bank-cancel')?.addEventListener('click', (e)=>{ e.preventDefault(); closeBankModal(); });
+bankModal?.addEventListener('click', (e)=>{ if(e.target === bankModal){ e.preventDefault(); closeBankModal(); } });
+
+// Chiudi popup conferma
+const pendingModal = document.getElementById('deposit-pending-modal');
+document.getElementById('deposit-pending-close')?.addEventListener('click', (e)=>{ e.preventDefault(); if(pendingModal){ pendingModal.classList.add('hidden'); pendingModal.classList.remove('flex'); } });
+pendingModal?.addEventListener('click', (e)=>{ if(e.target === pendingModal){ e.preventDefault(); pendingModal.classList.add('hidden'); pendingModal.classList.remove('flex'); } });
 
 // Inizializzazione pagina
 document.addEventListener('DOMContentLoaded', function() {

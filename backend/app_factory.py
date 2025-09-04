@@ -131,6 +131,18 @@ def create_app():
     except Exception as e:
         app.logger.warning(f"Impossibile registrare blueprint KYC: {e}")
     
+    # Registra blueprint Portfolio (API deposito/bonifico/cronologie)
+    try:
+        from backend.portfolio.routes import portfolio_bp
+        # Le route del blueprint iniziano già con '/api/...', quindi non aggiungiamo un ulteriore prefisso
+        app.register_blueprint(portfolio_bp)
+        app.logger.info("Blueprint Portfolio registrato con successo")
+    except Exception as e:
+        app.logger.warning(f"Impossibile registrare blueprint Portfolio: {e}")
+    
+    # Deposits blueprint è registrato in main.py insieme agli altri moduli API
+    # per evitare doppie registrazioni durante i test/factory usage.
+    
     # Crea utente admin automaticamente se non esiste
     try:
         create_admin_user()

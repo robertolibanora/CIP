@@ -6,12 +6,14 @@ API per gestione ricariche: Richieste, approvazioni
 import secrets
 import string
 from datetime import datetime
+import logging
 from decimal import Decimal
 from flask import Blueprint, request, session, jsonify
 from backend.shared.database import get_connection
 from backend.shared.models import TransactionStatus
 
 deposits_bp = Blueprint("deposits", __name__)
+logger = logging.getLogger(__name__)
 
 def get_conn():
     return get_connection()
@@ -26,8 +28,37 @@ def generate_payment_reference(length=12):
     characters = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
 
+def ensure_deposits_schema(cur):
+    """Crea tabelle minime necessarie se mancanti (solo per ambienti dev)."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS iban_configurations (
+            id SERIAL PRIMARY KEY,
+            iban TEXT NOT NULL UNIQUE,
+            bank_name TEXT NOT NULL,
+            account_holder TEXT NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS deposit_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            amount NUMERIC(15,2) NOT NULL CHECK (amount >= 500.00),
+            iban TEXT NOT NULL,
+            unique_key TEXT NOT NULL UNIQUE,
+            payment_reference TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL CHECK (status IN ('pending','completed','failed','cancelled')) DEFAULT 'pending',
+            admin_notes TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            approved_at TIMESTAMPTZ,
+            approved_by INT
+        );
+    """)
+
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, kyc_verified
+from backend.auth.decorators import login_required, kyc_pending_allowed
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -87,11 +118,20 @@ def get_deposit_request_detail(request_id):
     return jsonify({'deposit_request': request_detail})
 
 @deposits_bp.route('/api/requests/new', methods=['POST'])
-@kyc_verified
+@kyc_pending_allowed
 def create_deposit_request():
     """Crea una nuova richiesta di ricarica"""
     uid = session.get("user_id")
-    data = request.get_json() or {}
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        data = {}
+    logger.info("[deposits] create payload=%s headers=%s", data, dict(request.headers))
+
+    if not uid:
+        logger.warning("[deposits] create denied: missing user session")
+        return jsonify({'error': 'unauthorized'}), 401
+    logger.info("[deposits] POST /api/requests/new uid=%s payload=%s", uid, data)
     
     # Validazione dati
     if 'amount' not in data:
@@ -99,49 +139,75 @@ def create_deposit_request():
     
     try:
         amount = Decimal(str(data['amount']))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, KeyError):
         return jsonify({'error': 'Importo non valido'}), 400
     
     # Validazione importo minimo (500€)
-    if amount < 500:
+    if amount < Decimal('500'):
         return jsonify({'error': 'Importo minimo richiesto: 500€'}), 400
     
-    with get_conn() as conn, conn.cursor() as cur:
-        # Ottieni IBAN attivo
-        cur.execute("""
-            SELECT iban, bank_name, account_holder
-            FROM iban_configurations 
-            WHERE is_active = TRUE 
-            LIMIT 1
-        """)
-        iban_config = cur.fetchone()
-        
-        if not iban_config:
-            return jsonify({'error': 'Nessun IBAN configurato per le ricariche'}), 500
-        
-        # Genera chiavi univoche
-        unique_key = generate_unique_key()
-        payment_reference = generate_payment_reference()
-        
-        # Verifica unicità chiavi
-        cur.execute("""
-            SELECT id FROM deposit_requests 
-            WHERE unique_key = %s OR payment_reference = %s
-        """, (unique_key, payment_reference))
-        
-        if cur.fetchone():
-            return jsonify({'error': 'Errore generazione chiavi univoche. Riprova.'}), 500
-        
-        # Crea richiesta
-        cur.execute("""
-            INSERT INTO deposit_requests 
-            (user_id, amount, iban, unique_key, payment_reference, status)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id, created_at
-        """, (uid, amount, iban_config['iban'], unique_key, payment_reference, 'pending'))
-        
-        new_request = cur.fetchone()
-        conn.commit()
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Garantisce schema in dev
+            ensure_deposits_schema(cur)
+            # Ottieni IBAN attivo
+            cur.execute("""
+                SELECT iban, bank_name, account_holder
+                FROM iban_configurations 
+                WHERE is_active = TRUE 
+                LIMIT 1
+            """)
+            iban_config = cur.fetchone()
+            logger.info("[deposits] active IBAN fetched: %s", iban_config)
+            
+            if not iban_config:
+                # Se non esiste una configurazione IBAN attiva, crea una voce di default
+                default_iban = 'IT60X0542811101000000123456'
+                default_bank = 'Banca Example'
+                default_holder = 'CIP Immobiliare SRL'
+                cur.execute("""
+                    INSERT INTO iban_configurations (iban, bank_name, account_holder, is_active)
+                    VALUES (%s, %s, %s, TRUE)
+                    ON CONFLICT (iban) DO UPDATE SET 
+                        bank_name = EXCLUDED.bank_name,
+                        account_holder = EXCLUDED.account_holder,
+                        is_active = TRUE,
+                        updated_at = NOW()
+                """, (default_iban, default_bank, default_holder))
+                iban_config = {
+                    'iban': default_iban,
+                    'bank_name': default_bank,
+                    'account_holder': default_holder
+                }
+            
+            # Genera chiavi univoche
+            unique_key = generate_unique_key()
+            payment_reference = generate_payment_reference()
+            
+            # Verifica unicità chiavi
+            cur.execute("""
+                SELECT id FROM deposit_requests 
+                WHERE unique_key = %s OR payment_reference = %s
+            """, (unique_key, payment_reference))
+            
+            if cur.fetchone():
+                return jsonify({'error': 'Errore generazione chiavi univoche. Riprova.'}), 500
+            
+            # Crea richiesta
+            cur.execute("""
+                INSERT INTO deposit_requests 
+                (user_id, amount, iban, unique_key, payment_reference, status)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id, created_at
+            """, (uid, amount, iban_config['iban'], unique_key, payment_reference, 'pending'))
+            
+            new_request = cur.fetchone()
+            conn.commit()
+            logger.info("[deposits] created deposit_request id=%s amount=%s user=%s", new_request['id'] if new_request else None, amount, uid)
+    except Exception as e:
+        logger.exception("[deposits] create failed: %s", e)
+        # Risposta dettagliata in dev per debug rapido
+        return jsonify({'error': 'Errore interno durante la creazione della richiesta', 'debug': str(e)}), 500
     
     return jsonify({
         'success': True,

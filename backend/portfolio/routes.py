@@ -8,10 +8,29 @@ import json
 from backend.shared.database import get_connection
 from backend.shared.validators import ValidationError
 
-portfolio_bp = Blueprint("portfolio", __name__)
+# Evita conflitti con blueprint user 'portfolio'
+portfolio_bp = Blueprint("portfolio_api2", __name__)
 
 def get_conn():
     return get_connection()
+
+def ensure_deposits_schema(cur):
+    """Crea le tabelle minime per le ricariche se mancanti (dev/local)."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS deposit_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            amount NUMERIC(15,2) NOT NULL CHECK (amount >= 500.00),
+            iban TEXT,
+            unique_key TEXT UNIQUE,
+            payment_reference TEXT UNIQUE,
+            status TEXT NOT NULL CHECK (status IN ('pending','completed','failed','cancelled')) DEFAULT 'pending',
+            admin_notes TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            approved_at TIMESTAMPTZ,
+            approved_by INT
+        );
+    """)
 
 @portfolio_bp.before_request
 def require_login():
@@ -140,6 +159,7 @@ def get_deposit_history():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_deposits_schema(cur)
         cur.execute("""
             SELECT 
                 id, amount, status, created_at, approved_at,
@@ -156,6 +176,73 @@ def get_deposit_history():
             deposit['amount'] = float(deposit['amount'])
     
     return jsonify({'deposits': deposits})
+
+@portfolio_bp.route('/api/portfolio/deposits', methods=['POST'])
+def create_deposit_request():
+    """Crea richiesta di deposito (minimo 500).
+    Se payment_method == 'crypto' restituisce un indirizzo USDT BSC (fittizio).
+    Altrimenti restituisce i dati bancari per bonifico.
+    """
+    uid = session.get('user_id')
+    data = request.get_json() or {}
+    try:
+        amount = float(data.get('amount', 0))
+    except Exception:
+        return jsonify({'error': 'Importo non valido'}), 400
+    if amount < 500:
+        return jsonify({'error': 'Importo minimo di deposito: €500'}), 400
+
+    payment_method = (data.get('payment_method') or 'bank').lower()
+
+    # Dati bancari azienda (placeholder - da sostituire)
+    bank_info = {
+        'beneficiary': 'CIP Immobiliare SRL',
+        'iban': 'IT00X0000000000000000000000',
+        'bic': 'CIPAITMMXXX',
+        'bank_name': 'Banca Esempio',
+        'reason_hint': 'nella causale si è pregati di inserire "deposito *nome *cognome"'
+    }
+
+    # Dati crypto fittizi (USDT su BSC/BEP20)
+    import random
+    faux_address = '0x' + ''.join(random.choice('0123456789abcdef') for _ in range(40))
+    crypto_info = {
+        'asset': 'USDT',
+        'network': 'BSC (BEP20)',
+        'address': faux_address,
+        'note': 'Inviare esclusivamente USDT su rete BSC (BEP20). Qualsiasi altro asset andrà perso.'
+    }
+
+    # Registra richiesta in stato pending e genera riferimento
+    import uuid
+    unique_key = str(uuid.uuid4())[:8]
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO deposit_requests (user_id, amount, status, unique_key)
+            VALUES (%s, %s, 'pending', %s)
+            RETURNING id, created_at
+            """,
+            (uid, amount, unique_key)
+        )
+        row = cur.fetchone()
+        conn.commit()
+
+    payload = {
+        'deposit_request': {
+            'id': row['id'],
+            'amount': amount,
+            'status': 'pending',
+            'created_at': row['created_at'].isoformat(),
+            'unique_key': unique_key
+        }
+    }
+    if payment_method == 'crypto':
+        payload['crypto_info'] = crypto_info
+    else:
+        payload['bank_info'] = bank_info
+
+    return jsonify(payload), 201
 
 @portfolio_bp.route('/api/portfolio/withdrawals', methods=['POST'])
 def create_withdrawal_request():

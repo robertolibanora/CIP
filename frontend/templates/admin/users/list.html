@@ -23,6 +23,7 @@
   </style>
   <div class="users-header" style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
     <input id="user-search" type="text" placeholder="Cerca per email, nome o Telegram" style="flex:1; padding:10px;">
+    <button id="view-history" class="btn-theme btn-small" style="background:#334155">Storico</button>
     <button id="bulk-add" class="btn-theme btn-small">Aggiungi</button>
     <button id="bulk-remove" class="btn-theme btn-small" style="background:#b91c1c">Rimuovi</button>
     <button id="refresh-users" class="btn">Aggiorna</button>
@@ -94,9 +95,6 @@
       <button id="close-portfolio" class="btn" style="position:absolute; right:8px; top:8px;">×</button>
       <h3 style="margin:0 0 14px 0; font-size:20px;">Portafoglio utente</h3>
       <div id="portfolio-summary" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:12px;"></div>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
-        <button id="save-portfolio" class="btn-theme btn-small">Salva Saldi</button>
-      </div>
       <div class="card" style="padding:0; overflow:auto;">
         <table class="table" style="width:100%; border-collapse:collapse;">
           <thead>
@@ -122,6 +120,7 @@
   const bulkAddBtn = document.getElementById('bulk-add');
   const bulkRemoveBtn = document.getElementById('bulk-remove');
   const selectAll = document.getElementById('select-all');
+  const viewHistoryBtn = document.getElementById('view-history');
 
   const modal = document.getElementById('user-detail-modal');
   const closeModalBtn = document.getElementById('close-modal');
@@ -130,7 +129,6 @@
   const closePortfolioBtn = document.getElementById('close-portfolio');
   const portfolioSummary = document.getElementById('portfolio-summary');
   const portfolioTbody = document.getElementById('portfolio-tbody');
-  const savePortfolioBtn = document.getElementById('save-portfolio');
   let currentPortfolioUserId = null;
 
   const dId = document.getElementById('detail-id');
@@ -252,24 +250,7 @@
       alert(err.error || 'Errore eliminazione');
     }
   });
-  savePortfolioBtn?.addEventListener('click', async ()=>{
-    if(!currentPortfolioUserId) return;
-    const payload = {
-      free_capital: parseFloat(document.getElementById('pf-free').value || '0'),
-      invested_capital: parseFloat(document.getElementById('pf-invested').value || '0'),
-      referral_bonus: parseFloat(document.getElementById('pf-referral').value || '0'),
-      profits: parseFloat(document.getElementById('pf-profits').value || '0')
-    };
-    const res = await fetch(`/admin/api/admin/users/${currentPortfolioUserId}/portfolio`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if(res.ok){
-      showToast('Portafoglio aggiornato');
-      fetchUsers();
-    }
-  });
+  // Pulsante Salva Saldi rimosso definitivamente
 
   // Save a single investment row
   portfolioTbody.addEventListener('click', async (e)=>{
@@ -323,6 +304,7 @@
 
   bulkAddBtn.addEventListener('click', ()=> runBulk('add'));
   bulkRemoveBtn.addEventListener('click', ()=> runBulk('remove'));
+  viewHistoryBtn.addEventListener('click', loadGlobalHistory);
 
   // Auto load latest users on enter of the page
   document.addEventListener('visibilitychange', ()=>{
@@ -383,6 +365,56 @@
     }
     openPortfolio();
     currentPortfolioUserId = id;
+  }
+
+  async function loadGlobalHistory(){
+    // Show modal immediately with loading state
+    portfolioSummary.innerHTML = '<div style="grid-column:1/-1; font-weight:600;">Storico globale utenti</div>';
+    portfolioTbody.innerHTML = '<tr><td style="padding:14px;" colspan="4">Caricamento...</td></tr>';
+    openPortfolio();
+    try {
+      const res = await fetch('/admin/api/admin/users/history');
+      if(!res.ok){
+        portfolioTbody.innerHTML = '<tr><td style="padding:14px; color:#b91c1c;" colspan="4">Errore nel caricamento dello storico</td></tr>';
+        return;
+      }
+      const data = await res.json();
+      portfolioTbody.innerHTML = '';
+      for(const item of (data.items||[])){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:14px;" colspan="4">
+            <div style="display:flex; justify-content:space-between;">
+              <span><strong>${item.action}</strong> — ${item.details||''} (admin: ${item.admin_email||item.admin_id})</span>
+              <span style="color:#64748b;">${(item.created_at||'').slice(0,19).replace('T',' ')}</span>
+            </div>
+          </td>`;
+        portfolioTbody.appendChild(tr);
+      }
+      if(!portfolioTbody.children.length){
+        portfolioTbody.innerHTML = '<tr><td style="padding:14px;" colspan="4">Nessuna azione registrata</td></tr>';
+      }
+    } catch (err) {
+      portfolioTbody.innerHTML = '<tr><td style="padding:14px; color:#b91c1c;" colspan="4">Errore imprevisto</td></tr>';
+    }
+  }
+  async function loadHistory(id){
+    const res = await fetch(`/admin/api/admin/users/${id}/history`);
+    const data = await res.json();
+    portfolioSummary.innerHTML = '<div style="grid-column:1/-1; font-weight:600;">Storico modifiche</div>';
+    portfolioTbody.innerHTML = '';
+    for(const item of (data.items||[])){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:14px;" colspan="4">
+          <div style="display:flex; justify-content:space-between;">
+            <span><strong>${item.action}</strong> — ${item.details||''}</span>
+            <span style="color:#64748b;">${(item.created_at||'').slice(0,19).replace('T',' ')}</span>
+          </div>
+        </td>`;
+      portfolioTbody.appendChild(tr);
+    }
+    openPortfolio();
   }
 })();
 </script>

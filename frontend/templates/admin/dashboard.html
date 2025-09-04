@@ -13,7 +13,7 @@
           <section class="admin-grid-actions">
     {% set actions = [
       {"icon":"check-circle","title":"KYC","desc":"Approvazione documenti identità","href": url_for('admin.kyc_dashboard'), "btn":"Gestisci KYC", "variant":"gold"},
-      {"icon":"plus","title":"Ricariche","desc":"Approvazione dopo bonifici","href": url_for('admin.deposits_dashboard'), "btn":"Gestisci Ricariche", "variant":"green"},
+      {"icon":"plus","title":"Depositi","desc":"Approvazione dopo bonifici","href": url_for('admin.deposits_dashboard'), "btn":"Gestisci Depositi", "variant":"green"},
       {"icon":"minus","title":"Prelievi","desc":"Approvazione richieste (48h max)","href": url_for('admin.withdrawals_dashboard'), "btn":"Gestisci Prelievi", "variant":"red"},
       {"icon":"building","title":"Progetti","desc":"Gestione progetti immobiliari","href": url_for('admin.projects_list'), "btn":"Gestisci Progetti", "variant":"blue"},
       {"icon":"users","title":"Utenti","desc":"Gestione utenti e investitori","href": url_for('admin.users_management_page'), "btn":"Gestisci Utenti", "variant":"purple"},

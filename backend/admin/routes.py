@@ -19,6 +19,25 @@ def get_upload_folder():
     from flask import current_app
     return current_app.config.get('UPLOAD_FOLDER', 'uploads')
 
+def ensure_admin_actions_table(cur):
+    """Crea la tabella admin_actions se non esiste."""
+    try:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS admin_actions (
+                id SERIAL PRIMARY KEY,
+                admin_id INT REFERENCES users(id) ON DELETE SET NULL,
+                action TEXT NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id INT NOT NULL,
+                details TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+    except Exception:
+        pass
+
 # -----------------------------
 # ADMIN BLUEPRINT (protected)
 # -----------------------------
@@ -1519,6 +1538,7 @@ def api_admin_user_update(user_id: int):
         role_value = 'investor' if updates['investor_status'] in (True, 'si', 'investor', 'yes') else 'admin'
 
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         # Esiste utente?
         cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cur.fetchone():
@@ -1556,6 +1576,14 @@ def api_admin_user_update(user_id: int):
 
         params.append(user_id)
         cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id = %s", params)
+        # Log azione
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (session.get('user_id'), 'user_update', 'user', user_id, 'Aggiornati campi utente')
+        )
 
     return jsonify({'success': True, 'message': 'Utente aggiornato con successo'})
 
@@ -1565,6 +1593,7 @@ def api_admin_user_update(user_id: int):
 def api_admin_user_portfolio(user_id: int):
     """Dettagli portafoglio utente: bilanci e investimenti"""
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         # Bilanci
         cur.execute(
             """
@@ -1632,6 +1661,7 @@ def api_admin_update_portfolio(user_id: int):
         return jsonify({'error': 'Nessun campo da aggiornare'}), 400
 
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         # Assicurati che la riga del portafoglio esista
         cur.execute("SELECT user_id FROM user_portfolios WHERE user_id = %s", (user_id,))
         if not cur.fetchone():
@@ -1651,6 +1681,13 @@ def api_admin_update_portfolio(user_id: int):
         params.append(user_id)
 
         cur.execute(f"UPDATE user_portfolios SET {', '.join(set_parts)} WHERE user_id = %s", params)
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'portfolio_update', 'user', %s, %s)
+            """,
+            (session.get('user_id'), user_id, 'Aggiornati saldi portafoglio')
+        )
 
     return jsonify({'success': True, 'message': 'Portafoglio aggiornato'})
 
@@ -1676,9 +1713,17 @@ def api_admin_update_investment(user_id: int, investment_id: int):
     params.extend([investment_id, user_id])
 
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         cur.execute(
             f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
             params
+        )
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'investment_update', 'user', %s, %s)
+            """,
+            (session.get('user_id'), user_id, f'Aggiornamento investimento {investment_id}')
         )
 
     return jsonify({'success': True, 'message': 'Investimento aggiornato'})
@@ -1705,6 +1750,7 @@ def api_admin_portfolio_bulk_adjust():
         return jsonify({'error': 'L\'importo deve essere positivo'}), 400
 
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         # Assicura che esistano le righe per ciascun utente
         for uid in user_ids:
             cur.execute("SELECT 1 FROM user_portfolios WHERE user_id = %s", (uid,))
@@ -1735,6 +1781,14 @@ def api_admin_portfolio_bulk_adjust():
                 "UPDATE user_portfolios SET profits = profits + %s WHERE user_id = ANY(%s)",
                 (amount, user_ids)
             )
+        # Log azione
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, %s, 'bulk_users', 0, %s)
+            """,
+            (session.get('user_id'), f'portfolio_{op}', f'Bulk {op} profits {amount} su {len(user_ids)} utenti')
+        )
 
     return jsonify({'success': True})
 
@@ -1753,6 +1807,7 @@ def api_admin_delete_user(user_id: int):
         return jsonify({'error': 'Non autenticato'}), 401
 
     with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
         # Verifica password admin
         cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
         admin_row = cur.fetchone()
@@ -1774,8 +1829,59 @@ def api_admin_delete_user(user_id: int):
         cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        # Log eliminazione (immutabile; nessuna delete di admin_actions)
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'user_delete', 'user', %s, 'Utente eliminato definitivamente')
+            """,
+            (session.get('user_id'), user_id)
+        )
 
     return jsonify({'success': True, 'message': 'Utente eliminato'})
+
+
+@admin_bp.get("/api/admin/users/<int:user_id>/history")
+@admin_required
+def api_admin_user_history(user_id: int):
+    """Storico immutabile delle azioni admin su un utente."""
+    with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
+        cur.execute(
+            """
+            SELECT a.id, a.admin_id, a.action, a.target_type, a.target_id, a.details, a.created_at,
+                   u.email as admin_email
+            FROM admin_actions a
+            LEFT JOIN users u ON u.id = a.admin_id
+            WHERE a.target_type IN ('user','bulk_users') AND (a.target_id = %s OR a.target_id = 0)
+              AND (a.details ILIKE %s OR a.action IN ('user_update','portfolio_update','investment_update','portfolio_add','portfolio_remove','user_delete'))
+            ORDER BY a.created_at DESC
+            """,
+            (user_id, '%')
+        )
+        items = cur.fetchall() or []
+    return jsonify({'items': items})
+
+
+@admin_bp.get("/api/admin/users/history")
+@admin_required
+def api_admin_users_history():
+    """Storico globale delle azioni su utenti (immutabile)."""
+    with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
+        cur.execute(
+            """
+            SELECT a.id, a.admin_id, a.action, a.target_type, a.target_id, a.details, a.created_at,
+                   u.email as admin_email
+            FROM admin_actions a
+            LEFT JOIN users u ON u.id = a.admin_id
+            WHERE a.target_type IN ('user','bulk_users')
+            ORDER BY a.created_at DESC
+            LIMIT 500
+            """
+        )
+        items = cur.fetchall() or []
+    return jsonify({'items': items})
 
 # ---- Analytics e Reporting ----
 @admin_bp.get("/analytics")
@@ -3194,7 +3300,7 @@ def deposits_dashboard():
                 SELECT 
                     COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
                     COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
-                    COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
+                    COUNT(*) FILTER (WHERE status = 'failed') as rejected_count,
                     COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount
                 FROM deposit_requests
             """)
@@ -3271,6 +3377,31 @@ def deposit_requests_list():
         requests = cur.fetchall()
     
     return jsonify(requests)
+
+@admin_bp.get("/api/deposit-stats")
+@admin_required
+def deposit_stats():
+    """Ritorna conteggi e totale per ricariche; usato per polling live."""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 
+                COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+                COUNT(*) FILTER (WHERE status = 'completed') AS completed,
+                COUNT(*) FILTER (WHERE status = 'failed') AS failed,
+                COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) AS total_amount,
+                COALESCE(MAX(id), 0) AS last_id
+            FROM deposit_requests
+            """
+        )
+        row = cur.fetchone()
+    return jsonify({
+        'pending': row[0] if row else 0,
+        'completed': row[1] if row else 0,
+        'failed': row[2] if row else 0,
+        'total_amount': float(row[3]) if row and row[3] is not None else 0.0,
+        'last_id': row[4] if row else 0
+    })
 
 @admin_bp.post("/api/deposit-requests/approve")
 @admin_required
@@ -3350,7 +3481,7 @@ def reject_deposit_request():
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 UPDATE deposit_requests 
-                SET status = 'rejected', admin_notes = %s, approved_at = NOW(), approved_by = %s
+                SET status = 'failed', admin_notes = %s, approved_at = NOW(), approved_by = %s
                 WHERE id = %s AND status = 'pending'
             """, (admin_notes, session.get('user_id'), deposit_id))
             
