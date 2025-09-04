@@ -130,6 +130,8 @@
   const portfolioSummary = document.getElementById('portfolio-summary');
   const portfolioTbody = document.getElementById('portfolio-tbody');
   let currentPortfolioUserId = null;
+  let currentHistoryItems = [];
+  const userNameCache = {};
 
   const dId = document.getElementById('detail-id');
   const dNome = document.getElementById('detail-nome');
@@ -367,6 +369,40 @@
     currentPortfolioUserId = id;
   }
 
+  function humanizeAction(action){
+    const map = {
+      'portfolio_add': 'Aggiunta fondi al portafoglio',
+      'portfolio_remove': 'Rimozione fondi dal portafoglio',
+      'profits_add': 'Aggiunta profitti',
+      'profits_remove': 'Rimozione profitti',
+      'referral_bonus_add': 'Aggiunta bonus referral',
+      'referral_bonus_remove': 'Rimozione bonus referral',
+      'investment_create': 'Nuovo investimento',
+      'investment_update': 'Aggiornamento investimento',
+      'investment_delete': 'Eliminazione investimento',
+      'withdrawal_request': 'Richiesta di prelievo',
+      'withdrawal_complete': 'Prelievo completato',
+      'withdrawal_reject': 'Prelievo rifiutato'
+    };
+    if(!action) return '';
+    return map[action] || action.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+  }
+
+  async function getUserName(userId){
+    if(!userId) return '';
+    if(userNameCache[userId]) return userNameCache[userId];
+    try{
+      const r = await fetch(`/admin/api/admin/users/${userId}`);
+      if(r.ok){
+        const u = await r.json();
+        const name = (u.full_name || `${u.nome||''} ${u.cognome||''}`).trim();
+        userNameCache[userId] = name;
+        return name;
+      }
+    }catch(_){ }
+    return '';
+  }
+
   async function loadGlobalHistory(){
     // Show modal immediately with loading state
     portfolioSummary.innerHTML = '<div style="grid-column:1/-1; font-weight:600;">Storico globale utenti</div>';
@@ -379,17 +415,32 @@
         return;
       }
       const data = await res.json();
+      currentHistoryItems = data.items || [];
       portfolioTbody.innerHTML = '';
-      for(const item of (data.items||[])){
+      for(const item of currentHistoryItems){
         const tr = document.createElement('tr');
+        tr.className = 'history-row';
+        tr.setAttribute('data-history-id', String(item.id));
+        tr.style.cursor = 'pointer';
         tr.innerHTML = `
           <td style="padding:14px;" colspan="4">
-            <div style="display:flex; justify-content:space-between;">
-              <span><strong>${item.action}</strong> — ${item.details||''} (admin: ${item.admin_email||item.admin_id})</span>
+            <div style="display:flex; justify-content:space-between; gap:12px;">
+              <span>
+                <strong>${humanizeAction(item.action)}</strong>
+                <span class="user-inline" data-user-id="${item.target_type==='user'?item.target_id:''}"></span>
+                — ${item.details||''} (admin: ${item.admin_email||item.admin_id})
+              </span>
               <span style="color:#64748b;">${(item.created_at||'').slice(0,19).replace('T',' ')}</span>
             </div>
           </td>`;
         portfolioTbody.appendChild(tr);
+        // Enrich with username asynchronously (solo azioni su singolo utente)
+        if(item.target_type === 'user' && item.target_id){
+          getUserName(item.target_id).then(name=>{
+            const span = tr.querySelector('.user-inline');
+            if(span && name) span.textContent = ` per ${name}`;
+          });
+        }
       }
       if(!portfolioTbody.children.length){
         portfolioTbody.innerHTML = '<tr><td style="padding:14px;" colspan="4">Nessuna azione registrata</td></tr>';
@@ -401,20 +452,72 @@
   async function loadHistory(id){
     const res = await fetch(`/admin/api/admin/users/${id}/history`);
     const data = await res.json();
+    currentHistoryItems = data.items || [];
     portfolioSummary.innerHTML = '<div style="grid-column:1/-1; font-weight:600;">Storico modifiche</div>';
     portfolioTbody.innerHTML = '';
-    for(const item of (data.items||[])){
+    for(const item of currentHistoryItems){
       const tr = document.createElement('tr');
+      tr.className = 'history-row';
+      tr.setAttribute('data-history-id', String(item.id));
+      tr.style.cursor = 'pointer';
       tr.innerHTML = `
         <td style="padding:14px;" colspan="4">
           <div style="display:flex; justify-content:space-between;">
-            <span><strong>${item.action}</strong> — ${item.details||''}</span>
+            <span>
+              <strong>${humanizeAction(item.action)}</strong>
+              <span class="user-inline" data-user-id="${item.target_type==='user'?item.target_id:''}"></span>
+              — ${item.details||''}
+            </span>
             <span style="color:#64748b;">${(item.created_at||'').slice(0,19).replace('T',' ')}</span>
           </div>
         </td>`;
       portfolioTbody.appendChild(tr);
+      if(item.target_type === 'user' && item.target_id){
+        getUserName(item.target_id).then(name=>{
+          const span = tr.querySelector('.user-inline');
+          if(span && name) span.textContent = ` per ${name}`;
+        });
+      }
     }
     openPortfolio();
+  }
+
+  portfolioTbody.addEventListener('click', async (e)=>{
+    const row = e.target.closest('tr.history-row');
+    if(!row) return;
+    const id = parseInt(row.getAttribute('data-history-id')||'0');
+    const item = currentHistoryItems.find(x=>x.id===id);
+    if(!item) return;
+    await showHistoryDetail(item);
+  });
+
+  async function showHistoryDetail(item){
+    const date = new Date(item.created_at || Date.now());
+    const dateStr = date.toLocaleDateString('it-IT');
+    const timeStr = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    let userLine = '';
+    try{
+      if(item.target_type === 'user' && item.target_id){
+        const r = await fetch(`/admin/api/admin/users/${item.target_id}`);
+        if(r.ok){
+          const u = await r.json();
+          const name = (u.full_name || `${u.nome||''} ${u.cognome||''}`).trim();
+          if(name) userLine = ` per ${name}`;
+        }
+      }
+    }catch(_){ /* ignore */ }
+
+    const details = item.details || '';
+    const html = `
+      <div style="grid-column:1/-1; font-weight:600;">Dettaglio azione</div>
+      <div class="card" style="padding:16px;">
+        <div style="font-weight:700; font-size:16px; margin-bottom:8px;">${humanizeAction(item.action)}</div>
+        <div style="color:#334155; margin-bottom:6px;">${details}${userLine}</div>
+        <div style="color:#64748b;">Eseguito da: ${item.admin_email || item.admin_id} • ${dateStr} alle ${timeStr}</div>
+      </div>
+    `;
+    portfolioSummary.innerHTML = html;
+    portfolioTbody.innerHTML = '';
   }
 })();
 </script>

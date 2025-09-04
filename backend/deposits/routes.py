@@ -47,6 +47,7 @@ def ensure_deposits_schema(cur):
             user_id INT NOT NULL,
             amount NUMERIC(15,2) NOT NULL CHECK (amount >= 500.00),
             iban TEXT NOT NULL,
+            method TEXT NOT NULL DEFAULT 'bank',
             unique_key TEXT NOT NULL UNIQUE,
             payment_reference TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL CHECK (status IN ('pending','completed','failed','cancelled')) DEFAULT 'pending',
@@ -56,6 +57,11 @@ def ensure_deposits_schema(cur):
             approved_by INT
         );
     """)
+    # Assicura presenza colonna method anche su installazioni esistenti
+    try:
+        cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'bank'")
+    except Exception:
+        pass
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_pending_allowed
@@ -146,6 +152,11 @@ def create_deposit_request():
     if amount < Decimal('500'):
         return jsonify({'error': 'Importo minimo richiesto: 500€'}), 400
     
+    # Metodo pagamento: 'usdt' | 'bank'
+    method = str(data.get('payment_method', 'bank')).lower()
+    if method not in ['usdt', 'bank']:
+        return jsonify({'error': 'Metodo pagamento non valido'}), 400
+    
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Garantisce schema in dev
@@ -196,10 +207,10 @@ def create_deposit_request():
             # Crea richiesta
             cur.execute("""
                 INSERT INTO deposit_requests 
-                (user_id, amount, iban, unique_key, payment_reference, status)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (user_id, amount, iban, method, unique_key, payment_reference, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, created_at
-            """, (uid, amount, iban_config['iban'], unique_key, payment_reference, 'pending'))
+            """, (uid, amount, iban_config['iban'], method, unique_key, payment_reference, 'pending'))
             
             new_request = cur.fetchone()
             conn.commit()
@@ -217,6 +228,7 @@ def create_deposit_request():
             'iban': iban_config['iban'],
             'bank_name': iban_config['bank_name'],
             'account_holder': iban_config['account_holder'],
+            'method': method,
             'unique_key': unique_key,
             'payment_reference': payment_reference,
             'status': 'pending',

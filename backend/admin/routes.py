@@ -1789,6 +1789,24 @@ def api_admin_portfolio_bulk_adjust():
             """,
             (session.get('user_id'), f'portfolio_{op}', f'Bulk {op} profits {amount} su {len(user_ids)} utenti')
         )
+        # Log per-utente per tracciabilità dettagliata
+        per_user_details = 'Aggiunta profitti' if op == 'add' else 'Rimozione profitti'
+        for uid in user_ids:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                    VALUES (%s, %s, 'user', %s, %s)
+                    """,
+                    (
+                        session.get('user_id'),
+                        f'portfolio_{op}',
+                        uid,
+                        f"{per_user_details} {amount} EUR"
+                    )
+                )
+            except Exception:
+                pass
 
     return jsonify({'success': True})
 
@@ -1882,6 +1900,9 @@ def api_admin_users_history():
         )
         items = cur.fetchall() or []
     return jsonify({'items': items})
+
+
+## Endpoint rimosso: clear dello storico non più disponibile
 
 # ---- Analytics e Reporting ----
 @admin_bp.get("/analytics")
@@ -3269,235 +3290,28 @@ def analytics_legacy():
 @admin_bp.get("/deposits")
 @admin_required
 def deposits_dashboard():
-    """Dashboard dedicata per gestione ricariche"""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se la tabella esiste
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'deposit_requests'
-                );
-            """)
-            table_exists = cur.fetchone()[0]
-            
-            if not table_exists:
-                # Tabella non esiste, restituisci dashboard vuota
-                return render_template('admin/deposits/dashboard.html', 
-                                     deposits=[], 
-                                     metrics={
-                                         'deposits_pending': 0,
-                                         'deposits_completed': 0,
-                                         'deposits_rejected': 0,
-                                         'deposits_total_amount': 0.0
-                                     },
-                                     page=1,
-                                     per_page=20,
-                                     total_count=0)
-            
-            # Statistiche ricariche
-            cur.execute("""
-                SELECT 
-                    COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
-                    COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
-                    COUNT(*) FILTER (WHERE status = 'failed') as rejected_count,
-                    COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount
-                FROM deposit_requests
-            """)
-            stats = cur.fetchone()
-            
-            # Lista ricariche con paginazione
-            page = request.args.get('page', 1, type=int)
-            per_page = 20
-            offset = (page - 1) * per_page
-            
-            cur.execute("""
-                SELECT dr.id, dr.user_id, u.full_name, u.email, dr.amount, 
-                       dr.unique_key, dr.payment_reference, dr.status, dr.created_at,
-                       dr.iban, dr.admin_notes, dr.payment_reference
-                FROM deposit_requests dr
-                JOIN users u ON u.id = dr.user_id
-                ORDER BY 
-                    CASE WHEN dr.status = 'pending' THEN 1 ELSE 2 END,
-                    dr.created_at DESC
-                LIMIT %s OFFSET %s
-            """, (per_page, offset))
-            deposits = cur.fetchall()
-            
-            # Conta totale per paginazione
-            cur.execute("SELECT COUNT(*) FROM deposit_requests")
-            total_count_result = cur.fetchone()
-            total_count = total_count_result[0] if total_count_result else 0
-        
-        metrics = {
-            'deposits_pending': stats[0] if stats and len(stats) > 0 else 0,
-            'deposits_completed': stats[1] if stats and len(stats) > 1 else 0,
-            'deposits_rejected': stats[2] if stats and len(stats) > 2 else 0,
-            'deposits_total_amount': float(stats[3]) if stats and len(stats) > 3 and stats[3] else 0.0
-        }
-        
-        return render_template('admin/deposits/dashboard.html', 
-                             deposits=deposits, 
-                             metrics=metrics,
-                             page=page,
-                             per_page=per_page,
-                             total_count=total_count)
-                             
-    except Exception as e:
-        # In caso di errore, restituisci dashboard vuota
-        print(f"Errore in deposits_dashboard: {e}")
-        return render_template('admin/deposits/dashboard.html', 
-                             deposits=[], 
-                             metrics={
-                                 'deposits_pending': 0,
-                                 'deposits_completed': 0,
-                                 'deposits_rejected': 0,
-                                 'deposits_total_amount': 0.0
-                             },
-                             page=1,
-                             per_page=20,
-                             total_count=0)
+    """Pagina Depositi disattivata: restituisce pagina vuota senza logica."""
+    return render_template('admin/deposits/dashboard.html')
 
 @admin_bp.get("/api/deposit-requests")
 @admin_required
 def deposit_requests_list():
-    """API per lista richieste ricarica (per AJAX)"""
-    status = request.args.get('status', 'pending')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT dr.id, dr.user_id, u.full_name, u.email, dr.amount, 
-                   dr.unique_key, dr.payment_reference, dr.status, dr.created_at,
-                   dr.iban, dr.admin_notes
-            FROM deposit_requests dr
-            JOIN users u ON u.id = dr.user_id
-            WHERE dr.status = %s
-            ORDER BY dr.created_at ASC
-        """, (status,))
-        requests = cur.fetchall()
-    
-    return jsonify(requests)
+    return jsonify({'error': 'Depositi disabilitati'}), 404
 
 @admin_bp.get("/api/deposit-stats")
 @admin_required
 def deposit_stats():
-    """Ritorna conteggi e totale per ricariche; usato per polling live."""
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT 
-                COUNT(*) FILTER (WHERE status = 'pending') AS pending,
-                COUNT(*) FILTER (WHERE status = 'completed') AS completed,
-                COUNT(*) FILTER (WHERE status = 'failed') AS failed,
-                COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) AS total_amount,
-                COALESCE(MAX(id), 0) AS last_id
-            FROM deposit_requests
-            """
-        )
-        row = cur.fetchone()
-    return jsonify({
-        'pending': row[0] if row else 0,
-        'completed': row[1] if row else 0,
-        'failed': row[2] if row else 0,
-        'total_amount': float(row[3]) if row and row[3] is not None else 0.0,
-        'last_id': row[4] if row else 0
-    })
+    return jsonify({'error': 'Depositi disabilitati'}), 404
 
 @admin_bp.post("/api/deposit-requests/approve")
 @admin_required
 def approve_deposit_request():
-    """Approvazione ricarica dopo verifica bonifico"""
-    data = request.get_json() or {}
-    deposit_id = data.get('deposit_id')
-    amount_received = data.get('amount_received')
-    admin_notes = data.get('admin_notes', '')
-    
-    if not deposit_id:
-        return jsonify({'error': 'Deposit ID richiesto'}), 400
-    
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica richiesta esiste
-            cur.execute("""
-                SELECT dr.*, u.email FROM deposit_requests dr
-                JOIN users u ON u.id = dr.user_id  
-                WHERE dr.id = %s AND dr.status = 'pending'
-            """, (deposit_id,))
-            deposit = cur.fetchone()
-            
-            if not deposit:
-                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
-            
-            # Aggiorna stato ricarica
-            cur.execute("""
-                UPDATE deposit_requests 
-                SET status = 'completed', admin_notes = %s, approved_at = NOW(), approved_by = %s
-                WHERE id = %s
-            """, (admin_notes, session.get('user_id'), deposit_id))
-            
-            # Aggiorna portfolio utente (capitale libero)
-            amount_to_add = amount_received if amount_received else deposit['amount']
-            cur.execute("""
-                UPDATE user_portfolios 
-                SET free_capital = free_capital + %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (amount_to_add, deposit['user_id']))
-            
-            # Registra transazione
-            cur.execute("""
-                INSERT INTO portfolio_transactions (
-                    user_id, type, amount, balance_before, balance_after,
-                    description, reference_id, reference_type, status, created_at
-                ) VALUES (
-                    %s, 'deposit', %s, 0, %s, 
-                    'Ricarica approvata da admin', %s, 'deposit_request', 'completed', NOW()
-                )
-            """, (deposit['user_id'], amount_to_add, amount_to_add, deposit_id))
-            
-            conn.commit()
-            
-        return jsonify({
-            'success': True,
-            'message': 'Ricarica approvata con successo',
-            'deposit_id': deposit_id,
-            'amount_added': float(amount_to_add)
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+    return jsonify({'error': 'Depositi disabilitati'}), 404
 
 @admin_bp.post("/api/deposit-requests/reject")
 @admin_required
 def reject_deposit_request():
-    """Rifiuta richiesta di ricarica"""
-    data = request.get_json() or {}
-    deposit_id = data.get('deposit_id')
-    admin_notes = data.get('admin_notes', '')
-    
-    if not deposit_id:
-        return jsonify({'error': 'Deposit ID richiesto'}), 400
-    
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                UPDATE deposit_requests 
-                SET status = 'failed', admin_notes = %s, approved_at = NOW(), approved_by = %s
-                WHERE id = %s AND status = 'pending'
-            """, (admin_notes, session.get('user_id'), deposit_id))
-            
-            if cur.rowcount == 0:
-                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
-            
-            conn.commit()
-            
-        return jsonify({
-            'success': True,
-            'message': 'Richiesta rifiutata',
-            'deposit_id': deposit_id
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Errore nel rifiuto: {str(e)}'}), 500
+    return jsonify({'error': 'Depositi disabilitati'}), 404
 
 # ---- TASK 2.7 - Gestione Prelievi ----
 @admin_bp.get("/withdrawals")

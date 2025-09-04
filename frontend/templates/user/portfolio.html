@@ -100,7 +100,7 @@
             <button onclick="showSection('deposits')" 
                     class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
                     id="tab-deposits">
-                Deposito
+                Depositi
             </button>
             <button onclick="showSection('withdrawals')" 
                     class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
@@ -180,24 +180,48 @@
             </div>
         </div>
 
-        <!-- Sezione Deposito (semplificata) -->
+        <!-- Sezione Depositi -->
         <div id="section-deposits" class="section-content hidden">
-          <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Deposita fondi</h2>
-            <div class="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <label class="block text-sm font-medium text-gray-700 mb-2">Importo (minimo €500)</label>
-              <div class="flex gap-3 items-center">
-                <input id="deposit-amount-v2" type="number" min="500" step="50" class="px-3 py-2 border rounded-lg w-48" placeholder="500">
-                <button type="button" id="deposit-submit-v2" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Richiedi deposito</button>
-                <span id="deposit-feedback" class="text-sm text-gray-600"></span>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">Dopo aver inviato la richiesta, l'admin la visualizzerà e la approverà. Riceverai una notifica.</p>
-            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Deposita Fondi</h2>
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <form id="deposit-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="deposit-amount" class="block text-sm font-medium text-gray-700 mb-2">Importo (min. €500)</label>
+                                <input type="number" id="deposit-amount" name="amount" min="500" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Metodo di pagamento</label>
+                                <div class="flex gap-3">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="payment_method" value="usdt" class="text-blue-600" required>
+                                        <span>Crypto USDT BEP20</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="payment_method" value="bank" class="text-blue-600" required>
+                                        <span>Bonifico Bancario</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="deposit-instructions" class="hidden bg-white border border-gray-200 rounded-lg p-4"></div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">Conferma Deposito</button>
+                    </form>
+                </div>
 
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Le tue richieste</h3>
-            <div id="deposits-list-v2" class="space-y-4"></div>
-          </div>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Richieste Deposito</h3>
+                    <div id="deposits-list" class="space-y-4">
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="text-gray-500 mt-2">Caricamento richieste...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
         <!-- Sezione Prelievi -->
         <div id="section-withdrawals" class="section-content hidden">
@@ -328,87 +352,9 @@
     <!-- Sezione Dati Personali e Preferenze rimossa su richiesta -->
 </div>
 
-<!-- Modal scelta metodo deposito -->
-<div id="deposit-method-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
-  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-3">Seleziona metodo di deposito</h3>
-    <p class="text-sm text-gray-600 mb-4">Scegli come desideri effettuare il deposito.</p>
-    <div class="flex flex-col sm:flex-row gap-3">
-      <button type="button" id="modal-choose-crypto" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Crypto (USDT · BSC)</button>
-      <button type="button" id="modal-choose-bank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Bonifico bancario</button>
-    </div>
-    <button type="button" id="modal-deposit-cancel" class="mt-4 w-full bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
-  </div>
-  </div>
-
-<!-- Modal indirizzo CRYPTO (USDT · BSC) -->
-<div id="deposit-crypto-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
-  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Indirizzo USDT su BSC (BEP20)</h3>
-    <p class="text-sm text-gray-600 mb-4">Inviare esclusivamente USDT su rete BSC. Qualsiasi altro asset/rete potrebbe andare perso.</p>
-    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
-      <p class="text-xs text-green-800 mb-1">Address</p>
-      <div class="flex items-center gap-2">
-        <code id="crypto-address-text" class="text-green-900 text-sm break-all select-all">0x0000000000000000000000000000000000000000</code>
-        <button type="button" id="copy-crypto-address" class="ml-auto bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">Copia</button>
-      </div>
-    </div>
-    <div class="flex flex-col sm:flex-row gap-3 mt-4">
-      <button type="button" id="crypto-continue" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Continua</button>
-      <button type="button" id="crypto-cancel" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
-    </div>
-  </div>
-  </div>
-
-<!-- Modal dati BONIFICO BANCARIO -->
-<div id="deposit-bank-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
-  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Dati per Bonifico Bancario</h3>
-    <p class="text-sm text-gray-600 mb-4">Utilizza questi dati di esempio. Ti forniremo quelli reali successivamente.</p>
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3 space-y-2">
-      <div class="flex items-center gap-2">
-        <span class="text-blue-900 text-sm font-medium">Beneficiario:</span>
-        <span id="bank-beneficiary" class="text-blue-900 text-sm">CIP Immobiliare SRL</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-blue-900 text-sm font-medium">Banca:</span>
-        <span id="bank-name" class="text-blue-900 text-sm">Banca Esempio</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-blue-900 text-sm font-medium">IBAN:</span>
-        <code id="bank-iban" class="text-blue-900 text-sm break-all">IT00X0000000000000000000000</code>
-        <button type="button" id="copy-bank-iban" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Copia</button>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-blue-900 text-sm font-medium">BIC:</span>
-        <code id="bank-bic" class="text-blue-900 text-sm">CIPAITMMXXX</code>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-blue-900 text-sm font-medium">Causale:</span>
-        <code id="bank-reason" class="text-blue-900 text-sm break-all">deposito nome cognome</code>
-      </div>
-    </div>
-    <div class="flex flex-col sm:flex-row gap-3 mt-4">
-      <button type="button" id="bank-continue" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Continua</button>
-      <button type="button" id="bank-cancel" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Annulla</button>
-    </div>
-  </div>
-  </div>
 
 <!-- Rimosso modal: ora inline steps -->
 
-<!-- Popup conferma richiesta deposito -->
-<div id="deposit-pending-modal" class="hidden fixed inset-0 z-50 items-center justify-center">
-  <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Richiesta inviata</h3>
-    <p class="text-sm text-gray-700">La tua richiesta di deposito è stata inviata e verrà revisionata entro 24 ore dall'admin. Riceverai una notifica quando sarà approvata.</p>
-    <button type="button" id="deposit-pending-close" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Ho capito</button>
-  </div>
-  </div>
 
 <script>
 // Gestione sezioni portfolio
@@ -432,10 +378,10 @@ function showSection(sectionName) {
     document.getElementById(`tab-${sectionName}`).classList.add('bg-white', 'text-blue-600', 'shadow-sm');
     
     // Carica dati sezione se necessario
-    if (sectionName === 'deposits' && !window.depositsLoaded) {
-        loadDeposits();
-    } else if (sectionName === 'withdrawals' && !window.withdrawalsLoaded) {
+    if (sectionName === 'withdrawals' && !window.withdrawalsLoaded) {
         loadWithdrawals();
+    } else if (sectionName === 'deposits' && !window.depositsLoaded) {
+        loadDeposits();
     } else if (sectionName === 'movements' && !window.movementsLoaded) {
         loadMovements();
     } else if (sectionName === 'profits' && !window.profitsLoaded) {
@@ -466,80 +412,89 @@ async function loadPortfolioData() {
     }
 }
 
-// Carica storico ricariche
+// Carica richieste deposito + mostra istruzioni
 async function loadDeposits() {
     try {
-        const response = await fetch('/api/portfolio/deposits');
-        const data = await response.json();
-        
-        const depositsList = document.getElementById('deposits-list-v2') || document.getElementById('deposits-list');
-        
-        if (data.deposits && data.deposits.length > 0) {
-            depositsList.innerHTML = data.deposits.map(deposit => `
+        const list = document.getElementById('deposits-list');
+        const res = await fetch('/deposits/api/requests');
+        const data = await res.json();
+        if (res.ok && data.deposit_requests && data.deposit_requests.length > 0) {
+            list.innerHTML = data.deposit_requests.map(req => `
                 <div class="border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="font-medium text-gray-900">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
-                            <p class="text-sm text-gray-500">Chiave: ${deposit.unique_key}</p>
+                            <p class="font-medium text-gray-900">€${parseFloat(req.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</p>
+                            <p class="text-sm text-gray-500">${(req.method||'bank')==='usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'} • ${req.payment_reference}</p>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium
-                            ${deposit.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                              deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-gray-100 text-gray-800'}">
-                            ${deposit.status === 'completed' ? 'Completata' : 
-                              deposit.status === 'pending' ? 'In Attesa' : 
-                              deposit.status === 'failed' ? 'Fallita' : deposit.status}
-                        </span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${req.status==='completed'?'bg-green-100 text-green-800': req.status==='pending'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'}">${req.status==='completed'?'Approvato': req.status==='pending'?'In Attesa':'Rifiutato'}</span>
                     </div>
-                    <div class="text-sm text-gray-500">
-                        <p>Data: ${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
-                        ${deposit.approved_at ? `<p>Approvata: ${new Date(deposit.approved_at).toLocaleDateString('it-IT')}</p>` : ''}
+                    <div class="text-sm text-gray-500 mt-2">
+                        <p>Creato: ${new Date(req.created_at).toLocaleDateString('it-IT')}</p>
+                        ${req.admin_notes ? `<p class="text-red-600">Nota admin: ${req.admin_notes}</p>` : ''}
                     </div>
                 </div>
             `).join('');
         } else {
-            depositsList.innerHTML = `
+            list.innerHTML = `
                 <div class="text-center py-8">
                     <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1"/>
                     </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna ricarica</h3>
-                    <p class="text-gray-600">Non hai ancora effettuato ricariche al tuo portafoglio.</p>
-                </div>
-            `;
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna richiesta</h3>
+                    <p class="text-gray-600">Crea ora una richiesta di deposito.</p>
+                </div>`;
         }
-        
         window.depositsLoaded = true;
-    } catch (error) {
-        console.error('Errore caricamento depositi:', error);
-        document.getElementById('deposits-list').innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <p>Errore durante il caricamento dei depositi</p>
-            </div>
-        `;
+    } catch (e) {
+        console.error('Errore caricamento depositi', e);
     }
 }
 
-// Nuovo invio richiesta deposito (semplificato)
-document.getElementById('deposit-submit-v2')?.addEventListener('click', async ()=>{
-  const amount = parseFloat(document.getElementById('deposit-amount-v2').value || '0');
-  const fb = document.getElementById('deposit-feedback');
-  if(!(amount >= 500)){ fb.textContent = 'Importo minimo €500'; return; }
-  fb.textContent = 'Invio...';
-  try{
-    const res = await fetch('/deposits/api/requests/new', { 
-      method:'POST', 
-      headers:{'Content-Type':'application/json'}, 
-      credentials: 'same-origin',
-      body: JSON.stringify({ amount }) 
-    });
-    let out = {};
-    try { out = await res.json(); } catch(_){ out = {}; }
-    if(!res.ok){ fb.textContent = out.error ? `${out.error}` : `Errore ${res.status}`; return; }
-    fb.textContent = 'Richiesta inviata. In attesa di approvazione.';
-    await loadDeposits();
-  }catch(e){ fb.textContent = 'Errore di rete'; }
-});
+// Gestione form deposito
+const depositForm = document.getElementById('deposit-form');
+if (depositForm) {
+  depositForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const form = new FormData(this);
+    const amount = parseFloat(form.get('amount'));
+    if (isNaN(amount) || amount < 500) { alert('Importo minimo 500€'); return; }
+    const method = form.get('payment_method');
+    const payload = { amount, payment_method: method };
+    try {
+      const r = await fetch('/deposits/api/requests/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      const j = await r.json();
+      if (r.ok) {
+        // Mostra istruzioni
+        const box = document.getElementById('deposit-instructions');
+        if (method === 'usdt') {
+          const wallet = '0xDEADbeefDEADbeefDEADbeefDEADbeefDEADbeef'; // provvisorio
+          box.innerHTML = `
+            <h4 class="font-semibold mb-2">Invia USDT (BEP20)</h4>
+            <p class="text-sm text-gray-700">Importo: <strong>€${j.deposit_request.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</strong></p>
+            <p class="text-sm text-gray-700">Network: <strong>BSC (BEP20)</strong></p>
+            <p class="text-sm text-gray-700">Wallet: <code class="font-mono">${wallet}</code></p>
+            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} ${'{{ user.full_name if user else "" }}'}</code></p>`;
+        } else {
+          box.innerHTML = `
+            <h4 class="font-semibold mb-2">Dati Bonifico</h4>
+            <p class="text-sm text-gray-700">Intestatario: <strong>${j.deposit_request.account_holder}</strong></p>
+            <p class="text-sm text-gray-700">Banca: <strong>${j.deposit_request.bank_name}</strong></p>
+            <p class="text-sm text-gray-700">IBAN: <code class="font-mono">${j.deposit_request.iban}</code></p>
+            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} ${'{{ user.full_name if user else "" }}'}</code></p>`;
+        }
+        box.classList.remove('hidden');
+        loadDeposits();
+        loadPortfolioData();
+        this.reset();
+      } else {
+        alert(j.error || 'Errore creazione richiesta');
+      }
+    } catch (err) {
+      alert('Errore di rete');
+    }
+  })
+}
+
 
 // Carica richieste prelievo
 async function loadWithdrawals() {
@@ -777,169 +732,6 @@ if (portfolioProfileForm) {
   });
 }
 
-// Nuovo flusso step-by-step deposito
-const stepAmount = document.getElementById('deposit-step-amount');
-const stepMethod = document.getElementById('deposit-step-method');
-const stepInstructions = document.getElementById('deposit-instructions');
-const methodModal = document.getElementById('deposit-method-modal');
-const cryptoModal = document.getElementById('deposit-crypto-modal');
-const openMethodModal = () => { if(methodModal){ methodModal.classList.remove('hidden'); methodModal.classList.add('flex'); } };
-const closeMethodModal = () => { if(methodModal){ methodModal.classList.add('hidden'); methodModal.classList.remove('flex'); } };
-const openCryptoModal = () => { if(cryptoModal){ cryptoModal.classList.remove('hidden'); cryptoModal.classList.add('flex'); } };
-const closeCryptoModal = () => { if(cryptoModal){ cryptoModal.classList.add('hidden'); cryptoModal.classList.remove('flex'); } };
-const bankModal = document.getElementById('deposit-bank-modal');
-const openBankModal = () => { if(bankModal){ bankModal.classList.remove('hidden'); bankModal.classList.add('flex'); } };
-const closeBankModal = () => { if(bankModal){ bankModal.classList.add('hidden'); bankModal.classList.remove('flex'); } };
-let pendingDepositAmount = null;
-
-// Helper per mostrare subito il popup di conferma
-function showPendingModal(){
-  const m = document.getElementById('deposit-pending-modal');
-  if(m){ m.classList.remove('hidden'); m.classList.add('flex'); }
-}
-
-document.getElementById('deposit-next')?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  const amount = parseFloat(document.getElementById('deposit-amount').value || '0');
-  if(!(amount >= 500)){
-    alert('L\'importo minimo è €500');
-    return;
-  }
-  pendingDepositAmount = amount;
-  // Mostra modal scelta metodo invece della sezione inline
-  openMethodModal();
-});
-
-document.getElementById('deposit-cancel')?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  stepMethod.classList.add('hidden');
-  stepAmount.classList.remove('hidden');
-});
-
-// Modal handlers
-document.getElementById('modal-deposit-cancel')?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  closeMethodModal();
-});
-methodModal?.addEventListener('click', (e)=>{ if(e.target === methodModal) { e.preventDefault(); closeMethodModal(); } });
-
-document.getElementById('deposit-choose-crypto')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeMethodModal();
-  // mostra modal indirizzo e successivamente invia
-  await prepareCryptoAddress();
-  openCryptoModal();
-});
-document.getElementById('deposit-choose-bank')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeMethodModal();
-  openBankModal();
-});
-document.getElementById('modal-choose-crypto')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeMethodModal();
-  await prepareCryptoAddress();
-  openCryptoModal();
-});
-document.getElementById('modal-choose-bank')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeMethodModal();
-  openBankModal();
-});
-
-async function submitDeposit(amount, method){
-  // Crea la richiesta ufficiale lato server (route standard deposits)
-  console.log('[deposit] submitting', { amount, method });
-  const res = await fetch('/deposits/api/requests/new', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount })
-  });
-  const out = await res.json();
-  console.log('[deposit] response', res.status, out);
-  if(!res.ok){
-    alert(out.error || 'Errore');
-    return;
-  }
-  // Mostra popup di conferma solo se il backend ha creato la richiesta
-  showPendingModal();
-  stepMethod.classList.add('hidden');
-  stepInstructions.classList.remove('hidden');
-  const cryptoDiv = document.getElementById('deposit-crypto');
-  const bankDiv = document.getElementById('deposit-bank');
-  cryptoDiv.classList.add('hidden');
-  bankDiv.classList.add('hidden');
-  if(method === 'crypto'){
-    const exampleBscAddress = '0x8b8A56c4f8C2b4dB1aC5D9e7F4AaE1b234567890';
-    const c = { asset: 'USDT', network: 'BSC (BEP20)', address: exampleBscAddress, note: 'Indirizzo di esempio. Invia esclusivamente USDT su rete BSC (BEP20).' };
-    cryptoDiv.innerHTML = `<div class="text-green-900"><p><strong>Metodo:</strong> ${c.asset} - ${c.network}</p><p><strong>Address:</strong> <span style="font-family:monospace">${c.address}</span> <span class=\"text-xs text-green-700\">(esempio)</span></p><p class="mt-2 text-sm">${c.note||''}</p></div>`;
-    cryptoDiv.classList.remove('hidden');
-  } else {
-    const b = { beneficiary: 'CIP Immobiliare SRL', bank_name: 'Banca Esempio', iban: 'IT00X0000000000000000000000', bic: 'CIPAITMMXXX', reason_hint: 'deposito nome cognome' };
-    bankDiv.innerHTML = `<div class="text-blue-900"><p><strong>Beneficiario:</strong> ${b.beneficiary||''}</p><p><strong>Banca:</strong> ${b.bank_name||''}</p><p><strong>IBAN:</strong> ${b.iban||''}</p><p><strong>BIC:</strong> ${b.bic||''}</p><p class="mt-2"><strong>Causale:</strong> ${b.reason_hint||''}</p></div>`;
-    bankDiv.classList.remove('hidden');
-  }
-  loadDeposits();
-  // Mostra popup di conferma revisione 24h
-  const pendingModal = document.getElementById('deposit-pending-modal');
-  if(pendingModal){ pendingModal.classList.remove('hidden'); pendingModal.classList.add('flex'); }
-}
-
-async function prepareCryptoAddress(){
-  // Prendi un indirizzo d'esempio o reale via API veloce (senza creare richiesta)
-  // Qui usiamo l'esempio lato frontend; l'indirizzo reale arriverà nella submit.
-  const exampleBscAddress = '0x8b8A56c4f8C2b4dB1aC5D9e7F4AaE1b234567890';
-  const el = document.getElementById('crypto-address-text');
-  if(el){ el.textContent = exampleBscAddress; }
-}
-
-// Copia indirizzo
-document.getElementById('copy-crypto-address')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  const el = document.getElementById('crypto-address-text');
-  try{
-    await navigator.clipboard.writeText(el?.textContent || '');
-    const btn = e.currentTarget;
-    const original = btn.textContent;
-    btn.textContent = 'Copiato!';
-    setTimeout(()=>{ btn.textContent = original; }, 1200);
-  } catch(_) {}
-});
-
-// Conferma crypto -> crea richiesta pending e mostra istruzioni
-document.getElementById('crypto-continue')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeCryptoModal();
-  await submitDeposit(pendingDepositAmount, 'crypto');
-});
-
-document.getElementById('crypto-cancel')?.addEventListener('click', (e)=>{ e.preventDefault(); closeCryptoModal(); });
-
-cryptoModal?.addEventListener('click', (e)=>{ if(e.target === cryptoModal){ e.preventDefault(); closeCryptoModal(); } });
-
-// Copia IBAN e causale
-document.getElementById('copy-bank-iban')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  try {
-    await navigator.clipboard.writeText(document.getElementById('bank-iban')?.textContent || '');
-    const btn = e.currentTarget; const original = btn.textContent; btn.textContent = 'Copiato!'; setTimeout(()=>{btn.textContent = original;}, 1200);
-  } catch(_) {}
-});
-// (rimosso copia causale su richiesta)
-
-// Conferma bonifico -> crea richiesta pending
-document.getElementById('bank-continue')?.addEventListener('click', async (e)=>{
-  e.preventDefault();
-  closeBankModal();
-  await submitDeposit(pendingDepositAmount, 'bank');
-});
-document.getElementById('bank-cancel')?.addEventListener('click', (e)=>{ e.preventDefault(); closeBankModal(); });
-bankModal?.addEventListener('click', (e)=>{ if(e.target === bankModal){ e.preventDefault(); closeBankModal(); } });
-
-// Chiudi popup conferma
-const pendingModal = document.getElementById('deposit-pending-modal');
-document.getElementById('deposit-pending-close')?.addEventListener('click', (e)=>{ e.preventDefault(); if(pendingModal){ pendingModal.classList.add('hidden'); pendingModal.classList.remove('flex'); } });
-pendingModal?.addEventListener('click', (e)=>{ if(e.target === pendingModal){ e.preventDefault(); pendingModal.classList.add('hidden'); pendingModal.classList.remove('flex'); } });
 
 // Inizializzazione pagina
 document.addEventListener('DOMContentLoaded', function() {
