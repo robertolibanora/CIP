@@ -10,6 +10,8 @@ import logging
 from decimal import Decimal
 from flask import Blueprint, request, session, jsonify
 from backend.shared.database import get_connection
+import psycopg
+from psycopg import errors as pg_errors
 from backend.shared.models import TransactionStatus
 
 deposits_bp = Blueprint("deposits", __name__)
@@ -62,6 +64,18 @@ def ensure_deposits_schema(cur):
         cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'bank'")
     except Exception:
         pass
+    # Assicura colonne unique_key e payment_reference su installazioni esistenti
+    try:
+        cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS unique_key TEXT")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS payment_reference TEXT")
+    except Exception:
+        pass
+    # Assicura vincoli UNIQUE (usa indici unici, più tolleranti se la colonna già esiste)
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_unique_key_idx ON deposit_requests (unique_key)")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_payment_reference_idx ON deposit_requests (payment_reference)")
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_pending_allowed
@@ -191,28 +205,30 @@ def create_deposit_request():
                     'account_holder': default_holder
                 }
             
-            # Genera chiavi univoche
-            unique_key = generate_unique_key()
-            payment_reference = generate_payment_reference()
-            
-            # Verifica unicità chiavi
-            cur.execute("""
-                SELECT id FROM deposit_requests 
-                WHERE unique_key = %s OR payment_reference = %s
-            """, (unique_key, payment_reference))
-            
-            if cur.fetchone():
-                return jsonify({'error': 'Errore generazione chiavi univoche. Riprova.'}), 500
-            
-            # Crea richiesta
-            cur.execute("""
-                INSERT INTO deposit_requests 
-                (user_id, amount, iban, method, unique_key, payment_reference, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, created_at
-            """, (uid, amount, iban_config['iban'], method, unique_key, payment_reference, 'pending'))
-            
-            new_request = cur.fetchone()
+            # Prova inserimento con retry per evitare collisioni univoche
+            attempts = 0
+            new_request = None
+            last_error = None
+            while attempts < 5 and not new_request:
+                attempts += 1
+                unique_key = generate_unique_key()
+                payment_reference = generate_payment_reference()
+                try:
+                    cur.execute("""
+                        INSERT INTO deposit_requests 
+                        (user_id, amount, iban, method, unique_key, payment_reference, status)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id, created_at
+                    """, (uid, amount, iban_config['iban'], method, unique_key, payment_reference, 'pending'))
+                    new_request = cur.fetchone()
+                except pg_errors.UniqueViolation as ue:
+                    conn.rollback()
+                    last_error = ue
+                    # Ritenta con nuove chiavi
+                    continue
+            if not new_request:
+                logger.error("[deposits] unique key generation failed after retries: %s", last_error)
+                return jsonify({'error': 'Errore generazione chiavi, riprovare tra poco'}), 500
             conn.commit()
             logger.info("[deposits] created deposit_request id=%s amount=%s user=%s", new_request['id'] if new_request else None, amount, uid)
     except Exception as e:

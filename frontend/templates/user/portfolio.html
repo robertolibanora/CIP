@@ -185,34 +185,55 @@
             <div class="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Deposita Fondi</h2>
                 <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                    <form id="deposit-form" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label for="deposit-amount" class="block text-sm font-medium text-gray-700 mb-2">Importo (min. €500)</label>
-                                <input type="number" id="deposit-amount" name="amount" min="500" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    <form id="deposit-form" class="space-y-6">
+                        <div class="max-w-lg mx-auto bg-white shadow rounded-2xl p-6">
+                          <h2 class="text-xl font-semibold mb-4">Deposita Fondi</h2>
+
+                          <!-- Importo -->
+                          <div class="mb-6">
+                            <label for="deposit-amount" class="block text-sm font-medium text-gray-700 mb-2">
+                              Importo (min. €500)
+                            </label>
+                            <input
+                              type="number"
+                              id="deposit-amount"
+                              name="amount"
+                              min="500"
+                              step="0.01"
+                              class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              placeholder="Es. 500"
+                              required
+                            />
+                          </div>
+
+                          <!-- Metodo di pagamento -->
+                          <div class="mb-6">
+                            <p class="block text-sm font-medium text-gray-700 mb-3">Metodo di pagamento</p>
+                            <div class="grid grid-cols-2 gap-4">
+                              <!-- Carta (mappata su metodo supportato) -->
+                              <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
+                                <input type="radio" name="payment_method" value="usdt" class="mb-2" required>
+                                <span class="text-gray-800 font-medium">usdt bsc(bep20)</span>
+                              </label>
+                              <!-- Bonifico -->
+                              <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
+                                <input type="radio" name="payment_method" value="bank" class="mb-2" required>
+                                <span class="text-gray-800 font-medium">Bonifico Bancario</span>
+                              </label>
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Metodo di pagamento</label>
-                                <div class="flex flex-wrap gap-3 items-center">
-                                    <label class="inline-flex items-center gap-3 cursor-pointer border border-gray-300 rounded-lg px-3 py-2 bg-white hover:border-blue-400 w-auto">
-                                        <input type="radio" name="payment_method" value="usdt" class="text-blue-600 mt-0.5" required>
-                                        <div>
-                                            <div class="font-medium text-gray-900">Crypto</div>
-                                            <div class="text-sm text-gray-500">USDT • BEP20</div>
-                                        </div>
-                                    </label>
-                                    <label class="inline-flex items-center gap-3 cursor-pointer border border-gray-300 rounded-lg px-3 py-2 bg-white hover:border-blue-400 w-auto">
-                                        <input type="radio" name="payment_method" value="bank" class="text-blue-600 mt-0.5" required>
-                                        <div>
-                                            <div class="font-medium text-gray-900">Bonifico</div>
-                                            <div class="text-sm text-gray-500">Bancario</div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
+                          </div>
+
+                          <!-- Bottone -->
+                          <button
+                            type="submit"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow"
+                          >
+                            Conferma Deposito
+                          </button>
                         </div>
+
+                        <!-- Istruzioni dinamiche -->
                         <div id="deposit-instructions" class="hidden bg-white border border-gray-200 rounded-lg p-4"></div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">Conferma Deposito</button>
                     </form>
                 </div>
 
@@ -359,7 +380,38 @@
 </div>
 
 
-<!-- Rimosso modal: ora inline steps -->
+<!-- Modal istruzioni deposito -->
+<div id="deposit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Istruzioni deposito</h3>
+                <button id="deposit-modal-close" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <div id="deposit-modal-body" class="p-6 space-y-3"></div>
+            <div class="p-6 pt-0">
+                <button id="deposit-modal-ok" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg">Chiudi</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    (function(){
+      const modal = document.getElementById('deposit-modal');
+      const closeBtn = document.getElementById('deposit-modal-close');
+      const okBtn = document.getElementById('deposit-modal-ok');
+      function hide(){ modal.classList.add('hidden'); }
+      function show(){ modal.classList.remove('hidden'); }
+      if (closeBtn) closeBtn.addEventListener('click', hide);
+      if (okBtn) okBtn.addEventListener('click', hide);
+      window.showDepositModal = function(html){
+        const body = document.getElementById('deposit-modal-body');
+        body.innerHTML = html;
+        show();
+      }
+    })();
+    </script>
+</div>
 
 
 <script>
@@ -470,32 +522,39 @@ if (depositForm) {
       const r = await fetch('/deposits/api/requests/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       const j = await r.json();
       if (r.ok) {
-        // Mostra istruzioni
+        // Mostra istruzioni in modal e nella box inline
         const box = document.getElementById('deposit-instructions');
+        let html = '';
         if (method === 'usdt') {
-          const wallet = '0xDEADbeefDEADbeefDEADbeefDEADbeefDEADbeef'; // provvisorio
-          box.innerHTML = `
+          const wallet = '0xF00DBABECAFEBABE000000000000000000000000'; // provvisorio
+          html = `
             <h4 class="font-semibold mb-2">Invia USDT (BEP20)</h4>
             <p class="text-sm text-gray-700">Importo: <strong>€${j.deposit_request.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</strong></p>
             <p class="text-sm text-gray-700">Network: <strong>BSC (BEP20)</strong></p>
             <p class="text-sm text-gray-700">Wallet: <code class="font-mono">${wallet}</code></p>
-            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} ${'{{ user.full_name if user else "" }}'}</code></p>`;
+            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} {{ user.full_name if user else '' }}</code></p>`;
         } else {
-          box.innerHTML = `
+          html = `
             <h4 class="font-semibold mb-2">Dati Bonifico</h4>
-            <p class="text-sm text-gray-700">Intestatario: <strong>${j.deposit_request.account_holder}</strong></p>
-            <p class="text-sm text-gray-700">Banca: <strong>${j.deposit_request.bank_name}</strong></p>
+            <p class="text-sm text-gray-700">Intestatario: <strong>${j.deposit_request.account_holder || 'CIP Immobiliare SRL'}</strong></p>
+            <p class="text-sm text-gray-700">Banca: <strong>${j.deposit_request.bank_name || 'Banca Example'}</strong></p>
             <p class="text-sm text-gray-700">IBAN: <code class="font-mono">${j.deposit_request.iban}</code></p>
-            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} ${'{{ user.full_name if user else "" }}'}</code></p>`;
+            <p class="text-sm text-gray-700">Causale: <code class="font-mono">deposito ${j.deposit_request.unique_key} {{ user.full_name if user else '' }}</code></p>`;
         }
+        box.innerHTML = html;
         box.classList.remove('hidden');
+        if (window.showDepositModal) window.showDepositModal(html);
+        
+        // Aggiorna liste e saldo (admin vedrà la richiesta in pending)
         loadDeposits();
         loadPortfolioData();
         this.reset();
       } else {
-        alert(j.error || 'Errore creazione richiesta');
+        console.error('Deposito API error:', j);
+        alert((j.error || 'Errore creazione richiesta') + (j.debug ? `\nDettagli: ${j.debug}` : ''));
       }
     } catch (err) {
+      console.error('Deposito network error:', err);
       alert('Errore di rete');
     }
   })

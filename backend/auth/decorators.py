@@ -168,11 +168,16 @@ def kyc_pending_allowed(f: Callable) -> Callable:
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_authenticated():
+            # Per richieste API restituisci JSON, non redirect HTML
+            if is_api_request():
+                return jsonify({'error': 'unauthorized'}), 401
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
         
         user = get_current_user()
         if not user:
+            if is_api_request():
+                return jsonify({'error': 'unauthorized'}), 401
             flash("Sessione utente non valida", "error")
             return redirect(url_for('auth.login'))
         
@@ -183,6 +188,12 @@ def kyc_pending_allowed(f: Callable) -> Callable:
         # Utenti normali devono avere KYC almeno in attesa
         kyc_status = user.get('kyc_status')
         if kyc_status not in [KYCStatus.PENDING.value, KYCStatus.VERIFIED.value]:
+            if is_api_request():
+                return jsonify({
+                    'error': 'kyc_required',
+                    'message': 'Verifica KYC richiesta per accedere a questa funzionalità',
+                    'kyc_status': kyc_status
+                }), 403
             flash("Verifica KYC richiesta per accedere a questa funzionalità", "warning")
             return redirect(url_for('user.profile'))
         
