@@ -3293,6 +3293,12 @@ def deposits_dashboard():
     """Pagina Depositi disattivata: restituisce pagina vuota senza logica."""
     return render_template('admin/deposits/dashboard.html')
 
+@admin_bp.get("/deposits/history")
+@admin_required
+def deposits_history():
+    """Pagina storico depositi"""
+    return render_template('admin/deposits/history.html')
+
 @admin_bp.get("/api/deposit-requests")
 @admin_required
 def deposit_requests_list():
@@ -3318,169 +3324,13 @@ def reject_deposit_request():
 @admin_required
 def withdrawals_dashboard():
     """Dashboard dedicata per gestione prelievi"""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se la tabella esiste
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'withdrawal_requests'
-                );
-            """)
-            table_exists = cur.fetchone()[0]
-            
-            if not table_exists:
-                # Tabella non esiste, restituisci dashboard vuota
-                return render_template('admin/withdrawals/dashboard.html', 
-                                     withdrawals=[], 
-                                     metrics={
-                                         'withdrawals_pending': 0,
-                                         'withdrawals_completed': 0,
-                                         'withdrawals_rejected': 0,
-                                         'withdrawals_total_amount': 0.0
-                                     },
-                                     page=1,
-                                     per_page=20,
-                                     total_count=0)
-            
-            # Statistiche prelievi
-            cur.execute("""
-                SELECT 
-                    COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
-                    COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
-                    COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count,
-                    COALESCE(SUM(amount) FILTER (WHERE status = 'completed'), 0) as total_amount
-                FROM withdrawal_requests
-            """)
-            stats = cur.fetchone()
-            
-            # Lista prelievi con paginazione
-            page = request.args.get('page', 1, type=int)
-            per_page = 20
-            offset = (page - 1) * per_page
-            
-            cur.execute("""
-                SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, 
-                       wr.source_section, wr.bank_details, wr.status, wr.created_at,
-                       wr.admin_notes,
-                       EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
-                FROM withdrawal_requests wr
-            JOIN users u ON u.id = wr.user_id
-            ORDER BY 
-                CASE WHEN wr.status = 'pending' THEN 1 ELSE 2 END,
-                wr.created_at DESC
-            LIMIT %s OFFSET %s
-        """, (per_page, offset))
-            withdrawals = cur.fetchall()
-            
-            # Conta totale per paginazione
-            cur.execute("SELECT COUNT(*) FROM withdrawal_requests")
-            total_count_result = cur.fetchone()
-            total_count = total_count_result[0] if total_count_result else 0
-        
-        metrics = {
-            'withdrawals_pending': stats[0] if stats and len(stats) > 0 else 0,
-            'withdrawals_completed': stats[1] if stats and len(stats) > 1 else 0,
-            'withdrawals_rejected': stats[2] if stats and len(stats) > 2 else 0,
-            'withdrawals_total_amount': float(stats[3]) if stats and len(stats) > 3 and stats[3] else 0.0
-        }
-        
-        return render_template('admin/withdrawals/dashboard.html', 
-                             withdrawals=withdrawals, 
-                             metrics=metrics,
-                             page=page,
-                             per_page=per_page,
-                             total_count=total_count)
-                             
-    except Exception as e:
-        # In caso di errore, restituisci dashboard vuota
-        print(f"Errore in withdrawals_dashboard: {e}")
-        return render_template('admin/withdrawals/dashboard.html', 
-                             withdrawals=[], 
-                             metrics={
-                                 'withdrawals_pending': 0,
-                                 'withdrawals_completed': 0,
-                                 'withdrawals_rejected': 0,
-                                 'withdrawals_total_amount': 0.0
-                             },
-                             page=1,
-                             per_page=20,
-                             total_count=0)
+    return render_template('admin/withdrawals/dashboard.html')
 
-@admin_bp.get("/api/withdrawal-requests")
+@admin_bp.get("/withdrawals/history")
 @admin_required
-def withdrawal_requests_list():
-    """API per lista richieste prelievo (per AJAX)"""
-    status = request.args.get('status', 'pending')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, 
-                   wr.source_section, wr.bank_details, wr.status, wr.created_at,
-                   wr.admin_notes,
-                   EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
-            FROM withdrawal_requests wr
-            JOIN users u ON u.id = wr.user_id
-            WHERE wr.status = %s
-            ORDER BY wr.created_at ASC
-        """, (status,))
-        requests = cur.fetchall()
-    
-    return jsonify(requests)
-
-@admin_bp.post("/api/withdrawal-requests/approve")
-@admin_required
-def approve_withdrawal_request():
-    """Approvazione prelievo (48h max)"""
-    data = request.get_json() or {}
-    withdrawal_id = data.get('withdrawal_id')
-    admin_notes = data.get('admin_notes', '')
-    
-    if not withdrawal_id:
-        return jsonify({'error': 'Withdrawal ID richiesto'}), 400
-    
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica richiesta esiste
-            cur.execute("""
-                SELECT wr.*, u.email FROM withdrawal_requests wr
-                JOIN users u ON u.id = wr.user_id  
-                WHERE wr.id = %s AND wr.status = 'pending'
-            """, (withdrawal_id,))
-            withdrawal = cur.fetchone()
-            
-            if not withdrawal:
-                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
-            
-            # Aggiorna stato prelievo
-            cur.execute("""
-                UPDATE withdrawal_requests 
-                SET status = 'completed', admin_notes = %s, approved_at = NOW(), approved_by = %s
-                WHERE id = %s
-            """, (admin_notes, session.get('user_id'), withdrawal_id))
-            
-            # Registra transazione
-            cur.execute("""
-                INSERT INTO portfolio_transactions (
-                    user_id, type, amount, balance_before, balance_after,
-                    description, reference_id, reference_type, status, created_at
-                ) VALUES (
-                    %s, 'withdrawal', -%s, 0, 0, 
-                    'Prelievo approvato da admin', %s, 'withdrawal_request', 'completed', NOW()
-                )
-            """, (withdrawal['user_id'], withdrawal['amount'], withdrawal_id))
-            
-            conn.commit()
-            
-        return jsonify({
-            'success': True,
-            'message': 'Prelievo approvato con successo',
-            'withdrawal_id': withdrawal_id,
-            'amount': float(withdrawal['amount'])
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+def withdrawals_history():
+    """Storico prelievi admin"""
+    return render_template('admin/withdrawals/history.html')
 
 def get_admin_metrics():
     """Funzione helper per ottenere metriche generali admin"""

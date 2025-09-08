@@ -1,431 +1,530 @@
 """
-Withdrawals API routes
-API per gestione prelievi: Richieste e approvazioni
+Routes per gestione prelievi
 """
 
+import json
+import secrets
+import string
 from datetime import datetime
 from decimal import Decimal
-from flask import Blueprint, request, session, jsonify
-from backend.shared.database import get_connection
-from backend.shared.models import TransactionStatus
+from flask import Blueprint, request, jsonify, session, render_template
+from backend.shared.database import get_connection as get_conn
+from backend.auth.decorators import login_required, admin_required, can_withdraw
+from backend.shared.validators import ValidationError
+import logging
 
-withdrawals_bp = Blueprint("withdrawals", __name__)
+logger = logging.getLogger(__name__)
 
-def get_conn():
-    return get_connection()
+withdrawals_bp = Blueprint('withdrawals', __name__, url_prefix='/withdrawals')
 
-# Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, can_withdraw
+def generate_unique_key():
+    """Genera una chiave unica di 6 caratteri alfanumerici"""
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 
-# Rimuove il before_request globale e usa decoratori specifici
-# per ogni route che richiede autorizzazione
-
-# =====================================================
-# 4. PRELIEVI API - Richieste e approvazioni
-# =====================================================
-
-@withdrawals_bp.route('/api/requests', methods=['GET'])
-@login_required
-def get_withdrawal_requests():
-    """Ottiene le richieste di prelievo dell'utente"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, amount, source_section, bank_details, status, 
-                   admin_notes, created_at, approved_at
-            FROM withdrawal_requests 
-            WHERE user_id = %s 
-            ORDER BY created_at DESC
-        """, (uid,))
-        requests = cur.fetchall()
-    
-    return jsonify({'withdrawal_requests': requests})
-
-@withdrawals_bp.route('/api/requests/<int:request_id>', methods=['GET'])
-@login_required
-def get_withdrawal_request_detail(request_id):
-    """Ottiene i dettagli di una richiesta di prelievo specifica"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, amount, source_section, bank_details, status, 
-                   admin_notes, created_at, approved_at, approved_by
-            FROM withdrawal_requests 
-            WHERE id = %s AND user_id = %s
-        """, (request_id, uid))
-        request_detail = cur.fetchone()
-        
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-    
-    return jsonify({'withdrawal_request': request_detail})
+def ensure_withdrawals_schema():
+    """Assicura che lo schema dei prelievi sia aggiornato"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica se le colonne esistono e le aggiunge se necessario
+            cur.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'withdrawal_requests' 
+                AND column_name IN ('method', 'wallet_address', 'unique_key', 'source_section')
+            """)
+            existing_columns = [row['column_name'] for row in cur.fetchall()]
+            
+            if 'method' not in existing_columns:
+                cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN method TEXT CHECK (method IN ('usdt', 'bank'))")
+                logger.info("Aggiunta colonna 'method' a withdrawal_requests")
+            
+            if 'wallet_address' not in existing_columns:
+                cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN wallet_address TEXT")
+                logger.info("Aggiunta colonna 'wallet_address' a withdrawal_requests")
+            
+            if 'unique_key' not in existing_columns:
+                cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN unique_key TEXT UNIQUE")
+                logger.info("Aggiunta colonna 'unique_key' a withdrawal_requests")
+            
+            if 'source_section' not in existing_columns:
+                cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN source_section TEXT CHECK (source_section IN ('free_capital','referral_bonus','profits'))")
+                logger.info("Aggiunta colonna 'source_section' a withdrawal_requests")
+            
+            # Aggiorna i record esistenti se necessario
+            cur.execute("""
+                UPDATE withdrawal_requests 
+                SET method = 'bank', unique_key = %s, source_section = 'free_capital'
+                WHERE method IS NULL OR unique_key IS NULL OR source_section IS NULL
+            """, (generate_unique_key(),))
+            
+            conn.commit()
+            logger.info("Schema withdrawal_requests aggiornato con successo")
+            
+    except Exception as e:
+        logger.error(f"Errore nell'aggiornamento schema withdrawal_requests: {e}")
+        raise
 
 @withdrawals_bp.route('/api/requests/new', methods=['POST'])
 @can_withdraw
 def create_withdrawal_request():
     """Crea una nuova richiesta di prelievo"""
     uid = session.get("user_id")
-    data = request.get_json() or {}
-    
-    # Validazione dati
-    required_fields = ['amount', 'source_section', 'bank_details']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({'error': f'Campo obbligatorio mancante: {field}'}), 400
+    if not uid:
+        return jsonify({'error': 'Non autorizzato'}), 401
     
     try:
-        amount = Decimal(str(data['amount']))
-    except (ValueError, TypeError):
-        return jsonify({'error': 'Importo non valido'}), 400
-    
-    source_section = data['source_section']
-    bank_details = data['bank_details']
-    
-    # Validazione importo minimo (50 dollari)
-    if amount < 50:
-        return jsonify({'error': 'Importo minimo richiesto: 50 dollari'}), 400
-    
-    # Validazione sezione fonte
-    valid_sections = ['free_capital', 'referral_bonus', 'profits']
-    if source_section not in valid_sections:
-        return jsonify({'error': f'Sezione fonte non valida. Valori ammessi: {valid_sections}'}), 400
-    
-    # Validazione dettagli bancari
-    if not isinstance(bank_details, dict) or 'iban' not in bank_details:
-        return jsonify({'error': 'Dettagli bancari non validi. Richiesto campo IBAN'}), 400
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica disponibilità saldo
-        cur.execute("""
-            SELECT free_capital, referral_bonus, profits
-            FROM user_portfolios 
-            WHERE user_id = %s
-        """, (uid,))
-        portfolio = cur.fetchone()
+        data = request.get_json() or {}
+        amount = Decimal(str(data.get('amount', 0)))
+        method = data.get('method')  # usdt o bank
+        source_section = data.get('source_section')
+        wallet_address = data.get('wallet_address', '').strip()
+        bank_details = data.get('bank_details', {})
         
-        if not portfolio:
-            return jsonify({'error': 'Portfolio non trovato'}), 404
+        # Validazioni base
+        if amount <= 0:
+            return jsonify({'error': 'Importo deve essere positivo'}), 400
         
-        # Controlla saldo disponibile per la sezione
-        available_amount = 0
-        if source_section == 'free_capital':
-            available_amount = portfolio['free_capital']
-        elif source_section == 'referral_bonus':
-            available_amount = portfolio['referral_bonus']
-        elif source_section == 'profits':
-            available_amount = portfolio['profits']
+        if amount < 50:
+            return jsonify({'error': 'Importo minimo: €50'}), 400
         
-        if available_amount < amount:
-            return jsonify({'error': f'Saldo insufficiente nella sezione {source_section}. Disponibile: {available_amount}'}), 400
+        if not method or method not in ['usdt', 'bank']:
+            return jsonify({'error': 'Metodo di prelievo non valido'}), 400
         
-        # Crea richiesta
-        cur.execute("""
-            INSERT INTO withdrawal_requests 
-            (user_id, amount, source_section, bank_details, status)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id, created_at
-        """, (uid, amount, source_section, bank_details, 'pending'))
+        if not source_section or source_section not in ['free_capital', 'referral_bonus', 'profits']:
+            return jsonify({'error': 'Sezione sorgente non valida'}), 400
         
-        new_request = cur.fetchone()
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'withdrawal_request': {
-            'id': new_request['id'],
-            'amount': float(amount),
-            'source_section': source_section,
-            'bank_details': bank_details,
-            'status': 'pending',
-            'created_at': new_request['created_at'].isoformat() if new_request['created_at'] else None
-        },
-        'message': 'Richiesta di prelievo creata con successo'
-    })
+        # Validazioni specifiche per metodo
+        if method == 'usdt':
+            if not wallet_address:
+                return jsonify({'error': 'Indirizzo wallet richiesto per prelievi USDT'}), 400
+            # Validazione base indirizzo BEP20 (inizia con 0x e ha 42 caratteri)
+            if not wallet_address.startswith('0x') or len(wallet_address) != 42:
+                return jsonify({'error': 'Indirizzo wallet non valido'}), 400
+        elif method == 'bank':
+            if not bank_details.get('iban'):
+                return jsonify({'error': 'IBAN richiesto per prelievi bancari'}), 400
+            if not bank_details.get('account_holder'):
+                return jsonify({'error': 'Intestatario richiesto per prelievi bancari'}), 400
+        
+        # Assicura schema aggiornato
+        ensure_withdrawals_schema()
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica disponibilità saldo
+            cur.execute("""
+                SELECT free_capital, referral_bonus, profits
+                FROM user_portfolios 
+                WHERE user_id = %s
+            """, (uid,))
+            portfolio = cur.fetchone()
+            
+            if not portfolio:
+                return jsonify({'error': 'Portfolio non trovato'}), 404
+            
+            # Controlla saldo disponibile per la sezione
+            available_amount = 0
+            if source_section == 'free_capital':
+                available_amount = portfolio['free_capital']
+            elif source_section == 'referral_bonus':
+                available_amount = portfolio['referral_bonus']
+            elif source_section == 'profits':
+                available_amount = portfolio['profits']
+            
+            if available_amount < amount:
+                return jsonify({'error': f'Saldo insufficiente nella sezione {source_section}. Disponibile: €{available_amount}'}), 400
+            
+            # Genera chiave unica
+            unique_key = generate_unique_key()
+            
+            # Crea richiesta
+            if method == 'usdt':
+                cur.execute("""
+                    INSERT INTO withdrawal_requests 
+                    (user_id, amount, method, source_section, wallet_address, unique_key, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, 'pending')
+                    RETURNING id, created_at
+                """, (uid, amount, method, source_section, wallet_address, unique_key))
+            else:  # bank
+                cur.execute("""
+                    INSERT INTO withdrawal_requests 
+                    (user_id, amount, method, source_section, bank_details, unique_key, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, 'pending')
+                    RETURNING id, created_at
+                """, (uid, amount, method, source_section, json.dumps(bank_details), unique_key))
+            
+            new_request = cur.fetchone()
+            conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'withdrawal_request': {
+                'id': new_request['id'],
+                'amount': float(amount),
+                'method': method,
+                'source_section': source_section,
+                'unique_key': unique_key,
+                'status': 'pending',
+                'created_at': new_request['created_at'].isoformat() if new_request['created_at'] else None
+            },
+            'message': 'Richiesta di prelievo creata con successo'
+        })
+        
+    except Exception as e:
+        logger.exception(f"Errore nella creazione richiesta prelievo: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
 
-@withdrawals_bp.route('/api/requests/<int:request_id>/cancel', methods=['POST'])
+@withdrawals_bp.route('/api/requests', methods=['GET'])
 @login_required
-def cancel_withdrawal_request(request_id):
-    """Annulla una richiesta di prelievo (solo se pending)"""
+def get_user_withdrawals():
+    """Ottiene le richieste di prelievo dell'utente"""
     uid = session.get("user_id")
+    if not uid:
+        return jsonify({'error': 'Non autorizzato'}), 401
     
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica proprietà e stato
-        cur.execute("""
-            SELECT id, status FROM withdrawal_requests 
-            WHERE id = %s AND user_id = %s
-        """, (request_id, uid))
-        request_detail = cur.fetchone()
-        
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-        
-        if request_detail['status'] != 'pending':
-            return jsonify({'error': 'Solo le richieste in attesa possono essere annullate'}), 400
-        
-        # Annulla richiesta
-        cur.execute("""
-            UPDATE withdrawal_requests 
-            SET status = 'cancelled' 
-            WHERE id = %s
-        """, (request_id,))
-        
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Richiesta annullata con successo'
-    })
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, amount, method, source_section, wallet_address, bank_details, 
+                       unique_key, status, admin_notes, created_at, approved_at
+                FROM withdrawal_requests 
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (uid,))
+            withdrawals = cur.fetchall()
+            
+            # Converti i risultati
+            result = []
+            for w in withdrawals:
+                withdrawal_data = {
+                    'id': w['id'],
+                    'amount': float(w['amount']),
+                    'method': w['method'],
+                    'source_section': w['source_section'],
+                    'unique_key': w['unique_key'],
+                    'status': w['status'],
+                    'admin_notes': w['admin_notes'],
+                    'created_at': w['created_at'].isoformat() if w['created_at'] else None,
+                    'approved_at': w['approved_at'].isoformat() if w['approved_at'] else None
+                }
+                
+                # Aggiungi dettagli specifici per metodo
+                if w['method'] == 'usdt':
+                    withdrawal_data['wallet_address'] = w['wallet_address']
+                elif w['method'] == 'bank' and w['bank_details']:
+                    # bank_details è già un dizionario Python (psycopg converte JSONB automaticamente)
+                    withdrawal_data['bank_details'] = w['bank_details']
+                
+                result.append(withdrawal_data)
+            
+            return jsonify({'withdrawals': result})
+            
+    except Exception as e:
+        logger.exception(f"Errore nel recupero prelievi utente: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
 
-@withdrawals_bp.route('/api/available-amounts', methods=['GET'])
-@login_required
-def get_available_amounts():
-    """Ottiene gli importi disponibili per prelievo dalle varie sezioni"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT free_capital, referral_bonus, profits
-            FROM user_portfolios 
-            WHERE user_id = %s
-        """, (uid,))
-        portfolio = cur.fetchone()
-        
-        if not portfolio:
-            return jsonify({
-                'free_capital': 0.0,
-                'referral_bonus': 0.0,
-                'profits': 0.0,
-                'total_available': 0.0
-            })
-        
-        total_available = portfolio['free_capital'] + portfolio['referral_bonus'] + portfolio['profits']
-    
-    return jsonify({
-        'free_capital': float(portfolio['free_capital']),
-        'referral_bonus': float(portfolio['referral_bonus']),
-        'profits': float(portfolio['profits']),
-        'total_available': float(total_available)
-    })
-
-@withdrawals_bp.route('/api/status/<int:request_id>', methods=['GET'])
-@login_required
-def get_withdrawal_status(request_id):
-    """Ottiene lo stato di una richiesta di prelievo"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, amount, source_section, status, created_at, approved_at, admin_notes
-            FROM withdrawal_requests 
-            WHERE id = %s AND user_id = %s
-        """, (request_id, uid))
-        request_detail = cur.fetchone()
-        
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-    
-    return jsonify({
-        'request_id': request_detail['id'],
-        'amount': float(request_detail['amount']),
-        'source_section': request_detail['source_section'],
-        'status': request_detail['status'],
-        'created_at': request_detail['created_at'].isoformat() if request_detail['created_at'] else None,
-        'approved_at': request_detail['approved_at'].isoformat() if request_detail['approved_at'] else None,
-        'admin_notes': request_detail['admin_notes']
-    })
-
-# =====================================================
-# ENDPOINT ADMIN (richiedono ruolo admin)
-# =====================================================
-
-from backend.auth.decorators import admin_required
+# ============================================================================
+# ROUTE ADMIN
+# ============================================================================
 
 @withdrawals_bp.route('/api/admin/pending', methods=['GET'])
 @admin_required
 def admin_get_pending_withdrawals():
-    """Admin ottiene tutte le richieste di prelievo in attesa"""
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT wr.id, wr.amount, wr.source_section, wr.bank_details, wr.created_at,
-                   wr.admin_notes,
-                   u.id as user_id, u.full_name, u.email, u.kyc_status,
-                   up.free_capital, up.referral_bonus, up.profits
-            FROM withdrawal_requests wr
-            JOIN users u ON wr.user_id = u.id
-            JOIN user_portfolios up ON wr.user_id = up.user_id
-            WHERE wr.status = 'pending'
-            ORDER BY wr.created_at ASC
-        """)
-        pending_withdrawals = cur.fetchall()
-    
-    return jsonify({'pending_withdrawals': pending_withdrawals})
+    """Admin: Ottiene le richieste di prelievo in attesa"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, wr.method,
+                       wr.source_section, wr.wallet_address, wr.bank_details, wr.unique_key,
+                       wr.status, wr.created_at, wr.admin_notes,
+                       EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
+                FROM withdrawal_requests wr
+                JOIN users u ON u.id = wr.user_id
+                WHERE wr.status = 'pending'
+                ORDER BY wr.created_at ASC
+            """)
+            withdrawals = cur.fetchall()
+            
+            # Converti i risultati
+            result = []
+            for w in withdrawals:
+                withdrawal_data = {
+                    'id': w['id'],
+                    'user_id': w['user_id'],
+                    'full_name': w['full_name'],
+                    'email': w['email'],
+                    'amount': float(w['amount']),
+                    'method': w['method'],
+                    'source_section': w['source_section'],
+                    'unique_key': w['unique_key'],
+                    'status': w['status'],
+                    'admin_notes': w['admin_notes'],
+                    'created_at': w['created_at'].isoformat() if w['created_at'] else None,
+                    'hours_pending': float(w['hours_pending']) if w['hours_pending'] else 0
+                }
+                
+                # Aggiungi dettagli specifici per metodo
+                if w['method'] == 'usdt':
+                    withdrawal_data['wallet_address'] = w['wallet_address']
+                elif w['method'] == 'bank' and w['bank_details']:
+                    # bank_details è già un dizionario Python (psycopg converte JSONB automaticamente)
+                    withdrawal_data['bank_details'] = w['bank_details']
+                
+                result.append(withdrawal_data)
+            
+            return jsonify({'withdrawals': result})
+            
+    except Exception as e:
+        logger.exception(f"Errore nel recupero prelievi admin: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
 
 @withdrawals_bp.route('/api/admin/approve/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_approve_withdrawal(request_id):
-    """Admin approva una richiesta di prelievo"""
-    
-    data = request.get_json() or {}
-    admin_notes = data.get('admin_notes', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica richiesta esiste e è pending
-        cur.execute("""
-            SELECT id, user_id, amount, source_section, status FROM withdrawal_requests 
-            WHERE id = %s
-        """, (request_id,))
-        request_detail = cur.fetchone()
+    """Admin: Approva una richiesta di prelievo"""
+    try:
+        admin_user_id = session.get('user_id')
         
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-        
-        if request_detail['status'] != 'pending':
-            return jsonify({'error': 'Solo le richieste in attesa possono essere approvate'}), 400
-        
-        # Verifica saldo ancora disponibile
-        cur.execute("""
-            SELECT free_capital, referral_bonus, profits
-            FROM user_portfolios 
-            WHERE user_id = %s
-        """, (request_detail['user_id'],))
-        portfolio = cur.fetchone()
-        
-        if not portfolio:
-            return jsonify({'error': 'Portfolio utente non trovato'}), 404
-        
-        # Controlla saldo per la sezione
-        source_section = request_detail['source_section']
-        available_amount = 0
-        if source_section == 'free_capital':
-            available_amount = portfolio['free_capital']
-        elif source_section == 'referral_bonus':
-            available_amount = portfolio['referral_bonus']
-        elif source_section == 'profits':
-            available_amount = portfolio['profits']
-        
-        if available_amount < request_detail['amount']:
-            return jsonify({'error': f'Saldo insufficiente nella sezione {source_section}. Disponibile: {available_amount}'}), 400
-        
-        # Approva richiesta
-        cur.execute("""
-            UPDATE withdrawal_requests 
-            SET status = 'completed', approved_at = NOW(), approved_by = %s, admin_notes = %s
-            WHERE id = %s
-        """, (session.get('user_id'), admin_notes, request_id))
-        
-        # Aggiorna portfolio utente
-        if source_section == 'free_capital':
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica richiesta esiste e è pending
             cur.execute("""
-                UPDATE user_portfolios 
-                SET free_capital = free_capital - %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (request_detail['amount'], request_detail['user_id']))
-        elif source_section == 'referral_bonus':
+                SELECT wr.*, u.email FROM withdrawal_requests wr
+                JOIN users u ON u.id = wr.user_id  
+                WHERE wr.id = %s AND wr.status = 'pending'
+            """, (request_id,))
+            withdrawal = cur.fetchone()
+            
+            if not withdrawal:
+                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
+            
+            # Aggiorna stato prelievo
             cur.execute("""
-                UPDATE user_portfolios 
-                SET referral_bonus = referral_bonus - %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (request_detail['amount'], request_detail['user_id']))
-        elif source_section == 'profits':
+                UPDATE withdrawal_requests 
+                SET status = 'completed', approved_at = NOW(), approved_by = %s
+                WHERE id = %s
+            """, (admin_user_id, request_id))
+            
+            # Rimuovi importo dal portfolio utente
+            source_section = withdrawal['source_section']
+            amount = withdrawal['amount']
+            
+            if source_section == 'free_capital':
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET free_capital = free_capital - %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (amount, withdrawal['user_id']))
+            elif source_section == 'referral_bonus':
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET referral_bonus = referral_bonus - %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (amount, withdrawal['user_id']))
+            elif source_section == 'profits':
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET profits = profits - %s, updated_at = NOW()
+                    WHERE user_id = %s
+                """, (amount, withdrawal['user_id']))
+            
+            # Registra transazione
             cur.execute("""
-                UPDATE user_portfolios 
-                SET profits = profits - %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (request_detail['amount'], request_detail['user_id']))
+                INSERT INTO portfolio_transactions (
+                    user_id, transaction_type, amount, free_capital_before, free_capital_after,
+                    description, reference_id, reference_type, status, created_at
+                ) VALUES (
+                    %s, 'withdrawal', -%s, 0, 0, 
+                    'Prelievo approvato da admin', %s, 'withdrawal_request', 'completed', NOW()
+                )
+            """, (withdrawal['user_id'], amount, request_id))
+            
+            conn.commit()
+            
+            logger.info(f"Prelievo {request_id} approvato da admin {admin_user_id}")
         
-        # Crea transazione portfolio
-        cur.execute("""
-            INSERT INTO portfolio_transactions 
-            (user_id, type, amount, balance_before, balance_after, description, 
-             reference_id, reference_type, status)
-            SELECT 
-                %s, 'withdrawal', %s, 
-                (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
-                (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
-                'Prelievo approvato', %s, 'withdrawal_request', 'completed'
-            FROM user_portfolios WHERE user_id = %s
-        """, (request_detail['user_id'], request_detail['amount'], 
-              request_detail['user_id'], request_detail['user_id'],
-              request_id, request_detail['user_id']))
+        return jsonify({
+            'success': True,
+            'message': 'Prelievo approvato con successo',
+            'withdrawal_id': request_id
+        })
         
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Prelievo approvato con successo'
-    })
+    except Exception as e:
+        logger.exception(f"Errore nell'approvazione prelievo {request_id}: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
 
 @withdrawals_bp.route('/api/admin/reject/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_reject_withdrawal(request_id):
-    """Admin rifiuta una richiesta di prelievo"""
-    
-    data = request.get_json() or {}
-    admin_notes = data.get('admin_notes', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica richiesta esiste e è pending
-        cur.execute("""
-            SELECT id, status FROM withdrawal_requests 
-            WHERE id = %s
-        """, (request_id,))
-        request_detail = cur.fetchone()
+    """Admin: Rifiuta una richiesta di prelievo"""
+    try:
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', 'Rifiutato da admin')
+        admin_user_id = session.get('user_id')
         
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica richiesta esiste e è pending
+            cur.execute("""
+                SELECT * FROM withdrawal_requests 
+                WHERE id = %s AND status = 'pending'
+            """, (request_id,))
+            withdrawal = cur.fetchone()
+            
+            if not withdrawal:
+                return jsonify({'error': 'Richiesta non trovata o già processata'}), 404
+            
+            # Aggiorna stato prelievo
+            cur.execute("""
+                UPDATE withdrawal_requests 
+                SET status = 'cancelled', admin_notes = %s, approved_at = NOW(), approved_by = %s
+                WHERE id = %s
+            """, (admin_notes, admin_user_id, request_id))
+            
+            conn.commit()
+            
+            logger.info(f"Prelievo {request_id} rifiutato da admin {admin_user_id}: {admin_notes}")
         
-        if request_detail['status'] != 'pending':
-            return jsonify({'error': 'Solo le richieste in attesa possono essere rifiutate'}), 400
+        return jsonify({
+            'success': True,
+            'message': 'Prelievo rifiutato',
+            'withdrawal_id': request_id
+        })
         
-        # Rifiuta richiesta
-        cur.execute("""
-            UPDATE withdrawal_requests 
-            SET status = 'failed', admin_notes = %s
-            WHERE id = %s
-        """, (admin_notes, request_id))
-        
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Prelievo rifiutato'
-    })
+    except Exception as e:
+        logger.exception(f"Errore nel rifiuto prelievo {request_id}: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
 
-@withdrawals_bp.route('/api/admin/stats', methods=['GET'])
+@withdrawals_bp.route('/api/admin/history', methods=['GET'])
 @admin_required
-def admin_get_withdrawal_stats():
-    """Admin ottiene statistiche sui prelievi"""
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Conta richieste per stato
-        cur.execute("""
-            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount
-            FROM withdrawal_requests 
-            GROUP BY status
-        """)
-        status_stats = cur.fetchall()
+def admin_get_withdrawals_history():
+    """Admin: Ottiene lo storico di tutti i prelievi"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+        offset = (page - 1) * per_page
         
-        # Conta richieste per sezione
-        cur.execute("""
-            SELECT source_section, COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount
-            FROM withdrawal_requests 
-            GROUP BY source_section
-        """)
-        section_stats = cur.fetchall()
+        status_filter = request.args.get('status', '')
+        search_query = request.args.get('search', '')
         
-        # Richieste in attesa da più di 48h
-        cur.execute("""
-            SELECT COUNT(*) as count
-            FROM withdrawal_requests 
-            WHERE status = 'pending' AND created_at < NOW() - INTERVAL '48 hours'
-        """)
-        overdue_requests = cur.fetchone()
-    
-    return jsonify({
-        'status_stats': status_stats,
-        'section_stats': section_stats,
-        'overdue_requests': overdue_requests['count'] if overdue_requests else 0
-    })
+        with get_conn() as conn, conn.cursor() as cur:
+            # Costruisci query con filtri
+            where_conditions = []
+            params = []
+            
+            if status_filter:
+                where_conditions.append("wr.status = %s")
+                params.append(status_filter)
+            
+            if search_query:
+                where_conditions.append("(u.full_name ILIKE %s OR u.email ILIKE %s)")
+                params.extend([f'%{search_query}%', f'%{search_query}%'])
+            
+            where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+            
+            # Query principale
+            query = f"""
+                SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, wr.method,
+                       wr.source_section, wr.wallet_address, wr.bank_details, wr.unique_key,
+                       wr.status, wr.created_at, wr.approved_at, wr.admin_notes,
+                       admin_user.full_name as approved_by_name
+                FROM withdrawal_requests wr
+                JOIN users u ON u.id = wr.user_id
+                LEFT JOIN users admin_user ON admin_user.id = wr.approved_by
+                {where_clause}
+                ORDER BY wr.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            params.extend([per_page, offset])
+            
+            cur.execute(query, params)
+            withdrawals = cur.fetchall()
+            
+            # Conta totale per paginazione
+            count_query = f"""
+                SELECT COUNT(*) FROM withdrawal_requests wr
+                JOIN users u ON u.id = wr.user_id
+                {where_clause}
+            """
+            cur.execute(count_query, params[:-2])  # Rimuovi LIMIT e OFFSET
+            total_count = cur.fetchone()[0]
+            
+            # Converti i risultati
+            result = []
+            for w in withdrawals:
+                withdrawal_data = {
+                    'id': w['id'],
+                    'user_id': w['user_id'],
+                    'full_name': w['full_name'],
+                    'email': w['email'],
+                    'amount': float(w['amount']),
+                    'method': w['method'],
+                    'source_section': w['source_section'],
+                    'unique_key': w['unique_key'],
+                    'status': w['status'],
+                    'admin_notes': w['admin_notes'],
+                    'created_at': w['created_at'].isoformat() if w['created_at'] else None,
+                    'approved_at': w['approved_at'].isoformat() if w['approved_at'] else None,
+                    'approved_by_name': w['approved_by_name']
+                }
+                
+                # Aggiungi dettagli specifici per metodo
+                if w['method'] == 'usdt':
+                    withdrawal_data['wallet_address'] = w['wallet_address']
+                elif w['method'] == 'bank' and w['bank_details']:
+                    # bank_details è già un dizionario Python (psycopg converte JSONB automaticamente)
+                    withdrawal_data['bank_details'] = w['bank_details']
+                
+                result.append(withdrawal_data)
+            
+            return jsonify({
+                'withdrawals': result,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total_count': total_count,
+                    'total_pages': (total_count + per_page - 1) // per_page
+                }
+            })
+            
+    except Exception as e:
+        logger.exception(f"Errore nel recupero storico prelievi: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
+
+@withdrawals_bp.route('/api/admin/delete-all', methods=['DELETE'])
+@admin_required
+def admin_delete_all_withdrawals():
+    """Admin elimina tutti i prelievi dal database (AZIONE PERICOLOSA)"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) as total FROM withdrawal_requests")
+            total_withdrawals = cur.fetchone()['total']
+            
+            if total_withdrawals == 0:
+                return jsonify({'success': True, 'message': 'Nessun prelievo da eliminare', 'deleted_count': 0})
+            
+            admin_user_id = session.get('user_id')
+            logger.warning(f"[ADMIN DELETE] User {admin_user_id} is deleting ALL {total_withdrawals} withdrawals from database")
+            
+            # Elimina transazioni correlate
+            cur.execute("""
+                DELETE FROM portfolio_transactions 
+                WHERE reference_type = 'withdrawal_request'
+            """)
+            deleted_transactions = cur.rowcount
+            
+            # Elimina tutti i prelievi
+            cur.execute("DELETE FROM withdrawal_requests")
+            deleted_withdrawals = cur.rowcount
+            
+            conn.commit()
+            
+            logger.warning(f"[ADMIN DELETE] Completed: {deleted_withdrawals} withdrawals, {deleted_transactions} transactions deleted")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Eliminati {deleted_withdrawals} prelievi e {deleted_transactions} transazioni',
+            'deleted_count': deleted_withdrawals,
+            'deleted_transactions': deleted_transactions
+        })
+        
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE] Error deleting withdrawals: {e}")
+        return jsonify({'error': 'Errore durante l\'eliminazione dei prelievi', 'debug': str(e)}), 500

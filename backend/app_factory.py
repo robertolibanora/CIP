@@ -138,7 +138,9 @@ def create_app():
         app.register_blueprint(portfolio_bp)
         app.logger.info("Blueprint Portfolio registrato con successo")
     except Exception as e:
-        app.logger.warning(f"Impossibile registrare blueprint Portfolio: {e}")
+        app.logger.error(f"Errore registrazione blueprint Portfolio: {e}")
+    
+    # Blueprint Withdrawals è registrato in main.py insieme agli altri moduli API
     
     # Deposits blueprint è registrato in main.py insieme agli altri moduli API
     # per evitare doppie registrazioni durante i test/factory usage.

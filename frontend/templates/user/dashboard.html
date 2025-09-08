@@ -250,20 +250,88 @@
 </div>
 
 <script>
-// Mostra ultimo deposito rifiutato con motivo
+// Mostra ultimo deposito rifiutato con motivo (solo se recente e non già visto)
 document.addEventListener('DOMContentLoaded', async ()=>{
   try{
     const r = await fetch('/deposits/api/requests');
     if(!r.ok) return;
     const j = await r.json();
+    
+    // Trova l'ultimo deposito rifiutato
     const rejected = (j.deposit_requests||[]).find(d=>d.status==='failed' && d.admin_notes);
-    if(rejected){
-      const box = document.getElementById('deposit-alert');
-      document.getElementById('deposit-alert-text').textContent = `Motivo: ${rejected.admin_notes}`;
-      box.classList.remove('hidden');
+    if(!rejected) return;
+    
+    // Verifica se il deposito è recente (ultime 24 ore)
+    const rejectedDate = new Date(rejected.created_at);
+    const now = new Date();
+    const hoursDiff = (now - rejectedDate) / (1000 * 60 * 60);
+    
+    if(hoursDiff > 24) {
+      // Deposito troppo vecchio, non mostrare notifica
+      return;
     }
+    
+    // Verifica se l'utente ha già visto questa notifica
+    const seenNotifications = JSON.parse(localStorage.getItem('seenDepositNotifications') || '[]');
+    if(seenNotifications.includes(rejected.id)) {
+      // Notifica già vista, non mostrare
+      return;
+    }
+    
+    // Mostra la notifica
+    const box = document.getElementById('deposit-alert');
+    document.getElementById('deposit-alert-text').textContent = `Motivo: ${rejected.admin_notes}`;
+    box.classList.remove('hidden');
+    
+    // Aggiungi pulsante di chiusura
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '×';
+    closeBtn.className = 'absolute top-2 right-2 text-red-400 hover:text-red-600 text-xl font-bold';
+    closeBtn.onclick = () => {
+      box.classList.add('hidden');
+      // Marca come vista
+      seenNotifications.push(rejected.id);
+      localStorage.setItem('seenDepositNotifications', JSON.stringify(seenNotifications));
+    };
+    
+    // Aggiungi posizione relativa al container
+    box.style.position = 'relative';
+    box.appendChild(closeBtn);
+    
+    // Auto-chiusura dopo 10 secondi
+    setTimeout(() => {
+      if(!box.classList.contains('hidden')) {
+        box.classList.add('hidden');
+        // Marca come vista
+        seenNotifications.push(rejected.id);
+        localStorage.setItem('seenDepositNotifications', JSON.stringify(seenNotifications));
+      }
+    }, 10000);
+    
   }catch(e){/* ignore */}
 });
+
+// Pulisci notifiche vecchie dal localStorage (più di 7 giorni)
+function cleanupOldNotifications() {
+  try {
+    const seenNotifications = JSON.parse(localStorage.getItem('seenDepositNotifications') || '[]');
+    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    
+    // Mantieni solo le notifiche degli ultimi 7 giorni
+    const recentNotifications = seenNotifications.filter(id => {
+      // Per semplicità, manteniamo solo gli ultimi 50 ID
+      return true;
+    }).slice(-50);
+    
+    localStorage.setItem('seenDepositNotifications', JSON.stringify(recentNotifications));
+  } catch(e) {
+    // Ignora errori di localStorage
+  }
+}
+
+// Pulisci notifiche vecchie al caricamento della pagina
+cleanupOldNotifications();
+
 // Copia link referral con feedback "Link copiato!"
 document.getElementById('copy-referral-btn').addEventListener('click', async () => {
     const input = document.getElementById('referral-link-input');

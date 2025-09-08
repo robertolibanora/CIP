@@ -64,6 +64,14 @@ def ensure_deposits_schema(cur):
         cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'bank'")
     except Exception:
         pass
+    # Allinea tipo admin_notes a TEXT (alcuni vecchi schemi avevano BOOLEAN)
+    try:
+        cur.execute("""
+            ALTER TABLE deposit_requests 
+            ALTER COLUMN admin_notes TYPE TEXT USING admin_notes::text
+        """)
+    except Exception:
+        pass
     # Assicura colonne unique_key e payment_reference su installazioni esistenti
     try:
         cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS unique_key TEXT")
@@ -73,9 +81,31 @@ def ensure_deposits_schema(cur):
         cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS payment_reference TEXT")
     except Exception:
         pass
+    # Assicura colonne approved_at e approved_by su installazioni esistenti
+    try:
+        cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE deposit_requests ADD COLUMN IF NOT EXISTS approved_by INT")
+    except Exception:
+        pass
     # Assicura vincoli UNIQUE (usa indici unici, più tolleranti se la colonna già esiste)
     cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_unique_key_idx ON deposit_requests (unique_key)")
     cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_payment_reference_idx ON deposit_requests (payment_reference)")
+    # Allinea constraint di stato (alcuni ambienti potrebbero avere un set limitato)
+    try:
+        cur.execute("ALTER TABLE deposit_requests DROP CONSTRAINT IF EXISTS deposit_requests_status_check")
+    except Exception:
+        pass
+    try:
+        cur.execute("""
+            ALTER TABLE deposit_requests 
+            ADD CONSTRAINT deposit_requests_status_check 
+            CHECK (status IN ('pending','completed','failed','cancelled'))
+        """)
+    except Exception:
+        pass
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_pending_allowed
@@ -94,14 +124,37 @@ def get_deposit_requests():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        # In ambienti nuovi la tabella potrebbe non esistere ancora
+        # Garantiamo lo schema per evitare errori 500
+        try:
+            ensure_deposits_schema(cur)
+        except Exception:
+            pass
         cur.execute("""
             SELECT id, amount, iban, unique_key, payment_reference, status, 
-                   admin_notes, created_at, approved_at
+                   admin_notes, created_at, approved_at, method
             FROM deposit_requests 
             WHERE user_id = %s 
             ORDER BY created_at DESC
         """, (uid,))
-        requests = cur.fetchall()
+        rows = cur.fetchall()
+        # Serializza datetime e normalizza campi per JSON
+        requests = []
+        for row in rows:
+            item = dict(row)
+            created = item.get('created_at')
+            approved = item.get('approved_at')
+            if created is not None:
+                try:
+                    item['created_at'] = created.isoformat()
+                except Exception:
+                    item['created_at'] = str(created)
+            if approved is not None:
+                try:
+                    item['approved_at'] = approved.isoformat()
+                except Exception:
+                    item['approved_at'] = str(approved)
+            requests.append(item)
     
     return jsonify({'deposit_requests': requests})
 
@@ -112,6 +165,10 @@ def get_deposit_request_detail(request_id):
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        try:
+            ensure_deposits_schema(cur)
+        except Exception:
+            pass
         cur.execute("""
             SELECT id, amount, iban, unique_key, payment_reference, status, 
                    admin_notes, created_at, approved_at, approved_by
@@ -205,6 +262,13 @@ def create_deposit_request():
                     'account_holder': default_holder
                 }
             
+            # Determina destinatario fondi in base al metodo
+            # - bank: usa IBAN configurato
+            # - usdt: usa wallet BEP20 configurato tramite env (fallback placeholder)
+            import os
+            usdt_wallet = os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000')
+            receiver_field_value = iban_config['iban'] if method == 'bank' else usdt_wallet
+
             # Prova inserimento con retry per evitare collisioni univoche
             attempts = 0
             new_request = None
@@ -219,7 +283,7 @@ def create_deposit_request():
                         (user_id, amount, iban, method, unique_key, payment_reference, status)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                         RETURNING id, created_at
-                    """, (uid, amount, iban_config['iban'], method, unique_key, payment_reference, 'pending'))
+                    """, (uid, amount, receiver_field_value, method, unique_key, payment_reference, 'pending'))
                     new_request = cur.fetchone()
                 except pg_errors.UniqueViolation as ue:
                     conn.rollback()
@@ -316,6 +380,10 @@ def get_deposit_status_by_key(unique_key):
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
+        try:
+            ensure_deposits_schema(cur)
+        except Exception:
+            pass
         cur.execute("""
             SELECT id, amount, status, created_at, approved_at, admin_notes
             FROM deposit_requests 
@@ -348,13 +416,13 @@ def admin_get_pending_deposits():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT dr.id, dr.amount, dr.iban, dr.unique_key, dr.payment_reference,
+            SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
                    dr.created_at, dr.admin_notes,
                    u.id as user_id, u.full_name, u.email, u.kyc_status,
                    ic.bank_name, ic.account_holder
             FROM deposit_requests dr
             JOIN users u ON dr.user_id = u.id
-            JOIN iban_configurations ic ON dr.iban = ic.iban
+            LEFT JOIN iban_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
             WHERE dr.status = 'pending'
             ORDER BY dr.created_at ASC
         """)
@@ -362,99 +430,260 @@ def admin_get_pending_deposits():
     
     return jsonify({'pending_deposits': pending_deposits})
 
+@deposits_bp.route('/api/admin/history', methods=['GET'])
+@admin_required
+def admin_get_deposits_history():
+    """Admin ottiene lo storico di tutti i depositi"""
+    
+    # Parametri di paginazione
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    status_filter = request.args.get('status', '')
+    search = request.args.get('search', '')
+    
+    offset = (page - 1) * per_page
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Query base
+        base_query = """
+            SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
+                   dr.status, dr.created_at, dr.approved_at, dr.admin_notes,
+                   u.id as user_id, u.full_name, u.email, u.kyc_status,
+                   ic.bank_name, ic.account_holder,
+                   admin_user.full_name as approved_by_name
+            FROM deposit_requests dr
+            JOIN users u ON dr.user_id = u.id
+            LEFT JOIN iban_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+            LEFT JOIN users admin_user ON dr.approved_by = admin_user.id
+        """
+        
+        # Condizioni WHERE
+        where_conditions = []
+        params = []
+        
+        if status_filter:
+            where_conditions.append("dr.status = %s")
+            params.append(status_filter)
+        
+        if search:
+            where_conditions.append("(u.email ILIKE %s OR u.full_name ILIKE %s OR dr.unique_key ILIKE %s)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+        
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # Query per contare il totale
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM deposit_requests dr
+            JOIN users u ON dr.user_id = u.id
+            {where_clause}
+        """
+        cur.execute(count_query, params)
+        total_count = cur.fetchone()['total']
+        
+        # Query principale con paginazione
+        main_query = f"""
+            {base_query}
+            {where_clause}
+            ORDER BY dr.created_at DESC
+            LIMIT %s OFFSET %s
+        """
+        params.extend([per_page, offset])
+        
+        cur.execute(main_query, params)
+        deposits = cur.fetchall()
+        
+        # Calcola statistiche
+        stats_query = """
+            SELECT 
+                status,
+                COUNT(*) as count,
+                SUM(amount) as total_amount
+            FROM deposit_requests
+            GROUP BY status
+        """
+        cur.execute(stats_query)
+        stats = cur.fetchall()
+        
+        # Calcola paginazione
+        total_pages = (total_count + per_page - 1) // per_page
+        has_prev = page > 1
+        has_next = page < total_pages
+    
+    return jsonify({
+        'deposits': deposits,
+        'pagination': {
+            'page': page,
+            'per_page': per_page,
+            'total': total_count,
+            'total_pages': total_pages,
+            'has_prev': has_prev,
+            'has_next': has_next
+        },
+        'stats': stats,
+        'filters': {
+            'status': status_filter,
+            'search': search
+        }
+    })
+
 @deposits_bp.route('/api/admin/approve/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_approve_deposit(request_id):
     """Admin approva una richiesta di ricarica"""
-    
-    data = request.get_json() or {}
-    admin_notes = data.get('admin_notes', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica richiesta esiste e è pending
-        cur.execute("""
-            SELECT id, user_id, amount, status FROM deposit_requests 
-            WHERE id = %s
-        """, (request_id,))
-        request_detail = cur.fetchone()
-        
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-        
-        if request_detail['status'] != 'pending':
-            return jsonify({'error': 'Solo le richieste in attesa possono essere approvate'}), 400
-        
-        # Approva richiesta
-        cur.execute("""
-            UPDATE deposit_requests 
-            SET status = 'completed', approved_at = NOW(), approved_by = %s, admin_notes = %s
-            WHERE id = %s
-        """, (session.get('user_id'), admin_notes, request_id))
-        
-        # Aggiorna portfolio utente
-        cur.execute("""
-            UPDATE user_portfolios 
-            SET free_capital = free_capital + %s, updated_at = NOW()
-            WHERE user_id = %s
-        """, (request_detail['amount'], request_detail['user_id']))
-        
-        # Crea transazione portfolio
-        cur.execute("""
-            INSERT INTO portfolio_transactions 
-            (user_id, type, amount, balance_before, balance_after, description, 
-             reference_id, reference_type, status)
-            SELECT 
-                %s, 'deposit', %s, 
-                (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
-                (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
-                'Ricarica approvata', %s, 'deposit_request', 'completed'
-            FROM user_portfolios WHERE user_id = %s
-        """, (request_detail['user_id'], request_detail['amount'], 
-              request_detail['user_id'], request_detail['user_id'],
-              request_id, request_detail['user_id']))
-        
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Ricarica approvata con successo'
-    })
+    try:
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', '')
+        with get_conn() as conn, conn.cursor() as cur:
+            # Garantisce schema coerente
+            ensure_deposits_schema(cur)
+            # Verifica richiesta esiste e è pending
+            cur.execute("""
+                SELECT id, user_id, amount, status FROM deposit_requests 
+                WHERE id = %s
+            """, (request_id,))
+            request_detail = cur.fetchone()
+            if not request_detail:
+                return jsonify({'error': 'Richiesta non trovata'}), 404
+            if request_detail['status'] != 'pending':
+                return jsonify({'error': 'Solo le richieste in attesa possono essere approvate'}), 400
+            # Approva richiesta
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'completed', approved_at = NOW(), approved_by = %s, admin_notes = %s
+                WHERE id = %s
+            """, (session.get('user_id'), admin_notes, request_id))
+            # Aggiorna portfolio utente
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET free_capital = free_capital + %s, updated_at = NOW()
+                WHERE user_id = %s
+            """, (request_detail['amount'], request_detail['user_id']))
+            # Crea transazione portfolio
+            cur.execute("""
+                INSERT INTO portfolio_transactions 
+                (user_id, type, amount, balance_before, balance_after, description, 
+                 reference_id, reference_type, status)
+                SELECT 
+                    %s, 'deposit', %s, 
+                    (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
+                    (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
+                    'Ricarica approvata', %s, 'deposit_request', 'completed'
+                FROM user_portfolios WHERE user_id = %s
+            """, (request_detail['user_id'], request_detail['amount'], 
+                  request_detail['user_id'], request_detail['user_id'],
+                  request_id, request_detail['user_id']))
+            conn.commit()
+        return jsonify({'success': True, 'message': 'Ricarica approvata con successo'})
+    except Exception as e:
+        logger.exception("[deposits] admin approve failed: %s", e)
+        return jsonify({'error': 'approve_failed', 'debug': str(e)}), 500
 
 @deposits_bp.route('/api/admin/reject/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_reject_deposit(request_id):
     """Admin rifiuta una richiesta di ricarica"""
+    try:
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', '')
+        with get_conn() as conn, conn.cursor() as cur:
+            # Garantisce schema coerente
+            ensure_deposits_schema(cur)
+            # Verifica richiesta esiste e è pending
+            cur.execute("""
+                SELECT id, status FROM deposit_requests 
+                WHERE id = %s
+            """, (request_id,))
+            request_detail = cur.fetchone()
+            if not request_detail:
+                return jsonify({'error': 'Richiesta non trovata'}), 404
+            if request_detail['status'] != 'pending':
+                return jsonify({'error': 'Solo le richieste in attesa possono essere rifiutate'}), 400
+            # Rifiuta richiesta
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'failed', admin_notes = %s
+                WHERE id = %s
+            """, (admin_notes, request_id))
+            conn.commit()
+        return jsonify({'success': True, 'message': 'Ricarica rifiutata'})
+    except Exception as e:
+        logger.exception("[deposits] admin reject failed: %s", e)
+        return jsonify({'error': 'reject_failed', 'debug': str(e)}), 500
+
+@deposits_bp.route('/api/admin/delete-all', methods=['DELETE'])
+@admin_required
+def admin_delete_all_deposits():
+    """Admin elimina tutti i depositi dal database (AZIONE PERICOLOSA)"""
     
-    data = request.get_json() or {}
-    admin_notes = data.get('admin_notes', '')
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica richiesta esiste e è pending
-        cur.execute("""
-            SELECT id, status FROM deposit_requests 
-            WHERE id = %s
-        """, (request_id,))
-        request_detail = cur.fetchone()
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Prima contiamo quanti depositi ci sono
+            cur.execute("SELECT COUNT(*) as total FROM deposit_requests")
+            total_deposits = cur.fetchone()['total']
+            
+            if total_deposits == 0:
+                return jsonify({
+                    'success': True,
+                    'message': 'Nessun deposito da eliminare',
+                    'deleted_count': 0
+                })
+            
+            # Log dell'operazione per sicurezza
+            admin_user_id = session.get('user_id')
+            logger.warning(f"[ADMIN DELETE] User {admin_user_id} is deleting ALL {total_deposits} deposits from database")
+            
+            # Elimina tutte le transazioni del portfolio correlate ai depositi
+            cur.execute("""
+                DELETE FROM portfolio_transactions 
+                WHERE reference_type = 'deposit_request'
+            """)
+            deleted_transactions = cur.rowcount
+            
+            # Aggiorna i portfolio degli utenti rimuovendo i depositi approvati
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET free_capital = free_capital - (
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM deposit_requests 
+                    WHERE user_id = user_portfolios.user_id 
+                    AND status = 'completed'
+                ),
+                updated_at = NOW()
+                WHERE user_id IN (
+                    SELECT DISTINCT user_id 
+                    FROM deposit_requests 
+                    WHERE status = 'completed'
+                )
+            """)
+            updated_portfolios = cur.rowcount
+            
+            # Elimina tutti i depositi
+            cur.execute("DELETE FROM deposit_requests")
+            deleted_deposits = cur.rowcount
+            
+            conn.commit()
+            
+            # Log del completamento
+            logger.warning(f"[ADMIN DELETE] Completed: {deleted_deposits} deposits, {deleted_transactions} transactions, {updated_portfolios} portfolios updated")
+            
+        return jsonify({
+            'success': True,
+            'message': f'Eliminati {deleted_deposits} depositi, {deleted_transactions} transazioni e aggiornati {updated_portfolios} portfolio',
+            'deleted_count': deleted_deposits,
+            'deleted_transactions': deleted_transactions,
+            'updated_portfolios': updated_portfolios
+        })
         
-        if not request_detail:
-            return jsonify({'error': 'Richiesta non trovata'}), 404
-        
-        if request_detail['status'] != 'pending':
-            return jsonify({'error': 'Solo le richieste in attesa possono essere rifiutate'}), 400
-        
-        # Rifiuta richiesta
-        cur.execute("""
-            UPDATE deposit_requests 
-            SET status = 'failed', admin_notes = %s
-            WHERE id = %s
-        """, (admin_notes, request_id))
-        
-        conn.commit()
-    
-    return jsonify({
-        'success': True,
-        'message': 'Ricarica rifiutata'
-    })
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE] Error deleting deposits: {e}")
+        return jsonify({
+            'error': 'Errore durante l\'eliminazione dei depositi',
+            'debug': str(e)
+        }), 500
 
 @deposits_bp.route('/api/admin/iban/configure', methods=['POST'])
 @admin_required

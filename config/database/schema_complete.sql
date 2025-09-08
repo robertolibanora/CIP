@@ -140,8 +140,11 @@ CREATE TABLE IF NOT EXISTS withdrawal_requests (
     id                  SERIAL PRIMARY KEY,
     user_id             INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     amount              NUMERIC(15,2) NOT NULL CHECK (amount >= 50.00),
+    method              TEXT NOT NULL CHECK (method IN ('usdt', 'bank')),
     source_section      TEXT NOT NULL CHECK (source_section IN ('free_capital','referral_bonus','profits')),
-    bank_details        JSONB NOT NULL, -- IBAN, intestatario, banca
+    wallet_address      TEXT, -- Per prelievi USDT (BEP20)
+    bank_details        JSONB, -- Per prelievi bancari (IBAN, intestatario, banca)
+    unique_key          TEXT NOT NULL UNIQUE, -- 6 caratteri alfanumerici
     status              TEXT NOT NULL CHECK (status IN ('pending','completed','failed','cancelled')) DEFAULT 'pending',
     admin_notes         TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),

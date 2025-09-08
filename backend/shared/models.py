@@ -204,8 +204,11 @@ class WithdrawalRequest:
     id: Optional[int]
     user_id: int
     amount: Decimal
+    method: str  # usdt, bank
     source_section: str  # free_capital, referral_bonus, profits
-    bank_details: dict  # JSON con IBAN, intestatario, banca
+    wallet_address: Optional[str]  # Per prelievi USDT (BEP20)
+    bank_details: Optional[dict]  # JSON con IBAN, intestatario, banca
+    unique_key: str  # 6 caratteri alfanumerici
     status: TransactionStatus
     admin_notes: Optional[str]
     created_at: datetime
@@ -220,6 +223,18 @@ class WithdrawalRequest:
         """Verifica se la sezione di prelievo è valida"""
         valid_sections = ['free_capital', 'referral_bonus', 'profits']
         return self.source_section in valid_sections
+    
+    def is_valid_method(self) -> bool:
+        """Verifica se il metodo di prelievo è valido"""
+        return self.method in ['usdt', 'bank']
+    
+    def has_required_fields(self) -> bool:
+        """Verifica se ha i campi richiesti in base al metodo"""
+        if self.method == 'usdt':
+            return bool(self.wallet_address)
+        elif self.method == 'bank':
+            return bool(self.bank_details)
+        return False
 
 # ============================================================================
 # MODELLI SISTEMA RENDIMENTI E VENDITE

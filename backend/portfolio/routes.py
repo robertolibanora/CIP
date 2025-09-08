@@ -148,98 +148,13 @@ def create_deposit_request():
 
 @portfolio_bp.route('/api/portfolio/withdrawals', methods=['POST'])
 def create_withdrawal_request():
-    """API per creare richiesta prelievo da sezioni disponibili"""
-    uid = session.get("user_id")
-    
-    try:
-        data = request.get_json()
-        
-        # Validazioni
-        from backend.shared.validators import (
-            validate_withdrawal_amount, 
-            validate_withdrawal_source, 
-            validate_bank_details
-        )
-        
-        try:
-            amount = validate_withdrawal_amount(data.get('amount'))
-            source_section = validate_withdrawal_source(data.get('source_section'))
-            bank_details = validate_bank_details(data.get('bank_details'))
-        except ValidationError as e:
-            return jsonify({'error': str(e)}), 400
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica disponibilità nella sezione selezionata
-            cur.execute("""
-                SELECT free_capital, referral_bonus, profits
-                FROM user_portfolios 
-                WHERE user_id = %s
-            """, (uid,))
-            
-            portfolio = cur.fetchone()
-            if not portfolio:
-                return jsonify({'error': 'Portafoglio non trovato'}), 404
-            
-            # Controlla disponibilità
-            available_amount = 0
-            if source_section == 'free_capital':
-                available_amount = portfolio['free_capital']
-            elif source_section == 'referral_bonus':
-                available_amount = portfolio['referral_bonus']
-            elif source_section == 'profits':
-                available_amount = portfolio['profits']
-            
-            if available_amount < amount:
-                return jsonify({'error': f'Importo non disponibile in {source_section}. Disponibile: €{available_amount}'}), 400
-            
-            # Crea richiesta prelievo
-            cur.execute("""
-                INSERT INTO withdrawal_requests (
-                    user_id, amount, source_section, bank_details, status
-                ) VALUES (%s, %s, %s, %s, 'pending')
-                RETURNING id, amount, source_section, status, created_at
-            """, (uid, amount, source_section, json.dumps(bank_details)))
-            
-            withdrawal = cur.fetchone()
-            conn.commit()
-            
-            return jsonify({
-                'withdrawal_request': {
-                    'id': withdrawal['id'],
-                    'amount': float(withdrawal['amount']),
-                    'source_section': withdrawal['source_section'],
-                    'status': withdrawal['status'],
-                    'created_at': withdrawal['created_at'].isoformat()
-                }
-            }), 201
-            
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    """API per creare richiesta prelievo - In fase di sviluppo"""
+    return jsonify({'error': 'Sezione prelievi in fase di sviluppo'}), 404
 
 @portfolio_bp.route('/api/portfolio/withdrawals', methods=['GET'])
 def get_withdrawal_requests():
-    """API per ottenere richieste prelievo dell'utente"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT 
-                id, amount, source_section, status, created_at, approved_at,
-                admin_notes, bank_details
-            FROM withdrawal_requests 
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-        """, (uid,))
-        
-        withdrawals = cur.fetchall()
-        
-        # Converti Decimal in float per JSON
-        for withdrawal in withdrawals:
-            withdrawal['amount'] = float(withdrawal['amount'])
-            if withdrawal['bank_details']:
-                withdrawal['bank_details'] = json.loads(withdrawal['bank_details'])
-    
-    return jsonify({'withdrawals': withdrawals})
+    """API per ottenere richieste prelievo - In fase di sviluppo"""
+    return jsonify({'error': 'Sezione prelievi in fase di sviluppo'}), 404
 
 @portfolio_bp.route('/api/portfolio/movements', methods=['GET'])
 def get_capital_movements():
