@@ -133,13 +133,30 @@ def register():
                 flash("Nome Telegram già registrato", "error")
                 return render_template("auth/register.html")
 
-            # Trova utente referral se link fornito
+            # Trova utente referral
             referred_by = None
             if referral_link:
+                # Se l'utente ha inserito un codice, validalo
                 cur.execute("SELECT id FROM users WHERE referral_code = %s", (referral_link,))
                 row = cur.fetchone()
                 if row:
                     referred_by = row["id"]
+                else:
+                    flash("Codice referral non valido", "error")
+                    return render_template("auth/register.html")
+            else:
+                # Nessun referral inserito: assegna il primo codice disponibile (utente fondatore)
+                cur.execute(
+                    """
+                    SELECT id FROM users 
+                    WHERE referral_code IS NOT NULL 
+                    ORDER BY created_at ASC 
+                    LIMIT 1
+                    """
+                )
+                default_row = cur.fetchone()
+                if default_row:
+                    referred_by = default_row["id"]
 
             # Genera codice referral unico
             import uuid
@@ -168,15 +185,19 @@ def register():
 
             new_user_id = cur.fetchone()["id"]
 
-            # Se c'è referral, crea bonus
+            # Se c'è referral, crea bonus (se la tabella esiste)
             if referred_by:
-                cur.execute(
-                    """
-                    INSERT INTO referral_bonuses (receiver_user_id, source_user_id, amount, month_ref, level, status, created_at)
-                    VALUES (%s, %s, %s, DATE_TRUNC('month', NOW())::date, %s, 'accrued', NOW())
-                    """,
-                    (referred_by, new_user_id, 50, 1),
-                )
+                cur.execute("SELECT to_regclass('public.referral_bonuses') AS tbl_exists")
+                tbl = cur.fetchone()
+                tbl_exists = tbl and (tbl.get('tbl_exists') is not None if isinstance(tbl, dict) else tbl[0] is not None)
+                if tbl_exists:
+                    cur.execute(
+                        """
+                        INSERT INTO referral_bonuses (receiver_user_id, source_user_id, amount, month_ref, level, status, created_at)
+                        VALUES (%s, %s, %s, DATE_TRUNC('month', NOW())::date, %s, 'accrued', NOW())
+                        """,
+                        (referred_by, new_user_id, 50, 1),
+                    )
 
             conn.commit()
 
@@ -202,6 +223,54 @@ def logout():
         flash("Nessuna sessione attiva", "info")
     
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/check", methods=["GET"])
+def check_auth():
+    """Verifica stato autenticazione e permessi utente"""
+    if 'user_id' not in session:
+        return jsonify({
+            "authenticated": False,
+            "is_admin": False,
+            "user": None
+        }), 401
+    
+    user_id = session.get('user_id')
+    user_role = session.get('role', 'investor')
+    
+    return jsonify({
+        "authenticated": True,
+        "is_admin": user_role == 'admin',
+        "user": {
+            "id": user_id,
+            "email": session.get('user_email'),
+            "nome": session.get('user_name'),
+            "cognome": session.get('user_surname'),
+            "role": user_role
+        }
+    }), 200
+
+
+@auth_bp.get("/referral/validate")
+def validate_referral_code():
+    """Valida un codice referral e restituisce nome/cognome associati."""
+    code = (request.args.get("code") or "").strip()
+    if not code:
+        return jsonify({"valid": False, "error": "missing_code"}), 400
+
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT id, nome, cognome FROM users WHERE referral_code = %s", (code,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"valid": False}), 200
+        return jsonify({
+            "valid": True,
+            "user": {
+                "id": row["id"],
+                "nome": row["nome"],
+                "cognome": row["cognome"]
+            }
+        }), 200
 
 
 # Route di supporto solo in testing per creare una sessione senza DB

@@ -23,6 +23,23 @@
     <!-- Registration Form Card -->
     <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
       <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off">
+        <!-- Referral code -->
+        <div class="space-y-2">
+          <label for="referral_link" class="block text-sm font-semibold text-gray-700">
+            Codice Referral (opzionale)
+          </label>
+          <div class="flex items-center space-x-2">
+            <input
+              type="text"
+              name="referral_link"
+              id="referral_link"
+              class="flex-1 input-field bg-gray-50 focus:bg-white transition-colors duration-200"
+              placeholder="Inserisci il codice referral"
+            />
+          </div>
+          <p id="referral_info" class="text-sm mt-1 text-gray-600 hidden"></p>
+          <p class="text-xs text-gray-500">Se lasci vuoto, verrai inserito automaticamente sotto il primo codice disponibile.</p>
+        </div>
         <!-- CSRF Token removed - not configured -->
 
         <!-- Name Fields -->
@@ -377,6 +394,52 @@ setTimeout(function() {
     }, 300);
   });
 }, 5000);
+</script>
+
+<script>
+// Verifica referral via API automaticamente con debounce
+const referralInput = document.getElementById('referral_link');
+const referralInfo = document.getElementById('referral_info');
+let referralDebounce;
+
+async function validateReferral(code) {
+  referralInfo.classList.remove('text-red-600', 'text-green-600');
+  if (!code) {
+    referralInfo.textContent = 'Nessun codice inserito: verrà usato il codice predefinito.';
+    referralInfo.classList.remove('hidden');
+    return;
+  }
+  try {
+    const res = await fetch(`/auth/referral/validate?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (res.ok && data.valid) {
+      referralInfo.textContent = `Codice valido: ${data.user.nome} ${data.user.cognome}`;
+      referralInfo.classList.add('text-green-600');
+      referralInfo.classList.remove('hidden');
+    } else {
+      referralInfo.textContent = 'Codice referral non valido';
+      referralInfo.classList.add('text-red-600');
+      referralInfo.classList.remove('hidden');
+    }
+  } catch (e) {
+    referralInfo.textContent = 'Errore di connessione durante la verifica';
+    referralInfo.classList.add('text-red-600');
+    referralInfo.classList.remove('hidden');
+  }
+}
+
+function scheduleReferralValidation() {
+  clearTimeout(referralDebounce);
+  referralDebounce = setTimeout(() => validateReferral(referralInput.value.trim()), 400);
+}
+
+referralInput.addEventListener('input', scheduleReferralValidation);
+referralInput.addEventListener('blur', () => validateReferral(referralInput.value.trim()));
+
+// Se il campo è precompilato (URL con codice), valida subito
+if (referralInput.value.trim()) {
+  validateReferral(referralInput.value.trim());
+}
 </script>
 
 <style>

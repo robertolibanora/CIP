@@ -1,34 +1,27 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Gestione Progetti - Admin CIP Immobiliare{% endblock %}
+{% block title %}Progetti - Admin{% endblock %}
 
 
 
 {% block content %}
-<!-- Page Header -->
 <div class="admin-card admin-card-body mb-6">
     <div class="admin-flex admin-flex--between">
         <div>
-            <h1 class="admin-heading-1">Gestione Progetti</h1>
-            <p class="admin-text-small">Gestisci tutti i progetti immobiliari della piattaforma</p>
+            <h1 class="admin-heading-1">Progetti</h1>
+            <p class="admin-text-small">Gestisci foto, descrizione e raccolta</p>
         </div>
         <div class="mt-4 md:mt-0">
-            <button type="button" onclick="openCreateProjectModal()" 
-                    class="admin-btn admin-btn--primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Nuovo Progetto
-            </button>
+            <a href="#" onclick="window.location.reload()" class="admin-btn admin-btn--secondary">Aggiorna</a>
         </div>
     </div>
 </div>
 
-<!-- Sistema Alert per Progetti -->
-<div id="projects-alerts" class="mb-6"></div>
+<div id="projects-grid" class="admin-grid admin-grid--3"></div>
+<div id="projects-empty" class="text-center text-gray-500 admin-card admin-card-body hidden">Nessun progetto</div>
 
 <!-- Filtri e Statistiche -->
-<div class="admin-grid admin-grid--2 mb-6">
+<div class="hidden">
     <!-- Filtri -->
     <div class="admin-card">
         <div class="admin-card-header">
@@ -462,9 +455,14 @@ class ProjectsManager {
         const color = statusColors[project.status] || 'gray';
         const label = statusLabels[project.status] || project.status;
         
+        const imgSrc = project.photo_filename ? `/admin/uploads/projects/${project.photo_filename}` : 'https://via.placeholder.com/640x360?text=Foto+Progetto';
+        const target = parseFloat(project.total_amount || 0) || 0;
+        const invested = parseFloat(project.funded_amount || 0) || 0;
+        const pct = target > 0 ? Math.min(100, Math.round((invested / target) * 100)) : 0;
         return `
             <div class="admin-card hover:shadow-lg transition-all duration-200">
                 <div class="admin-card-body">
+                    <img src="${imgSrc}" alt="foto" class="w-full h-40 object-cover rounded mb-3"/>
                     <div class="flex justify-between items-start mb-3">
                         <div>
                             <h3 class="admin-heading-3">${project.name || project.title || 'Senza titolo'}</h3>
@@ -479,9 +477,12 @@ class ProjectsManager {
                         </p>
                     ` : ''}
                     
-                    <p class="admin-text-body text-gray-600 mb-4 line-clamp-2">
-                        ${project.description || 'Nessuna descrizione disponibile'}
-                    </p>
+                    <div class="mb-4">
+                        <div class="w-full bg-gray-200 rounded h-2 mb-2">
+                            <div class="bg-blue-600 h-2 rounded" style="width:${pct}%"></div>
+                        </div>
+                        <div class="admin-text-small text-gray-700">Raccolto: €${invested.toLocaleString()} / €${target.toLocaleString()} (${pct}%)</div>
+                    </div>
                     
                     <div class="space-y-2 mb-4">
                         ${project.total_amount ? `

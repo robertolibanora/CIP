@@ -313,6 +313,42 @@
     if(document.visibilityState === 'visible') fetchUsers();
   });
 
+  // Funzione per salvare le modifiche del portfolio
+  async function savePortfolio(userId) {
+    try {
+      const freeCapital = parseFloat(document.getElementById('pf-free').value) || 0;
+      const investedCapital = parseFloat(document.getElementById('pf-invested').value) || 0;
+      const referralBonus = parseFloat(document.getElementById('pf-referral').value) || 0;
+      const profits = parseFloat(document.getElementById('pf-profits').value) || 0;
+      
+      const payload = {
+        free_capital: freeCapital,
+        invested_capital: investedCapital,
+        referral_bonus: referralBonus,
+        profits: profits
+      };
+      
+      const res = await fetch(`/admin/api/admin/users/${userId}/portfolio`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        showToast('Portfolio aggiornato con successo');
+        closePortfolio();
+        // Ricarica i dati del portfolio per mostrare i valori aggiornati
+        loadPortfolio(userId);
+      } else {
+        const error = await res.json().catch(() => ({ error: 'Errore sconosciuto' }));
+        alert('Errore nel salvataggio: ' + (error.error || 'Errore sconosciuto'));
+      }
+    } catch (error) {
+      console.error('Errore nel salvataggio portfolio:', error);
+      alert('Errore di connessione durante il salvataggio');
+    }
+  }
+
   // Initial load
   fetchUsers();
   
@@ -343,6 +379,47 @@
         <div style="margin-top:6px; font-weight:700;">${formatter.format(b.total||0)}</div>
       </div>
     `;
+    
+    // Aggiungi pulsante Salva
+    const saveButton = document.createElement('div');
+    saveButton.style.cssText = 'margin-top: 20px; text-align: center;';
+    saveButton.innerHTML = `
+      <button id="save-portfolio" class="btn" style="background: #10b981; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 10px;">
+        💾 Salva Modifiche
+      </button>
+      <button id="cancel-portfolio" class="btn" style="background: #6b7280; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+        ❌ Annulla
+      </button>
+    `;
+    portfolioSummary.appendChild(saveButton);
+    
+    // Event listeners per i pulsanti
+    document.getElementById('save-portfolio').addEventListener('click', () => savePortfolio(id));
+    document.getElementById('cancel-portfolio').addEventListener('click', closePortfolio);
+    
+    // Aggiorna totale in tempo reale quando si modificano i valori
+    const inputs = ['pf-free', 'pf-invested', 'pf-referral', 'pf-profits'];
+    inputs.forEach(inputId => {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.addEventListener('input', updateTotal);
+      }
+    });
+    
+    function updateTotal() {
+      const free = parseFloat(document.getElementById('pf-free').value) || 0;
+      const invested = parseFloat(document.getElementById('pf-invested').value) || 0;
+      const referral = parseFloat(document.getElementById('pf-referral').value) || 0;
+      const profits = parseFloat(document.getElementById('pf-profits').value) || 0;
+      const total = free + invested + referral + profits;
+      
+      const totalElement = document.querySelector('#portfolio-summary .chip-green').parentElement;
+      totalElement.innerHTML = `
+        <div class="chip chip-green">Totale</div>
+        <div style="margin-top:6px; font-weight:700;">${new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(total)}</div>
+      `;
+    }
+    
     portfolioTbody.innerHTML = '';
     for(const inv of (data.investments||[])){
       const tr = document.createElement('tr');

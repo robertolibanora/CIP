@@ -344,11 +344,14 @@ def admin_create_project_sale():
             # Aggiorna portfolio utente con profitti
             cur.execute("""
                 UPDATE user_portfolios 
-                SET profits = profits + %s, updated_at = NOW()
+                SET profits = profits + %s, 
+                    free_capital = free_capital + %s,
+                    invested_capital = GREATEST(invested_capital - %s, 0),
+                    updated_at = NOW()
                 WHERE user_id = %s
-            """, (profit_share, investment['user_id']))
+            """, (profit_share, investment['amount'], investment['amount'], investment['user_id']))
             
-            # Crea transazione portfolio
+            # Crea transazione portfolio (profitto)
             cur.execute("""
                 INSERT INTO portfolio_transactions 
                 (user_id, type, amount, balance_before, balance_after, description, 
@@ -362,6 +365,19 @@ def admin_create_project_sale():
             """, (investment['user_id'], profit_share, 
                   investment['user_id'], investment['user_id'],
                   sale_id, investment['user_id']))
+
+            # Transazione portfolio (rilascio capitale investito => capitale libero)
+            cur.execute("""
+                INSERT INTO portfolio_transactions 
+                (user_id, type, amount, balance_before, balance_after, description, 
+                 reference_id, reference_type, status)
+                SELECT 
+                    %s, 'capital_release', %s, 
+                    (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
+                    (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
+                    'Rilascio capitale investito alla vendita', %s, 'project_sale', 'completed'
+                FROM user_portfolios WHERE user_id = %s
+            """, (investment['user_id'], investment['amount'], investment['user_id'], investment['user_id'], sale_id, investment['user_id']))
             
             # Se c'è bonus referral, assegnalo a chi ha invitato l'utente
             if referral_bonus > 0:

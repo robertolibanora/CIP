@@ -1842,7 +1842,33 @@ def api_admin_delete_user(user_id: int):
         if target.get('role') == 'admin':
             return jsonify({'error': 'Non è possibile eliminare un amministratore'}), 400
 
-        # Elimina record correlati essenziali (investments, documents, portfolio)
+        # Prima di eliminare: fai "slittare" tutti gli invitati diretti al referrer del target
+        cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
+        parent_row = cur.fetchone()
+        parent_id = parent_row.get('referred_by') if parent_row else None
+
+        if parent_id is not None:
+            # Riassegna tutti gli utenti che avevano come referrer l'utente eliminato
+            cur.execute(
+                """
+                UPDATE users
+                SET referred_by = %s
+                WHERE referred_by = %s
+                """,
+                (parent_id, user_id)
+            )
+        else:
+            # Nessun referrer sopra: mantieni comportamento di orfanizzazione
+            cur.execute(
+                """
+                UPDATE users
+                SET referred_by = NULL
+                WHERE referred_by = %s
+                """,
+                (user_id,)
+            )
+
+        # Elimina record correlati essenziali (investments, documents, portfolio) e infine l'utente
         cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
@@ -3469,182 +3495,204 @@ def transactions_dashboard():
                              per_page=20,
                              total_count=0)
 
-# ---- TASK 2.7 - Sistema Referral ----
+# ---- TASK 2.7 - Sistema Referral (NUOVO) ----
 @admin_bp.get("/referral")
 @admin_required
 def referral_dashboard():
-    """Dashboard per gestione sistema referral"""
+    """Dashboard referral - Nuovo sistema referral"""
+    return render_template('admin/referral/dashboard.html')
+
+@admin_bp.get("/api/referral/users")
+@admin_required
+def get_referral_users():
+    """Ottieni lista di tutti gli utenti con dati referral"""
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se le tabelle esistono
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'user_referrals'
-                );
-            """)
-            table_exists = cur.fetchone()[0]
-            
-            if not table_exists:
-                return render_template('admin/referral/dashboard.html', 
-                                     referrals=[],
-                                     metrics={
-                                         'total_referrals': 0,
-                                         'active_referrals': 0,
-                                         'total_bonus_paid': 0.0,
-                                         'pending_bonus': 0.0
-                                     })
-            
-            # Statistiche referral
+            # Ottieni tutti gli utenti con i loro dati referral
             cur.execute("""
                 SELECT 
-                    COUNT(*) as total_referrals,
-                    COUNT(*) FILTER (WHERE status = 'active') as active_referrals,
-                    COALESCE(SUM(bonus_amount), 0) as total_bonus_paid,
-                    COALESCE(SUM(CASE WHEN status = 'pending' THEN bonus_amount ELSE 0 END), 0) as pending_bonus
-                FROM user_referrals
+                    u.id,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
+                        u.full_name
+                    ) AS full_name,
+                    u.email, u.created_at, u.referral_code,
+                    COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
+                    COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
+                    COALESCE(up.invested_capital, 0) as total_invested,
+                    COALESCE(up.profits, 0) as total_profits,
+                    COALESCE(up.referral_bonus, 0) as bonus_earned,
+                    CASE 
+                        WHEN up.id IS NOT NULL AND (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) > 0 
+                        THEN 'active'
+                        WHEN u.kyc_status = 'verified' THEN 'pending'
+                        ELSE 'inactive'
+                    END as status,
+                    (SELECT COUNT(*) FROM users u2 WHERE u2.referred_by = u.id) as invited_count
+                FROM users u
+                LEFT JOIN user_portfolios up ON up.user_id = u.id
+                ORDER BY u.created_at DESC
             """)
-            metrics = cur.fetchone()
+            users = cur.fetchall()
             
-            # Lista referral
-            page = request.args.get('page', 1, type=int)
-            per_page = 20
-            offset = (page - 1) * per_page
+            return jsonify({
+                'users': users
+            })
             
+    except Exception as e:
+        print(f"Errore nel caricamento utenti referral: {e}")
+        return jsonify({'error': 'Errore nel caricamento degli utenti'}), 500
+
+@admin_bp.get("/api/referral/users/<int:user_id>/details")
+@admin_required
+def get_user_referral_details(user_id):
+    """Ottieni dettagli referral di un utente specifico"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Ottieni dati utente
             cur.execute("""
-                SELECT ur.*, 
-                       u1.full_name as referrer_name, u1.email as referrer_email,
-                       u2.full_name as referred_name, u2.email as referred_email
-                FROM user_referrals ur
-                JOIN users u1 ON u1.id = ur.referrer_id
-                JOIN users u2 ON u2.id = ur.referred_id
-                ORDER BY ur.created_at DESC
-                LIMIT %s OFFSET %s
-            """, (per_page, offset))
-            referrals = cur.fetchall()
+                SELECT 
+                    u.id,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
+                        u.full_name
+                    ) AS full_name,
+                    u.email, u.created_at, u.referral_code,
+                    COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
+                    COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
+                    COALESCE(up.invested_capital, 0) as total_invested,
+                    COALESCE(up.profits, 0) as total_profits,
+                    COALESCE(up.referral_bonus, 0) as bonus_earned
+                FROM users u
+                LEFT JOIN user_portfolios up ON up.user_id = u.id
+                WHERE u.id = %s
+            """, (user_id,))
+            user = cur.fetchone()
             
-            # Conta totale per paginazione
-            cur.execute("SELECT COUNT(*) FROM user_referrals")
-            total_count_result = cur.fetchone()
-            total_count = total_count_result[0] if total_count_result else 0
-        
-        # Ottieni metriche generali per il sidebar
-        admin_metrics = get_admin_metrics()
-        
-        return render_template('admin/referral/dashboard.html', 
-                             referrals=referrals,
-                             metrics={
-                                 'total_referrals': metrics[0] if metrics else 0,
-                                 'active_referrals': metrics[1] if metrics else 0,
-                                 'total_bonus_paid': float(metrics[2]) if metrics and metrics[2] else 0.0,
-                                 'pending_bonus': float(metrics[3]) if metrics and metrics[3] else 0.0,
-                                 **admin_metrics  # Unpack metriche generali
-                             },
-                             page=page,
-                             per_page=per_page,
-                             total_count=total_count)
+            if not user:
+                return jsonify({'error': 'Utente non trovato'}), 404
+            
+            # Ottieni utenti invitati da questo utente
+            cur.execute("""
+                SELECT 
+                    u2.id,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u2.nome, u2.cognome)), ''),
+                        u2.full_name
+                    ) AS full_name,
+                    u2.email, u2.created_at,
+                    COALESCE(up2.free_capital, 0) + COALESCE(up2.invested_capital, 0) + 
+                    COALESCE(up2.referral_bonus, 0) + COALESCE(up2.profits, 0) as total_balance,
+                    COALESCE(up2.invested_capital, 0) as total_invested,
+                    COALESCE(up2.profits, 0) as total_profits,
+                    COALESCE(up2.referral_bonus, 0) as bonus_generated
+                FROM users u2
+                LEFT JOIN user_portfolios up2 ON up2.user_id = u2.id
+                WHERE u2.referred_by = %s
+                ORDER BY u2.created_at DESC
+            """, (user_id,))
+            invited_users = cur.fetchall()
+            
+            return jsonify({
+                'user': user,
+                'invited_users': invited_users
+            })
                              
     except Exception as e:
-        print(f"Errore in referral_dashboard: {e}")
-        return render_template('admin/referral/dashboard.html', 
-                             referrals=[],
-                             metrics={
-                                 'total_referrals': 0,
-                                 'active_referrals': 0,
-                                 'total_bonus_paid': 0.0,
-                                 'pending_bonus': 0.0,
-                                 **get_admin_metrics()  # Unpack metriche generali
-                             },
-                             page=1,
-                             per_page=20,
-                             total_count=0)
+        print(f"Errore nel caricamento dettagli utente: {e}")
+        return jsonify({'error': 'Errore nel caricamento dei dettagli utente'}), 500
 
-# ---- TASK 2.7 - API Referral ----
-@admin_bp.post("/api/referral/<int:referral_id>/approve")
+@admin_bp.get("/api/referral/stats")
 @admin_required
-def approve_referral(referral_id):
-    """Approva un referral"""
+def get_referral_stats():
+    """Ottieni statistiche generali del sistema referral"""
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se la tabella esiste
+            # Statistiche generali
             cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'user_referrals'
-                );
+                SELECT 
+                    COUNT(*) as total_users,
+                    COUNT(CASE WHEN referred_by IS NOT NULL THEN 1 END) as users_with_referrer,
+                    COUNT(CASE WHEN referral_code IS NOT NULL THEN 1 END) as users_with_code
+                FROM users
             """)
-            table_exists = cur.fetchone()[0]
+            user_stats = cur.fetchone()
             
-            if not table_exists:
-                return jsonify({'error': 'Tabella referral non trovata'}), 404
-            
-            # Ottieni referral
-            cur.execute("SELECT * FROM user_referrals WHERE id = %s", (referral_id,))
-            referral = cur.fetchone()
-            
-            if not referral:
-                return jsonify({'error': 'Referral non trovato'}), 404
-            
-            if referral[4] != 'pending':  # status
-                return jsonify({'error': 'Referral non in attesa di approvazione'}), 400
-            
-            # Approva referral
+            # Calcola referral attivi (utenti che hanno invitato qualcuno)
             cur.execute("""
-                UPDATE user_referrals 
-                SET status = 'active', updated_at = CURRENT_TIMESTAMP
+                SELECT COUNT(DISTINCT referred_by) as active_referrals
+                FROM users 
+                WHERE referred_by IS NOT NULL
+            """)
+            active_referrals = cur.fetchone()
+            
+            # Totale investito da tutti gli utenti
+            cur.execute("""
+                SELECT 
+                    COALESCE(SUM(invested_capital), 0) as total_invested,
+                    COALESCE(SUM(profits), 0) as total_profits,
+                    COALESCE(SUM(referral_bonus), 0) as total_bonus
+                FROM user_portfolios
+            """)
+            financial_stats = cur.fetchone()
+            
+            return jsonify({
+                'total_users': user_stats['total_users'],
+                'active_referrals': active_referrals['active_referrals'],
+                'total_invested': float(financial_stats['total_invested']),
+                'total_profits': float(financial_stats['total_profits']),
+                'total_bonus': float(financial_stats['total_bonus'])
+            })
+        
+    except Exception as e:
+        print(f"Errore nel caricamento statistiche referral: {e}")
+        return jsonify({'error': 'Errore nel caricamento delle statistiche'}), 500
+
+@admin_bp.post("/api/referral/users/<int:user_id>/move")
+@admin_required
+def move_user_referral(user_id):
+    """Sposta un utente sotto un altro utente nel sistema referral"""
+    try:
+        data = request.get_json() or {}
+        new_referrer_id = data.get('new_referrer_id')
+        
+        if not new_referrer_id:
+            return jsonify({'error': 'ID referrer mancante'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che l'utente esista
+            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Utente non trovato'}), 404
+            
+            # Verifica che il nuovo referrer esista
+            cur.execute("SELECT id FROM users WHERE id = %s", (new_referrer_id,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Referrer non trovato'}), 404
+            
+            # Evita auto-referral
+            if user_id == new_referrer_id:
+                return jsonify({'error': 'Un utente non può essere referrer di se stesso'}), 400
+            
+            # Aggiorna il referrer
+            cur.execute("""
+                UPDATE users 
+                SET referred_by = %s 
                 WHERE id = %s
-            """, (referral_id,))
+            """, (new_referrer_id, user_id))
             
             conn.commit()
             
-        return jsonify({'success': True, 'message': 'Referral approvato con successo'})
+            return jsonify({
+                'success': True,
+                'message': 'Utente spostato con successo'
+            })
         
     except Exception as e:
-        print(f"Errore approvazione referral: {e}")
-        return jsonify({'error': f'Errore nell\'approvazione: {str(e)}'}), 500
+        print(f"Errore nello spostamento utente: {e}")
+        return jsonify({'error': 'Errore nello spostamento dell\'utente'}), 500
 
-@admin_bp.post("/api/referral/<int:referral_id>/reject")
-@admin_required
-def reject_referral(referral_id):
-    """Rifiuta un referral"""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se la tabella esiste
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'user_referrals'
-                );
-            """)
-            table_exists = cur.fetchone()[0]
-            
-            if not table_exists:
-                return jsonify({'error': 'Tabella referral non trovata'}), 404
-            
-            # Ottieni referral
-            cur.execute("SELECT * FROM user_referrals WHERE id = %s", (referral_id,))
-            referral = cur.fetchone()
-            
-            if not referral:
-                return jsonify({'error': 'Referral non trovato'}), 404
-            
-            if referral[4] != 'pending':  # status
-                return jsonify({'error': 'Referral non in attesa di approvazione'}), 400
-            
-            # Rifiuta referral
-            cur.execute("""
-                UPDATE user_referrals 
-                SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
-                WHERE id = %s
-            """, (referral_id,))
-            
-            conn.commit()
-            
-        return jsonify({'success': True, 'message': 'Referral rifiutato con successo'})
-        
-    except Exception as e:
-        print(f"Errore rifiuto referral: {e}")
-        return jsonify({'error': f'Errore nel rifiuto: {str(e)}'}), 500
+# ---- TASK 2.7 - API Referral (RIMOSSE) ----
 
 # ---- TASK 2.7 - Configurazione IBAN ----
 @admin_bp.get("/iban-config")
@@ -3888,101 +3936,9 @@ def transactions_filtered():
     
     return jsonify(transactions)
 
-# ---- TASK 2.7 - Gestione Referral ----
-@admin_bp.get("/api/referral-overview")
-@admin_required
-def referral_overview():
-    """Gestione referral: overview sistema referral"""
-    with get_conn() as conn, conn.cursor() as cur:
-        # Statistiche referral
-        cur.execute("""
-            SELECT COUNT(*) as total_referrals,
-                   COUNT(CASE WHEN status = 'active' THEN 1 END) as active_referrals,
-                   COALESCE(SUM(commission_earned), 0) as total_commissions
-            FROM referrals
-        """)
-        referral_stats = cur.fetchone()
-        
-        # Top referrer
-        cur.execute("""
-            SELECT u.full_name, u.email, r.commission_earned, r.total_invested
-            FROM referrals r
-            JOIN users u ON u.id = r.referrer_id
-            ORDER BY r.commission_earned DESC
-            LIMIT 10
-        """)
-        top_referrers = cur.fetchall()
-        
-        # Commissioni recenti
-        cur.execute("""
-            SELECT rc.*, ur.full_name as referrer_name, uu.full_name as referred_name
-            FROM referral_commissions rc
-            JOIN users ur ON ur.id = rc.referrer_id
-            JOIN users uu ON uu.id = rc.referred_user_id
-            ORDER BY rc.created_at DESC
-            LIMIT 20
-        """)
-        recent_commissions = cur.fetchall()
-    
-    return jsonify({
-        'stats': referral_stats,
-        'top_referrers': top_referrers,
-        'recent_commissions': recent_commissions
-    })
+# ---- TASK 2.7 - Gestione Referral (RIMOSSA) ----
 
-@admin_bp.post("/api/distribute-referral-bonus")
-@admin_required
-def distribute_referral_bonus():
-    """Distribuzione manuale bonus referral 1%"""
-    data = request.get_json() or {}
-    user_id = data.get('user_id')
-    profit_amount = data.get('profit_amount')
-    referral_percentage = data.get('referral_percentage', 0.01)
-    
-    if not all([user_id, profit_amount]):
-        return jsonify({'error': 'User ID e profit amount richiesti'}), 400
-    
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se l'utente ha un referrer
-            cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
-            user = cur.fetchone()
-            
-            if not user or not user['referred_by']:
-                return jsonify({'error': 'Utente non ha un referrer'}), 400
-            
-            # Calcola bonus referral
-            bonus_amount = float(profit_amount) * float(referral_percentage)
-            
-            # Aggiorna portfolio del referrer
-            cur.execute("""
-                UPDATE user_portfolios 
-                SET referral_bonus = referral_bonus + %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (bonus_amount, user['referred_by']))
-            
-            # Registra transazione
-            cur.execute("""
-                INSERT INTO portfolio_transactions (
-                    user_id, type, amount, balance_before, balance_after,
-                    description, status, created_at
-                ) VALUES (
-                    %s, 'referral', %s, 0, %s, 
-                    'Bonus referral distribuito da admin', 'completed', NOW()
-                )
-            """, (user['referred_by'], bonus_amount, bonus_amount))
-            
-            conn.commit()
-            
-        return jsonify({
-            'success': True,
-            'message': 'Bonus referral distribuito',
-            'referrer_id': user['referred_by'],
-            'bonus_amount': bonus_amount
-        })
-        
-    except Exception as e:
-        return jsonify({'error': f'Errore nella distribuzione: {str(e)}'}), 500
+# API distribute-referral-bonus rimossa
 
 # ---- TASK 2.7 - Enhanced KYC Management ----
 @admin_bp.get("/api/kyc-requests/enhanced")

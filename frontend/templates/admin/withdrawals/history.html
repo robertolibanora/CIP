@@ -3,98 +3,33 @@
 {% block title %}Storico Prelievi - Admin{% endblock %}
 
 {% block content %}
-<!-- Dashboard Storico Prelievi -->
+<!-- Storico Prelievi Admin -->
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="admin-card admin-card-body">
         <div class="admin-flex admin-flex--between">
             <div>
                 <h1 class="admin-heading-1">Storico Prelievi</h1>
-                <p class="admin-text-small">Visualizza tutti i prelievi processati nel sistema</p>
+                <p class="admin-text-small">Visualizza e gestisci tutti i prelievi del sistema</p>
             </div>
-            <div class="admin-flex admin-flex--gap-2">
-                <a href="/admin/withdrawals" class="admin-btn admin-btn--secondary">
+            <div class="mt-3 sm:mt-0">
+                <a href="/admin/withdrawals" class="admin-btn admin-btn--primary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                     Torna ai Prelievi
                 </a>
-                <button id="delete-history-btn" class="admin-btn admin-btn--error">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Elimina Storico
-                </button>
             </div>
         </div>
     </div>
 
-    <!-- Statistiche -->
-    <div class="admin-grid admin-grid--4">
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Totale Prelievi</p>
-                    <p class="admin-heading-2 text-blue-600" id="total-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--info">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Completati</p>
-                    <p class="admin-heading-2 text-green-600" id="completed-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--success">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Rifiutati</p>
-                    <p class="admin-heading-2 text-red-600" id="rejected-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--error">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Importo Totale</p>
-                    <p class="admin-heading-2 text-blue-600" id="total-amount">-</p>
-                </div>
-                <div class="admin-icon admin-icon--info">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filtri -->
+    <!-- Filtri e Ricerca -->
     <div class="admin-card admin-card-body">
         <div class="admin-flex admin-flex--between">
             <div class="admin-flex admin-flex--gap-4">
                 <div>
                     <label for="status-filter" class="admin-label">Stato</label>
-                    <select id="status-filter" class="admin-select" onchange="applyFilters()">
+                    <select id="status-filter" class="admin-select" onchange="filterWithdrawals()">
                         <option value="">Tutti gli stati</option>
                         <option value="pending">In attesa</option>
                         <option value="completed">Completati</option>
@@ -104,7 +39,7 @@
                 
                 <div>
                     <label for="method-filter" class="admin-label">Metodo</label>
-                    <select id="method-filter" class="admin-select" onchange="applyFilters()">
+                    <select id="method-filter" class="admin-select" onchange="filterWithdrawals()">
                         <option value="">Tutti i metodi</option>
                         <option value="usdt">USDT (BEP20)</option>
                         <option value="bank">Bonifico Bancario</option>
@@ -113,26 +48,32 @@
                 
                 <div>
                     <label for="search-filter" class="admin-label">Ricerca</label>
-                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="applyFilters()">
+                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, cognome, email..." onkeyup="filterWithdrawals()">
                 </div>
             </div>
             
             <div class="admin-flex admin-flex--gap-2">
-                <button onclick="refreshHistory()" class="admin-btn admin-btn--secondary">
+                <button onclick="refreshWithdrawals()" class="admin-btn admin-btn--secondary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
                     Aggiorna
                 </button>
+                <button onclick="deleteAllWithdrawals()" class="admin-btn admin-btn--danger">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Elimina Storico
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Lista Storico -->
+    <!-- Lista Storico Prelievi -->
     <div class="admin-card">
         <div class="admin-card-header">
-            <h2 class="admin-heading-3">Storico Prelievi</h2>
-            <span class="admin-text-small text-gray-500" id="history-count">0 prelievi trovati</span>
+            <h2 class="admin-heading-3">Storico Completo</h2>
+            <span class="admin-text-small text-gray-500" id="withdrawals-count">0 prelievi trovati</span>
         </div>
 
         <div class="admin-card-body">
@@ -145,14 +86,15 @@
                             <th class="admin-table-th">Metodo</th>
                             <th class="admin-table-th">Sezione</th>
                             <th class="admin-table-th">Stato</th>
-                            <th class="admin-table-th">Data</th>
-                            <th class="admin-table-th">Processato da</th>
+                            <th class="admin-table-th">Data Richiesta</th>
+                            <th class="admin-table-th">Data Approvazione</th>
+                            <th class="admin-table-th">Approvato da</th>
                             <th class="admin-table-th">Azioni</th>
                         </tr>
                     </thead>
-                    <tbody id="history-table-body">
+                    <tbody id="withdrawals-table-body">
                         <tr>
-                            <td colspan="8" class="admin-table-td text-center py-8">
+                            <td colspan="9" class="admin-table-td text-center py-8">
                                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                                 <p class="text-gray-500 mt-2">Caricamento storico...</p>
                             </td>
@@ -160,72 +102,29 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-        
-        <!-- Paginazione -->
-        <div class="admin-card-footer">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div class="admin-text-small text-gray-500" id="pagination-info">
-                    Caricamento...
-                </div>
-                <div class="admin-flex admin-flex--gap-2" id="pagination-controls">
-                    <!-- Paginazione verrà inserita qui dinamicamente -->
-                </div>
+
+            <!-- Paginazione -->
+            <div id="pagination" class="admin-flex admin-flex--between admin-flex--items-center mt-6">
+                <!-- Paginazione sarà inserita qui dinamicamente -->
             </div>
         </div>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div id="delete-confirm-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay" onclick="hideDeleteModal()"></div>
+<!-- Withdrawal Details Modal -->
+<div id="withdrawal-details-modal" class="admin-modal hidden">
+    <div class="admin-modal-overlay" onclick="closeWithdrawalModal()"></div>
     <div class="admin-modal-content">
         <div class="admin-modal-header">
-            <h3 class="admin-heading-3">⚠️ Conferma Eliminazione</h3>
-            <button onclick="hideDeleteModal()" class="admin-modal-close">
+            <h3 class="admin-heading-3">Dettagli Prelievo</h3>
+            <button onclick="closeWithdrawalModal()" class="admin-modal-close">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
-        <div class="admin-modal-body">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-red-800">Attenzione: Azione Irreversibile</h3>
-                        <div class="mt-2 text-sm text-red-700">
-                            <p>Stai per eliminare <strong>TUTTI</strong> i prelievi dal database. Questa azione:</p>
-                            <ul class="list-disc list-inside mt-2 space-y-1">
-                                <li>Eliminerà tutti i record di prelievi</li>
-                                <li>Eliminerà tutte le transazioni correlate</li>
-                                <li>Non influenzerà i saldi degli utenti</li>
-                                <li><strong>NON PUÒ ESSERE ANNULLATA</strong></p>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <p class="text-gray-700 mb-4">
-                Sei sicuro di voler procedere con l'eliminazione di tutto lo storico prelievi?
-            </p>
-            
-            <div class="admin-flex admin-flex--gap-2">
-                <button onclick="deleteAllWithdrawals()" class="admin-btn admin-btn--error">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Sì, Elimina Tutto
-                </button>
-                <button onclick="hideDeleteModal()" class="admin-btn admin-btn--secondary">
-                    Annulla
-                </button>
-            </div>
+        <div id="withdrawal-details-content" class="admin-modal-body">
+            <!-- Content will be loaded here -->
         </div>
     </div>
 </div>
@@ -241,302 +140,356 @@
     </div>
 </div>
 
-<!-- Success/Error Alerts -->
-<div id="success-alert" class="admin-alert admin-alert--success hidden">
-    <div class="admin-alert-icon">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-    </div>
-    <div class="admin-alert-content">
-        <h4 class="admin-alert-title">Successo!</h4>
-        <p class="admin-alert-message">Operazione completata con successo!</p>
-    </div>
-</div>
-
-<div id="error-alert" class="admin-alert admin-alert--error hidden">
-    <div class="admin-alert-icon">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-    </div>
-    <div class="admin-alert-content">
-        <h4 class="admin-alert-title">Errore!</h4>
-        <p class="admin-alert-message">Si è verificato un errore!</p>
-    </div>
-</div>
-
 <script>
-// Global variables
 let currentPage = 1;
-let totalPages = 1;
-let currentWithdrawals = [];
 let currentFilters = {
     status: '',
     method: '',
     search: ''
 };
 
-// Load history on page load
+// Carica storico al caricamento della pagina
 document.addEventListener('DOMContentLoaded', function() {
-    loadHistory();
-    
-    // Event listener for delete button
-    document.getElementById('delete-history-btn').addEventListener('click', showDeleteModal);
+    // Verifica autenticazione prima di caricare i dati
+    checkAuthentication();
 });
 
-// Load withdrawals history
-async function loadHistory(page = 1) {
+// Verifica autenticazione
+async function checkAuthentication() {
     try {
-        showLoading();
-        currentPage = page;
+        const response = await fetch('/auth/check', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
         
+        if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated && data.is_admin) {
+                loadWithdrawalsHistory();
+            } else {
+                showError('Accesso negato. Solo gli amministratori possono visualizzare questa pagina.');
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            }
+        } else {
+            showError('Errore di autenticazione. Effettua nuovamente il login.');
+            setTimeout(() => {
+                window.location.href = '/auth/login';
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('Errore verifica autenticazione:', error);
+        showError('Errore di connessione. Verifica la connessione internet e riprova.');
+    }
+}
+
+// Carica storico prelievi
+async function loadWithdrawalsHistory(page = 1) {
+    try {
+        currentPage = page;
         const params = new URLSearchParams({
             page: page,
             ...currentFilters
         });
         
-        const response = await fetch(`/withdrawals/api/admin/history?${params}`);
-        const data = await response.json();
+        console.log('🔄 Caricamento storico prelievi...', {page, filters: currentFilters});
         
-        if (response.ok) {
-            currentWithdrawals = data.withdrawals || [];
-            totalPages = data.pagination?.total_pages || 1;
-            renderHistory();
-            updateStats();
-            updatePagination(data.pagination);
+        // Mostra loading
+        const tbody = document.getElementById('withdrawals-table-body');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="admin-table-td text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-gray-500 mt-2">Caricamento storico...</p>
+                </td>
+            </tr>
+        `;
+        
+        const response = await fetch(`/withdrawals/api/admin/history?${params}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (response.status === 401) {
+            console.error('❌ Sessione scaduta');
+            showError('Sessione scaduta. Effettua nuovamente il login.');
+            setTimeout(() => {
+                window.location.href = '/auth/login';
+            }, 2000);
+            return;
+        }
+        
+        if (response.status === 403) {
+            console.error('❌ Accesso negato');
+            showError('Accesso negato. Non hai i permessi per visualizzare questa pagina.');
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Errore HTTP:', response.status, errorText);
+            showError(`Errore del server (${response.status}): ${errorText}`);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('✅ Response data:', data);
+        
+        if (data.withdrawals && Array.isArray(data.withdrawals)) {
+            renderWithdrawals(data.withdrawals);
+            renderPagination(data.pagination);
+            document.getElementById('withdrawals-count').textContent = `${data.pagination.total_count} prelievi trovati`;
+            console.log('✅ Storico caricato con successo:', data.withdrawals.length, 'prelievi');
         } else {
-            throw new Error(data.error || 'Errore nel caricamento');
+            console.error('❌ Formato dati non valido:', data);
+            showError('Formato dati non valido ricevuto dal server');
         }
     } catch (error) {
-        console.error('Errore caricamento storico:', error);
-        showError('Errore nel caricamento dello storico');
-    } finally {
-        hideLoading();
+        console.error('❌ Errore nel caricamento storico:', error);
+        showError('Errore di connessione: ' + error.message);
     }
 }
 
-// Render history table
-function renderHistory() {
-    const tbody = document.getElementById('history-table-body');
-    const countElement = document.getElementById('history-count');
+// Renderizza prelievi nella tabella
+function renderWithdrawals(withdrawals) {
+    const tbody = document.getElementById('withdrawals-table-body');
     
-    if (currentWithdrawals.length === 0) {
+    if (withdrawals.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="admin-table-td text-center py-8">
+                <td colspan="9" class="admin-table-td text-center py-8">
                     <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                     </svg>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun prelievo</h3>
-                    <p class="text-gray-600">Non ci sono prelievi nello storico.</p>
+                    <p class="text-gray-600">Non ci sono prelievi che corrispondono ai filtri selezionati.</p>
                 </td>
             </tr>
         `;
-        countElement.textContent = '0 prelievi trovati';
         return;
     }
     
-    tbody.innerHTML = currentWithdrawals.map(withdrawal => `
-        <tr class="admin-table-tr">
+    tbody.innerHTML = withdrawals.map(withdrawal => `
+        <tr class="admin-table-tr" 
+            data-status="${withdrawal.status}" 
+            data-method="${withdrawal.method}"
+            data-search="${(withdrawal.full_name || '').toLowerCase()} ${(withdrawal.email || '').toLowerCase()}">
             <td class="admin-table-td">
                 <div>
-                    <div class="admin-text-body font-medium">${withdrawal.full_name}</div>
-                    <div class="admin-text-small text-gray-500">${withdrawal.email}</div>
+                    <p class="font-medium text-gray-900">${withdrawal.full_name || 'Utente'}</p>
+                    <p class="text-sm text-gray-500">${withdrawal.email || ''}</p>
                 </div>
             </td>
             <td class="admin-table-td">
-                <span class="admin-text-body font-medium">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</span>
+                <span class="font-semibold text-green-600">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</span>
             </td>
             <td class="admin-table-td">
-                <div class="flex items-center">
-                    ${withdrawal.method === 'usdt' ? 
-                        '<div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mr-2"><span class="text-white font-bold text-xs">₮</span></div>' :
-                        '<div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-2"><span class="text-white font-bold text-xs">€</span></div>'
-                    }
-                    <span class="admin-text-body">${withdrawal.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico'}</span>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <div>
-                    <div class="admin-text-body font-medium">${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
-                                                                    withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : 'Profitti'}</div>
-                    <div class="admin-text-small text-gray-500">Chiave: ${withdrawal.unique_key}</div>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <span class="admin-badge ${withdrawal.status === 'completed' ? 'admin-badge--success' : 
-                                          withdrawal.status === 'cancelled' ? 'admin-badge--error' : 
-                                          'admin-badge--warning'}">
-                    ${withdrawal.status === 'completed' ? 'Completato' : 
-                      withdrawal.status === 'cancelled' ? 'Rifiutato' : 'In attesa'}
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${withdrawal.method === 'usdt' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
+                    ${withdrawal.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}
                 </span>
             </td>
             <td class="admin-table-td">
-                <div class="admin-text-body">${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</div>
-                <div class="admin-text-small text-gray-500">${new Date(withdrawal.created_at).toLocaleTimeString('it-IT')}</div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                    ${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
+                      withdrawal.source_section === 'profits' ? 'Profitti' : 
+                      withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : withdrawal.source_section}
+                </span>
             </td>
             <td class="admin-table-td">
-                <div class="admin-text-body">${withdrawal.approved_by_name || '-'}</div>
-                ${withdrawal.approved_at ? `<div class="admin-text-small text-gray-500">${new Date(withdrawal.approved_at).toLocaleDateString('it-IT')}</div>` : ''}
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${
+                    withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    withdrawal.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                }">
+                    ${withdrawal.status === 'pending' ? 'In Attesa' :
+                      withdrawal.status === 'completed' ? 'Completato' :
+                      withdrawal.status === 'cancelled' ? 'Rifiutato' : withdrawal.status}
+                </span>
             </td>
             <td class="admin-table-td">
-                <button onclick="viewWithdrawalDetails(${withdrawal.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                </button>
+                <div>
+                    <p class="text-sm text-gray-900">${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</p>
+                    <p class="text-xs text-gray-500">${new Date(withdrawal.created_at).toLocaleTimeString('it-IT')}</p>
+                </div>
+            </td>
+            <td class="admin-table-td">
+                ${withdrawal.approved_at ? `
+                    <div>
+                        <p class="text-sm text-gray-900">${new Date(withdrawal.approved_at).toLocaleDateString('it-IT')}</p>
+                        <p class="text-xs text-gray-500">${new Date(withdrawal.approved_at).toLocaleTimeString('it-IT')}</p>
+                    </div>
+                ` : '<span class="text-gray-400">-</span>'}
+            </td>
+            <td class="admin-table-td">
+                <span class="text-sm text-gray-900">${withdrawal.approved_by_name || '-'}</span>
+            </td>
+            <td class="admin-table-td">
+                <div class="flex gap-2">
+                    <button onclick="viewWithdrawalDetails(${withdrawal.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Dettagli
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
-    
-    countElement.textContent = `${currentWithdrawals.length} prelievi trovati`;
 }
 
-// Update statistics
-function updateStats() {
-    const total = currentWithdrawals.length;
-    const completed = currentWithdrawals.filter(w => w.status === 'completed').length;
-    const rejected = currentWithdrawals.filter(w => w.status === 'cancelled').length;
-    const totalAmount = currentWithdrawals
-        .filter(w => w.status === 'completed')
-        .reduce((sum, w) => sum + parseFloat(w.amount), 0);
+// Renderizza paginazione
+function renderPagination(pagination) {
+    const paginationDiv = document.getElementById('pagination');
     
-    document.getElementById('total-count').textContent = total;
-    document.getElementById('completed-count').textContent = completed;
-    document.getElementById('rejected-count').textContent = rejected;
-    document.getElementById('total-amount').textContent = `€${totalAmount.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-}
-
-// Update pagination
-function updatePagination(pagination) {
-    const info = document.getElementById('pagination-info');
-    const controls = document.getElementById('pagination-controls');
-    
-    if (pagination) {
-        const start = (pagination.page - 1) * pagination.per_page + 1;
-        const end = Math.min(pagination.page * pagination.per_page, pagination.total_count);
-        info.textContent = `Mostrando ${start} - ${end} di ${pagination.total_count} risultati`;
-        
-        controls.innerHTML = '';
-        
-        // Previous button
-        if (pagination.page > 1) {
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'admin-btn admin-btn--secondary admin-btn--sm';
-            prevBtn.textContent = 'Precedente';
-            prevBtn.onclick = () => loadHistory(pagination.page - 1);
-            controls.appendChild(prevBtn);
-        }
-        
-        // Page numbers
-        for (let i = 1; i <= pagination.total_pages; i++) {
-            if (i === pagination.page || i === 1 || i === pagination.total_pages || 
-                (i >= pagination.page - 2 && i <= pagination.page + 2)) {
-                const pageBtn = document.createElement('button');
-                pageBtn.className = `admin-btn admin-btn--sm ${i === pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary'}`;
-                pageBtn.textContent = i;
-                pageBtn.onclick = () => loadHistory(i);
-                controls.appendChild(pageBtn);
-            } else if (i === pagination.page - 3 || i === pagination.page + 3) {
-                const dots = document.createElement('span');
-                dots.className = 'px-2 py-1 text-gray-500';
-                dots.textContent = '...';
-                controls.appendChild(dots);
-            }
-        }
-        
-        // Next button
-        if (pagination.page < pagination.total_pages) {
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'admin-btn admin-btn--secondary admin-btn--sm';
-            nextBtn.textContent = 'Successiva';
-            nextBtn.onclick = () => loadHistory(pagination.page + 1);
-            controls.appendChild(nextBtn);
-        }
+    if (pagination.total_pages <= 1) {
+        paginationDiv.innerHTML = '';
+        return;
     }
+    
+    let paginationHTML = `
+        <div class="admin-text-small text-gray-500">
+            Pagina ${pagination.page} di ${pagination.total_pages} (${pagination.total_count} prelievi totali)
+        </div>
+        <div class="admin-flex admin-flex--gap-2">
+    `;
+    
+    // Pulsante precedente
+    if (pagination.page > 1) {
+        paginationHTML += `
+            <button onclick="loadWithdrawalsHistory(${pagination.page - 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Precedente
+            </button>
+        `;
+    }
+    
+    // Numeri pagina
+    const startPage = Math.max(1, pagination.page - 2);
+    const endPage = Math.min(pagination.total_pages, pagination.page + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <button onclick="loadWithdrawalsHistory(${i})" 
+                    class="admin-btn admin-btn--sm ${i === pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary'}">
+                ${i}
+            </button>
+        `;
+    }
+    
+    // Pulsante successivo
+    if (pagination.page < pagination.total_pages) {
+        paginationHTML += `
+            <button onclick="loadWithdrawalsHistory(${pagination.page + 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                Successivo
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        `;
+    }
+    
+    paginationHTML += '</div>';
+    paginationDiv.innerHTML = paginationHTML;
 }
 
-// Apply filters
-function applyFilters() {
+// Filtra prelievi
+function filterWithdrawals() {
     currentFilters.status = document.getElementById('status-filter').value;
     currentFilters.method = document.getElementById('method-filter').value;
     currentFilters.search = document.getElementById('search-filter').value;
     
-    loadHistory(1); // Reset to first page
+    loadWithdrawalsHistory(1); // Ricarica dalla prima pagina
 }
 
-// Refresh history
-async function refreshHistory() {
-    await loadHistory(currentPage);
+// Aggiorna prelievi
+function refreshWithdrawals() {
+    loadWithdrawalsHistory(currentPage);
+    showNotification('Storico aggiornato', 'success');
 }
 
-// View withdrawal details (placeholder)
-function viewWithdrawalDetails(withdrawalId) {
-    const withdrawal = currentWithdrawals.find(w => w.id === withdrawalId);
-    if (withdrawal) {
-        alert(`Dettagli prelievo ${withdrawalId}:\nUtente: ${withdrawal.full_name}\nImporto: €${withdrawal.amount}\nMetodo: ${withdrawal.method}\nStato: ${withdrawal.status}`);
-    }
-}
-
-// Show delete modal
-function showDeleteModal() {
-    document.getElementById('delete-confirm-modal').classList.remove('hidden');
-}
-
-// Hide delete modal
-function hideDeleteModal() {
-    document.getElementById('delete-confirm-modal').classList.add('hidden');
-}
-
-// Delete all withdrawals
+// Elimina tutto lo storico
 async function deleteAllWithdrawals() {
+    if (!confirm('Sei sicuro di voler eliminare TUTTO lo storico dei prelievi? Questa azione non può essere annullata!')) {
+        return;
+    }
+    
+    if (!confirm('CONFERMA FINALE: Eliminare tutti i prelievi dal database?')) {
+        return;
+    }
+    
     try {
         showLoading();
         const response = await fetch('/withdrawals/api/admin/delete-all', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {'Content-Type': 'application/json'}
         });
         
-        const result = await response.json();
+        const data = await response.json();
         
         if (response.ok) {
-            showSuccess(result.message || 'Storico prelievi eliminato con successo!');
-            hideDeleteModal();
-            setTimeout(() => loadHistory(1), 1500);
+            showNotification(`Eliminati ${data.deleted_count} prelievi`, 'success');
+            loadWithdrawalsHistory(1);
         } else {
-            throw new Error(result.error || 'Errore nell\'eliminazione');
+            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
         }
     } catch (error) {
         console.error('Errore eliminazione:', error);
-        showError(error.message || 'Errore nell\'eliminazione dello storico');
+        showError('Errore nell\'eliminazione dei prelievi');
     } finally {
         hideLoading();
     }
 }
 
-// Utility functions
+// Visualizza dettagli prelievo
+function viewWithdrawalDetails(id) {
+    // Per ora mostriamo solo un alert, poi possiamo implementare un modal
+    alert('Dettagli prelievo ID: ' + id + '\n\nFunzionalità in sviluppo...');
+}
+
+// Chiudi modal
+function closeWithdrawalModal() {
+    document.getElementById('withdrawal-details-modal').classList.add('hidden');
+}
+
+// Mostra loading
 function showLoading() {
     document.getElementById('loading-modal').classList.remove('hidden');
 }
 
+// Nascondi loading
 function hideLoading() {
     document.getElementById('loading-modal').classList.add('hidden');
 }
 
-function showSuccess(message) {
-    const alert = document.getElementById('success-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
+// Mostra notifica di successo
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
+// Mostra errore
 function showError(message) {
-    const alert = document.getElementById('error-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
+    showNotification(message, 'error');
 }
 </script>
 {% endblock %}

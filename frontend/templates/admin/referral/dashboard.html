@@ -3,384 +3,564 @@
 {% block title %}Sistema Referral - Admin{% endblock %}
 
 {% block content %}
-<!-- Dashboard Sistema Referral -->
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
+<!-- Dashboard Sistema Referral Admin -->
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="admin-heading-1">Sistema Referral</h1>
-                <p class="admin-text-small">Gestione e monitoraggio del sistema di referral</p>
-            </div>
-            <!-- Status Badge -->
-            <div class="mt-3 sm:mt-0">
-                <div class="admin-badge admin-badge--success">
-                    <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                    Sistema Referral Attivo
-                </div>
-            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Sistema Referral</h1>
+            <p class="text-gray-600">Gestione e monitoraggio del sistema di referral</p>
         </div>
     </div>
 
-    <!-- Metriche Referral -->
-    <div class="admin-grid admin-grid--4">
-        {% with 
-            metric_title='Referral Totali',
-            metric_value=metrics.total_referrals or 0,
-            metric_icon='users',
-            metric_color='blue',
-            metric_subtitle='Tutti i referral' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-
-        {% with 
-            metric_title='Referral Attivi',
-            metric_value=metrics.active_referrals or 0,
-            metric_icon='success',
-            metric_color='success',
-            metric_subtitle='Referral completati' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-
-        {% with 
-            metric_title='Bonus Pagati',
-            metric_value='€' + ('{:,.0f}'.format(metrics.total_bonus_paid or 0)),
-            metric_icon='money',
-            metric_color='green',
-            metric_subtitle='Totale bonus erogati' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-
-        {% with 
-            metric_title='Bonus in Attesa',
-            metric_value='€' + ('{:,.0f}'.format(metrics.pending_bonus or 0)),
-            metric_icon='pending',
-            metric_color='warning',
-            metric_subtitle='Bonus da pagare' %}
-            {% include 'admin/components/metrics_widget.html' %}
-        {% endwith %}
-    </div>
-
-    <!-- Filtri e Azioni -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div class="admin-flex admin-flex--gap-4">
-                <div>
-                    <label for="status-filter" class="admin-label">Stato</label>
-                    <select id="status-filter" class="admin-select" onchange="filterReferrals()">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending">In attesa</option>
-                        <option value="active">Attivo</option>
-                        <option value="completed">Completato</option>
-                        <option value="expired">Scaduto</option>
-                    </select>
+    <!-- Statistiche Generali -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-500">Totale Utenti</p>
+                    <p class="text-3xl font-bold text-blue-600" id="total-users">-</p>
                 </div>
-                
-                <div>
-                    <label for="search-filter" class="admin-label">Ricerca</label>
-                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="filterReferrals()">
-                </div>
-            </div>
-            
-            <div class="admin-flex admin-flex--gap-2">
-                <button onclick="refreshReferrals()" class="admin-btn admin-btn--secondary">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                <div class="text-blue-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
-                    Aggiorna
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Lista Referral -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <h2 class="admin-heading-3">Referral Sistema</h2>
-            <span class="admin-text-small text-gray-500">{{ referrals|length }} referral trovati</span>
-        </div>
-
-        <div class="admin-card-body">
-            <div class="overflow-x-auto">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th class="admin-table-th">Referrer</th>
-                            <th class="admin-table-th">Referred</th>
-                            <th class="admin-table-th">Bonus</th>
-                            <th class="admin-table-th">Stato</th>
-                            <th class="admin-table-th">Data</th>
-                            <th class="admin-table-th">Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="referrals-table-body">
-                        {% for referral in referrals %}
-                        <tr class="admin-table-tr" 
-                            data-status="{{ referral.status }}"
-                            data-search="{{ referral.referrer_name|lower }} {{ referral.referrer_email|lower }} {{ referral.referred_name|lower }} {{ referral.referred_email|lower }}">
-                            <td class="admin-table-td">
-                                <div>
-                                    <div class="admin-text-body font-medium">{{ referral.referrer_name }}</div>
-                                    <div class="admin-text-small text-gray-500">{{ referral.referrer_email }}</div>
-                                </div>
-                            </td>
-                            <td class="admin-table-td">
-                                <div>
-                                    <div class="admin-text-body font-medium">{{ referral.referred_name }}</div>
-                                    <div class="admin-text-small text-gray-500">{{ referral.referred_email }}</div>
-                                </div>
-                            </td>
-                            <td class="admin-table-td">
-                                <span class="admin-text-body font-medium text-green-600">
-                                    €{{ "%.2f"|format(referral.bonus_amount) }}
-                                </span>
-                            </td>
-                            <td class="admin-table-td">
-                                {% if referral.status == 'pending' %}
-                                    <span class="admin-badge admin-badge--warning">In attesa</span>
-                                {% elif referral.status == 'active' %}
-                                    <span class="admin-badge admin-badge--success">Attivo</span>
-                                {% elif referral.status == 'completed' %}
-                                    <span class="admin-badge admin-badge--info">Completato</span>
-                                {% elif referral.status == 'expired' %}
-                                    <span class="admin-badge admin-badge--error">Scaduto</span>
-                                {% else %}
-                                    <span class="admin-badge admin-badge--secondary">{{ referral.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="admin-table-td">
-                                <div class="admin-text-body">{{ referral.created_at.strftime('%d/%m/%Y') }}</div>
-                                <div class="admin-text-small text-gray-500">{{ referral.created_at.strftime('%H:%M') }}</div>
-                            </td>
-                            <td class="admin-table-td">
-                                <div class="admin-flex admin-flex--gap-2">
-                                    {% if referral.status == 'pending' %}
-                                        <button onclick="approveReferral({{ referral.id }})" class="admin-btn admin-btn--success admin-btn--sm">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </button>
-                                        <button onclick="rejectReferral({{ referral.id }})" class="admin-btn admin-btn--error admin-btn--sm">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                        </button>
-                                    {% endif %}
-                                    <button onclick="viewReferralDetails({{ referral.id }})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
         
-        <!-- Paginazione -->
-        {% if total_count > per_page %}
-        <div class="admin-card-footer">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div class="admin-text-small text-gray-500">
-                    Mostrando {{ (page - 1) * per_page + 1 }} - {{ [page * per_page, total_count]|min }} di {{ total_count }} risultati
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-500">Referral Attivi</p>
+                    <p class="text-3xl font-bold text-green-600" id="active-referrals">-</p>
                 </div>
-                <div class="admin-flex admin-flex--gap-2">
-                    {% if page > 1 %}
-                        <a href="?page={{ page - 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Precedente</a>
-                    {% endif %}
-                    
-                    {% for p in range(1, (total_count // per_page) + 2) %}
-                        {% if p <= total_count // per_page + 1 %}
-                            <a href="?page={{ p }}" class="admin-btn {% if p == page %}admin-btn--primary{% else %}admin-btn--secondary{% endif %} admin-btn--sm">{{ p }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if page < (total_count // per_page) %}
-                        <a href="?page={{ page + 1 }}" class="admin-btn admin-btn--secondary admin-btn--sm">Successiva</a>
-                    {% endif %}
+                <div class="text-green-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                 </div>
             </div>
         </div>
-        {% endif %}
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-500">Totale Investito</p>
+                    <p class="text-3xl font-bold text-purple-600" id="total-invested">-</p>
+                </div>
+                <div class="text-purple-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-500">Bonus Distribuiti</p>
+                    <p class="text-3xl font-bold text-orange-600" id="total-bonus">-</p>
+                </div>
+                <div class="text-orange-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtri e Ricerca -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Cerca per nome o cognome..." 
+                           class="w-full md:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+    </div>
+                </div>
+                <select id="status-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Tutti gli stati</option>
+                    <option value="active">Attivi</option>
+                    <option value="inactive">Inattivi</option>
+                    <option value="pending">In attesa</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Utenti -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Tutti gli Utenti</h3>
+            <p class="text-sm text-gray-500">Clicca su un utente per vedere i suoi invitati</p>
+        </div>
+        <div id="users-list" class="divide-y divide-gray-200">
+            <div class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="text-gray-500 mt-2">Caricamento utenti...</p>
+            </div>
+            </div>
+        </div>
+        
+    <!-- Modal Dettagli Utente -->
+    <div id="user-details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900" id="modal-user-name">Dettagli Utente</h3>
+                    <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    <div id="user-details-content">
+                        <!-- Contenuto dinamico -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Loading Modal -->
-{% with modal_id="loading-modal", modal_title="Caricamento..." %}
-    {% include 'admin/components/loading.html' %}
-{% endwith %}
-
-<!-- Success/Error Alerts -->
-{% with alert_id="success-alert", alert_type="success", alert_message="Operazione completata con successo!" %}
-    {% include 'admin/components/alert.html' %}
-{% endwith %}
-
-{% with alert_id="error-alert", alert_type="error", alert_message="Si è verificato un errore!" %}
-    {% include 'admin/components/alert.html' %}
-{% endwith %}
-
 <script>
-// Global variables
-let currentReferrals = {{ referrals|tojson }};
-let currentFilters = {
-    status: '',
-    search: ''
-};
+let allUsers = [];
+let filteredUsers = [];
 
-// Filter referrals based on current filters
-function filterReferrals() {
-    const statusFilter = document.getElementById('status-filter').value;
-    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+// Carica dati al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsers();
+    loadStats();
     
-    currentFilters.status = statusFilter;
-    currentFilters.search = searchFilter;
-    
-    const rows = document.querySelectorAll('#referrals-table-body tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const status = row.dataset.status;
-        const searchText = row.dataset.search;
+    // Event listeners per filtri
+    document.getElementById('search-input').addEventListener('input', filterUsers);
+    document.getElementById('status-filter').addEventListener('change', filterUsers);
+});
+
+// Carica lista utenti
+async function loadUsers() {
+    try {
+        const response = await fetch('/admin/api/referral/users');
+        const data = await response.json();
         
-        const statusMatch = !statusFilter || status === statusFilter;
-        const searchMatch = !searchFilter || searchText.includes(searchFilter);
-        
-        if (statusMatch && searchMatch) {
-            row.classList.remove('hidden');
-            visibleCount++;
+        if (response.ok) {
+            allUsers = data.users || [];
+            filteredUsers = [...allUsers];
+            renderUsers();
         } else {
-            row.classList.add('hidden');
+            showError('Errore nel caricamento degli utenti');
         }
+    } catch (error) {
+        console.error('Errore nel caricamento utenti:', error);
+        showError('Errore di connessione');
+    }
+}
+
+// Carica statistiche
+async function loadStats() {
+    try {
+        const response = await fetch('/admin/api/referral/stats');
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('total-users').textContent = data.total_users || 0;
+            document.getElementById('active-referrals').textContent = data.active_referrals || 0;
+            document.getElementById('total-invested').textContent = formatCurrency(data.total_invested || 0);
+            document.getElementById('total-bonus').textContent = formatCurrency(data.total_bonus || 0);
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento statistiche:', error);
+    }
+}
+
+// Renderizza lista utenti
+function renderUsers() {
+    const container = document.getElementById('users-list');
+    
+    if (filteredUsers.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun utente trovato</h3>
+                <p class="text-gray-600">Prova a modificare i filtri di ricerca</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredUsers.map(user => `
+        <div class="referral-user-card p-4 border-b border-gray-100 last:border-b-0">
+            <div class="flex items-center">
+                <!-- Sezione Utente -->
+                <div class="referral-user-info flex items-center" onclick="showUserDetails(${user.id})" style="cursor: pointer;">
+                    <div class="referral-user-avatar w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                        <span class="text-white font-semibold text-sm">${(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-gray-900 truncate">${user.full_name || 'Utente'}</h3>
+                        <p class="text-xs text-gray-500 truncate">${user.email || ''}</p>
+                        <p class="text-xs text-gray-400 mt-1">${formatDate(user.created_at)}</p>
+                    </div>
+                </div>
+
+                <!-- Statistiche in layout compatto (centro, occupa spazio disponibile) -->
+                <div class="referral-stats-container mx-8 flex-1">
+                    <div class="referral-stat-item">
+                        <div class="referral-stat-label">Inviti</div>
+                        <div class="referral-stat-value text-blue-600">${user.invited_count || 0}</div>
+                    </div>
+                    <div class="referral-stat-item">
+                        <div class="referral-stat-label">Investito</div>
+                        <div class="referral-stat-value text-green-600">${formatCurrency(user.total_invested || 0)}</div>
+                    </div>
+                    <div class="referral-stat-item">
+                        <div class="referral-stat-label">Profitti</div>
+                        <div class="referral-stat-value text-purple-600">${formatCurrency(user.total_profits || 0)}</div>
+                    </div>
+                    <div class="referral-stat-item">
+                        <div class="referral-stat-label">Bonus</div>
+                        <div class="referral-stat-value text-orange-600">${formatCurrency(user.bonus_earned || 0)}</div>
+                    </div>
+                </div>
+
+                <!-- Azioni - container a destra -->
+                <div class="referral-actions ml-auto flex items-center">
+                    <button onclick="event.stopPropagation(); startMoveUser(${user.id}, '${user.full_name || 'Utente'}')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                        Sposta
+                    </button>
+                    <svg class="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+}
+
+// Filtra utenti
+function filterUsers() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const statusFilter = document.getElementById('status-filter').value;
+    
+    filteredUsers = allUsers.filter(user => {
+        const matchesSearch = !searchTerm || 
+            (user.full_name && user.full_name.toLowerCase().includes(searchTerm)) ||
+            (user.email && user.email.toLowerCase().includes(searchTerm));
+        
+        const matchesStatus = !statusFilter || user.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
     });
     
-    // Update subtitle
-    const subtitle = document.querySelector('.admin-card-subtitle');
-    if (subtitle) {
-        subtitle.textContent = `${visibleCount} referral trovati`;
-    }
+    renderUsers();
 }
 
-// Refresh referrals list
-async function refreshReferrals() {
+// Mostra dettagli utente
+async function showUserDetails(userId) {
     try {
-        showLoading();
-        const response = await fetch('/admin/referral');
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            throw new Error('Errore nel refresh');
-        }
-    } catch (error) {
-        console.error('Errore refresh:', error);
-        showError('Errore nell\'aggiornamento della lista');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Approve referral
-async function approveReferral(referralId) {
-    if (!confirm('Confermi l\'approvazione di questo referral?')) return;
-    
-    try {
-        showLoading();
-        const response = await fetch(`/admin/api/referral/${referralId}/approve`, {
-            method: 'POST'
-        });
+        const response = await fetch(`/admin/api/referral/users/${userId}/details`);
+        const data = await response.json();
         
         if (response.ok) {
-            showSuccess('Referral approvato con successo!');
-            setTimeout(() => window.location.reload(), 1500);
+            document.getElementById('modal-user-name').textContent = data.user.full_name || 'Utente';
+            document.getElementById('user-details-content').innerHTML = renderUserDetails(data);
+            document.getElementById('user-details-modal').classList.remove('hidden');
         } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Errore nell\'approvazione');
+            showError('Errore nel caricamento dei dettagli utente');
         }
     } catch (error) {
-        console.error('Errore approvazione:', error);
-        showError(error.message || 'Errore nell\'approvazione del referral');
-    } finally {
-        hideLoading();
+        console.error('Errore nel caricamento dettagli:', error);
+        showError('Errore di connessione');
     }
 }
 
-// Reject referral
-async function rejectReferral(referralId) {
-    if (!confirm('Confermi il rifiuto di questo referral?')) return;
+// Renderizza dettagli utente
+function renderUserDetails(data) {
+    const user = data.user;
+    const invitedUsers = data.invited_users || [];
     
+    // Deriva Nome e Cognome da full_name quando possibile
+    let firstName = 'N/A';
+    let lastName = 'N/A';
+    if (user.full_name && typeof user.full_name === 'string') {
+        const parts = user.full_name.trim().split(/\s+/);
+        if (parts.length === 1) {
+            firstName = parts[0] || 'N/A';
+        } else if (parts.length > 1) {
+            firstName = parts[0] || 'N/A';
+            lastName = parts.slice(1).join(' ') || 'N/A';
+        }
+    }
+    
+    return `
+        <div class="space-y-6">
+            <!-- Info Utente -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Informazioni Utente</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Nome</p>
+                        <p class="font-medium">${firstName}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Cognome</p>
+                        <p class="font-medium">${lastName}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Email</p>
+                        <p class="font-medium">${user.email || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Codice Referral</p>
+                        <p class="font-medium font-mono">${user.referral_code || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Data Iscrizione</p>
+                        <p class="font-medium">${formatDate(user.created_at)}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiche -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600">${invitedUsers.length}</div>
+                    <div class="text-sm text-gray-500">Inviti Totali</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">${formatCurrency(user.total_invested || 0)}</div>
+                    <div class="text-sm text-gray-500">Totale Investito</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600">${formatCurrency(user.total_profits || 0)}</div>
+                    <div class="text-sm text-gray-500">Totale Profitti</div>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-orange-600">${formatCurrency(user.bonus_earned || 0)}</div>
+                    <div class="text-sm text-gray-500">Bonus Guadagnati</div>
+                </div>
+            </div>
+            
+            <!-- Lista Invitati -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Utenti Invitati</h4>
+                ${invitedUsers.length === 0 ? `
+                    <div class="text-center py-8 text-gray-500">
+                        <p>Nessun utente invitato</p>
+                    </div>
+                ` : `
+                    <div class="space-y-3">
+                        ${invitedUsers.map(invited => `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-gray-500 rounded-full flex items-center justify-center mr-3">
+                                            <span class="text-white font-semibold text-sm">${(invited.full_name || 'U').charAt(0).toUpperCase()}</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium">${invited.full_name || 'Utente'}</p>
+                                            <p class="text-sm text-gray-500">${invited.email || ''}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-4 text-sm">
+                                        <div class="text-center">
+                                            <div class="font-semibold text-green-600">${formatCurrency(invited.total_invested || 0)}</div>
+                                            <div class="text-gray-500">Investito</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="font-semibold text-purple-600">${formatCurrency(invited.total_profits || 0)}</div>
+                                            <div class="text-gray-500">Profitti</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="font-semibold text-orange-600">${formatCurrency(invited.bonus_generated || 0)}</div>
+                                            <div class="text-gray-500">Bonus</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+// Chiudi modal
+function closeUserModal() {
+    document.getElementById('user-details-modal').classList.add('hidden');
+}
+
+// Sistema di spostamento utenti
+let movingUser = null;
+
+function startMoveUser(userId, userName) {
+    movingUser = { id: userId, name: userName };
+    
+    // Mostra modal di selezione
+    showMoveUserModal();
+}
+
+function showMoveUserModal() {
+    const modal = document.createElement('div');
+    modal.id = 'move-user-modal';
+    modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 z-50';
+    modal.innerHTML = `
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Sposta Utente</h3>
+                    <button onclick="closeMoveUserModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">
+                        Spostando <strong>${movingUser.name}</strong> sotto un altro utente
+                    </p>
+                    <div class="mb-4">
+                        <input type="text" id="search-target-user" placeholder="Cerca utente di destinazione..." 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div id="target-users-list" class="max-h-60 overflow-y-auto space-y-2">
+                        <div class="text-center py-4 text-gray-500">
+                            Inizia a digitare per cercare un utente...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listener per la ricerca
+    document.getElementById('search-target-user').addEventListener('input', searchTargetUsers);
+}
+
+function searchTargetUsers() {
+    const searchTerm = document.getElementById('search-target-user').value.toLowerCase();
+    const container = document.getElementById('target-users-list');
+    
+    if (searchTerm.length < 2) {
+        container.innerHTML = '<div class="text-center py-4 text-gray-500">Inizia a digitare per cercare un utente...</div>';
+        return;
+    }
+    
+    // Filtra utenti escludendo quello che stiamo spostando
+    const filteredUsers = allUsers.filter(user => 
+        user.id !== movingUser.id && 
+        (user.full_name && user.full_name.toLowerCase().includes(searchTerm)) ||
+        (user.email && user.email.toLowerCase().includes(searchTerm))
+    );
+    
+    if (filteredUsers.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-gray-500">Nessun utente trovato</div>';
+        return;
+    }
+    
+    container.innerHTML = filteredUsers.map(user => `
+        <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" 
+             onclick="confirmMoveUser(${user.id}, '${user.full_name || 'Utente'}')">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white font-semibold text-sm">${(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">${user.full_name || 'Utente'}</h4>
+                    <p class="text-sm text-gray-500">${user.email || ''}</p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function confirmMoveUser(targetUserId, targetUserName) {
+    if (confirm(`Confermi di spostare ${movingUser.name} sotto ${targetUserName}?`)) {
+        moveUser(movingUser.id, targetUserId);
+    }
+}
+
+async function moveUser(userId, targetUserId) {
     try {
-        showLoading();
-        const response = await fetch(`/admin/api/referral/${referralId}/reject`, {
-            method: 'POST'
+        const response = await fetch(`/admin/api/referral/users/${userId}/move`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ new_referrer_id: targetUserId })
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
-            showSuccess('Referral rifiutato con successo!');
-            setTimeout(() => window.location.reload(), 1500);
+            showNotification('Utente spostato con successo!', 'success');
+            closeMoveUserModal();
+            loadUsers(); // Ricarica la lista
         } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Errore nel rifiuto');
+            showNotification('Errore nello spostamento: ' + (data.error || 'Errore sconosciuto'), 'error');
         }
     } catch (error) {
-        console.error('Errore rifiuto:', error);
-        showError(error.message || 'Errore nel rifiuto del referral');
-    } finally {
-        hideLoading();
+        console.error('Errore nello spostamento utente:', error);
+        showNotification('Errore di connessione', 'error');
     }
 }
 
-// View referral details
-async function viewReferralDetails(referralId) {
-    try {
-        showLoading();
-        // TODO: Implementare API per dettagli referral
-        showSuccess('Funzionalità in sviluppo');
-    } catch (error) {
-        console.error('Errore dettagli:', error);
-        showError('Errore nel caricamento dei dettagli');
-    } finally {
-        hideLoading();
+function closeMoveUserModal() {
+    const modal = document.getElementById('move-user-modal');
+    if (modal) {
+        modal.remove();
     }
+    movingUser = null;
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 // Utility functions
-function showLoading() {
-    document.getElementById('loading-modal').classList.remove('hidden');
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('it-IT', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
 }
 
-function hideLoading() {
-    document.getElementById('loading-modal').classList.add('hidden');
-}
-
-function showSuccess(message) {
-    const alert = document.getElementById('success-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('it-IT');
 }
 
 function showError(message) {
-    const alert = document.getElementById('error-alert');
-    alert.querySelector('.admin-alert-message').textContent = message;
-    alert.classList.remove('hidden');
-    setTimeout(() => alert.classList.add('hidden'), 5000);
+    // Implementa notifica errore
+    console.error(message);
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Set initial filter values
-    if (currentFilters.status) {
-        document.getElementById('status-filter').value = currentFilters.status;
-    }
-    if (currentFilters.search) {
-        document.getElementById('search-filter').value = currentFilters.search;
-    }
-    
-    // Apply initial filters
-    filterReferrals();
-});
 </script>
 {% endblock %}

@@ -1,0 +1,224 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}FAQ Prelievi - Admin{% endblock %}
+
+{% block content %}
+<!-- FAQ Prelievi Admin -->
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div>
+                <h1 class="admin-heading-1">FAQ Prelievi</h1>
+                <p class="admin-text-small">Domande frequenti e gestione prelievi</p>
+            </div>
+            <div class="mt-3 sm:mt-0">
+                <a href="/admin/withdrawals" class="admin-btn admin-btn--primary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Torna ai Prelievi
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Content -->
+    <div class="admin-grid admin-grid--2">
+        <!-- Sezione FAQ -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-3">Domande Frequenti</h2>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-6">
+                    <!-- FAQ Item 1 -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="admin-heading-4 text-blue-600">Come funziona l'approvazione dei prelievi?</h3>
+                        <p class="admin-text-small text-gray-600 mt-2">
+                            I prelievi vengono processati manualmente dall'amministratore. 
+                            Dopo la richiesta dell'utente, l'admin può approvare o rifiutare il prelievo.
+                            Una volta approvato, l'importo viene rimosso dal portfolio dell'utente.
+                        </p>
+                    </div>
+
+                    <!-- FAQ Item 2 -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="admin-heading-4 text-green-600">Quali sono i metodi di prelievo supportati?</h3>
+                        <p class="admin-text-small text-gray-600 mt-2">
+                            <strong>USDT (BEP20):</strong> Prelievo in criptovaluta su rete Binance Smart Chain<br>
+                            <strong>Bonifico Bancario:</strong> Prelievo tradizionale su conto corrente
+                        </p>
+                    </div>
+
+                    <!-- FAQ Item 3 -->
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h3 class="admin-heading-4 text-orange-600">Da quali sezioni si può prelevare?</h3>
+                        <p class="admin-text-small text-gray-600 mt-2">
+                            <strong>Capitale Libero:</strong> Soldi non investiti, sempre prelevabili<br>
+                            <strong>Profitti:</strong> Rendimenti accumulati dagli investimenti<br>
+                            <strong>Bonus Referral:</strong> Commissioni dal sistema referral
+                        </p>
+                    </div>
+
+                    <!-- FAQ Item 4 -->
+                    <div class="border-l-4 border-red-500 pl-4">
+                        <h3 class="admin-heading-4 text-red-600">Cosa fare in caso di prelievi urgenti?</h3>
+                        <p class="admin-text-small text-gray-600 mt-2">
+                            I prelievi in attesa da più di 24 ore vengono evidenziati come urgenti.
+                            È importante processarli rapidamente per mantenere la fiducia degli utenti.
+                        </p>
+                    </div>
+
+                    <!-- FAQ Item 5 -->
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h3 class="admin-heading-4 text-purple-600">Come gestire i rifiuti?</h3>
+                        <p class="admin-text-small text-gray-600 mt-2">
+                            Quando si rifiuta un prelievo, è obbligatorio inserire un motivo.
+                            Il motivo viene comunicato all'utente per trasparenza.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Statistiche -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-3">Statistiche Prelievi</h2>
+            </div>
+            <div class="admin-card-body">
+                <div class="space-y-4">
+                    <!-- Metriche in tempo reale -->
+                    <div class="admin-grid admin-grid--2">
+                        <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600" id="pending-count">-</div>
+                            <div class="text-sm text-gray-600">In Attesa</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="completed-count">-</div>
+                            <div class="text-sm text-gray-600">Completati</div>
+                        </div>
+                    </div>
+
+                    <div class="admin-grid admin-grid--2">
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <div class="text-2xl font-bold text-red-600" id="rejected-count">-</div>
+                            <div class="text-sm text-gray-600">Rifiutati</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600" id="total-amount">-</div>
+                            <div class="text-sm text-gray-600">Totale €</div>
+                        </div>
+                    </div>
+
+                    <!-- Azioni rapide -->
+                    <div class="pt-4 border-t">
+                        <h3 class="admin-heading-5 mb-3">Azioni Rapide</h3>
+                        <div class="space-y-2">
+                            <button onclick="refreshMetrics()" class="admin-btn admin-btn--secondary admin-btn--sm w-full">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Aggiorna Statistiche
+                            </button>
+                            <a href="/withdrawals/admin/withdrawals/history" class="admin-btn admin-btn--primary admin-btn--sm w-full">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Visualizza Storico
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sezione Processo Approvazione -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Processo di Approvazione</h2>
+        </div>
+        <div class="admin-card-body">
+            <div class="admin-grid admin-grid--4">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-blue-600 font-bold">1</span>
+                    </div>
+                    <h3 class="admin-heading-5">Richiesta</h3>
+                    <p class="admin-text-small text-gray-600">L'utente richiede un prelievo</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-yellow-600 font-bold">2</span>
+                    </div>
+                    <h3 class="admin-heading-5">Verifica</h3>
+                    <p class="admin-text-small text-gray-600">L'admin verifica i dettagli</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-green-600 font-bold">3</span>
+                    </div>
+                    <h3 class="admin-heading-5">Approvazione</h3>
+                    <p class="admin-text-small text-gray-600">L'admin approva o rifiuta</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span class="text-purple-600 font-bold">4</span>
+                    </div>
+                    <h3 class="admin-heading-5">Completamento</h3>
+                    <p class="admin-text-small text-gray-600">Il prelievo viene processato</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Carica metriche al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadMetrics();
+});
+
+// Carica metriche prelievi
+async function loadMetrics() {
+    try {
+        const response = await fetch('/withdrawals/api/admin/metrics');
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('pending-count').textContent = data.pending || 0;
+            document.getElementById('completed-count').textContent = data.completed || 0;
+            document.getElementById('rejected-count').textContent = data.cancelled || 0;
+            document.getElementById('total-amount').textContent = `€${(data.total_amount || 0).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+        } else {
+            console.error('Errore nel caricamento metriche:', data.error);
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento metriche:', error);
+    }
+}
+
+// Aggiorna metriche
+function refreshMetrics() {
+    loadMetrics();
+    showNotification('Statistiche aggiornate', 'success');
+}
+
+// Sistema notifiche
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

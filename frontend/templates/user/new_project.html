@@ -224,6 +224,22 @@
                         {% endfor %}
                     });
                     </script>
+                    <script>
+                    // Valida multipli di 100
+                    (function(){
+                        var input = document.getElementById('amount-{{ project.id }}');
+                        if (!input) return;
+                        input.setAttribute('step','100');
+                        input.addEventListener('input', function(){
+                            var v = parseFloat(this.value||'0');
+                            if (v % 100 !== 0) {
+                                this.setCustomValidity('Inserisci un importo multiplo di 100');
+                            } else {
+                                this.setCustomValidity('');
+                            }
+                        });
+                    })();
+                    </script>
                 </div>
                 {% endfor %}
             </div>

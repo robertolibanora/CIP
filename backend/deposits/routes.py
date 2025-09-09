@@ -8,7 +8,7 @@ import string
 from datetime import datetime
 import logging
 from decimal import Decimal
-from flask import Blueprint, request, session, jsonify
+from flask import Blueprint, request, session, jsonify, render_template
 from backend.shared.database import get_connection
 import psycopg
 from psycopg import errors as pg_errors
@@ -636,46 +636,28 @@ def admin_delete_all_deposits():
             admin_user_id = session.get('user_id')
             logger.warning(f"[ADMIN DELETE] User {admin_user_id} is deleting ALL {total_deposits} deposits from database")
             
-            # Elimina tutte le transazioni del portfolio correlate ai depositi
+            # Elimina solo le transazioni del portfolio correlate ai depositi
+            # (NON toccare il free_capital degli utenti - rappresenta i soldi reali)
             cur.execute("""
                 DELETE FROM portfolio_transactions 
                 WHERE reference_type = 'deposit_request'
             """)
             deleted_transactions = cur.rowcount
             
-            # Aggiorna i portfolio degli utenti rimuovendo i depositi approvati
-            cur.execute("""
-                UPDATE user_portfolios 
-                SET free_capital = free_capital - (
-                    SELECT COALESCE(SUM(amount), 0)
-                    FROM deposit_requests 
-                    WHERE user_id = user_portfolios.user_id 
-                    AND status = 'completed'
-                ),
-                updated_at = NOW()
-                WHERE user_id IN (
-                    SELECT DISTINCT user_id 
-                    FROM deposit_requests 
-                    WHERE status = 'completed'
-                )
-            """)
-            updated_portfolios = cur.rowcount
-            
-            # Elimina tutti i depositi
+            # Elimina solo i record dei depositi (NON i soldi reali)
             cur.execute("DELETE FROM deposit_requests")
             deleted_deposits = cur.rowcount
             
             conn.commit()
             
             # Log del completamento
-            logger.warning(f"[ADMIN DELETE] Completed: {deleted_deposits} deposits, {deleted_transactions} transactions, {updated_portfolios} portfolios updated")
+            logger.warning(f"[ADMIN DELETE] Completed: {deleted_deposits} deposits, {deleted_transactions} transactions deleted (portfolio NOT touched)")
             
         return jsonify({
             'success': True,
-            'message': f'Eliminati {deleted_deposits} depositi, {deleted_transactions} transazioni e aggiornati {updated_portfolios} portfolio',
+            'message': f'Eliminati {deleted_deposits} depositi e {deleted_transactions} transazioni. I capitali degli utenti NON sono stati modificati.',
             'deleted_count': deleted_deposits,
-            'deleted_transactions': deleted_transactions,
-            'updated_portfolios': updated_portfolios
+            'deleted_transactions': deleted_transactions
         })
         
     except Exception as e:
@@ -684,6 +666,59 @@ def admin_delete_all_deposits():
             'error': 'Errore durante l\'eliminazione dei depositi',
             'debug': str(e)
         }), 500
+
+@deposits_bp.route('/api/admin/metrics', methods=['GET'])
+@admin_required
+def admin_get_deposits_metrics():
+    """Admin: Ottiene le metriche dei depositi"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Conta depositi per stato
+            cur.execute("""
+                SELECT 
+                    status,
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as total_amount
+                FROM deposit_requests 
+                GROUP BY status
+            """)
+            status_counts = cur.fetchall()
+            
+            # Calcola metriche
+            metrics = {
+                'pending': 0,
+                'completed': 0,
+                'rejected': 0,
+                'total_amount': 0
+            }
+            
+            for row in status_counts:
+                if row['status'] == 'pending':
+                    metrics['pending'] = row['count']
+                elif row['status'] == 'completed':
+                    metrics['completed'] = row['count']
+                    metrics['total_amount'] = float(row['total_amount'])
+                elif row['status'] in ['failed', 'cancelled']:
+                    metrics['rejected'] += row['count']
+            
+            return jsonify(metrics)
+            
+    except Exception as e:
+        logger.exception(f"Errore nel recupero metriche depositi: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
+
+# Route per pagine admin (senza prefisso)
+@deposits_bp.route('/admin/deposits/faq', methods=['GET'])
+@admin_required
+def admin_deposits_faq():
+    """Admin: Pagina FAQ depositi"""
+    return render_template('admin/deposits/faq.html')
+
+@deposits_bp.route('/admin/deposits/history', methods=['GET'])
+@admin_required
+def admin_deposits_history():
+    """Admin: Pagina storico depositi"""
+    return render_template('admin/deposits/history.html')
 
 @deposits_bp.route('/api/admin/iban/configure', methods=['POST'])
 @admin_required

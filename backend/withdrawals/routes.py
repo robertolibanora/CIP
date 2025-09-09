@@ -329,10 +329,10 @@ def admin_approve_withdrawal(request_id):
             # Registra transazione
             cur.execute("""
                 INSERT INTO portfolio_transactions (
-                    user_id, transaction_type, amount, free_capital_before, free_capital_after,
+                    user_id, type, amount, balance_before, balance_after,
                     description, reference_id, reference_type, status, created_at
                 ) VALUES (
-                    %s, 'withdrawal', -%s, 0, 0, 
+                    %s, 'withdrawal', %s, 0, 0, 
                     'Prelievo approvato da admin', %s, 'withdrawal_request', 'completed', NOW()
                 )
             """, (withdrawal['user_id'], amount, request_id))
@@ -392,6 +392,46 @@ def admin_reject_withdrawal(request_id):
         logger.exception(f"Errore nel rifiuto prelievo {request_id}: {e}")
         return jsonify({'error': 'Errore interno del server'}), 500
 
+@withdrawals_bp.route('/api/admin/metrics', methods=['GET'])
+@admin_required
+def admin_get_withdrawals_metrics():
+    """Admin: Ottiene le metriche dei prelievi"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Conta prelievi per stato
+            cur.execute("""
+                SELECT 
+                    status,
+                    COUNT(*) as count,
+                    COALESCE(SUM(amount), 0) as total_amount
+                FROM withdrawal_requests 
+                GROUP BY status
+            """)
+            status_counts = cur.fetchall()
+            
+            # Calcola metriche
+            metrics = {
+                'pending': 0,
+                'completed': 0,
+                'cancelled': 0,
+                'total_amount': 0
+            }
+            
+            for row in status_counts:
+                if row['status'] == 'pending':
+                    metrics['pending'] = row['count']
+                elif row['status'] == 'completed':
+                    metrics['completed'] = row['count']
+                    metrics['total_amount'] = float(row['total_amount'])
+                elif row['status'] == 'cancelled':
+                    metrics['cancelled'] = row['count']
+            
+            return jsonify(metrics)
+            
+    except Exception as e:
+        logger.exception(f"Errore nel recupero metriche prelievi: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
+
 @withdrawals_bp.route('/api/admin/history', methods=['GET'])
 @admin_required
 def admin_get_withdrawals_history():
@@ -444,7 +484,7 @@ def admin_get_withdrawals_history():
                 {where_clause}
             """
             cur.execute(count_query, params[:-2])  # Rimuovi LIMIT e OFFSET
-            total_count = cur.fetchone()[0]
+            total_count = cur.fetchone()['count']
             
             # Converti i risultati
             result = []
@@ -487,6 +527,19 @@ def admin_get_withdrawals_history():
     except Exception as e:
         logger.exception(f"Errore nel recupero storico prelievi: {e}")
         return jsonify({'error': 'Errore interno del server'}), 500
+
+# Route per pagine admin (senza prefisso)
+@withdrawals_bp.route('/admin/withdrawals/faq', methods=['GET'])
+@admin_required
+def admin_withdrawals_faq():
+    """Admin: Pagina FAQ prelievi"""
+    return render_template('admin/withdrawals/faq.html')
+
+@withdrawals_bp.route('/admin/withdrawals/history', methods=['GET'])
+@admin_required
+def admin_withdrawals_history():
+    """Admin: Pagina storico prelievi"""
+    return render_template('admin/withdrawals/history.html')
 
 @withdrawals_bp.route('/api/admin/delete-all', methods=['DELETE'])
 @admin_required

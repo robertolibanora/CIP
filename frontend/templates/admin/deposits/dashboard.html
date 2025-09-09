@@ -13,10 +13,72 @@
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-gray-900">Richieste Deposito</h2>
     <div class="flex items-center gap-4">
-      <a href="/admin/deposits/history" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+      <a href="/deposits/admin/deposits/faq" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+        FAQ
+      </a>
+      <a href="/deposits/admin/deposits/history" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
         Storico Depositi
       </a>
       <span id="pending-indicator" class="hidden animate-pulse inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Nuove richieste</span>
+    </div>
+  </div>
+
+  <!-- Metriche Depositi -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-500">In Attesa</p>
+          <p class="text-3xl font-bold text-orange-600" id="pending-count">-</p>
+        </div>
+        <div class="text-orange-600">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-500">Completati</p>
+          <p class="text-3xl font-bold text-green-600" id="completed-count">-</p>
+        </div>
+        <div class="text-green-600">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-500">Rifiutati</p>
+          <p class="text-3xl font-bold text-red-600" id="rejected-count">-</p>
+        </div>
+        <div class="text-red-600">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="flex-1">
+          <p class="text-sm font-medium text-gray-500">Totale Depositi</p>
+          <p class="text-3xl font-bold text-blue-600" id="total-amount">-</p>
+        </div>
+        <div class="text-blue-600">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+          </svg>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -29,6 +91,31 @@
 </div>
 
 <script>
+// Carica metriche al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadMetrics();
+    loadPendingDeposits();
+});
+
+// Carica metriche depositi
+async function loadMetrics() {
+    try {
+        const response = await fetch('/deposits/api/admin/metrics');
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('pending-count').textContent = data.pending || 0;
+            document.getElementById('completed-count').textContent = data.completed || 0;
+            document.getElementById('rejected-count').textContent = data.rejected || 0;
+            document.getElementById('total-amount').textContent = `€${(data.total_amount || 0).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
+        } else {
+            console.error('Errore nel caricamento metriche:', data.error);
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento metriche:', error);
+    }
+}
+
 async function loadPendingDeposits() {
   const res = await fetch('/deposits/api/admin/pending');
   const data = await res.json();
@@ -89,7 +176,8 @@ async function approve(id){
   const r = await fetch(`/deposits/api/admin/approve/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
   if(r.ok){ 
     showNotification('Richiesta approvata con successo', 'success');
-    loadPendingDeposits(); 
+    loadPendingDeposits();
+    loadMetrics(); // Aggiorna le metriche
   }
   else { 
     const j = await r.json(); 
@@ -106,7 +194,8 @@ async function reject(id){
   const r = await fetch(`/deposits/api/admin/reject/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
   if(r.ok){ 
     showNotification('Richiesta rifiutata con successo', 'success');
-    loadPendingDeposits(); 
+    loadPendingDeposits();
+    loadMetrics(); // Aggiorna le metriche
   }
   else { 
     const j = await r.json(); 

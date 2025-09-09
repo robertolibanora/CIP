@@ -1,465 +1,493 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Storico Depositi{% endblock %}
+{% block title %}Storico Depositi - Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h2 class="text-2xl font-bold text-gray-900">Storico Depositi</h2>
-      <p class="text-gray-600 mt-1">Visualizza tutti i depositi del sistema</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <button id="delete-history-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-        🗑️ Elimina Storico
-      </button>
-      <a href="/admin/deposits" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-        ← Torna ai Pending
-      </a>
-    </div>
-  </div>
-
-  <!-- Statistiche -->
-  <div id="stats-container" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="text-gray-500 mt-2">Caricamento statistiche...</p>
-    </div>
-  </div>
-
-  <!-- Filtri -->
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Cerca</label>
-        <input type="text" id="search-input" placeholder="Email, nome, chiave..." 
-               class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Stato</label>
-        <select id="status-filter" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">Tutti gli stati</option>
-          <option value="pending">In attesa</option>
-          <option value="completed">Approvati</option>
-          <option value="failed">Rifiutati</option>
-          <option value="cancelled">Annullati</option>
-        </select>
-      </div>
-      <div class="flex items-end">
-        <button id="apply-filters" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-          Applica Filtri
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lista Depositi -->
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-    <div id="deposits-list" class="divide-y divide-gray-200">
-      <div class="text-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="text-gray-500 mt-2">Caricamento depositi...</p>
-      </div>
-    </div>
-
-    <!-- Paginazione -->
-    <div id="pagination-container" class="px-6 py-4 border-t border-gray-200 hidden">
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          <span id="pagination-info"></span>
+<!-- Storico Depositi Admin -->
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div>
+                <h1 class="admin-heading-1">Storico Depositi</h1>
+                <p class="admin-text-small">Visualizza e gestisci tutti i depositi del sistema</p>
+            </div>
+            <div class="mt-3 sm:mt-0">
+                <a href="/admin/deposits" class="admin-btn admin-btn--primary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Torna ai Depositi
+                </a>
+            </div>
         </div>
-        <div class="flex items-center space-x-2">
-          <button id="prev-page" class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-            Precedente
-          </button>
-          <span id="page-numbers" class="flex items-center space-x-1"></span>
-          <button id="next-page" class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-            Successiva
-          </button>
-        </div>
-      </div>
     </div>
-  </div>
+
+    <!-- Filtri e Ricerca -->
+    <div class="admin-card admin-card-body">
+        <div class="admin-flex admin-flex--between">
+            <div class="admin-flex admin-flex--gap-4">
+                <div>
+                    <label for="status-filter" class="admin-label">Stato</label>
+                    <select id="status-filter" class="admin-select" onchange="filterDeposits()">
+                        <option value="">Tutti gli stati</option>
+                        <option value="pending">In attesa</option>
+                        <option value="approved">Approvati</option>
+                        <option value="rejected">Rifiutati</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="method-filter" class="admin-label">Metodo</label>
+                    <select id="method-filter" class="admin-select" onchange="filterDeposits()">
+                        <option value="">Tutti i metodi</option>
+                        <option value="usdt">USDT (BEP20)</option>
+                        <option value="bank">Bonifico Bancario</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="search-filter" class="admin-label">Ricerca</label>
+                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, cognome, email..." onkeyup="filterDeposits()">
+                </div>
+            </div>
+            
+            <div class="admin-flex admin-flex--gap-2">
+                <button onclick="refreshDeposits()" class="admin-btn admin-btn--secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Aggiorna
+                </button>
+                <button onclick="deleteAllDeposits()" class="admin-btn admin-btn--danger">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Elimina Storico
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista Storico Depositi -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2 class="admin-heading-3">Storico Completo</h2>
+            <span class="admin-text-small text-gray-500" id="deposits-count">0 depositi trovati</span>
+        </div>
+
+        <div class="admin-card-body">
+            <div class="overflow-x-auto">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th class="admin-table-th">Utente</th>
+                            <th class="admin-table-th">Importo</th>
+                            <th class="admin-table-th">Metodo</th>
+                            <th class="admin-table-th">Dettagli</th>
+                            <th class="admin-table-th">Stato</th>
+                            <th class="admin-table-th">Data Richiesta</th>
+                            <th class="admin-table-th">Data Approvazione</th>
+                            <th class="admin-table-th">Approvato da</th>
+                            <th class="admin-table-th">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deposits-table-body">
+                        <tr>
+                            <td colspan="9" class="admin-table-td text-center py-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                <p class="text-gray-500 mt-2">Caricamento storico...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginazione -->
+            <div id="pagination" class="admin-flex admin-flex--between admin-flex--items-center mt-6">
+                <!-- Paginazione sarà inserita qui dinamicamente -->
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Modal di conferma eliminazione -->
-<div id="delete-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-    <div class="mt-3 text-center">
-      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-        </svg>
-      </div>
-      <h3 class="text-lg font-medium text-gray-900 mt-4">Conferma Eliminazione</h3>
-      <div class="mt-2 px-7 py-3">
-        <p class="text-sm text-gray-500">
-          Sei sicuro di voler eliminare <strong>TUTTI</strong> i depositi dal database?
-        </p>
-        <p class="text-sm text-red-600 mt-2 font-medium">
-          ⚠️ Questa azione è IRREVERSIBILE e cancellerà tutti i dati dei depositi!
-        </p>
-        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p class="text-sm text-yellow-800">
-            <strong>Attenzione:</strong> Verranno eliminati anche i depositi approvati e le relative transazioni del portfolio.
-          </p>
+<!-- Deposit Details Modal -->
+<div id="deposit-details-modal" class="admin-modal hidden">
+    <div class="admin-modal-overlay" onclick="closeDepositModal()"></div>
+    <div class="admin-modal-content">
+        <div class="admin-modal-header">
+            <h3 class="admin-heading-3">Dettagli Deposito</h3>
+            <button onclick="closeDepositModal()" class="admin-modal-close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
-      </div>
-      <div class="items-center px-4 py-3">
-        <div class="flex gap-3 justify-center">
-          <button id="confirm-delete-btn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors">
-            Sì, Elimina Tutto
-          </button>
-          <button id="cancel-delete-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-md text-sm font-medium transition-colors">
-            Annulla
-          </button>
+        <div id="deposit-details-content" class="admin-modal-body">
+            <!-- Content will be loaded here -->
         </div>
-      </div>
     </div>
-  </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loading-modal" class="admin-modal hidden">
+    <div class="admin-modal-overlay"></div>
+    <div class="admin-modal-content">
+        <div class="admin-modal-body text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Caricamento...</p>
+        </div>
+    </div>
 </div>
 
 <script>
 let currentPage = 1;
-let currentFilters = {};
+let currentFilters = {
+    status: '',
+    method: '',
+    search: ''
+};
 
-// Carica statistiche
-async function loadStats() {
-  try {
-    const response = await fetch('/deposits/api/admin/history?per_page=1');
-    const data = await response.json();
-    
-    if (data.stats) {
-      const statsContainer = document.getElementById('stats-container');
-      statsContainer.innerHTML = data.stats.map(stat => `
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div class="flex items-center">
-            <div class="flex-1">
-              <p class="text-sm font-medium text-gray-600">${getStatusLabel(stat.status)}</p>
-              <p class="text-2xl font-bold text-gray-900">${stat.count}</p>
-              <p class="text-sm text-gray-500">€${parseFloat(stat.total_amount || 0).toLocaleString('it-IT', {minimumFractionDigits:2})}</p>
-            </div>
-            <div class="text-2xl">
-              ${getStatusIcon(stat.status)}
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-  } catch (error) {
-    console.error('Errore caricamento statistiche:', error);
-  }
-}
-
-// Carica depositi
-async function loadDeposits(page = 1) {
-  try {
-    const params = new URLSearchParams({
-      page: page,
-      per_page: 20,
-      ...currentFilters
-    });
-    
-    const response = await fetch(`/deposits/api/admin/history?${params}`);
-    const data = await response.json();
-    
-    if (response.ok) {
-      displayDeposits(data.deposits);
-      updatePagination(data.pagination);
-      currentPage = page;
-    } else {
-      console.error('Errore caricamento depositi:', data);
-    }
-  } catch (error) {
-    console.error('Errore caricamento depositi:', error);
-  }
-}
-
-// Mostra depositi
-function displayDeposits(deposits) {
-  const container = document.getElementById('deposits-list');
-  
-  if (deposits.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-8">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-        </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun deposito trovato</h3>
-        <p class="text-gray-600">Prova a modificare i filtri di ricerca.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = deposits.map(deposit => `
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="text-lg font-medium text-gray-900">${deposit.full_name || 'Utente'}</h3>
-          <p class="text-sm text-gray-500">${deposit.email}</p>
-        </div>
-        <div class="text-right">
-          <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(deposit.status)}">
-            ${getStatusLabel(deposit.status)}
-          </span>
-          <p class="text-lg font-semibold text-gray-900 mt-1">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</p>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-        <div>
-          <p class="text-gray-500">Metodo</p>
-          <p class="font-medium">${deposit.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}</p>
-        </div>
-        <div>
-          <p class="text-gray-500">${deposit.method === 'usdt' ? 'Wallet' : 'IBAN'}</p>
-          <p class="font-medium font-mono text-xs break-all">${deposit.iban}</p>
-        </div>
-        <div>
-          <p class="text-gray-500">Chiave</p>
-          <p class="font-mono text-sm">${deposit.unique_key}</p>
-        </div>
-        <div>
-          <p class="text-gray-500">Creato</p>
-          <p class="font-medium">${new Date(deposit.created_at).toLocaleString('it-IT')}</p>
-        </div>
-      </div>
-      
-      ${deposit.approved_at ? `
-        <div class="mt-4 pt-4 border-t border-gray-200">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p class="text-gray-500">Approvato il</p>
-              <p class="font-medium">${new Date(deposit.approved_at).toLocaleString('it-IT')}</p>
-            </div>
-            <div>
-              <p class="text-gray-500">Approvato da</p>
-              <p class="font-medium">${deposit.approved_by_name || 'Admin'}</p>
-            </div>
-          </div>
-        </div>
-      ` : ''}
-      
-      ${deposit.admin_notes ? `
-        <div class="mt-4 pt-4 border-t border-gray-200">
-          <p class="text-gray-500 text-sm">Note amministratore</p>
-          <p class="text-sm text-gray-700 mt-1">${deposit.admin_notes}</p>
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
-}
-
-// Aggiorna paginazione
-function updatePagination(pagination) {
-  const container = document.getElementById('pagination-container');
-  const info = document.getElementById('pagination-info');
-  const prevBtn = document.getElementById('prev-page');
-  const nextBtn = document.getElementById('next-page');
-  const pageNumbers = document.getElementById('page-numbers');
-  
-  if (pagination.total_pages <= 1) {
-    container.classList.add('hidden');
-    return;
-  }
-  
-  container.classList.remove('hidden');
-  
-  // Info paginazione
-  const start = (pagination.page - 1) * pagination.per_page + 1;
-  const end = Math.min(pagination.page * pagination.per_page, pagination.total);
-  info.textContent = `Mostrando ${start}-${end} di ${pagination.total} depositi`;
-  
-  // Pulsanti navigazione
-  prevBtn.disabled = !pagination.has_prev;
-  nextBtn.disabled = !pagination.has_next;
-  
-  prevBtn.onclick = () => {
-    if (pagination.has_prev) {
-      loadDeposits(pagination.page - 1);
-    }
-  };
-  
-  nextBtn.onclick = () => {
-    if (pagination.has_next) {
-      loadDeposits(pagination.page + 1);
-    }
-  };
-  
-  // Numeri pagina
-  const pages = [];
-  const maxVisible = 5;
-  let startPage = Math.max(1, pagination.page - Math.floor(maxVisible / 2));
-  let endPage = Math.min(pagination.total_pages, startPage + maxVisible - 1);
-  
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-  
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(`
-      <button onclick="loadDeposits(${i})" 
-              class="px-3 py-1 border rounded-md text-sm ${i === pagination.page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'}">
-        ${i}
-      </button>
-    `);
-  }
-  
-  pageNumbers.innerHTML = pages.join('');
-}
-
-// Funzioni helper
-function getStatusLabel(status) {
-  const labels = {
-    'pending': 'In attesa',
-    'completed': 'Approvato',
-    'failed': 'Rifiutato',
-    'cancelled': 'Annullato'
-  };
-  return labels[status] || status;
-}
-
-function getStatusIcon(status) {
-  const icons = {
-    'pending': '⏳',
-    'completed': '✅',
-    'failed': '❌',
-    'cancelled': '🚫'
-  };
-  return icons[status] || '❓';
-}
-
-function getStatusBadgeClass(status) {
-  const classes = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'completed': 'bg-green-100 text-green-800',
-    'failed': 'bg-red-100 text-red-800',
-    'cancelled': 'bg-gray-100 text-gray-800'
-  };
-  return classes[status] || 'bg-gray-100 text-gray-800';
-}
-
-// Event listeners
-document.getElementById('apply-filters').addEventListener('click', () => {
-  currentFilters = {
-    search: document.getElementById('search-input').value,
-    status: document.getElementById('status-filter').value
-  };
-  loadDeposits(1);
+// Carica storico al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Verifica autenticazione prima di caricare i dati
+    checkAuthentication();
 });
 
-// Gestione eliminazione storico
-function showDeleteModal() {
-  document.getElementById('delete-confirm-modal').classList.remove('hidden');
-}
-
-function hideDeleteModal() {
-  document.getElementById('delete-confirm-modal').classList.add('hidden');
-}
-
-async function deleteAllDeposits() {
-  try {
-    const response = await fetch('/deposits/api/admin/delete-all', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      showNotification('Storico depositi eliminato con successo', 'success');
-      hideDeleteModal();
-      // Ricarica i dati
-      loadStats();
-      loadDeposits();
-    } else {
-      showNotification(data.error || 'Errore durante l\'eliminazione', 'error');
-    }
-  } catch (error) {
-    console.error('Errore eliminazione:', error);
-    showNotification('Errore di rete durante l\'eliminazione', 'error');
-  }
-}
-
-// Funzione per mostrare notifiche (riutilizziamo quella esistente)
-function showNotification(message, type = 'info') {
-  // Rimuovi notifiche esistenti
-  const existingNotifications = document.querySelectorAll('.notification-popup');
-  existingNotifications.forEach(notif => notif.remove());
-  
-  // Crea la notifica
-  const notification = document.createElement('div');
-  notification.className = `notification-popup fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 p-4 transform transition-all duration-300 ease-in-out`;
-  
-  // Colori in base al tipo
-  const colors = {
-    success: 'border-green-500 bg-green-50',
-    error: 'border-red-500 bg-red-50',
-    warning: 'border-yellow-500 bg-yellow-50',
-    info: 'border-blue-500 bg-blue-50'
-  };
-  
-  const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
-  };
-  
-  notification.classList.add(...colors[type].split(' '));
-  
-  notification.innerHTML = `
-    <div class="flex items-start">
-      <div class="flex-shrink-0 text-lg">${icons[type]}</div>
-      <div class="ml-3 flex-1">
-        <p class="text-sm font-medium text-gray-900">${message}</p>
-      </div>
-      <div class="ml-4 flex-shrink-0">
-        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
-          <span class="sr-only">Chiudi</span>
-          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  `;
-  
-  // Aggiungi al DOM
-  document.body.appendChild(notification);
-  
-  // Animazione di entrata
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-    notification.style.opacity = '1';
-  }, 100);
-  
-  // Auto-rimozione dopo 5 secondi
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.style.transform = 'translateX(100%)';
-      notification.style.opacity = '0';
-      setTimeout(() => {
-        if (notification.parentElement) {
-          notification.remove();
+// Verifica autenticazione
+async function checkAuthentication() {
+    try {
+        const response = await fetch('/auth/check', {
+            method: 'GET',
+            credentials: 'same-origin'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.authenticated && data.is_admin) {
+                loadDepositsHistory();
+            } else {
+                showError('Accesso negato. Solo gli amministratori possono visualizzare questa pagina.');
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            }
+        } else {
+            showError('Errore di autenticazione. Effettua nuovamente il login.');
+            setTimeout(() => {
+                window.location.href = '/auth/login';
+            }, 2000);
         }
-      }, 300);
+    } catch (error) {
+        console.error('Errore verifica autenticazione:', error);
+        showError('Errore di connessione. Verifica la connessione internet e riprova.');
     }
-  }, 5000);
 }
 
-// Event listeners
-document.getElementById('delete-history-btn').addEventListener('click', showDeleteModal);
-document.getElementById('cancel-delete-btn').addEventListener('click', hideDeleteModal);
-document.getElementById('confirm-delete-btn').addEventListener('click', deleteAllDeposits);
+// Carica storico depositi
+async function loadDepositsHistory(page = 1) {
+    try {
+        currentPage = page;
+        const params = new URLSearchParams({
+            page: page,
+            ...currentFilters
+        });
+        
+        console.log('🔄 Caricamento storico depositi...', {page, filters: currentFilters});
+        
+        // Mostra loading
+        const tbody = document.getElementById('deposits-table-body');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="admin-table-td text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-gray-500 mt-2">Caricamento storico...</p>
+                </td>
+            </tr>
+        `;
+        
+        const response = await fetch(`/deposits/api/admin/history?${params}`, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (response.status === 401) {
+            console.error('❌ Sessione scaduta');
+            showError('Sessione scaduta. Effettua nuovamente il login.');
+            setTimeout(() => {
+                window.location.href = '/auth/login';
+            }, 2000);
+            return;
+        }
+        
+        if (response.status === 403) {
+            console.error('❌ Accesso negato');
+            showError('Accesso negato. Non hai i permessi per visualizzare questa pagina.');
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Errore HTTP:', response.status, errorText);
+            showError(`Errore del server (${response.status}): ${errorText}`);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('✅ Response data:', data);
+        
+        if (data.deposits && Array.isArray(data.deposits)) {
+            renderDeposits(data.deposits);
+            renderPagination(data.pagination);
+            document.getElementById('deposits-count').textContent = `${data.pagination.total_count} depositi trovati`;
+            console.log('✅ Storico caricato con successo:', data.deposits.length, 'depositi');
+        } else {
+            console.error('❌ Formato dati non valido:', data);
+            showError('Formato dati non valido ricevuto dal server');
+        }
+    } catch (error) {
+        console.error('❌ Errore nel caricamento storico:', error);
+        showError('Errore di connessione: ' + error.message);
+    }
+}
 
-// Caricamento iniziale
-document.addEventListener('DOMContentLoaded', () => {
-  loadStats();
-  loadDeposits();
-});
+// Renderizza depositi nella tabella
+function renderDeposits(deposits) {
+    const tbody = document.getElementById('deposits-table-body');
+    
+    if (deposits.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="admin-table-td text-center py-8">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun deposito</h3>
+                    <p class="text-gray-600">Non ci sono depositi che corrispondono ai filtri selezionati.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = deposits.map(deposit => `
+        <tr class="admin-table-tr" 
+            data-status="${deposit.status}" 
+            data-method="${deposit.method}"
+            data-search="${(deposit.full_name || '').toLowerCase()} ${(deposit.email || '').toLowerCase()}">
+            <td class="admin-table-td">
+                <div>
+                    <p class="font-medium text-gray-900">${deposit.full_name || 'Utente'}</p>
+                    <p class="text-sm text-gray-500">${deposit.email || ''}</p>
+                </div>
+            </td>
+            <td class="admin-table-td">
+                <span class="font-semibold text-green-600">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</span>
+            </td>
+            <td class="admin-table-td">
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${deposit.method === 'usdt' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
+                    ${deposit.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}
+                </span>
+            </td>
+            <td class="admin-table-td">
+                <div class="text-sm">
+                    <p class="font-mono text-xs break-all">${deposit.iban || deposit.wallet_address || '-'}</p>
+                </div>
+            </td>
+            <td class="admin-table-td">
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${
+                    deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    deposit.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                }">
+                    ${deposit.status === 'pending' ? 'In Attesa' :
+                      deposit.status === 'approved' ? 'Approvato' :
+                      deposit.status === 'rejected' ? 'Rifiutato' : deposit.status}
+                </span>
+            </td>
+            <td class="admin-table-td">
+                <div>
+                    <p class="text-sm text-gray-900">${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
+                    <p class="text-xs text-gray-500">${new Date(deposit.created_at).toLocaleTimeString('it-IT')}</p>
+                </div>
+            </td>
+            <td class="admin-table-td">
+                ${deposit.approved_at ? `
+                    <div>
+                        <p class="text-sm text-gray-900">${new Date(deposit.approved_at).toLocaleDateString('it-IT')}</p>
+                        <p class="text-xs text-gray-500">${new Date(deposit.approved_at).toLocaleTimeString('it-IT')}</p>
+                    </div>
+                ` : '<span class="text-gray-400">-</span>'}
+            </td>
+            <td class="admin-table-td">
+                <span class="text-sm text-gray-900">${deposit.approved_by_name || '-'}</span>
+            </td>
+            <td class="admin-table-td">
+                <div class="flex gap-2">
+                    <button onclick="viewDepositDetails(${deposit.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Dettagli
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Renderizza paginazione
+function renderPagination(pagination) {
+    const paginationDiv = document.getElementById('pagination');
+    
+    if (pagination.total_pages <= 1) {
+        paginationDiv.innerHTML = '';
+        return;
+    }
+    
+    let paginationHTML = `
+        <div class="admin-text-small text-gray-500">
+            Pagina ${pagination.page} di ${pagination.total_pages} (${pagination.total_count} depositi totali)
+        </div>
+        <div class="admin-flex admin-flex--gap-2">
+    `;
+    
+    // Pulsante precedente
+    if (pagination.page > 1) {
+        paginationHTML += `
+            <button onclick="loadDepositsHistory(${pagination.page - 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Precedente
+            </button>
+        `;
+    }
+    
+    // Numeri pagina
+    const startPage = Math.max(1, pagination.page - 2);
+    const endPage = Math.min(pagination.total_pages, pagination.page + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <button onclick="loadDepositsHistory(${i})" 
+                    class="admin-btn admin-btn--sm ${i === pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary'}">
+                ${i}
+            </button>
+        `;
+    }
+    
+    // Pulsante successivo
+    if (pagination.page < pagination.total_pages) {
+        paginationHTML += `
+            <button onclick="loadDepositsHistory(${pagination.page + 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                Successivo
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        `;
+    }
+    
+    paginationHTML += '</div>';
+    paginationDiv.innerHTML = paginationHTML;
+}
+
+// Filtra depositi
+function filterDeposits() {
+    currentFilters.status = document.getElementById('status-filter').value;
+    currentFilters.method = document.getElementById('method-filter').value;
+    currentFilters.search = document.getElementById('search-filter').value;
+    
+    loadDepositsHistory(1); // Ricarica dalla prima pagina
+}
+
+// Aggiorna depositi
+function refreshDeposits() {
+    loadDepositsHistory(currentPage);
+    showNotification('Storico aggiornato', 'success');
+}
+
+// Elimina tutto lo storico
+async function deleteAllDeposits() {
+    if (!confirm('Sei sicuro di voler eliminare TUTTO lo storico dei depositi? Questa azione non può essere annullata!')) {
+        return;
+    }
+    
+    if (!confirm('CONFERMA FINALE: Eliminare tutti i depositi dal database?')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/deposits/api/admin/delete-all', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification(`Eliminati ${data.deleted_count} depositi`, 'success');
+            loadDepositsHistory(1);
+        } else {
+            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
+        }
+    } catch (error) {
+        console.error('Errore eliminazione:', error);
+        showError('Errore nell\'eliminazione dei depositi');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Visualizza dettagli deposito
+function viewDepositDetails(id) {
+    // Per ora mostriamo solo un alert, poi possiamo implementare un modal
+    alert('Dettagli deposito ID: ' + id + '\n\nFunzionalità in sviluppo...');
+}
+
+// Chiudi modal
+function closeDepositModal() {
+    document.getElementById('deposit-details-modal').classList.add('hidden');
+}
+
+// Mostra loading
+function showLoading() {
+    document.getElementById('loading-modal').classList.remove('hidden');
+}
+
+// Nascondi loading
+function hideLoading() {
+    document.getElementById('loading-modal').classList.add('hidden');
+}
+
+// Mostra notifica di successo
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Mostra errore
+function showError(message) {
+    showNotification(message, 'error');
+}
 </script>
 {% endblock %}

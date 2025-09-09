@@ -347,6 +347,10 @@ def invest(project_id):
         if amount <= 0:
             flash("Importo deve essere positivo", "error")
             return redirect(url_for('user.new_project'))
+        # Consenti solo multipli di 100
+        if (amount * 100) % 10000 != 0:
+            flash("Importo consentito solo a multipli di 100 (es. 100, 200, 1000)", "error")
+            return redirect(url_for('user.new_project'))
     except ValueError:
         flash("Importo non valido", "error")
         return redirect(url_for('user.new_project'))
@@ -613,6 +617,7 @@ def serve_project_file_user(filename):
 
 @user_bp.get("/referral")
 @login_required
+@kyc_verified
 def referral():
     """Dashboard referral dell'utente"""
     uid = session.get("user_id")
@@ -639,11 +644,11 @@ def referral():
         """, (uid,))
         referrals = cur.fetchall()
         
-        # Bonus totali
+        # Bonus totali dal portfolio
         cur.execute("""
-            SELECT COALESCE(SUM(amount), 0) as total_bonus 
-            FROM referral_bonuses 
-            WHERE receiver_user_id = %s
+            SELECT COALESCE(referral_bonus, 0) as total_bonus 
+            FROM user_portfolios 
+            WHERE user_id = %s
         """, (uid,))
         bonus = cur.fetchone()
     
@@ -760,3 +765,148 @@ def change_password():
     # Per ora restituiamo successo simulato
     
     return jsonify({'success': True, 'message': 'Password cambiata con successo'})
+
+# =====================================================
+# API REFERRAL - Sistema referral utente
+# =====================================================
+
+@user_bp.get("/api/referral-data")
+@login_required
+@kyc_verified
+def get_referral_data():
+    """Ottieni dati referral dell'utente corrente"""
+    try:
+        user_id = session.get('user_id')
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Ottieni codice referral dell'utente
+            cur.execute("SELECT referral_code FROM users WHERE id = %s", (user_id,))
+            user_data = cur.fetchone()
+            referral_code = user_data['referral_code'] if user_data else None
+            
+            if not referral_code:
+                return jsonify({
+                    'total_invited': 0,
+                    'total_invested': 0,
+                    'total_profits': 0,
+                    'bonus_earned': 0,
+                    'invited_users': []
+                })
+            
+            # Trova tutti gli utenti invitati da questo utente
+            cur.execute("""
+                SELECT 
+                    u.id, u.full_name, u.email, u.created_at,
+                    COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
+                    COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
+                    COALESCE(up.invested_capital, 0) as total_invested,
+                    COALESCE(up.profits, 0) as total_profits,
+                    COALESCE(up.referral_bonus, 0) as bonus_generated,
+                    CASE 
+                        WHEN up.id IS NOT NULL AND (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) > 0 
+                        THEN 'active'
+                        WHEN u.kyc_status = 'verified' THEN 'pending'
+                        ELSE 'inactive'
+                    END as status
+                FROM users u
+                LEFT JOIN user_portfolios up ON up.user_id = u.id
+                WHERE u.referred_by = %s
+                ORDER BY u.created_at DESC
+            """, (user_id,))
+            invited_users = cur.fetchall()
+            
+            # Ottieni investimenti per ogni utente invitato
+            for user in invited_users:
+                cur.execute("""
+                    SELECT i.amount, p.name as project_name
+                    FROM investments i
+                    LEFT JOIN projects p ON p.id = i.project_id
+                    WHERE i.user_id = %s AND i.status = 'active'
+                    ORDER BY i.created_at DESC
+                """, (user['id'],))
+                user['investments'] = cur.fetchall()
+            
+            # Calcola totali
+            total_invited = len(invited_users)
+            total_invested = sum(user['total_invested'] or 0 for user in invited_users)
+            total_profits = sum(user['total_profits'] or 0 for user in invited_users)
+            bonus_earned = sum(user['bonus_generated'] or 0 for user in invited_users)
+            
+            return jsonify({
+                'total_invited': total_invited,
+                'total_invested': float(total_invested),
+                'total_profits': float(total_profits),
+                'bonus_earned': float(bonus_earned),
+                'invited_users': invited_users
+            })
+            
+    except Exception as e:
+        print(f"Errore nel caricamento dati referral: {e}")
+        return jsonify({'error': 'Errore nel caricamento dei dati referral'}), 500
+
+@user_bp.get("/api/referral-link")
+@login_required
+@kyc_verified
+def get_referral_link():
+    """Ottieni link referral dell'utente"""
+    try:
+        user_id = session.get('user_id')
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT referral_code FROM users WHERE id = %s", (user_id,))
+            user_data = cur.fetchone()
+            referral_code = user_data['referral_code'] if user_data else None
+            
+            if not referral_code:
+                return jsonify({'error': 'Codice referral non trovato'}), 404
+            
+            # Costruisci link referral
+            base_url = request.host_url.rstrip('/')
+            referral_link = f"{base_url}/auth/register?ref={referral_code}"
+            
+            return jsonify({
+                'referral_code': referral_code,
+                'referral_link': referral_link
+            })
+            
+    except Exception as e:
+        print(f"Errore nel recupero link referral: {e}")
+        return jsonify({'error': 'Errore nel recupero del link referral'}), 500
+
+@user_bp.get("/referral")
+@login_required
+@kyc_verified
+def referral_page():
+    """Pagina dedicata al sistema referral"""
+    return render_template('user/referral.html')
+
+
+# Info referente (utente sopra di te)
+@user_bp.get("/api/referrer")
+@login_required
+@kyc_verified
+def get_referrer_info():
+    """Restituisce le info dell'utente immediatamente sopra nella struttura referral."""
+    user_id = session.get('user_id')
+    with get_conn() as conn, conn.cursor() as cur:
+        # Trova l'id del referente
+        cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        if not row or not row.get('referred_by'):
+            return jsonify({ 'has_referrer': False, 'referrer': None })
+        referrer_id = row['referred_by']
+
+        # Dati referente
+        cur.execute(
+            """
+            SELECT id,
+                   COALESCE(NULLIF(TRIM(CONCAT_WS(' ', nome, cognome)), ''), full_name) AS full_name,
+                   email, created_at
+            FROM users WHERE id = %s
+            """,
+            (referrer_id,)
+        )
+        ref = cur.fetchone()
+        if not ref:
+            return jsonify({ 'has_referrer': False, 'referrer': None })
+        return jsonify({ 'has_referrer': True, 'referrer': ref })

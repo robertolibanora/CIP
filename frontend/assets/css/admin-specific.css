@@ -140,7 +140,102 @@
 .admin-variant-gray .btn { background: #374151; }
 .admin-variant-gray .btn:hover { background: #1f2937; }
 
-/* Responsive Admin */
+/* Layout Referral Ottimizzato */
+.referral-user-card {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+}
+
+.referral-user-card:hover {
+    background-color: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.referral-user-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.referral-user-avatar {
+    flex-shrink: 0;
+}
+
+.referral-stats-container {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: nowrap;
+}
+
+.referral-stat-item {
+    text-align: center;
+    min-width: 60px;
+}
+
+.referral-stat-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.referral-stat-value {
+    font-weight: 700;
+    line-height: 1;
+}
+
+.referral-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Responsive per Referral */
+@media (max-width: 1024px) {
+    .referral-stats-container {
+        gap: 1rem;
+    }
+    
+    .referral-stat-item {
+        min-width: 50px;
+    }
+    
+    .referral-stat-value {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .referral-user-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .referral-user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .referral-stats-container {
+        justify-content: space-around;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background-color: #f9fafb;
+        border-radius: 6px;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .referral-actions {
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+}
+
 @media (max-width: 640px) {
     .admin-dashboard {
         padding: 16px;
@@ -158,5 +253,15 @@
     .admin-action-card .btn {
         padding: 10px 14px;
         font-size: 14px;
+    }
+    
+    .referral-stats-container {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .referral-stat-item {
+        min-width: 45px;
+        flex: 1;
     }
 }

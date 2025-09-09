@@ -3,166 +3,120 @@
 {% block title %}Referral - CIP Immobiliare{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-white">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 px-6 py-8">
-        <h1 class="text-3xl font-bold text-gray-900">Sistema Referral</h1>
-        <p class="text-gray-600 mt-2">Invita amici e guadagna l'1% sui loro profitti</p>
+    <div class="px-6 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Sistema Referral</h1>
+        <p class="text-gray-600">Guadagna bonus invitando nuovi investitori</p>
     </div>
 
-    <!-- Link referral e codice -->
-    <div class="px-6 py-6">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Il Tuo Link Referral</h2>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Link Completo</label>
-                    <div class="flex space-x-3">
-                                                        <input type="text" 
-                                       value="{{ request.url_root.rstrip('/') }}/auth/register?ref={{ user.referral_code if user.referral_code else '' }}" 
-                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                                       readonly>
-                        <button onclick="copyLink()" 
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                            Copia
-                        </button>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Codice Referral</label>
-                    <div class="flex space-x-3">
-                        <input type="text" 
-                               value="{{ user.referral_code or 'N/A' }}" 
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
-                               readonly>
-                        <button onclick="copyReferralCode()" 
-                                class="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
-                            Copia Codice
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Condividi questo codice con amici per ricevere bonus</p>
-                </div>
+    <!-- Statistiche Principali -->
+    <div class="px-6 pb-8">
+        <!-- Referrer info -->
+        <div id="referrer-info" class="mb-4 hidden">
+            <div class="inline-flex items-center px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Sopra di te: <span id="referrer-name" class="font-semibold ml-1"></span>
             </div>
         </div>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <!-- Totale Invitati -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-blue-700">Inviti</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Totale Invitati</h3>
+                <p class="text-3xl font-bold text-blue-600" id="referral-count">0</p>
+                <p class="text-sm text-blue-600 mt-1">Persone che hai invitato</p>
+            </div>
 
-    <!-- Statistiche referral -->
-    <div class="px-6 py-6">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Statistiche Referral</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center p-4 bg-blue-50 rounded-lg">
-                    <div class="text-3xl font-bold text-blue-600">{{ stats.total_referrals or 0 }}</div>
-                    <div class="text-sm text-gray-600">Utenti Invitati</div>
+            <!-- Totale Investito -->
+            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-green-700">Investito</span>
                 </div>
-                
-                <div class="text-center p-4 bg-green-50 rounded-lg">
-                    <div class="text-3xl font-bold text-green-600">{{ stats.verified_referrals or 0 }}</div>
-                    <div class="text-sm text-gray-600">Utenti Verificati</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Totale Investito</h3>
+                <p class="text-3xl font-bold text-green-600" id="referral-total-invested">€0.00</p>
+                <p class="text-sm text-green-600 mt-1">Dai tuoi invitati</p>
+            </div>
+
+            <!-- Totale Profitti -->
+            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-purple-700">Profitti</span>
                 </div>
-                
-                <div class="text-center p-4 bg-purple-50 rounded-lg">
-                    <div class="text-3xl font-bold text-purple-600">€{{ "{:,.2f}".format(total_bonus or 0) }}</div>
-                    <div class="text-sm text-gray-600">Bonus Totali</div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Totale Profitti</h3>
+                <p class="text-3xl font-bold text-purple-600" id="referral-total-profits">€0.00</p>
+                <p class="text-sm text-purple-600 mt-1">Generati dagli invitati</p>
+            </div>
+
+            <!-- Bonus Guadagnati -->
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-medium text-orange-700">Bonus</span>
                 </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">Bonus Guadagnati</h3>
+                <p class="text-3xl font-bold text-orange-600" id="referral-bonus-earned">€0.00</p>
+                <p class="text-sm text-orange-600 mt-1">Dai tuoi inviti</p>
             </div>
         </div>
-    </div>
 
-    <!-- Lista utenti invitati -->
-    <div class="px-6 py-6">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Utenti Invitati</h2>
-            
-            {% if referrals and referrals|length > 0 %}
-                <div class="space-y-4">
-                    {% for referral in referrals %}
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">{{ referral.full_name or 'Utente' }}</h3>
-                                <p class="text-gray-600 text-sm">{{ referral.email }}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="px-3 py-1 rounded-full text-xs font-medium
-                                    {% if referral.kyc_status == 'verified' %}
-                                        bg-green-100 text-green-800
-                                    {% else %}
-                                        bg-yellow-100 text-yellow-800
-                                    {% endif %}">
-                                    {{ 'Verificato' if referral.kyc_status == 'verified' else 'In Attesa' }}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4 mb-3">
-                            <div>
-                                <p class="text-sm text-gray-500">Data Invito</p>
-                                <p class="font-semibold text-gray-900">
-                                    {{ referral.created_at.strftime('%d/%m/%Y') if referral.created_at else 'N/A' }}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Totale Investito</p>
-                                <p class="font-semibold text-blue-600">€{{ "{:,.2f}".format(referral.total_invested or 0) }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="text-sm text-gray-500">
-                            <p>Bonus potenziale: €{{ "{:,.2f}".format((referral.total_invested or 0) * 0.01) }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
+        <!-- Link Referral -->
+        <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">Il Tuo Link Referral</h2>
+                    <p class="text-gray-600">Condividi questo link per invitare nuovi investitori</p>
                 </div>
-            {% else %}
-                <div class="text-center py-12">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                <button onclick="copyReferralLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                     </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun utente invitato</h3>
-                    <p class="text-gray-600">Inizia a invitare amici per guadagnare bonus del 1% sui loro profitti.</p>
-                </div>
-            {% endif %}
+                    Copia Link
+                </button>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500 mb-2">Il tuo link referral:</p>
+                <p class="font-mono text-sm text-gray-900 break-all" id="referral-link-display">Caricamento...</p>
+            </div>
         </div>
-    </div>
 
-    <!-- Come funziona -->
-    <div class="px-6 py-6">
+        <!-- Lista Invitati -->
         <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Come Funziona</h2>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-900">I Miei Invitati</h2>
+                <button onclick="loadReferralData()" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    <svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Aggiorna
+                </button>
+            </div>
             
-            <div class="space-y-4">
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold">1</span>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Invita Amici</h3>
-                        <p class="text-gray-600 text-sm">Condividi il tuo link referral o codice con amici e familiari.</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold">2</span>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Loro Investono</h3>
-                        <p class="text-gray-600 text-sm">I tuoi amici si registrano e iniziano a investire nei progetti immobiliari.</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold">3</span>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Tu Guadagni</h3>
-                        <p class="text-gray-600 text-sm">Ricevi automaticamente l'1% sui profitti di ogni investimento fatto dai tuoi amici.</p>
-                    </div>
+            <div id="referral-list" class="space-y-4">
+                <div class="text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-gray-500 mt-2">Caricamento invitati...</p>
                 </div>
             </div>
         </div>
@@ -170,46 +124,217 @@
 </div>
 
 <script>
-function copyLink() {
-    const linkInput = document.querySelector('input[readonly]');
-    linkInput.select();
-    document.execCommand('copy');
-    showCopyNotification('Link copiato negli appunti!');
+// Carica dati al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadReferralData();
+    loadReferralLink();
+    loadReferrerInfo();
+});
+
+// Carica dati referral
+async function loadReferralData() {
+    try {
+        const response = await fetch('/user/api/referral-data');
+        const data = await response.json();
+        
+        if (response.ok) {
+            updateReferralStats(data);
+            renderReferralList(data.invited_users || []);
+        } else {
+            console.error('Errore nel caricamento dati referral:', data.error);
+            showReferralError('Errore nel caricamento dei dati referral');
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento dati referral:', error);
+        showReferralError('Errore di connessione');
+    }
 }
 
-function copyReferralCode() {
-    const codeInput = document.querySelectorAll('input[readonly]')[1];
-    codeInput.select();
-    document.execCommand('copy');
-    showCopyNotification('Codice referral copiato negli appunti!');
+// Carica link referral
+async function loadReferralLink() {
+    try {
+        const response = await fetch('/user/api/referral-link');
+        const data = await response.json();
+        
+        if (response.ok && data.referral_link) {
+            document.getElementById('referral-link-display').textContent = data.referral_link;
+        } else {
+            document.getElementById('referral-link-display').textContent = 'Errore nel caricamento del link';
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento link referral:', error);
+        document.getElementById('referral-link-display').textContent = 'Errore nel caricamento del link';
+    }
 }
 
-function showCopyNotification(message) {
+// Aggiorna statistiche
+function updateReferralStats(data) {
+    document.getElementById('referral-count').textContent = data.total_invited || 0;
+    document.getElementById('referral-total-invested').textContent = formatCurrency(data.total_invested || 0);
+    document.getElementById('referral-total-profits').textContent = formatCurrency(data.total_profits || 0);
+    document.getElementById('referral-bonus-earned').textContent = formatCurrency(data.bonus_earned || 0);
+}
+
+// Renderizza lista invitati
+function renderReferralList(invitedUsers) {
+    const container = document.getElementById('referral-list');
+    
+    if (!invitedUsers || invitedUsers.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun invito ancora</h3>
+                <p class="text-gray-600 mb-4">Condividi il tuo link referral per iniziare a guadagnare bonus</p>
+                <button onclick="copyReferralLink()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    Copia Link Referral
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = invitedUsers.map(user => `
+        <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                        <span class="text-white font-semibold text-lg">${(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">${user.full_name || 'Utente'}</h3>
+                        <p class="text-sm text-gray-500">${user.email || ''}</p>
+                        <p class="text-xs text-gray-400">Iscritto il ${formatDate(user.created_at)}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-500">Stato</div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.status)}">
+                        ${getStatusText(user.status)}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">${formatCurrency(user.total_invested || 0)}</div>
+                    <div class="text-sm text-gray-500">Investito</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">${formatCurrency(user.total_profits || 0)}</div>
+                    <div class="text-sm text-gray-500">Profitti</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">${formatCurrency(user.bonus_generated || 0)}</div>
+                    <div class="text-sm text-gray-500">Bonus Generato</div>
+                </div>
+            </div>
+            
+            ${user.investments && user.investments.length > 0 ? `
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Progetti Investiti:</h4>
+                    <div class="space-y-2">
+                        ${user.investments.map(inv => `
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-600">${inv.project_name || 'Progetto'}</span>
+                                <span class="font-medium">${formatCurrency(inv.amount || 0)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+// Funzioni di utilità
+function getStatusColor(status) {
+    switch(status) {
+        case 'active': return 'bg-green-100 text-green-800';
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
+        case 'inactive': return 'bg-gray-100 text-gray-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+function getStatusText(status) {
+    switch(status) {
+        case 'active': return 'Attivo';
+        case 'pending': return 'In Attesa';
+        case 'inactive': return 'Inattivo';
+        default: return 'Sconosciuto';
+    }
+}
+
+function showReferralError(message) {
+    const container = document.getElementById('referral-list');
+    container.innerHTML = `
+        <div class="text-center py-8">
+            <svg class="w-16 h-16 text-red-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Errore</h3>
+            <p class="text-gray-600">${message}</p>
+        </div>
+    `;
+}
+
+async function copyReferralLink() {
+    try {
+        const response = await fetch('/user/api/referral-link');
+        const data = await response.json();
+        
+        if (response.ok && data.referral_link) {
+            await navigator.clipboard.writeText(data.referral_link);
+            showNotification('Link referral copiato negli appunti!', 'success');
+        } else {
+            showNotification('Errore nel recupero del link referral', 'error');
+        }
+    } catch (error) {
+        console.error('Errore nel copiare il link:', error);
+        showNotification('Errore nel copiare il link', 'error');
+    }
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('it-IT', {
+        style: 'currency',
+        currency: 'EUR'
+    }).format(amount);
+}
+
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('it-IT');
+}
+
+function showNotification(message, type) {
     // Crea notifica temporanea
     const notification = document.createElement('div');
-    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
     notification.textContent = message;
     
     document.body.appendChild(notification);
     
-    // Rimuovi dopo 3 secondi
     setTimeout(() => {
         notification.remove();
     }, 3000);
 }
 
-// Ottimizzazioni mobile
-if ('ontouchstart' in window) {
-    // Aggiungi feedback tattile per i pulsanti
-    document.querySelectorAll('button').forEach(button => {
-        button.addEventListener('touchstart', () => {
-            button.classList.add('scale-95');
-        });
-        
-        button.addEventListener('touchend', () => {
-            button.classList.remove('scale-95');
-        });
-    });
+// Referrer info
+async function loadReferrerInfo() {
+    try {
+        const res = await fetch('/user/api/referrer');
+        const data = await res.json();
+        if (res.ok && data.has_referrer && data.referrer && data.referrer.full_name) {
+            document.getElementById('referrer-name').textContent = data.referrer.full_name;
+            document.getElementById('referrer-info').classList.remove('hidden');
+        }
+    } catch (e) {
+        // Silenzioso: non blocca la pagina
+    }
 }
 </script>
 {% endblock %}
