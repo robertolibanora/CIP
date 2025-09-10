@@ -93,6 +93,13 @@ def kyc_uploads(filename):
     kyc_dir = app.config.get('UPLOAD_FOLDER', os.path.join('instance', 'uploads', 'kyc'))
     return send_from_directory(kyc_dir, filename)
 
+# Route per immagini progetti (pubblica)
+@app.route('/uploads/projects/<filename>')
+def project_images(filename):
+    """Serve le immagini dei progetti pubblicamente"""
+    projects_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'projects')
+    return send_from_directory(projects_dir, filename)
+
 # Route per file statici (rimossa - cartella static eliminata)
 # Tutti i file sono ora serviti dalla cartella assets
 

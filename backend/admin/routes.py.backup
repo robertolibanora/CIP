@@ -1,22 +1,16 @@
 import os
 import uuid
 import time
-import logging
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Setup logger
-logger = logging.getLogger(__name__)
-
 # -----------------------------
 # DB
 # -----------------------------
+from backend.shared.database import get_db_connection
 
-def get_conn():
-    from backend.shared.database import get_connection
-    return get_connection()
 
 def get_upload_folder():
     """Ottiene la cartella upload dalla configurazione Flask"""
@@ -57,7 +51,8 @@ from backend.auth.routes import hash_password
 @admin_bp.get("/")
 @admin_required
 def admin_dashboard():
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT * FROM v_admin_metrics")
         m = cur.fetchone()
     
@@ -75,7 +70,8 @@ def admin_dashboard_alias():
 @admin_bp.get("/metrics")
 @admin_required
 def metrics():
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT * FROM v_admin_metrics")
         m = cur.fetchone()
     return jsonify(m or {})
@@ -90,10 +86,11 @@ def projects_list():
         q = []
         params = []
         if status:
-            q.append("status=%s"); params.append(status)
+            q.append("status=?"); params.append(status)
         where = ("WHERE "+" AND ".join(q)) if q else ""
         sql = f"SELECT * FROM projects {where} ORDER BY created_at DESC"
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
             cur.execute(sql, params)
             rows = cur.fetchall()
         return jsonify(rows)
@@ -101,7 +98,8 @@ def projects_list():
     # Altrimenti restituisce il template HTML con metriche
     
     # Ottieni metriche progetti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as total FROM projects")
         projects_total = cur.fetchone()['total']
         
@@ -129,18 +127,18 @@ def projects_list():
 def projects_new():
     data = request.form or request.json or {}
     
-    # Validazione campi obbligatori
-    required_fields = ['code', 'title', 'address', 'description', 'target_amount']
+    # Validazione campi obbligatori (indirizzo opzionale)
+    required_fields = ['code', 'title', 'description', 'target_amount']
     for field in required_fields:
         if not data.get(field):
             abort(400, description=f"Campo obbligatorio mancante: {field}")
     
-    # Gestione file upload
+    # Gestione file upload (solo foto obbligatoria)
     photo = request.files.get('photo')
     documents = request.files.get('documents')
     
-    if not photo or not documents:
-        abort(400, description="Foto immobile e documenti tecnici sono obbligatori")
+    if not photo:
+        abort(400, description="Foto immobile obbligatoria")
     
     # Salva i file
     photo_filename = None
@@ -153,34 +151,47 @@ def projects_new():
             os.makedirs(os.path.dirname(photo_path), exist_ok=True)
             photo.save(photo_path)
         
-        if documents:
-            documents_filename = secure_filename(f"{data['code']}_docs_{int(time.time())}.pdf")
-            documents_path = os.path.join(get_upload_folder(), 'projects', documents_filename)
-            os.makedirs(os.path.dirname(documents_path), exist_ok=True)
-            documents.save(documents_path)
+        # Documenti tecnici non più richiesti; se forniti, li ignoriamo o potremmo salvarli opzionalmente
     
     except Exception as e:
         abort(500, description=f"Errore nel salvataggio dei file: {str(e)}")
     
     # Inserisci nel database
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO projects(
-                code, name, description, status, total_amount, start_date, end_date,
-                address, min_investment, photo_filename, documents_filename
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            # Controlla se il codice progetto esiste già
+            cur.execute("SELECT id FROM projects WHERE code = ?", (data['code'],))
+            existing_project = cur.fetchone()
+            
+            if existing_project:
+                return jsonify({"error": f"Il codice progetto '{data['code']}' esiste già. Scegli un codice diverso."}), 400
+            
+            cur.execute(
+                """
+                INSERT INTO projects(
+                    code, name, description, status, total_amount, start_date, end_date,
+                    location, min_investment, image_url, type, roi, duration
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id
+                """,
+                (
+                    data['code'], data['title'], data['description'], data.get('status','draft'),
+                    data['target_amount'], data.get('start_date'), data.get('end_date'),
+                    data.get('address', ''), data.get('min_investment', 1000), photo_filename, 
+                    'residential', 8.0, 12  # Valori di default per type, roi, duration
+                )
             )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
-            """,
-            (
-                data['code'], data['title'], data['description'], data.get('status','draft'),
-                data['target_amount'], data.get('start_date'), data.get('end_date'),
-                data['address'], data.get('min_investment'), photo_filename, documents_filename
-            )
-        )
-        pid = cur.fetchone()['id']
-    
-    return jsonify({"id": pid, "message": "Progetto creato con successo"})
+            pid = cur.fetchone()['id']
+        
+        return jsonify({"id": pid, "message": "Progetto creato con successo"})
+        
+    except Exception as e:
+        # Gestione errori di database
+        if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
+            return jsonify({"error": f"Il codice progetto '{data['code']}' esiste già. Scegli un codice diverso."}), 400
+        else:
+            return jsonify({"error": f"Errore nel salvataggio del progetto: {str(e)}"}), 500
 
 @admin_bp.get("/uploads/projects/<filename>")
 @admin_required
@@ -199,9 +210,10 @@ def serve_project_file(filename):
 def project_detail(pid):
     # Se richiesta AJAX, restituisce JSON
     if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
             # Dettagli progetto
-            cur.execute("SELECT * FROM projects WHERE id=%s", (pid,))
+            cur.execute("SELECT * FROM projects WHERE id=?", (pid,))
             project = cur.fetchone()
             if not project:
                 abort(404)
@@ -212,7 +224,7 @@ def project_detail(pid):
                        u.id as user_id, u.full_name, u.email, u.kyc_status
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
-                WHERE i.project_id = %s
+                WHERE i.project_id = ?
                 ORDER BY i.created_at DESC
             """, (pid,))
             investments = cur.fetchall()
@@ -227,7 +239,7 @@ def project_detail(pid):
                     COALESCE(SUM(amount), 0) as total_invested,
                     AVG(amount) as avg_investment
                 FROM investments 
-                WHERE project_id = %s AND status IN ('active', 'completed')
+                WHERE project_id = ? AND status IN ('active', 'completed')
             """, (pid,))
             stats = cur.fetchone()
             
@@ -248,25 +260,45 @@ def projects_edit(pid):
     data = request.form or request.json or {}
     fields = [
         ('code','code'),('title','name'),('description','description'),('status','status'),
-        ('total_amount','total_amount'),('start_date','start_date'),('end_date','end_date')
+        ('target_amount','total_amount'),('start_date','start_date'),('end_date','end_date')
     ]
     sets = []
     params = []
     for key, col in fields:
         if key in data and data.get(key) is not None:
-            sets.append(f"{col}=%s"); params.append(data.get(key))
+            sets.append(f"{col}=?"); params.append(data.get(key))
     if not sets:
         abort(400)
     params.append(pid)
-    sql = f"UPDATE projects SET {', '.join(sets)} WHERE id=%s"
-    with get_conn() as conn, conn.cursor() as cur:
+    sql = f"UPDATE projects SET {', '.join(sets)}, updated_at=datetime('now') WHERE id=?"
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(sql, params)
+        # Se lo status diventa 'cancelled', rimborsa gli investimenti attivi su capitale libero
+        if data.get('status') == 'cancelled':
+            # Trova tutti gli investimenti attivi del progetto
+            cur.execute("SELECT id, user_id, amount FROM investments WHERE project_id=? AND status='active'", (pid,))
+            investments = cur.fetchall()
+            for inv in investments:
+                # Sposta i fondi su free_capital e riduci invested_capital
+                cur.execute("""
+                    UPDATE user_portfolios
+                    SET free_capital = free_capital + ?,
+                        invested_capital = GREATEST(invested_capital - %s, 0),
+                        updated_at = NOW()
+                    WHERE user_id = %s
+                """, (inv['amount'], inv['amount'], inv['user_id']))
+                # Marca investimento come cancelled
+                cur.execute("UPDATE investments SET status='cancelled', updated_at=NOW() WHERE id=%s", (inv['id'],))
+            # Azzerare funded_amount del progetto
+            cur.execute("UPDATE projects SET funded_amount = 0 WHERE id=%s", (pid,))
     return jsonify({"updated": True})
 
 @admin_bp.delete("/projects/<int:pid>")
 @admin_required
 def projects_delete(pid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Verifica se ci sono investimenti attivi
         cur.execute("SELECT COUNT(*) as count FROM investments WHERE project_id=%s AND status='active'", (pid,))
         active_investments = cur.fetchone()['count']
@@ -307,19 +339,23 @@ def project_upload_file(pid):
     
     filename = secure_filename(file.filename)
     unique_filename = f"{uuid.uuid4()}-{filename}"
-    file_path = os.path.join(get_upload_folder(), unique_filename)
+    projects_dir = os.path.join(get_upload_folder(), 'projects')
+    os.makedirs(projects_dir, exist_ok=True)
+    file_path = os.path.join(projects_dir, unique_filename)
     
     # Crea cartella se non esiste
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     file.save(file_path)
     
-    # TODO: Salva nel database con project_id (richiede modifica schema)
-    # Per ora salvo solo il file fisicamente
-    doc_id = 1  # Mock ID
+    # Aggiorna foto principale del progetto se è immagine
+    if file_ext in {'jpg','jpeg','png'}:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
+            cur.execute("UPDATE projects SET photo_filename=%s, updated_at=NOW() WHERE id=%s", (unique_filename, pid))
+            conn.commit()
     
     return jsonify({
         "success": True,
-        "document_id": doc_id,
         "filename": unique_filename,
         "original_name": filename
     })
@@ -337,7 +373,8 @@ def portfolio_dashboard():
     from flask import render_template
     
     # Ottieni metriche utenti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as total FROM users")
         users_total = cur.fetchone()['total']
         
@@ -372,7 +409,8 @@ def portfolio_overview():
 
 def get_portfolio_overview():
     """Helper per ottenere dati overview portfolio"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Overview generale
         cur.execute("""
             SELECT 
@@ -468,7 +506,8 @@ def portfolio_timeline():
     """Timeline crescita portfolio per periodo specifico"""
     period = int(request.args.get('period', 30))
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT 
                 DATE(pt.created_at) as date,
@@ -523,7 +562,8 @@ def create_portfolio_movement():
     if movement_type in ['withdrawal']:
         amount = -amount
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Verifica esistenza utente e portfolio
         cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cur.fetchone():
@@ -566,7 +606,8 @@ def projects_export():
     format_type = request.args.get('format', 'csv')
     project_ids = request.args.get('ids')
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         if project_ids:
             # Esporta progetti selezionati
             ids = project_ids.split(',')
@@ -638,7 +679,8 @@ def kyc_dashboard():
     from flask import render_template
     
     # Ottieni metriche utenti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as total FROM users")
         users_total = cur.fetchone()['total']
         
@@ -675,7 +717,8 @@ def kyc_requests():
 @admin_required
 def kyc_request_detail(user_id):
     """Dettaglio richiesta KYC specifica"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Dati utente
         cur.execute("""
             SELECT id, full_name, email, telefono, address, kyc_status, 
@@ -720,7 +763,8 @@ def kyc_request_detail(user_id):
 @admin_required
 def kyc_stats():
     """Statistiche KYC"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT 
                 kyc_status,
@@ -749,7 +793,8 @@ def kyc_stats():
 
 def get_kyc_requests():
     """Helper per ottenere richieste KYC"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT 
                 u.id, u.full_name, u.email, u.telefono, u.address,
@@ -785,7 +830,8 @@ def kyc_approve(user_id):
     data = request.json or {}
     notes = data.get('notes', '')
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             UPDATE users 
             SET kyc_status = 'verified', 
@@ -814,7 +860,8 @@ def kyc_reject(user_id):
     if not notes:
         return jsonify({"error": "Le note sono obbligatorie per il rifiuto"}), 400
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             UPDATE users 
             SET kyc_status = 'rejected',
@@ -848,7 +895,8 @@ def kyc_bulk_action():
     if action not in valid_actions:
         return jsonify({"error": "Azione non valida"}), 400
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         if action == 'approve':
             cur.execute("""
                 UPDATE users 
@@ -911,7 +959,8 @@ def kyc_export():
     status = request.args.get('status')
     search = request.args.get('search')
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Build query with filters
         where_conditions = ["u.role = 'investor'"]
         params = []
@@ -991,7 +1040,8 @@ def kyc_export():
 @admin_required
 def users_stats():
     """Statistiche utenti"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Statistiche base
         cur.execute("""
             SELECT 
@@ -1061,7 +1111,8 @@ def get_users_list():
     search = request.args.get('search')
     sort = request.args.get('sort', 'created_at_desc')
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Build WHERE conditions
         where_conditions = []
         params = []
@@ -1155,7 +1206,8 @@ def get_users_list():
 @admin_required
 def user_detail(user_id):
     """Dettaglio utente specifico"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Dati utente base
         cur.execute("""
             SELECT u.*, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
@@ -1215,7 +1267,8 @@ def user_detail(user_id):
 @admin_required
 def toggle_user_status(user_id):
     """Attiva/Sospendi utente"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Ottieni stato attuale
         cur.execute("SELECT kyc_status, role FROM users WHERE id = %s", (user_id,))
         user = cur.fetchone()
@@ -1263,7 +1316,8 @@ def users_bulk_action():
     if action not in valid_actions:
         return jsonify({"error": "Azione non valida"}), 400
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         if action == 'approve_kyc':
             cur.execute("""
                 UPDATE users 
@@ -1394,7 +1448,8 @@ def api_admin_users_list():
     # Mappa ai parametri esistenti di get_users_list
     # get_users_list usa: role, kyc_status, search
     # Gestiamo anche conteggio totale per paginazione
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         where_conditions = []
         params = []
 
@@ -1473,7 +1528,8 @@ def api_admin_users_list():
 @admin_required
 def api_admin_user_detail(user_id: int):
     """Dettaglio utente per sidebar/modal admin."""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(
             """
             SELECT 
@@ -1541,7 +1597,8 @@ def api_admin_user_update(user_id: int):
     if 'investor_status' in updates:
         role_value = 'investor' if updates['investor_status'] in (True, 'si', 'investor', 'yes') else 'admin'
 
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         # Esiste utente?
         cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
@@ -1596,7 +1653,8 @@ def api_admin_user_update(user_id: int):
 @admin_required
 def api_admin_user_portfolio(user_id: int):
     """Dettagli portafoglio utente: bilanci e investimenti"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         # Bilanci
         cur.execute(
@@ -1664,7 +1722,8 @@ def api_admin_update_portfolio(user_id: int):
     if not updates:
         return jsonify({'error': 'Nessun campo da aggiornare'}), 400
 
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         # Assicurati che la riga del portafoglio esista
         cur.execute("SELECT user_id FROM user_portfolios WHERE user_id = %s", (user_id,))
@@ -1716,7 +1775,8 @@ def api_admin_update_investment(user_id: int, investment_id: int):
         params.append(updates['status'])
     params.extend([investment_id, user_id])
 
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         cur.execute(
             f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
@@ -1753,7 +1813,8 @@ def api_admin_portfolio_bulk_adjust():
     if amount <= 0:
         return jsonify({'error': 'L\'importo deve essere positivo'}), 400
 
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         # Assicura che esistano le righe per ciascun utente
         for uid in user_ids:
@@ -1828,7 +1889,8 @@ def api_admin_delete_user(user_id: int):
     if not admin_id:
         return jsonify({'error': 'Non autenticato'}), 401
 
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         # Verifica password admin
         cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
@@ -1893,7 +1955,8 @@ def api_admin_delete_user(user_id: int):
 @admin_required
 def api_admin_user_history(user_id: int):
     """Storico immutabile delle azioni admin su un utente."""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         cur.execute(
             """
@@ -1915,7 +1978,8 @@ def api_admin_user_history(user_id: int):
 @admin_required
 def api_admin_users_history():
     """Storico globale delle azioni su utenti (immutabile)."""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         ensure_admin_actions_table(cur)
         cur.execute(
             """
@@ -1947,7 +2011,8 @@ def analytics_dashboard():
     from flask import render_template
     
     # Ottieni metriche utenti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as total FROM users")
         users_total = cur.fetchone()['total']
         
@@ -2023,7 +2088,8 @@ def get_analytics_data():
             start_dt = datetime(2020, 1, 1)  # Platform start date
             end_dt = now
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # KPI calculations
         kpis = calculate_kpis(cur, start_dt, end_dt, period)
         
@@ -2506,7 +2572,8 @@ def settings_dashboard():
     from flask import render_template
     
     # Ottieni metriche utenti per il sidebar
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT COUNT(*) as total FROM users")
         users_total = cur.fetchone()['total']
         
@@ -2541,7 +2608,8 @@ def settings_data():
 
 def get_settings_data():
     """Helper per ottenere dati configurazione"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         try:
             # Carica tutte le impostazioni dalla tabella settings
             cur.execute("""
@@ -2552,7 +2620,7 @@ def get_settings_data():
             settings_raw = cur.fetchall()
         except Exception as e:
             # Se tabella non esiste, usa valori predefiniti
-            logger.warning(f"Tabella system_settings non esiste: {e}")
+            print(f"[warning] Tabella system_settings non esiste: {e}")
             settings_raw = []
         
         # Organizza le impostazioni per categoria
@@ -2636,7 +2704,8 @@ def settings_save():
     if not category:
         return jsonify({"error": "Categoria richiesta"}), 400
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         try:
             # Salva ogni impostazione nella tabella
             for key, value in settings_data.items():
@@ -2726,7 +2795,8 @@ def settings_backup():
             # subprocess.run(files_backup_cmd, check=True)
         
         # Registra il backup nel database
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("""
                 INSERT INTO system_backups (filename, backup_type, size_bytes, created_by, notes)
                 VALUES (%s, %s, %s, %s, %s)
@@ -2752,7 +2822,8 @@ def settings_backup():
 def settings_backup_download():
     """Download ultimo backup"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("""
                 SELECT filename, backup_type, created_at
                 FROM system_backups
@@ -2796,7 +2867,8 @@ def settings_logs():
     else:  # all
         start_date = datetime(2020, 1, 1)
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Build query conditions
         where_conditions = ["created_at >= %s"]
         params = [start_date]
@@ -2825,7 +2897,7 @@ def settings_logs():
             logs = cur.fetchall()
         except Exception as e:
             # Se tabella non esiste, usa log di esempio
-            logger.warning(f"Tabella system_logs non esiste: {e}")
+            print(f"[warning] Tabella system_logs non esiste: {e}")
             logs = []
         
         # Se non ci sono log nella tabella, restituiamo log di esempio
@@ -2928,7 +3000,8 @@ def performance_report():
     
     try:
         # Log del report di performance
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("""
                 INSERT INTO performance_reports (
                     url, user_agent, viewport_width, viewport_height,
@@ -2963,7 +3036,8 @@ def users_list():
         where = "WHERE email ILIKE %s OR full_name ILIKE %s"
         params = [f"%{q}%", f"%{q}%"]
     sql = f"SELECT id, email, full_name, role, kyc_status, currency_code FROM users {where} ORDER BY id"
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(sql, params)
         rows = cur.fetchall()
     return jsonify(rows)
@@ -2972,7 +3046,8 @@ def users_list():
 @admin_required
 def user_detail_legacy(uid):
     """Dettaglio utente legacy - mantenuto per compatibilità"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
         cur.execute("""
@@ -3000,7 +3075,8 @@ def user_detail_legacy(uid):
 def user_change_referrer(uid):
     data = request.form or request.json or {}
     referred_by = data.get('referred_by')
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE users SET referred_by=%s WHERE id=%s", (referred_by, uid))
     return jsonify({"ok": True})
 
@@ -3008,7 +3084,8 @@ def user_change_referrer(uid):
 @admin_required
 def user_bonuses(uid):
     if request.method == 'GET':
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("SELECT * FROM referral_bonuses WHERE receiver_user_id=%s ORDER BY month_ref DESC", (uid,))
             rows = cur.fetchall()
         return jsonify(rows)
@@ -3016,7 +3093,8 @@ def user_bonuses(uid):
     amount = data.get('amount'); level = data.get('level', 1); month_ref = data.get('month_ref')
     if not amount or not month_ref:
         abort(400)
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             INSERT INTO referral_bonuses(receiver_user_id, source_user_id, investment_id, level, amount, month_ref, status)
             VALUES (%s,%s,%s,%s,%s,%s,'accrued') RETURNING id
@@ -3044,7 +3122,8 @@ def investments_list():
         {where}
         ORDER BY i.created_at DESC
     """
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(sql, params)
         rows = cur.fetchall()
     return jsonify(rows)
@@ -3052,7 +3131,8 @@ def investments_list():
 @admin_bp.get("/investments/<int:iid>")
 @admin_required
 def investment_detail(iid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT i.*, u.full_name, p.name AS project_title
             FROM investments i
@@ -3068,7 +3148,8 @@ def investment_detail(iid):
 @admin_bp.post("/investments/<int:iid>/confirm_wire")
 @admin_required
 def investment_confirm_wire(iid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE investments SET status='active', activated_at=NOW() WHERE id=%s", (iid,))
     return jsonify({"status": "active"})
 
@@ -3079,7 +3160,8 @@ def investment_add_yield(iid):
     amount = data.get('amount'); period_start = data.get('period_start'); period_end = data.get('period_end')
     if not amount or not period_start or not period_end:
         abort(400)
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             INSERT INTO investment_yields(investment_id, period_start, period_end, amount)
             VALUES (%s,%s,%s,%s) RETURNING id
@@ -3091,7 +3173,8 @@ def investment_add_yield(iid):
 @admin_bp.get("/requests")
 @admin_required
 def requests_queue():
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT r.id, u.full_name, p.name AS project, r.amount, r.state, r.created_at
             FROM investment_requests r
@@ -3105,7 +3188,8 @@ def requests_queue():
 @admin_bp.post("/requests/<int:rid>/approve")
 @admin_required
 def requests_approve(rid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE investment_requests SET state='approved', updated_at=NOW() WHERE id=%s", (rid,))
         cur.execute(
             """
@@ -3120,7 +3204,8 @@ def requests_approve(rid):
 @admin_bp.post("/requests/<int:rid>/reject")
 @admin_required
 def requests_reject(rid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE investment_requests SET state='rejected', updated_at=NOW() WHERE id=%s", (rid,))
     return jsonify({"rejected_request": rid})
 
@@ -3128,7 +3213,8 @@ def requests_reject(rid):
 @admin_bp.post("/kyc/<int:uid>/verify")
 @admin_required
 def kyc_verify(uid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE users SET kyc_status='verified' WHERE id=%s", (uid,))
     return jsonify({"kyc_status": "verified"})
 
@@ -3136,7 +3222,8 @@ def kyc_verify(uid):
 @admin_required
 def kyc_reject_legacy(uid):
     """KYC reject legacy - mantenuto per compatibilità"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (uid,))
     return jsonify({"kyc_status": "rejected"})
 
@@ -3151,7 +3238,8 @@ def admin_documents():
     if visibility: q.append("visibility=%s"); params.append(visibility)
     where = ("WHERE "+" AND ".join(q)) if q else ""
     sql = f"SELECT * FROM documents {where} ORDER BY uploaded_at DESC"
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(sql, params)
         rows = cur.fetchall()
     return jsonify(rows)
@@ -3168,7 +3256,8 @@ def admin_documents_upload():
     filename = secure_filename(file.filename)
     path = os.path.join(get_upload_folder(), f"{uuid.uuid4()}-{filename}")
     file.save(path)
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             INSERT INTO documents(user_id, category_id, title, file_path, visibility)
             VALUES (%s,%s,%s,%s,%s) RETURNING id
@@ -3181,7 +3270,8 @@ def admin_documents_upload():
 def admin_documents_visibility(doc_id):
     visibility = request.form.get('visibility', 'private')
     verified = request.form.get('verified_by_admin')
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE documents SET visibility=%s, verified_by_admin=COALESCE(%s, verified_by_admin) WHERE id=%s",
                     (visibility, True if verified in ('1','true','True') else None, doc_id))
     return jsonify({"updated": True})
@@ -3197,7 +3287,8 @@ def notifications_new():
     if not title:
         abort(400)
     if scheduled_at:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS scheduled_notifications (
@@ -3217,7 +3308,8 @@ def notifications_new():
             nid = cur.fetchone()['id']
         return jsonify({"scheduled_id": nid})
     else:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("INSERT INTO notifications(user_id,priority,title,body) VALUES (%s,%s,%s,%s) RETURNING id",
                         (user_id, priority, title, body))
             nid = cur.fetchone()['id']
@@ -3227,7 +3319,8 @@ def notifications_new():
 @admin_required
 def notifications_run_scheduler():
     # move due scheduled to notifications
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS scheduled_notifications (
               id SERIAL PRIMARY KEY,
@@ -3249,7 +3342,8 @@ def notifications_run_scheduler():
 @admin_bp.route("/notifications/templates", methods=['GET', 'POST'])
 @admin_required
 def notifications_templates(tid=None):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS notification_templates (
               id SERIAL PRIMARY KEY,
@@ -3260,18 +3354,21 @@ def notifications_templates(tid=None):
             )
         """)
     if request.method == 'GET':
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("SELECT * FROM notification_templates ORDER BY id DESC")
             rows = cur.fetchall()
         return jsonify(rows)
     data = request.form or request.json or {}
     if tid:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
                         (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
         return jsonify({"updated": tid})
     else:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("INSERT INTO notification_templates(name,title,body,priority) VALUES (%s,%s,%s,%s) RETURNING id",
                         (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low')))
             nid = cur.fetchone()['id']
@@ -3281,7 +3378,8 @@ def notifications_templates(tid=None):
 @admin_required
 def notifications_templates_edit(tid):
     data = request.form or request.json or {}
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
                     (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
     return jsonify({"updated": tid})
@@ -3289,7 +3387,8 @@ def notifications_templates_edit(tid):
 @admin_bp.post("/notifications/templates/<int:tid>/delete")
 @admin_required
 def notifications_templates_delete(tid):
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("DELETE FROM notification_templates WHERE id=%s", (tid,))
     return jsonify({"deleted": tid})
 
@@ -3298,7 +3397,8 @@ def notifications_templates_delete(tid):
 @admin_required
 def analytics_legacy():
     """Analytics legacy - mantenuto per compatibilità"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT date_trunc('month', created_at) AS month, SUM(amount) AS invested
             FROM investments GROUP BY 1 ORDER BY 1 DESC
@@ -3365,7 +3465,8 @@ def withdrawals_history():
 def get_admin_metrics():
     """Funzione helper per ottenere metriche generali admin"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Metriche utenti
             cur.execute("SELECT COUNT(*) FROM users")
             users_total_result = cur.fetchone()
@@ -3418,7 +3519,8 @@ def get_admin_metrics():
 def transactions_dashboard():
     """Dashboard per visualizzazione transazioni sistema"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Verifica se le tabelle esistono
             cur.execute("""
                 SELECT EXISTS (
@@ -3511,7 +3613,8 @@ def referral_dashboard():
 def get_referral_users():
     """Ottieni lista di tutti gli utenti con dati referral"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Ottieni tutti gli utenti con i loro dati referral
             cur.execute("""
                 SELECT 
@@ -3520,7 +3623,7 @@ def get_referral_users():
                         NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
                         u.full_name
                     ) AS full_name,
-                    u.email, u.created_at, u.referral_code,
+                    u.email, u.created_at, u.referral_code, u.referred_by,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
                     COALESCE(up.invested_capital, 0) as total_invested,
@@ -3532,7 +3635,12 @@ def get_referral_users():
                         WHEN u.kyc_status = 'verified' THEN 'pending'
                         ELSE 'inactive'
                     END as status,
-                    (SELECT COUNT(*) FROM users u2 WHERE u2.referred_by = u.id) as invited_count
+                    (SELECT COUNT(*) FROM users u2 WHERE u2.referred_by = u.id) as invited_count,
+                    -- Informazioni sul referrer per debug
+                    (SELECT COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', r.nome, r.cognome)), ''),
+                        r.full_name
+                    ) FROM users r WHERE r.id = u.referred_by) as referrer_name
                 FROM users u
                 LEFT JOIN user_portfolios up ON up.user_id = u.id
                 ORDER BY u.created_at DESC
@@ -3552,7 +3660,8 @@ def get_referral_users():
 def get_user_referral_details(user_id):
     """Ottieni dettagli referral di un utente specifico"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Ottieni dati utente
             cur.execute("""
                 SELECT 
@@ -3611,7 +3720,8 @@ def get_user_referral_details(user_id):
 def get_referral_stats():
     """Ottieni statistiche generali del sistema referral"""
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Statistiche generali
             cur.execute("""
                 SELECT 
@@ -3663,10 +3773,12 @@ def move_user_referral(user_id):
         if not new_referrer_id:
             return jsonify({'error': 'ID referrer mancante'}), 400
         
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Verifica che l'utente esista
-            cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-            if not cur.fetchone():
+            cur.execute("SELECT id, referred_by FROM users WHERE id = %s", (user_id,))
+            user_data = cur.fetchone()
+            if not user_data:
                 return jsonify({'error': 'Utente non trovato'}), 404
             
             # Verifica che il nuovo referrer esista
@@ -3677,6 +3789,23 @@ def move_user_referral(user_id):
             # Evita auto-referral
             if user_id == new_referrer_id:
                 return jsonify({'error': 'Un utente non può essere referrer di se stesso'}), 400
+            
+            # Verifica che l'utente non stia cercando di spostarsi sotto qualcuno che ha invitato
+            # (prevenzione referral circolari)
+            def is_user_invited_by(target_user_id, referrer_id):
+                """Verifica ricorsivamente se target_user_id è stato invitato da referrer_id"""
+                if target_user_id == referrer_id:
+                    return True
+                
+                cur.execute("SELECT referred_by FROM users WHERE id = %s", (target_user_id,))
+                result = cur.fetchone()
+                if not result or not result['referred_by']:
+                    return False
+                
+                return is_user_invited_by(result['referred_by'], referrer_id)
+            
+            if is_user_invited_by(new_referrer_id, user_id):
+                return jsonify({'error': 'Non puoi spostare un utente sotto qualcuno che ha invitato'}), 400
             
             # Aggiorna il referrer
             cur.execute("""
@@ -3708,7 +3837,8 @@ def iban_config_dashboard():
         admin_metrics = get_admin_metrics()
         
         # Verifica se la tabella IBAN esiste
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             cur.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
@@ -3770,7 +3900,8 @@ def save_iban_configuration():
         if len(iban) < 15 or len(iban) > 34:
             return jsonify({'error': 'Formato IBAN non valido'}), 400
         
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Verifica se la tabella esiste, altrimenti creala
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS iban_configurations (
@@ -3815,7 +3946,8 @@ def save_iban_configuration():
 @admin_required
 def get_iban_configuration():
     """Recupera configurazione IBAN per ricariche"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT * FROM iban_configurations 
             WHERE is_active = true 
@@ -3839,7 +3971,8 @@ def set_iban_configuration():
         return jsonify({'error': 'IBAN, nome banca e intestatario richiesti'}), 400
     
     try:
-        with get_conn() as conn, conn.cursor() as cur:
+        with get_db_connection() as conn:
+        cur = conn.cursor()
             # Disattiva configurazioni precedenti
             cur.execute("UPDATE iban_configurations SET is_active = false")
             
@@ -3867,7 +4000,8 @@ def set_iban_configuration():
 @admin_required
 def transactions_overview():
     """Monitoraggio transazioni: overview completo"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         # Statistiche ricariche
         cur.execute("""
             SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
@@ -3927,7 +4061,8 @@ def transactions_filtered():
     if where_clause:
         where_clause = "WHERE " + where_clause
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute(f"""
             SELECT pt.*, u.full_name, u.email
             FROM portfolio_transactions pt
@@ -3949,7 +4084,8 @@ def transactions_filtered():
 @admin_required
 def kyc_requests_enhanced():
     """Lista documenti KYC da approvare - versione enhanced"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT u.id, u.full_name, u.email, u.kyc_status, u.created_at,
                    COUNT(d.id) as documents_count
@@ -3967,7 +4103,8 @@ def kyc_requests_enhanced():
 @admin_required
 def kyc_user_documents(user_id):
     """Documenti KYC specifici utente"""
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT d.*, dc.name as category_name
             FROM documents d
@@ -3979,103 +4116,8 @@ def kyc_user_documents(user_id):
     
     return jsonify(documents)
 
-# =====================================================
-# CREATE PROJECT - Creazione nuovo progetto
-# =====================================================
-
-@admin_bp.post("/projects/create")
-@admin_required
-def create_project():
-    """Crea un nuovo progetto immobiliare"""
-    try:
-        # Ottieni i dati dal form
-        code = request.form.get('code', '').strip()
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        total_amount = request.form.get('total_amount', type=float)
-        min_investment = request.form.get('min_investment', type=float) or 1000
-        location = request.form.get('location', '').strip()
-        project_type = request.form.get('type', 'residential')
-        roi = request.form.get('roi', type=float) or 8.0
-        duration = request.form.get('duration', type=int) or 12
-        start_date = request.form.get('start_date')
-        end_date = request.form.get('end_date')
-        
-        # Validazione campi obbligatori
-        if not code or not name or not total_amount:
-            return jsonify({
-                'success': False,
-                'message': 'Codice, nome e importo totale sono obbligatori'
-            }), 400
-        
-        # Validazione importi
-        if total_amount <= 0 or min_investment <= 0:
-            return jsonify({
-                'success': False,
-                'message': 'Gli importi devono essere maggiori di zero'
-            }), 400
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica che il codice non esista già
-            cur.execute("SELECT id FROM projects WHERE code = %s", (code,))
-            if cur.fetchone():
-                return jsonify({
-                    'success': False,
-                    'message': 'Un progetto con questo codice esiste già'
-                }), 400
-            
-            # Gestione upload foto
-            image_url = None
-            if 'photo' in request.files:
-                photo_file = request.files['photo']
-                if photo_file and photo_file.filename:
-                    # Genera nome file unico
-                    filename = secure_filename(photo_file.filename)
-                    if filename:
-                        # Estensione file
-                        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpg'
-                        unique_filename = f"project_{code}_{int(time.time())}.{file_ext}"
-                        
-                        # Salva file
-                        photo_path = os.path.join(get_upload_folder(), 'projects', unique_filename)
-                        os.makedirs(os.path.dirname(photo_path), exist_ok=True)
-                        photo_file.save(photo_path)
-                        image_url = f"projects/{unique_filename}"
-            
-            # Inserisci progetto nel database
-            cur.execute("""
-                INSERT INTO projects (code, name, description, total_amount, min_investment, 
-                                   location, type, roi, duration, start_date, end_date, image_url, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
-            """, (code, name, description, total_amount, min_investment, 
-                  location, project_type, roi, duration, start_date, end_date, image_url))
-            
-            project_id = cur.lastrowid
-            
-            # Log dell'azione
-            cur.execute("""
-                INSERT INTO admin_actions (admin_id, action, details, created_at)
-                VALUES (%s, 'project_created', %s, CURRENT_TIMESTAMP)
-            """, (session.get('user_id'), f'Progetto creato: {name} (ID: {project_id})'))
-            
-            conn.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Progetto creato con successo',
-                'project_id': project_id
-            })
-            
-    except Exception as e:
-        logger.error(f"Errore nella creazione del progetto: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Errore interno del server'
-        }), 500
-
 # ---- Static uploads ----
 @admin_bp.get('/uploads/<path:filename>')
 @admin_required
 def uploaded_file(filename):
     return send_from_directory(get_upload_folder(), filename)
-

@@ -11,8 +11,12 @@
             <h1 class="admin-heading-1">Progetti</h1>
             <p class="admin-text-small">Gestisci foto, descrizione e raccolta</p>
         </div>
-        <div class="mt-4 md:mt-0">
-            <a href="#" onclick="window.location.reload()" class="admin-btn admin-btn--secondary">Aggiorna</a>
+        <div class="mt-4 md:mt-0 flex gap-3">
+            <button id="create-project-btn" class="admin-btn admin-btn--primary" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" onclick="openCreateProjectModal();">
+                <span style="margin-right: 8px;">+</span>
+                Crea Progetto
+            </button>
+            <button onclick="window.location.reload()" class="admin-btn admin-btn--secondary" style="background: white; color: #374151; padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-weight: bold;">Aggiorna</button>
         </div>
     </div>
 </div>
@@ -205,102 +209,11 @@
     </div>
 </div>
 
+<!-- Modal Component -->
+{% include 'admin/components/modal.html' %}
+
 <!-- Modal Nuovo Progetto -->
-{% with 
-    modal_id='create-project-modal', 
-    modal_title='Nuovo Progetto', 
-    modal_size='lg',
-    modal_body='
-    <form id="create-project-form" class="space-y-4" enctype="multipart/form-data">
-        <!-- Informazioni Base -->
-        <div class="admin-grid admin-grid--2">
-            <div class="admin-form-group">
-                <label class="admin-label admin-label--required">Codice Progetto</label>
-                <input type="text" name="code" class="admin-input" required 
-                       placeholder="es. PROJ001">
-            </div>
-            <div class="admin-form-group">
-                <label class="admin-label admin-label--required">Titolo</label>
-                <input type="text" name="title" class="admin-input" required 
-                       placeholder="es. Palazzo Storico Centro Città">
-            </div>
-        </div>
-        
-        <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Indirizzo</label>
-            <input type="text" name="address" class="admin-input" required 
-                   placeholder="Via Roma 123, Milano">
-        </div>
-        
-        <div class="admin-form-group">
-            <label class="admin-label admin-label--required">Descrizione</label>
-            <textarea name="description" class="admin-input admin-textarea" required
-                      placeholder="Descrizione dettagliata del progetto immobiliare, caratteristiche dell\'edificio, vantaggi dell\'investimento..."></textarea>
-        </div>
-        
-        <!-- Aspetti Finanziari -->
-        <div class="admin-grid admin-grid--2">
-            <div class="admin-form-group">
-                <label class="admin-label admin-label--required">Totale da raccogliere (€)</label>
-                <input type="number" name="target_amount" class="admin-input" required
-                       min="1000" step="1000" placeholder="500000">
-            </div>
-            <div class="admin-form-group">
-                <label class="admin-label">Importo minimo per investitore (€)</label>
-                <input type="number" name="min_investment" class="admin-input"
-                       min="100" step="100" placeholder="1000">
-            </div>
-        </div>
-        
-        <!-- Upload File -->
-        <div class="admin-grid admin-grid--2">
-            <div class="admin-form-group">
-                <label class="admin-label admin-label--required">Foto immobile (JPG)</label>
-                <input type="file" name="photo" class="admin-input" accept=".jpg,.jpeg" required>
-                <p class="admin-text-small text-gray-500 mt-1">Formato JPG, max 5MB</p>
-            </div>
-            <div class="admin-form-group">
-                <label class="admin-label admin-label--required">Documenti tecnici (PDF)</label>
-                <input type="file" name="documents" class="admin-input" accept=".pdf" required>
-                <p class="admin-text-small text-gray-500 mt-1">Formato PDF, max 10MB</p>
-            </div>
-        </div>
-        
-        <!-- Stato e Date -->
-        <div class="admin-grid admin-grid--3">
-            <div class="admin-form-group">
-                <label class="admin-label">Stato</label>
-                <select name="status" class="admin-input admin-select">
-                    <option value="draft">Bozza</option>
-                    <option value="active">Attivo</option>
-                    <option value="funded">Finanziato</option>
-                    <option value="completed">Completato</option>
-                    <option value="cancelled">Annullato</option>
-                </select>
-            </div>
-            <div class="admin-form-group">
-                <label class="admin-label">Data Inizio</label>
-                <input type="date" name="start_date" class="admin-input">
-            </div>
-            <div class="admin-form-group">
-                <label class="admin-label">Data Fine</label>
-                <input type="date" name="end_date" class="admin-input">
-            </div>
-        </div>
-    </form>",
-    modal_footer="
-    <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('create-project-modal')\">
-        Annulla
-    </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--primary\" onclick=\"submitCreateProject()\" id=\"create-project-btn\">
-        <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
-            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 6v6m0 0v6m0-6h6m-6 0H6\"/>
-        </svg>
-        Crea Progetto
-    </button>"
-%}
-    {% include 'admin/components/modal.html' %}
-{% endwith %}
+{% include 'admin/projects/create_project_modal.html' %}
 
 {% block extra_js %}
 <script>
@@ -455,7 +368,7 @@ class ProjectsManager {
         const color = statusColors[project.status] || 'gray';
         const label = statusLabels[project.status] || project.status;
         
-        const imgSrc = project.photo_filename ? `/admin/uploads/projects/${project.photo_filename}` : 'https://via.placeholder.com/640x360?text=Foto+Progetto';
+        const imgSrc = project.image_url ? `/uploads/projects/${project.image_url.split('/').pop()}` : 'https://via.placeholder.com/640x360?text=Foto+Progetto';
         const target = parseFloat(project.total_amount || 0) || 0;
         const invested = parseFloat(project.funded_amount || 0) || 0;
         const pct = target > 0 ? Math.min(100, Math.round((invested / target) * 100)) : 0;
@@ -719,50 +632,43 @@ async function submitCreateProject() {
     const formData = new FormData(form);
     
     // Validazione campi obbligatori
-    if (!formData.get('code') || !formData.get('title') || !formData.get('address') || 
-        !formData.get('description') || !formData.get('target_amount')) {
-        projectsManager.showAlert('error', 'Tutti i campi obbligatori devono essere compilati');
+    if (!formData.get('code') || !formData.get('name') || !formData.get('description') || 
+        !formData.get('total_amount')) {
+        projectsManager.showAlert('error', 'Codice, nome, descrizione e importo totale sono obbligatori');
         return;
     }
     
-    // Validazione file
+    // Validazione importi
+    const totalAmount = parseFloat(formData.get('total_amount'));
+    const minInvestment = parseFloat(formData.get('min_investment')) || 1000;
+    
+    if (totalAmount <= 0 || minInvestment <= 0) {
+        projectsManager.showAlert('error', 'Gli importi devono essere maggiori di zero');
+        return;
+    }
+    
+    // Validazione file (opzionale)
     const photo = formData.get('photo');
-    const documents = formData.get('documents');
-    
-    if (!photo || photo.size === 0) {
-        projectsManager.showAlert('error', 'Foto immobile è obbligatoria');
-        return;
-    }
-    
-    if (!documents || documents.size === 0) {
-        projectsManager.showAlert('error', 'Documenti tecnici sono obbligatori');
-        return;
-    }
-    
-    // Validazione dimensioni file
-    if (photo.size > 5 * 1024 * 1024) { // 5MB
-        projectsManager.showAlert('error', 'Foto immobile troppo grande (max 5MB)');
-        return;
-    }
-    
-    if (documents.size > 10 * 1024 * 1024) { // 10MB
-        projectsManager.showAlert('error', 'Documenti tecnici troppo grandi (max 10MB)');
-        return;
+    if (photo && photo.size > 0) {
+        if (photo.size > 5 * 1024 * 1024) { // 5MB
+            projectsManager.showAlert('error', 'Foto troppo grande (max 5MB)');
+            return;
+        }
     }
     
     const btn = document.getElementById('create-project-btn');
     setButtonLoading(btn, true, 'Creazione...');
     
     try {
-        const response = await fetch('/admin/projects/new', {
+        const response = await fetch('/admin/projects/create', {
             method: 'POST',
-            body: formData // FormData gestisce automaticamente i file
+            body: formData
         });
         
         const result = await response.json();
         
-        if (response.ok) {
-            projectsManager.showAlert('success', `Progetto "${formData.get('title')}" creato con successo!`);
+        if (result.success) {
+            projectsManager.showAlert('success', `Progetto "${formData.get('name')}" creato con successo!`);
             closeModal('create-project-modal');
             form.reset();
             await projectsManager.loadProjects();
@@ -1011,10 +917,71 @@ ProjectsManager.prototype.updateDisplay = function() {
     }
 };
 
-// Inizializzazione
-document.addEventListener('DOMContentLoaded', function() {
-    projectsManager = new ProjectsManager();
+        // === MODAL FUNCTIONS ===
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+                // Forza il centramento perfetto
+                const container = modal.querySelector('.admin-modal-container');
+                if (container) {
+                    container.style.position = 'fixed';
+                    container.style.top = '50%';
+                    container.style.left = '50%';
+                    container.style.transform = 'translate(-50%, -50%)';
+                    container.style.margin = '0';
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function openCreateProjectModal() {
+            openModal('create-project-modal');
+        }
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('admin-modal-backdrop')) {
+        const modal = e.target.closest('.admin-modal');
+        if (modal) {
+            closeModal(modal.id);
+        }
+    }
 });
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const openModal = document.querySelector('.admin-modal[style*="block"]');
+        if (openModal) {
+            closeModal(openModal.id);
+        }
+    }
+});
+
+
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            projectsManager = new ProjectsManager();
+            
+            // Event listener per il tasto Crea Progetto
+            const createBtn = document.getElementById('create-project-btn');
+            if (createBtn) {
+                createBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openCreateProjectModal();
+                });
+            }
+        });
 </script>
 {% endblock %}
 {% endblock %}

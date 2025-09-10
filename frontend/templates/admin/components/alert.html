@@ -57,16 +57,18 @@ function dismissAlert(alertId) {
     if (alert) {
         alert.style.transform = 'translateX(100%)';
         alert.style.opacity = '0';
-        setTimeout(() => {
+        setTimeout(function() {
             alert.remove();
         }, 300);
     }
 }
+</script>
 
-// Auto-dismiss alerts after 5 seconds (optional)
 {% if alert_auto_dismiss %}
-setTimeout(() => {
+<script>
+// Auto-dismiss script for alert {{ alert_id }}
+setTimeout(function() {
     dismissAlert('{{ alert_id }}');
 }, 5000);
-{% endif %}
 </script>
+{% endif %}

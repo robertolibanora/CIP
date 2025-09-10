@@ -11,7 +11,6 @@ from .portfolio import portfolio_bp
 from .projects import projects_bp
 from .referral import referral_bp
 from .profile import profile_bp
-from .search import search_bp
 from .new_project import new_project_bp
 
 # Blueprint principale user (per compatibilità)
@@ -24,7 +23,6 @@ user_blueprints = [
     projects_bp,
     referral_bp,
     profile_bp,
-    search_bp,
     new_project_bp
 ]
 
@@ -36,6 +34,5 @@ __all__ = [
     'projects_bp',
     'referral_bp',
     'profile_bp',
-    'search_bp',
     'new_project_bp'
 ]

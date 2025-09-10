@@ -12,15 +12,15 @@
     </svg>
   </a>
 
-  <!-- Search -->
-  <a href="{{ url_for('user.search') }}" 
+  <!-- Projects -->
+  <a href="{{ url_for('user.projects') }}" 
      class="tabbar-item"
-     style="height: 48px !important; width: 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 12px !important; transition: all 0.2s ease !important; user-select: none !important; {{ 'background-color: rgb(59 130 246) !important; color: white !important; transform: scale(1.05) !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;' if ep == 'user.search' else 'background-color: rgb(249 250 251) !important; border: 1px solid rgb(229 231 235) !important;' }}"
-     aria-label="Cerca progetti"
-     aria-current="{{ 'page' if ep == 'user.search' else 'false' }}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="height: 24px !important; width: 24px !important; {{ 'opacity: 1 !important; color: white !important;' if ep == 'user.search' else 'opacity: 0.9 !important; color: rgb(75 85 99) !important;' }}">
-      <circle cx="11" cy="11" r="8"></circle>
-      <path d="m21 21-4.35-4.35"></path>
+     style="height: 48px !important; width: 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 12px !important; transition: all 0.2s ease !important; user-select: none !important; {{ 'background-color: rgb(59 130 246) !important; color: white !important; transform: scale(1.05) !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;' if ep == 'user.projects' else 'background-color: rgb(249 250 251) !important; border: 1px solid rgb(229 231 235) !important;' }}"
+     aria-label="Progetti"
+     aria-current="{{ 'page' if ep == 'user.projects' else 'false' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="height: 24px !important; width: 24px !important; {{ 'opacity: 1 !important; color: white !important;' if ep == 'user.projects' else 'opacity: 0.9 !important; color: rgb(75 85 99) !important;' }}">
+      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+      <path d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
     </svg>
   </a>
 

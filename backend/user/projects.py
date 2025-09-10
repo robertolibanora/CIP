@@ -23,23 +23,37 @@ def projects():
     """
     Lista progetti disponibili per investimento
     ACCESSO: Solo tramite navbar mobile-nav.html
-    TABELLE: projects (solo lettura)
+    TABELLE: projects, investments (solo lettura)
     """
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Progetti disponibili - TABELLA: projects
+        # 1. VERIFICA STATO KYC UTENTE
+        cur.execute("""
+            SELECT kyc_status FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        is_kyc_verified = user and user['kyc_status'] == 'verified'
+        
+        # 2. PROGETTI DISPONIBILI CON INFORMAZIONI INVESTIMENTI
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code
+                   p.status, p.created_at, p.code,
+                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(i.amount, 0) as user_investment_amount,
+                   COALESCE(i.status, 'none') as user_investment_status
             FROM projects p 
+            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
             WHERE p.status = 'active'
             ORDER BY p.created_at DESC
-        """)
+        """, (uid,))
+        
         projects = cur.fetchall()
         
-        # Calcola percentuale completamento
+        # 3. ELABORAZIONE DATI PROGETTI
         for project in projects:
+            # Calcola percentuale completamento
             if project['total_amount'] and project['total_amount'] > 0:
                 project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
             else:
@@ -49,8 +63,14 @@ def projects():
             project['location'] = 'N/A'  # Non presente nello schema attuale
             project['roi'] = 8.5  # ROI fisso per ora
             project['min_investment'] = 1000  # Investimento minimo fisso per ora
+            
+            # 4. PLACEHOLDER IMMAGINI - Struttura per galleria
+            project['has_images'] = False  # Placeholder per ora
+            project['image_url'] = None    # Sarà implementato con upload immagini
+            project['gallery_count'] = 0   # Numero foto in galleria
     
     return render_template("user/projects.html", 
                          user_id=uid,
                          projects=projects,
+                         is_kyc_verified=is_kyc_verified,
                          current_page="projects")
