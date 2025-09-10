@@ -151,7 +151,9 @@
 
     <!-- Main Content Area -->
     <main class="flex-1 pb-20 md:pb-6">
-        {% block content %}{% endblock %}
+        <div class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <!-- KYC Warning Modal -->

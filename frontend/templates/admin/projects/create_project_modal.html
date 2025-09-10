@@ -35,7 +35,7 @@
                     </div>
                     <div style="display: flex; flex-direction: column;">
                         <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Nome Progetto <span style="color: #ef4444;">*</span></label>
-                        <input type="text" name="name" required 
+                        <input type="text" name="title" required 
                                placeholder="es. Residenza Milano Centro" 
                                style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
@@ -75,8 +75,8 @@
                 <!-- Informazioni Immobile -->
                 <div class="admin-grid admin-grid--2">
                     <div class="admin-form-group">
-                        <label class="admin-label">Località</label>
-                        <input type="text" name="location" class="admin-input" 
+                        <label class="admin-label">Indirizzo (obbligatorio)</label>
+                        <input type="text" name="address" class="admin-input" required
                                placeholder="es. Milano, Via Roma 123">
                     </div>
                     <div class="admin-form-group">
@@ -103,11 +103,16 @@
                     </div>
                 </div>
                 
-                <!-- Upload Foto -->
+                <!-- Upload Foto/Documenti -->
                 <div class="admin-form-group">
-                    <label class="admin-label">Foto Progetto (opzionale)</label>
-                    <input type="file" name="photo" class="admin-input" accept=".jpg,.jpeg,.png">
+                    <label class="admin-label">Foto Progetto (obbligatorio)</label>
+                    <input type="file" name="photo" class="admin-input" accept=".jpg,.jpeg,.png" required>
                     <p class="admin-text-small text-gray-500 mt-1">Formato JPG/PNG, max 5MB</p>
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-label">Documenti Tecnici PDF (obbligatorio)</label>
+                    <input type="file" name="documents" class="admin-input" accept=".pdf" required>
+                    <p class="admin-text-small text-gray-500 mt-1">Formato PDF, max 10MB</p>
                 </div>
                 
                 <!-- Date -->

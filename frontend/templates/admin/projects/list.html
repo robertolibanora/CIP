@@ -632,8 +632,8 @@ async function submitCreateProject() {
     const formData = new FormData(form);
     
     // Validazione campi obbligatori
-    if (!formData.get('code') || !formData.get('name') || !formData.get('description') || 
-        !formData.get('total_amount')) {
+    if (!formData.get('code') || !formData.get('title') || !formData.get('description') || 
+        !formData.get('total_amount') || !formData.get('address')) {
         projectsManager.showAlert('error', 'Codice, nome, descrizione e importo totale sono obbligatori');
         return;
     }
@@ -660,15 +660,16 @@ async function submitCreateProject() {
     setButtonLoading(btn, true, 'Creazione...');
     
     try {
-        const response = await fetch('/admin/projects/create', {
+        const response = await fetch('/admin/projects/new', {
             method: 'POST',
             body: formData
         });
         
         const result = await response.json();
         
-        if (result.success) {
-            projectsManager.showAlert('success', `Progetto "${formData.get('name')}" creato con successo!`);
+        if (result.id || result.success) {
+            const projectName = formData.get('title') || formData.get('name') || 'Progetto';
+            projectsManager.showAlert('success', `Progetto "${projectName}" creato con successo!`);
             closeModal('create-project-modal');
             form.reset();
             await projectsManager.loadProjects();

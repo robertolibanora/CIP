@@ -22,7 +22,7 @@
 
     <!-- Registration Form Card -->
     <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-      <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off">
+      <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off" novalidate>
         <!-- Referral code -->
         <div class="space-y-2">
           <label for="referral_link" class="block text-sm font-semibold text-gray-700">
@@ -251,11 +251,12 @@
 
         <!-- Submit Button -->
         <button
-          type="submit"
+          type="submit" id="registerSubmit"
           class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
         >
           Crea Account
         </button>
+        <p id="registerError" class="mt-2 text-sm text-red-600 hidden"></p>
       </form>
 
       <!-- Footer Links -->
@@ -342,6 +343,9 @@ function toggleConfirmPassword() {
 // Form validation
 document.getElementById('registerForm').addEventListener('submit', function(e) {
   let hasErrors = false;
+  const submitBtn = document.getElementById('registerSubmit');
+  const globalErr = document.getElementById('registerError');
+  if (globalErr){ globalErr.classList.add('hidden'); globalErr.textContent=''; }
   
   // Reset all error messages
   document.querySelectorAll('[id^="error-"]').forEach(el => {
@@ -381,6 +385,12 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
   
   if (hasErrors) {
     e.preventDefault();
+    return;
+  }
+  if (submitBtn){
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-80');
+    submitBtn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Creazione...</span>';
   }
 });
 

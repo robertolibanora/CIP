@@ -82,8 +82,8 @@
                     
                     <div class="admin-grid admin-grid--3">
                         <div class="admin-form-group">
-                            <label class="admin-label">Importo Target (€)</label>
-                            <input type="number" name="target_amount" class="admin-input" readonly id="field-target_amount">
+                            <label class="admin-label">Importo Totale (€)</label>
+                            <input type="number" name="total_amount" class="admin-input" readonly id="field-total_amount">
                         </div>
                         <div class="admin-form-group">
                             <label class="admin-label">Data Inizio</label>
@@ -277,7 +277,7 @@ class ProjectDetailManager {
         const project = this.projectData.project;
         
         // Update page title and breadcrumb
-        document.getElementById('project-title').textContent = project.title || 'Progetto Senza Titolo';
+        document.getElementById('project-title').textContent = project.name || project.title || 'Progetto Senza Titolo';
         document.getElementById('project-subtitle').textContent = `Codice: ${project.code || 'N/A'}`;
         document.getElementById('breadcrumb-title').textContent = project.title || 'Dettaglio';
         
@@ -303,10 +303,10 @@ class ProjectDetailManager {
         
         // Fill form fields
         document.getElementById('field-code').value = project.code || '';
-        document.getElementById('field-title').value = project.title || '';
+        document.getElementById('field-title').value = project.name || project.title || '';
         document.getElementById('field-description').value = project.description || '';
         document.getElementById('field-status').value = project.status || 'draft';
-        document.getElementById('field-target_amount').value = project.target_amount || '';
+        document.getElementById('field-total_amount').value = project.total_amount || project.target_amount || '';
         document.getElementById('field-start_date').value = project.start_date || '';
         document.getElementById('field-end_date').value = project.end_date || '';
         

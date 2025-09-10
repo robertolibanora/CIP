@@ -243,9 +243,16 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Storico Depositi</h3>
                     <div id="deposits-list" class="space-y-4">
-                        <div class="text-center py-8">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                            <p class="text-gray-500 mt-2">Caricamento depositi...</p>
+                        <div class="py-2">
+                          <div class="space-y-3">
+                            {% for _ in range(3) %}
+                            <div class="animate-pulse">
+                              <div class="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                              <div class="h-3 bg-gray-100 rounded w-1/2 mb-1"></div>
+                              <div class="h-3 bg-gray-100 rounded w-1/4"></div>
+                            </div>
+                            {% endfor %}
+                          </div>
                         </div>
                     </div>
                 </div>
@@ -411,9 +418,16 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Richieste Prelievo</h3>
                     <div id="withdrawals-list" class="space-y-4">
-                        <div class="text-center py-8">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                            <p class="text-gray-500 mt-2">Caricamento prelievi...</p>
+                        <div class="py-2">
+                          <div class="space-y-3">
+                            {% for _ in range(3) %}
+                            <div class="animate-pulse">
+                              <div class="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                              <div class="h-3 bg-gray-100 rounded w-1/2 mb-1"></div>
+                              <div class="h-3 bg-gray-100 rounded w-1/4"></div>
+                            </div>
+                            {% endfor %}
+                          </div>
                         </div>
                     </div>
                 </div>
@@ -425,9 +439,15 @@
             <div class="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Movimenti Capitali</h2>
                 <div id="movements-list" class="space-y-4">
-                    <div class="text-center py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p class="text-gray-500 mt-2">Caricamento movimenti...</p>
+                    <div class="py-2">
+                      <div class="space-y-3">
+                        {% for _ in range(4) %}
+                        <div class="animate-pulse">
+                          <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div class="h-3 bg-gray-100 rounded w-1/3"></div>
+                        </div>
+                        {% endfor %}
+                      </div>
                     </div>
                 </div>
             </div>
@@ -438,9 +458,15 @@
             <div class="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Profitti e Rendimenti</h2>
                 <div id="profits-list" class="space-y-4">
-                    <div class="text-center py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p class="text-gray-500 mt-2">Caricamento profitti...</p>
+                    <div class="py-2">
+                      <div class="space-y-3">
+                        {% for _ in range(3) %}
+                        <div class="animate-pulse">
+                          <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                          <div class="h-3 bg-gray-100 rounded w-1/4"></div>
+                        </div>
+                        {% endfor %}
+                      </div>
                     </div>
                 </div>
             </div>
