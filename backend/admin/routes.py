@@ -2,6 +2,7 @@ import os
 import uuid
 import time
 import logging
+import json
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
 from werkzeug.utils import secure_filename
@@ -129,8 +130,8 @@ def projects_list():
 def projects_new():
     data = request.form or request.json or {}
     
-    # Validazione campi obbligatori
-    required_fields = ['code', 'title', 'address', 'description', 'target_amount']
+    # Validazione campi obbligatori (allineati allo schema attuale)
+    required_fields = ['code', 'title', 'description', 'target_amount', 'min_investment', 'start_date', 'end_date']
     for field in required_fields:
         if not data.get(field):
             abort(400, description=f"Campo obbligatorio mancante: {field}")
@@ -142,19 +143,21 @@ def projects_new():
     if not photo or not documents:
         abort(400, description="Foto immobile e documenti tecnici sono obbligatori")
     
-    # Salva i file
+    # Salva i file (in uploads/projects)
     photo_filename = None
     documents_filename = None
     
     try:
         if photo:
-            photo_filename = secure_filename(f"{data['code']}_photo_{int(time.time())}.jpg")
+            ext = os.path.splitext(photo.filename)[1].lower() or '.jpg'
+            photo_filename = secure_filename(f"{data['code']}_photo_{int(time.time())}{ext}")
             photo_path = os.path.join(get_upload_folder(), 'projects', photo_filename)
             os.makedirs(os.path.dirname(photo_path), exist_ok=True)
             photo.save(photo_path)
         
         if documents:
-            documents_filename = secure_filename(f"{data['code']}_docs_{int(time.time())}.pdf")
+            extd = os.path.splitext(documents.filename)[1].lower() or '.pdf'
+            documents_filename = secure_filename(f"{data['code']}_docs_{int(time.time())}{extd}")
             documents_path = os.path.join(get_upload_folder(), 'projects', documents_filename)
             os.makedirs(os.path.dirname(documents_path), exist_ok=True)
             documents.save(documents_path)
@@ -162,20 +165,34 @@ def projects_new():
     except Exception as e:
         abort(500, description=f"Errore nel salvataggio dei file: {str(e)}")
     
-    # Inserisci nel database
+    # Mappa address -> location (compatibilità schema)
+    location_value = data.get('address') or data.get('location') or ''
+    status_value = data.get('status', 'draft')
+    
+    # Campi opzionali schema esteso
+    roi_value = data.get('roi')
+    duration_value = data.get('duration')
+    project_type = data.get('type')
+    
+    # Prepara documents JSONB come array semplice di filenames
+    documents_json = [documents_filename] if documents_filename else None
+    
+    # Inserisci nel database (schema con location, image_url, documents JSONB)
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO projects(
+            INSERT INTO projects (
                 code, name, description, status, total_amount, start_date, end_date,
-                address, min_investment, photo_filename, documents_filename
+                location, min_investment, image_url, documents, roi, duration, type
             )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING id
             """,
             (
-                data['code'], data['title'], data['description'], data.get('status','draft'),
+                data['code'], data['title'], data['description'], status_value,
                 data['target_amount'], data.get('start_date'), data.get('end_date'),
-                data['address'], data.get('min_investment'), photo_filename, documents_filename
+                location_value, data.get('min_investment'), photo_filename, json.dumps(documents_json) if documents_json else None,
+                roi_value, duration_value, project_type
             )
         )
         pid = cur.fetchone()['id']

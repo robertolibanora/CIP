@@ -86,9 +86,8 @@ def create_app():
     if os.environ.get('TESTING') == '1':
         app.config['TESTING'] = True
     
-    # Configurazione percorsi
+    # Configurazione percorsi (valori iniziali, poi sovrascritti dalla config)
     app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB
     
     # Crea cartella upload KYC se non esiste
     kyc_upload_dir = app.config.get('UPLOAD_FOLDER', UPLOADS_DIR)
@@ -101,6 +100,15 @@ def create_app():
     # Carica configurazione
     from config.config import config
     app.config.from_object(config['default'])
+    
+    # Applica override dimensione upload da env (o mantieni quella della config)
+    try:
+        app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get(
+            'MAX_CONTENT_LENGTH',
+            app.config.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024)
+        ))
+    except Exception:
+        app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     
     # Utility Jinja per URL sicuri
     def safe_url_for(endpoint, **values):

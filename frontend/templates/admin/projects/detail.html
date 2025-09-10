@@ -192,11 +192,10 @@
 </div>
 
 <!-- Upload Modal -->
-{% with 
-    modal_id='upload-modal', 
-    modal_title='Carica File', 
-    modal_size='md',
-    modal_body='
+{% set modal_id = 'upload-modal' %}
+{% set modal_title = 'Carica File' %}
+{% set modal_size = 'md' %}
+{% set modal_body %}
     <form id="upload-form" class="space-y-4">
         <div class="admin-form-group">
             <label class="admin-label">Titolo (opzionale)</label>
@@ -218,20 +217,20 @@
                 <div id="preview-content"></div>
             </div>
         </div>
-    </form>",
-    modal_footer="
-    <button type=\"button\" class=\"admin-btn admin-btn--secondary\" onclick=\"closeModal('upload-modal')\">
+    </form>
+{% endset %}
+{% set modal_footer %}
+    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('upload-modal')">
         Annulla
     </button>
-    <button type=\"button\" class=\"admin-btn admin-btn--primary\" onclick=\"submitUpload()\" id=\"upload-btn\">
-        <svg class=\"w-4 h-4 mr-2\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
-            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12\"/>
+    <button type="button" class="admin-btn admin-btn--primary" onclick="submitUpload()" id="upload-btn">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
         </svg>
         Carica File
-    </button>"
-%}
-    {% include 'admin/components/modal.html' %}
-{% endwith %}
+    </button>
+{% endset %}
+{% include 'admin/components/modal.html' %}
 
 {% block extra_js %}
 <script>
@@ -252,34 +251,44 @@ class ProjectDetailManager {
     }
     
     async loadProjectData() {
+        const pageLoading = document.getElementById('page-loading');
+        const projectContent = document.getElementById('project-content');
         try {
             const response = await fetch(`/admin/projects/${this.projectId}?format=json`);
-            if (response.ok) {
-                this.projectData = await response.json();
-                this.renderProject();
-                this.renderStats();
-                this.renderDocuments();
-                this.renderInvestors();
-                
-                // Hide loading, show content
-                document.getElementById('page-loading').classList.add('hidden');
-                document.getElementById('project-content').classList.remove('hidden');
-            } else {
+            if (!response.ok) {
                 this.showAlert('error', 'Progetto non trovato');
+                return;
             }
+            try {
+                this.projectData = await response.json();
+            } catch (e) {
+                console.error('JSON parse error', e);
+                this.showAlert('error', 'Risposta non valida dal server');
+                return;
+            }
+            this.renderProject();
+            this.renderStats();
+            this.renderDocuments();
+            this.renderInvestors();
         } catch (error) {
             console.error('Errore:', error);
             this.showAlert('error', 'Errore nel caricamento del progetto');
+        } finally {
+            if (pageLoading) pageLoading.classList.add('hidden');
+            if (projectContent) projectContent.classList.remove('hidden');
         }
     }
     
     renderProject() {
         const project = this.projectData.project;
         
-        // Update page title and breadcrumb
-        document.getElementById('project-title').textContent = project.name || project.title || 'Progetto Senza Titolo';
-        document.getElementById('project-subtitle').textContent = `Codice: ${project.code || 'N/A'}`;
-        document.getElementById('breadcrumb-title').textContent = project.title || 'Dettaglio';
+        // Update page title and breadcrumb (guard)
+        const _t = document.getElementById('project-title');
+        if (_t) _t.textContent = project.name || project.title || 'Progetto Senza Titolo';
+        const _s = document.getElementById('project-subtitle');
+        if (_s) _s.textContent = `Codice: ${project.code || 'N/A'}`;
+        const _b = document.getElementById('breadcrumb-title');
+        if (_b) _b.textContent = project.name || project.title || 'Dettaglio';
         
         // Update status badge
         const statusBadge = document.getElementById('project-status-badge');
@@ -318,7 +327,7 @@ class ProjectDetailManager {
         const stats = this.projectData.stats;
         const project = this.projectData.project;
         
-        const targetAmount = parseFloat(project.target_amount) || 0;
+        const targetAmount = parseFloat(project.total_amount || project.target_amount) || 0;
         const totalInvested = parseFloat(stats.total_invested) || 0;
         const percentage = targetAmount > 0 ? (totalInvested / targetAmount * 100) : 0;
         

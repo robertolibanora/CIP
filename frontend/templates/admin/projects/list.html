@@ -21,8 +21,8 @@
     </div>
 </div>
 
-<div id="projects-grid" class="admin-grid admin-grid--3"></div>
-<div id="projects-empty" class="text-center text-gray-500 admin-card admin-card-body hidden">Nessun progetto</div>
+<div id="projects-grid-hero" class="admin-grid admin-grid--3"></div>
+<div id="projects-empty-hero" class="text-center text-gray-500 admin-card admin-card-body hidden">Nessun progetto</div>
 
 <!-- Filtri e Statistiche -->
 <div class="hidden">
@@ -633,13 +633,13 @@ async function submitCreateProject() {
     
     // Validazione campi obbligatori
     if (!formData.get('code') || !formData.get('title') || !formData.get('description') || 
-        !formData.get('total_amount') || !formData.get('address')) {
-        projectsManager.showAlert('error', 'Codice, nome, descrizione e importo totale sono obbligatori');
+        !formData.get('target_amount') || !formData.get('address')) {
+        projectsManager.showAlert('error', 'Codice, nome, descrizione e importo target sono obbligatori');
         return;
     }
     
     // Validazione importi
-    const totalAmount = parseFloat(formData.get('total_amount'));
+    const totalAmount = parseFloat(formData.get('target_amount'));
     const minInvestment = parseFloat(formData.get('min_investment')) || 1000;
     
     if (totalAmount <= 0 || minInvestment <= 0) {

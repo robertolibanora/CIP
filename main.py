@@ -97,7 +97,10 @@ def kyc_uploads(filename):
 @app.route('/uploads/projects/<filename>')
 def project_images(filename):
     """Serve le immagini dei progetti pubblicamente"""
-    projects_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'projects')
+    from flask import current_app
+    # Usa la cartella configurata (UPLOAD_FOLDER)/projects
+    upload_base = current_app.config.get('UPLOAD_FOLDER', os.path.join('instance', 'uploads'))
+    projects_dir = os.path.join(upload_base, 'projects')
     return send_from_directory(projects_dir, filename)
 
 # Route per file statici (rimossa - cartella static eliminata)
