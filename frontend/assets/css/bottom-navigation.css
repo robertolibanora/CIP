@@ -1,0 +1,185 @@
+/* Stili per il menu di navigazione inferiore */
+
+.tabbar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+    background-color: #ffffff !important;
+    border-top: 2px solid #3b82f6 !important;
+    padding: 16px 20px !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15) !important;
+    min-height: 60px !important;
+}
+
+.tabbar-item {
+    height: 50px !important;
+    width: 50px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    user-select: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    margin: 0 4px !important;
+}
+
+.tabbar-item::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1)) !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    border-radius: 16px !important;
+}
+
+.tabbar-item:hover::before {
+    opacity: 1 !important;
+}
+
+.tabbar-item:hover {
+    transform: translateY(-2px) scale(1.05) !important;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2) !important;
+}
+
+.tabbar-item:active {
+    transform: translateY(0) scale(0.95) !important;
+    transition: all 0.1s ease !important;
+}
+
+/* Stile per tab attiva */
+.tabbar-item.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: white !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3) !important;
+    border-color: #3b82f6 !important;
+}
+
+.tabbar-item.active::before {
+    opacity: 0 !important;
+}
+
+.tabbar-item.active:hover {
+    transform: scale(1.15) !important;
+    box-shadow: 0 12px 30px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Icone */
+.tabbar-item svg {
+    height: 24px !important;
+    width: 24px !important;
+    transition: all 0.3s ease !important;
+}
+
+.tabbar-item:hover svg {
+    transform: scale(1.1) !important;
+}
+
+.tabbar-item.active svg {
+    transform: scale(1.1) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) !important;
+}
+
+/* Avatar per profilo */
+.tabbar-item img {
+    height: 24px !important;
+    width: 24px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    transition: all 0.3s ease !important;
+    border: 2px solid transparent !important;
+}
+
+.tabbar-item:hover img {
+    transform: scale(1.1) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.tabbar-item.active img {
+    border-color: white !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Nascondere su desktop - TEMPORANEAMENTE DISABILITATO PER TEST */
+/* @media (min-width: 768px) {
+    .tabbar {
+        display: none !important;
+    }
+} */
+
+/* Spaziatore per contenuti */
+.tabbar-spacer {
+    height: 84px !important;
+}
+
+@media (min-width: 768px) {
+    .tabbar-spacer {
+        display: none !important;
+    }
+}
+
+/* Animazioni di entrata */
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.tabbar {
+    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Effetto ripple per i pulsanti */
+.tabbar-item::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: translate(-50%, -50%) !important;
+    transition: width 0.3s ease, height 0.3s ease !important;
+}
+
+.tabbar-item:active::after {
+    width: 100px !important;
+    height: 100px !important;
+}
+
+/* Responsive per schermi molto piccoli */
+@media (max-width: 320px) {
+    .tabbar {
+        padding: 8px 12px !important;
+    }
+    
+    .tabbar-item {
+        height: 44px !important;
+        width: 44px !important;
+    }
+    
+    .tabbar-item svg {
+        height: 20px !important;
+        width: 20px !important;
+    }
+}

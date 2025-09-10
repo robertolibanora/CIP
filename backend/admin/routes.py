@@ -262,23 +262,71 @@ def project_detail(pid):
 @admin_bp.post("/projects/<int:pid>/edit")
 @admin_required
 def projects_edit(pid):
-    data = request.form or request.json or {}
-    fields = [
-        ('code','code'),('title','name'),('description','description'),('status','status'),
-        ('total_amount','total_amount'),('start_date','start_date'),('end_date','end_date')
-    ]
-    sets = []
-    params = []
-    for key, col in fields:
-        if key in data and data.get(key) is not None:
-            sets.append(f"{col}=%s"); params.append(data.get(key))
-    if not sets:
-        abort(400)
-    params.append(pid)
-    sql = f"UPDATE projects SET {', '.join(sets)} WHERE id=%s"
+    # Ottieni i dati dalla richiesta
+    if request.is_json:
+        data = request.get_json() or {}
+    else:
+        data = request.form.to_dict()
+    
+    # Se non ci sono dati, restituisci errore
+    if not data:
+        if request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"error": "Nessun dato ricevuto"}), 400
+        else:
+            return redirect(url_for('admin.projects_detail', pid=pid))
+    
+    # Aggiorna il progetto con i dati ricevuti
     with get_conn() as conn, conn.cursor() as cur:
+        # Costruisci la query SQL direttamente
+        update_fields = []
+        params = []
+        
+        if 'code' in data and data['code']:
+            update_fields.append("code = %s")
+            params.append(data['code'])
+        
+        if 'title' in data and data['title']:
+            update_fields.append("name = %s")
+            params.append(data['title'])
+        
+        if 'description' in data and data['description']:
+            update_fields.append("description = %s")
+            params.append(data['description'])
+        
+        if 'status' in data and data['status']:
+            update_fields.append("status = %s")
+            params.append(data['status'])
+        
+        if 'total_amount' in data and data['total_amount']:
+            update_fields.append("total_amount = %s")
+            params.append(float(data['total_amount']))
+        
+        if 'start_date' in data and data['start_date']:
+            update_fields.append("start_date = %s")
+            params.append(data['start_date'])
+        
+        if 'end_date' in data and data['end_date']:
+            update_fields.append("end_date = %s")
+            params.append(data['end_date'])
+        
+        if not update_fields:
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({"error": "Nessun campo valido da aggiornare"}), 400
+            else:
+                return redirect(url_for('admin.projects_detail', pid=pid))
+        
+        # Esegui l'aggiornamento
+        params.append(pid)
+        sql = f"UPDATE projects SET {', '.join(update_fields)} WHERE id = %s"
+        
         cur.execute(sql, params)
-    return jsonify({"updated": True})
+        conn.commit()
+    
+    # Restituisci risposta di successo
+    if request.headers.get('Content-Type') == 'application/json':
+        return jsonify({"updated": True, "message": "Progetto aggiornato con successo"})
+    else:
+        return redirect(url_for('admin.projects_detail', pid=pid))
 
 @admin_bp.delete("/projects/<int:pid>")
 @admin_required

@@ -1,0 +1,46 @@
+/* Stili per il pulsante "Torna Indietro" */
+
+.back-button {
+    @apply flex items-center text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition-colors;
+}
+
+.back-button:hover {
+    @apply transform scale-105;
+}
+
+.back-button:active {
+    @apply transform scale-95;
+}
+
+.back-button svg {
+    @apply transition-transform duration-200;
+}
+
+.back-button:hover svg {
+    @apply -translate-x-1;
+}
+
+/* Versione compatta */
+.back-button-compact {
+    @apply flex items-center justify-center text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition-colors;
+}
+
+/* Versione con animazione */
+.back-button-animated {
+    @apply flex items-center text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100 transition-all duration-300;
+}
+
+.back-button-animated:hover {
+    @apply transform scale-105 shadow-md;
+}
+
+/* Versione per mobile */
+@media (max-width: 640px) {
+    .back-button span {
+        @apply hidden;
+    }
+    
+    .back-button {
+        @apply p-3;
+    }
+}

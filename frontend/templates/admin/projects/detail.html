@@ -2,37 +2,31 @@
 
 {% block title %}Dettaglio Progetto - Admin CIP Immobiliare{% endblock %}
 
-
-
-
-
 {% block content %}
 <!-- Loading State -->
 <div id="page-loading" class="text-center py-12">
-    {% with loading_text='Caricamento progetto...', loading_size='lg' %}
-    {% include 'admin/components/loading.html' %}
-{% endwith %}
+    <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Caricamento progetto...
+    </div>
 </div>
 
 <!-- Project Content -->
 <div id="project-content" class="hidden space-y-6">
     <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center">
             <div>
-                <h1 class="admin-heading-1" id="project-title">Dettaglio Progetto</h1>
-                <p class="admin-text-small" id="project-subtitle">Gestione completa progetto immobiliare</p>
+                <h1 class="text-2xl font-bold text-gray-900" id="project-title">Dettaglio Progetto</h1>
+                <p class="text-sm text-gray-600" id="project-subtitle">Gestione completa progetto immobiliare</p>
             </div>
-            <div class="admin-flex">
-                <span class="admin-badge" id="project-status-badge">Status</span>
-                <button onclick="toggleEditMode()" class="admin-btn admin-btn--secondary admin-btn--sm ml-2" id="edit-toggle-btn">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                    Modifica
-                </button>
-                <button onclick="deleteProject()" class="admin-btn admin-btn--error admin-btn--sm ml-2" id="delete-btn">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 rounded-full text-sm font-medium" id="project-status-badge">Status</span>
+                <button onclick="deleteProject()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium" id="delete-btn">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                     Elimina
@@ -45,22 +39,22 @@
     <div id="alerts-container"></div>
 
     <!-- Project Details and Stats -->
-    <div class="admin-grid admin-grid--3">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Project Info -->
-        <div class="admin-card col-span-2">
-            <div class="admin-card-header">
-                <h2 class="admin-heading-2">Informazioni Progetto</h2>
+        <div class="lg:col-span-2 bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Informazioni Progetto</h2>
             </div>
-            <div class="admin-card-body">
+            <div class="p-6">
                 <form id="project-form">
-                    <div class="admin-grid admin-grid--2">
-                        <div class="admin-form-group">
-                            <label class="admin-label">Codice Progetto</label>
-                            <input type="text" name="code" class="admin-input" readonly id="field-code">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Codice Progetto</label>
+                            <input type="text" name="code" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-code">
                         </div>
-                        <div class="admin-form-group">
-                            <label class="admin-label">Stato</label>
-                            <select name="status" class="admin-input admin-select" disabled id="field-status">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stato</label>
+                            <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-status">
                                 <option value="draft">Bozza</option>
                                 <option value="active">Attivo</option>
                                 <option value="funded">Finanziato</option>
@@ -70,38 +64,35 @@
                         </div>
                     </div>
                     
-                    <div class="admin-form-group">
-                        <label class="admin-label">Titolo</label>
-                        <input type="text" name="title" class="admin-input" readonly id="field-title">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titolo</label>
+                        <input type="text" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-title">
                     </div>
                     
-                    <div class="admin-form-group">
-                        <label class="admin-label">Descrizione</label>
-                        <textarea name="description" class="admin-input admin-textarea" readonly id="field-description"></textarea>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descrizione</label>
+                        <textarea name="description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-description"></textarea>
                     </div>
                     
-                    <div class="admin-grid admin-grid--3">
-                        <div class="admin-form-group">
-                            <label class="admin-label">Importo Totale (€)</label>
-                            <input type="number" name="total_amount" class="admin-input" readonly id="field-total_amount">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Importo Totale (€)</label>
+                            <input type="number" name="total_amount" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-total_amount">
                         </div>
-                        <div class="admin-form-group">
-                            <label class="admin-label">Data Inizio</label>
-                            <input type="date" name="start_date" class="admin-input" readonly id="field-start_date">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Inizio</label>
+                            <input type="date" name="start_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-start_date">
                         </div>
-                        <div class="admin-form-group">
-                            <label class="admin-label">Data Fine</label>
-                            <input type="date" name="end_date" class="admin-input" readonly id="field-end_date">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Data Fine</label>
+                            <input type="date" name="end_date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-end_date">
                         </div>
                     </div>
                     
-                    <!-- Save/Cancel buttons (hidden by default) -->
-                    <div id="edit-controls" class="hidden mt-6 pt-4 border-t admin-flex admin-flex--end">
-                        <button type="button" onclick="cancelEdit()" class="admin-btn admin-btn--secondary mr-2">
-                            Annulla
-                        </button>
-                        <button type="button" onclick="saveProject()" class="admin-btn admin-btn--primary" id="save-btn">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Save Button -->
+                    <div class="pt-4 border-t border-gray-200 flex justify-end">
+                        <button type="button" onclick="saveProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md text-sm font-medium" id="save-btn">
+                            <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Salva Modifiche
@@ -112,35 +103,37 @@
         </div>
 
         <!-- Stats Card -->
-        <div class="admin-card">
-            <div class="admin-card-header">
-                <h2 class="admin-heading-3">Statistiche Investimenti</h2>
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Statistiche Investimenti</h2>
             </div>
-            <div class="admin-card-body">
+            <div class="p-6">
                 <div class="space-y-4" id="project-stats">
-                    {% with loading_skeleton=true, loading_skeleton_lines=4 %}
-    {% include 'admin/components/loading.html' %}
-{% endwith %}
+                    <div class="animate-pulse">
+                        <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Documents and Images -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <div class="admin-flex admin-flex--between">
-                <h2 class="admin-heading-2">Documenti e Immagini</h2>
-                <button onclick="openUploadModal()" class="admin-btn admin-btn--primary admin-btn--sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Documenti e Immagini</h2>
+                <button onclick="openUploadModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
                     Carica File
                 </button>
             </div>
         </div>
-        <div class="admin-card-body">
-            <div id="documents-grid" class="admin-grid admin-grid--4">
+        <div class="p-6">
+            <div id="documents-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Documents will be loaded here -->
             </div>
             
@@ -148,89 +141,95 @@
                 <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                 </svg>
-                <h3 class="admin-heading-3 text-gray-500">Nessun documento</h3>
-                <p class="admin-text-body text-gray-400">Carica immagini JPG/PNG o documenti PDF</p>
+                <h3 class="text-lg font-medium text-gray-500">Nessun documento</h3>
+                <p class="text-sm text-gray-400">Carica immagini JPG/PNG o documenti PDF</p>
             </div>
         </div>
     </div>
 
     <!-- Investors List -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <div class="admin-flex admin-flex--between">
-                <h2 class="admin-heading-2">Investitori</h2>
-                <span class="admin-badge admin-badge--info" id="investors-count">0 investitori</span>
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Investitori</h2>
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium" id="investors-count">0 investitori</span>
             </div>
         </div>
-        <div class="admin-card-body">
-            <div class="overflow-x-auto">
-                <table class="min-w-full" id="investors-table">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left admin-text-caption">Investitore</th>
-                            <th class="px-4 py-3 text-left admin-text-caption">Importo</th>
-                            <th class="px-4 py-3 text-left admin-text-caption">Stato</th>
-                            <th class="px-4 py-3 text-left admin-text-caption">Data</th>
-                            <th class="px-4 py-3 text-left admin-text-caption">KYC</th>
-                        </tr>
-                    </thead>
-                    <tbody id="investors-tbody">
-                        <!-- Investors will be loaded here -->
-                    </tbody>
-                </table>
-                
-                <div id="investors-empty" class="hidden text-center py-8">
-                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                    </svg>
-                    <h3 class="admin-heading-3 text-gray-500">Nessun investitore</h3>
-                    <p class="admin-text-body text-gray-400">Non ci sono ancora investimenti per questo progetto</p>
-                </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="investors-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Investitore</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Importo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stato</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KYC</th>
+                    </tr>
+                </thead>
+                <tbody id="investors-tbody" class="bg-white divide-y divide-gray-200">
+                    <!-- Investors will be loaded here -->
+                </tbody>
+            </table>
+            
+            <div id="investors-empty" class="hidden text-center py-8">
+                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-500">Nessun investitore</h3>
+                <p class="text-sm text-gray-400">Non ci sono ancora investimenti per questo progetto</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Upload Modal -->
-{% set modal_id = 'upload-modal' %}
-{% set modal_title = 'Carica File' %}
-{% set modal_size = 'md' %}
-{% set modal_body %}
-    <form id="upload-form" class="space-y-4">
-        <div class="admin-form-group">
-            <label class="admin-label">Titolo (opzionale)</label>
-            <input type="text" name="title" class="admin-input" placeholder="Nome descrittivo del file">
-        </div>
-        
-        <div class="admin-form-group">
-            <label class="admin-label admin-label--required">File</label>
-            <div class="relative">
-                <input type="file" name="file" class="admin-input" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
-                <p class="admin-help-text">Formato supportati: JPG, PNG, PDF (max 10MB)</p>
+<div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Carica File</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="upload-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titolo (opzionale)</label>
+                    <input type="text" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome descrittivo del file">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">File <span class="text-red-500">*</span></label>
+                    <input type="file" name="file" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
+                    <p class="text-xs text-gray-500 mt-1">Formati supportati: JPG, PNG, PDF (max 10MB)</p>
+                </div>
+                
+                <!-- Preview -->
+                <div id="file-preview" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Anteprima</label>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div id="preview-content"></div>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                    Annulla
+                </button>
+                <button type="button" onclick="submitUpload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="upload-btn">
+                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Carica File
+                </button>
             </div>
         </div>
-        
-        <!-- Preview -->
-        <div id="file-preview" class="hidden">
-            <label class="admin-label">Anteprima</label>
-            <div class="border border-gray-200 rounded-lg p-4">
-                <div id="preview-content"></div>
-            </div>
-        </div>
-    </form>
-{% endset %}
-{% set modal_footer %}
-    <button type="button" class="admin-btn admin-btn--secondary" onclick="closeModal('upload-modal')">
-        Annulla
-    </button>
-    <button type="button" class="admin-btn admin-btn--primary" onclick="submitUpload()" id="upload-btn">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-        </svg>
-        Carica File
-    </button>
-{% endset %}
-{% include 'admin/components/modal.html' %}
+    </div>
+</div>
 
 {% block extra_js %}
 <script>
@@ -239,7 +238,6 @@ class ProjectDetailManager {
     constructor(projectId) {
         this.projectId = projectId;
         this.projectData = null;
-        this.isEditMode = false;
         this.originalData = {};
         
         this.init();
@@ -253,26 +251,26 @@ class ProjectDetailManager {
     async loadProjectData() {
         const pageLoading = document.getElementById('page-loading');
         const projectContent = document.getElementById('project-content');
+        
         try {
+            console.log(`Loading project data for ID: ${this.projectId}`);
             const response = await fetch(`/admin/projects/${this.projectId}?format=json`);
+            
             if (!response.ok) {
-                this.showAlert('error', 'Progetto non trovato');
-                return;
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            try {
-                this.projectData = await response.json();
-            } catch (e) {
-                console.error('JSON parse error', e);
-                this.showAlert('error', 'Risposta non valida dal server');
-                return;
-            }
+            
+            this.projectData = await response.json();
+            console.log('Project data loaded:', this.projectData);
+            
             this.renderProject();
             this.renderStats();
             this.renderDocuments();
             this.renderInvestors();
+            
         } catch (error) {
-            console.error('Errore:', error);
-            this.showAlert('error', 'Errore nel caricamento del progetto');
+            console.error('Error loading project:', error);
+            this.showAlert('error', 'Errore nel caricamento del progetto: ' + error.message);
         } finally {
             if (pageLoading) pageLoading.classList.add('hidden');
             if (projectContent) projectContent.classList.remove('hidden');
@@ -282,22 +280,21 @@ class ProjectDetailManager {
     renderProject() {
         const project = this.projectData.project;
         
-        // Update page title and breadcrumb (guard)
-        const _t = document.getElementById('project-title');
-        if (_t) _t.textContent = project.name || project.title || 'Progetto Senza Titolo';
-        const _s = document.getElementById('project-subtitle');
-        if (_s) _s.textContent = `Codice: ${project.code || 'N/A'}`;
-        const _b = document.getElementById('breadcrumb-title');
-        if (_b) _b.textContent = project.name || project.title || 'Dettaglio';
+        // Update page title and breadcrumb
+        const titleEl = document.getElementById('project-title');
+        if (titleEl) titleEl.textContent = project.name || project.title || 'Progetto Senza Titolo';
+        
+        const subtitleEl = document.getElementById('project-subtitle');
+        if (subtitleEl) subtitleEl.textContent = `Codice: ${project.code || 'N/A'}`;
         
         // Update status badge
         const statusBadge = document.getElementById('project-status-badge');
         const statusColors = {
-            draft: 'gray',
-            active: 'blue',
-            funded: 'green',
-            completed: 'purple',
-            cancelled: 'red'
+            draft: 'bg-gray-100 text-gray-800',
+            active: 'bg-blue-100 text-blue-800',
+            funded: 'bg-green-100 text-green-800',
+            completed: 'bg-purple-100 text-purple-800',
+            cancelled: 'bg-red-100 text-red-800'
         };
         const statusLabels = {
             draft: 'Bozza',
@@ -307,7 +304,7 @@ class ProjectDetailManager {
             cancelled: 'Annullato'
         };
         
-        statusBadge.className = `admin-badge admin-badge--${statusColors[project.status] || 'gray'}`;
+        statusBadge.className = `px-3 py-1 rounded-full text-sm font-medium ${statusColors[project.status] || 'bg-gray-100 text-gray-800'}`;
         statusBadge.textContent = statusLabels[project.status] || project.status;
         
         // Fill form fields
@@ -320,7 +317,15 @@ class ProjectDetailManager {
         document.getElementById('field-end_date').value = project.end_date || '';
         
         // Store original data
-        this.originalData = { ...project };
+        this.originalData = {
+            code: project.code || '',
+            title: project.name || project.title || '',
+            description: project.description || '',
+            status: project.status || 'draft',
+            total_amount: project.total_amount || project.target_amount || '',
+            start_date: project.start_date || '',
+            end_date: project.end_date || ''
+        };
     }
     
     renderStats() {
@@ -334,21 +339,21 @@ class ProjectDetailManager {
         document.getElementById('project-stats').innerHTML = `
             <div class="space-y-3">
                 <div class="flex justify-between">
-                    <span class="admin-text-small">Investitori:</span>
-                    <span class="admin-badge admin-badge--info">${stats.investors_count || 0}</span>
+                    <span class="text-sm text-gray-600">Investitori:</span>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">${stats.investors_count || 0}</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="admin-text-small">Totale Investito:</span>
-                    <span class="admin-text-small font-medium">€${totalInvested.toLocaleString()}</span>
+                    <span class="text-sm text-gray-600">Totale Investito:</span>
+                    <span class="text-sm font-medium">€${totalInvested.toLocaleString()}</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="admin-text-small">Target:</span>
-                    <span class="admin-text-small">€${targetAmount.toLocaleString()}</span>
+                    <span class="text-sm text-gray-600">Target:</span>
+                    <span class="text-sm">€${targetAmount.toLocaleString()}</span>
                 </div>
                 <div class="space-y-1">
                     <div class="flex justify-between">
-                        <span class="admin-text-small">Progresso:</span>
-                        <span class="admin-text-small font-medium">${percentage.toFixed(1)}%</span>
+                        <span class="text-sm text-gray-600">Progresso:</span>
+                        <span class="text-sm font-medium">${percentage.toFixed(1)}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
@@ -357,8 +362,8 @@ class ProjectDetailManager {
                 </div>
                 ${stats.avg_investment ? `
                 <div class="flex justify-between">
-                    <span class="admin-text-small">Media Investimento:</span>
-                    <span class="admin-text-small">€${parseFloat(stats.avg_investment).toLocaleString()}</span>
+                    <span class="text-sm text-gray-600">Media Investimento:</span>
+                    <span class="text-sm">€${parseFloat(stats.avg_investment).toLocaleString()}</span>
                 </div>
                 ` : ''}
             </div>
@@ -366,11 +371,11 @@ class ProjectDetailManager {
     }
     
     renderDocuments() {
-        const documents = this.projectData.documents;
+        const documents = this.projectData.documents || [];
         const grid = document.getElementById('documents-grid');
         const empty = document.getElementById('documents-empty');
         
-        if (!documents || documents.length === 0) {
+        if (documents.length === 0) {
             grid.classList.add('hidden');
             empty.classList.remove('hidden');
             return;
@@ -387,54 +392,48 @@ class ProjectDetailManager {
         const isPDF = doc.file_type?.toLowerCase() === 'pdf';
         
         return `
-            <div class="admin-card">
-                <div class="admin-card-body p-4">
-                    <div class="aspect-square mb-3 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                        ${isImage ? `
-                            <img src="/admin/uploads/${doc.file_path}" alt="${doc.title}" 
-                                 class="w-full h-full object-cover cursor-pointer"
-                                 onclick="openImagePreview('/admin/uploads/${doc.file_path}', '${doc.title}')">
-                        ` : `
-                            <div class="text-center">
-                                <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    ${isPDF ? `
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    ` : `
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    `}
-                                </svg>
-                                <span class="admin-text-caption">${doc.file_type?.toUpperCase() || 'FILE'}</span>
-                            </div>
-                        `}
-                    </div>
-                    <h4 class="admin-text-small font-medium mb-1 line-clamp-2">${doc.title || 'Documento'}</h4>
-                    <p class="admin-text-caption text-gray-500 mb-3">
-                        ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}
-                    </p>
-                    <div class="admin-flex">
-                        <a href="/admin/uploads/${doc.file_path}" target="_blank" 
-                           class="admin-btn admin-btn--secondary admin-btn--sm flex-1 mr-1">
-                            Visualizza
-                        </a>
-                        <button onclick="deleteDocument(${doc.id})" 
-                                class="admin-btn admin-btn--error admin-btn--sm">
-                            ×
-                        </button>
-                    </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <div class="aspect-square mb-3 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                    ${isImage ? `
+                        <img src="/admin/uploads/${doc.file_path}" alt="${doc.title}" 
+                             class="w-full h-full object-cover cursor-pointer"
+                             onclick="openImagePreview('/admin/uploads/${doc.file_path}', '${doc.title}')">
+                    ` : `
+                        <div class="text-center">
+                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <span class="text-xs text-gray-500">${doc.file_type?.toUpperCase() || 'FILE'}</span>
+                        </div>
+                    `}
+                </div>
+                <h4 class="text-sm font-medium mb-1 line-clamp-2">${doc.title || 'Documento'}</h4>
+                <p class="text-xs text-gray-500 mb-3">
+                    ${new Date(doc.uploaded_at).toLocaleDateString('it-IT')}
+                </p>
+                <div class="flex space-x-1">
+                    <a href="/admin/uploads/${doc.file_path}" target="_blank" 
+                       class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs text-center">
+                        Visualizza
+                    </a>
+                    <button onclick="deleteDocument(${doc.id})" 
+                            class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-xs">
+                        ×
+                    </button>
                 </div>
             </div>
         `;
     }
     
     renderInvestors() {
-        const investments = this.projectData.investments;
+        const investments = this.projectData.investments || [];
         const tbody = document.getElementById('investors-tbody');
         const empty = document.getElementById('investors-empty');
         const count = document.getElementById('investors-count');
         
-        count.textContent = `${investments?.length || 0} investitori`;
+        count.textContent = `${investments.length} investitori`;
         
-        if (!investments || investments.length === 0) {
+        if (investments.length === 0) {
             tbody.innerHTML = '';
             empty.classList.remove('hidden');
             return;
@@ -444,43 +443,43 @@ class ProjectDetailManager {
         
         tbody.innerHTML = investments.map(inv => {
             const statusColors = {
-                pending: 'warning',
-                active: 'success',
-                completed: 'info',
-                cancelled: 'error'
+                pending: 'bg-yellow-100 text-yellow-800',
+                active: 'bg-green-100 text-green-800',
+                completed: 'bg-blue-100 text-blue-800',
+                cancelled: 'bg-red-100 text-red-800'
             };
             
             const kycColors = {
-                verified: 'success',
-                pending: 'warning',
-                rejected: 'error',
-                unverified: 'gray'
+                verified: 'bg-green-100 text-green-800',
+                pending: 'bg-yellow-100 text-yellow-800',
+                rejected: 'bg-red-100 text-red-800',
+                unverified: 'bg-gray-100 text-gray-800'
             };
             
             return `
-                <tr class="border-t border-gray-200 hover:bg-gray-50">
-                    <td class="px-4 py-3">
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <div>
-                            <p class="admin-text-body font-medium">${inv.full_name}</p>
-                            <p class="admin-text-caption text-gray-500">${inv.email}</p>
+                            <p class="text-sm font-medium text-gray-900">${inv.full_name}</p>
+                            <p class="text-sm text-gray-500">${inv.email}</p>
                         </div>
                     </td>
-                    <td class="px-4 py-3">
-                        <span class="admin-text-body font-medium">€${parseFloat(inv.amount).toLocaleString()}</span>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900">€${parseFloat(inv.amount).toLocaleString()}</span>
                     </td>
-                    <td class="px-4 py-3">
-                        <span class="admin-badge admin-badge--${statusColors[inv.status] || 'gray'}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[inv.status] || 'bg-gray-100 text-gray-800'}">
                             ${inv.status}
                         </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <div>
-                            <p class="admin-text-small">${new Date(inv.created_at).toLocaleDateString('it-IT')}</p>
-                            ${inv.activated_at ? `<p class="admin-text-caption text-gray-500">Attivato: ${new Date(inv.activated_at).toLocaleDateString('it-IT')}</p>` : ''}
+                            <p class="text-sm text-gray-900">${new Date(inv.created_at).toLocaleDateString('it-IT')}</p>
+                            ${inv.activated_at ? `<p class="text-xs text-gray-500">Attivato: ${new Date(inv.activated_at).toLocaleDateString('it-IT')}</p>` : ''}
                         </div>
                     </td>
-                    <td class="px-4 py-3">
-                        <span class="admin-badge admin-badge--${kycColors[inv.kyc_status] || 'gray'}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${kycColors[inv.kyc_status] || 'bg-gray-100 text-gray-800'}">
                             ${inv.kyc_status}
                         </span>
                     </td>
@@ -489,92 +488,58 @@ class ProjectDetailManager {
         }).join('');
     }
     
-    toggleEditMode() {
-        this.isEditMode = !this.isEditMode;
-        
-        const fields = ['code', 'title', 'description', 'status', 'target_amount', 'start_date', 'end_date'];
-        const editControls = document.getElementById('edit-controls');
-        const editButton = document.getElementById('edit-toggle-btn');
-        
-        fields.forEach(field => {
-            const element = document.getElementById(`field-${field}`);
-            if (field === 'status') {
-                element.disabled = !this.isEditMode;
-            } else {
-                element.readOnly = !this.isEditMode;
-            }
-            
-            if (this.isEditMode) {
-                element.classList.add('bg-white');
-                element.classList.remove('bg-gray-50');
-            } else {
-                element.classList.remove('bg-white');
-                element.classList.add('bg-gray-50');
-            }
-        });
-        
-        if (this.isEditMode) {
-            editControls.classList.remove('hidden');
-            editButton.innerHTML = `
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                Annulla
-            `;
-        } else {
-            editControls.classList.add('hidden');
-            editButton.innerHTML = `
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-                Modifica
-            `;
-        }
-    }
-    
-    cancelEdit() {
-        // Restore original values
-        Object.keys(this.originalData).forEach(key => {
-            const field = document.getElementById(`field-${key}`);
-            if (field) {
-                field.value = this.originalData[key] || '';
-            }
-        });
-        
-        this.toggleEditMode();
-    }
-    
     async saveProject() {
         const form = document.getElementById('project-form');
         const formData = new FormData(form);
         const data = Object.fromEntries(formData);
         
+        // Map field names to match backend expectations
+        const mappedData = {
+            code: data.code,
+            title: data.title,  // Backend mapperà title -> name nel database
+            description: data.description,
+            status: data.status,
+            total_amount: data.total_amount,
+            start_date: data.start_date,
+            end_date: data.end_date
+        };
+        
+        console.log('Sending data:', mappedData);
+        
         const saveBtn = document.getElementById('save-btn');
-        setButtonLoading(saveBtn, true, 'Salvando...');
+        this.setButtonLoading(saveBtn, true, 'Salvando...');
         
         try {
             const response = await fetch(`/admin/projects/${this.projectId}/edit`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(mappedData)
             });
             
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
             if (response.ok) {
+                const result = await response.json();
+                console.log('Success response:', result);
                 this.showAlert('success', 'Progetto aggiornato con successo');
-                this.originalData = { ...data };
-                this.toggleEditMode();
+                this.originalData = { ...mappedData };
                 
                 // Refresh project data
                 await this.loadProjectData();
             } else {
                 const result = await response.json();
+                console.error('Error response:', result);
                 this.showAlert('error', result.error || 'Errore nel salvataggio');
             }
         } catch (error) {
-            console.error('Errore:', error);
-            this.showAlert('error', 'Errore di connessione');
+            console.error('Network error:', error);
+            this.showAlert('error', 'Errore di connessione: ' + error.message);
         } finally {
-            setButtonLoading(saveBtn, false);
+            this.setButtonLoading(saveBtn, false);
         }
     }
     
@@ -584,7 +549,7 @@ class ProjectDetailManager {
         }
         
         const deleteBtn = document.getElementById('delete-btn');
-        setButtonLoading(deleteBtn, true, 'Eliminando...');
+        this.setButtonLoading(deleteBtn, true, 'Eliminando...');
         
         try {
             const response = await fetch(`/admin/projects/${this.projectId}`, {
@@ -602,21 +567,24 @@ class ProjectDetailManager {
                 this.showAlert('error', result.error || 'Errore nell\'eliminazione');
             }
         } catch (error) {
-            console.error('Errore:', error);
+            console.error('Error:', error);
             this.showAlert('error', 'Errore di connessione');
         } finally {
-            setButtonLoading(deleteBtn, false);
+            this.setButtonLoading(deleteBtn, false);
         }
     }
     
     bindEvents() {
         // File input preview
-        document.getElementById('file-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                this.previewFile(file);
-            }
-        });
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.previewFile(file);
+                }
+            });
+        }
     }
     
     previewFile(file) {
@@ -637,8 +605,8 @@ class ProjectDetailManager {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                     <div>
-                        <p class="admin-text-body font-medium">${file.name}</p>
-                        <p class="admin-text-caption">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p class="text-sm font-medium text-gray-900">${file.name}</p>
+                        <p class="text-xs text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                 </div>
             `;
@@ -656,7 +624,7 @@ class ProjectDetailManager {
         }
         
         const uploadBtn = document.getElementById('upload-btn');
-        setButtonLoading(uploadBtn, true, 'Caricando...');
+        this.setButtonLoading(uploadBtn, true, 'Caricando...');
         
         try {
             const response = await fetch(`/admin/projects/${this.projectId}/upload`, {
@@ -668,7 +636,7 @@ class ProjectDetailManager {
             
             if (response.ok) {
                 this.showAlert('success', 'File caricato con successo');
-                closeModal('upload-modal');
+                closeModal();
                 form.reset();
                 document.getElementById('file-preview').classList.add('hidden');
                 
@@ -678,10 +646,30 @@ class ProjectDetailManager {
                 this.showAlert('error', result.error || 'Errore nel caricamento');
             }
         } catch (error) {
-            console.error('Errore:', error);
+            console.error('Error:', error);
             this.showAlert('error', 'Errore di connessione');
         } finally {
-            setButtonLoading(uploadBtn, false);
+            this.setButtonLoading(uploadBtn, false);
+        }
+    }
+    
+    setButtonLoading(button, loading, text) {
+        if (loading) {
+            button.disabled = true;
+            button.innerHTML = `
+                <svg class="w-4 h-4 mr-2 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                ${text}
+            `;
+        } else {
+            button.disabled = false;
+            button.innerHTML = `
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Salva Modifiche
+            `;
         }
     }
     
@@ -689,13 +677,24 @@ class ProjectDetailManager {
         const container = document.getElementById('alerts-container');
         const alertId = 'alert-' + Date.now();
         
+        const alertColors = {
+            success: 'bg-green-100 border-green-400 text-green-700',
+            error: 'bg-red-100 border-red-400 text-red-700',
+            warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
+            info: 'bg-blue-100 border-blue-400 text-blue-700'
+        };
+        
         container.innerHTML = `
-            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+            <div id="${alertId}" class="border-l-4 p-4 mb-4 ${alertColors[type] || alertColors.info}">
                 <div class="flex items-start">
                     <div class="flex-1">
-                        <p class="text-sm">${message}</p>
+                        <p class="text-sm font-medium">${message}</p>
                     </div>
-                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         `;
@@ -710,14 +709,6 @@ class ProjectDetailManager {
 // Global variables and functions
 let projectDetailManager;
 
-function toggleEditMode() {
-    projectDetailManager.toggleEditMode();
-}
-
-function cancelEdit() {
-    projectDetailManager.cancelEdit();
-}
-
 function saveProject() {
     projectDetailManager.saveProject();
 }
@@ -727,7 +718,11 @@ function deleteProject() {
 }
 
 function openUploadModal() {
-    openModal('upload-modal');
+    document.getElementById('upload-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
 }
 
 function submitUpload() {
@@ -735,13 +730,11 @@ function submitUpload() {
 }
 
 function openImagePreview(src, title) {
-    // TODO: Implement image preview modal
     window.open(src, '_blank');
 }
 
 function deleteDocument(docId) {
     if (confirm('Sei sicuro di voler eliminare questo documento?')) {
-        // TODO: Implement document deletion
         alert('Funzionalità in sviluppo');
     }
 }

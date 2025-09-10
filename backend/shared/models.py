@@ -53,6 +53,7 @@ class ProjectStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    SOLD = "sold"
 
 # ============================================================================
 # MODELLI BASE
@@ -347,6 +348,11 @@ class Project:
     gallery: Optional[dict]
     created_at: datetime
     updated_at: datetime
+    # Nuovi campi per gestione vendite
+    sale_price: Optional[Decimal] = None
+    sale_date: Optional[datetime] = None
+    profit_percentage: Optional[Decimal] = None
+    sold_by_admin_id: Optional[int] = None
     
     def funding_progress(self) -> Decimal:
         """Calcola la percentuale di finanziamento"""
@@ -357,6 +363,31 @@ class Project:
     def is_funded(self) -> bool:
         """Verifica se il progetto è completamente finanziato"""
         return self.funded_amount >= self.total_amount
+    
+    def can_invest(self) -> bool:
+        """Verifica se è possibile investire nel progetto"""
+        return self.status == ProjectStatus.ACTIVE
+    
+    def is_completed(self) -> bool:
+        """Verifica se il progetto è completato (non si può più investire)"""
+        return self.status == ProjectStatus.COMPLETED
+    
+    def is_sold(self) -> bool:
+        """Verifica se il progetto è stato venduto"""
+        return self.status == ProjectStatus.SOLD
+    
+    def get_profit_info(self) -> dict:
+        """Restituisce informazioni sui profitti se il progetto è venduto"""
+        if not self.is_sold() or not self.sale_price:
+            return {}
+        
+        profit_amount = self.sale_price - self.total_amount
+        return {
+            'sale_price': self.sale_price,
+            'profit_amount': profit_amount,
+            'profit_percentage': self.profit_percentage or Decimal('0.00'),
+            'sale_date': self.sale_date
+        }
 
 # ============================================================================
 # MODELLI NOTIFICHE

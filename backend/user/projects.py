@@ -21,7 +21,7 @@ def require_login():
 @projects_bp.get("/projects")
 def projects():
     """
-    Lista progetti disponibili per investimento
+    Lista progetti divisi in 3 sezioni: Attivi, Completati, Venduti
     ACCESSO: Solo tramite navbar mobile-nav.html
     TABELLE: projects, investments (solo lettura)
     """
@@ -36,10 +36,11 @@ def projects():
         
         is_kyc_verified = user and user['kyc_status'] == 'verified'
         
-        # 2. PROGETTI DISPONIBILI CON INFORMAZIONI INVESTIMENTI
+        # 2. PROGETTI ATTIVI (dove si può investire)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code,
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
+                   p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(i.amount, 0) as user_investment_amount,
                    COALESCE(i.status, 'none') as user_investment_status
@@ -49,28 +50,78 @@ def projects():
             ORDER BY p.created_at DESC
         """, (uid,))
         
-        projects = cur.fetchall()
+        active_projects = cur.fetchall()
         
-        # 3. ELABORAZIONE DATI PROGETTI
-        for project in projects:
-            # Calcola percentuale completamento
-            if project['total_amount'] and project['total_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
-            else:
-                project['completion_percent'] = 0
+        # 3. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
+        cur.execute("""
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
+                   p.sale_price, p.sale_date, p.profit_percentage,
+                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(i.amount, 0) as user_investment_amount,
+                   COALESCE(i.status, 'none') as user_investment_status
+            FROM projects p 
+            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
+            WHERE p.status = 'completed'
+            ORDER BY p.created_at DESC
+        """, (uid,))
+        
+        completed_projects = cur.fetchall()
+        
+        # 4. PROGETTI VENDUTI (con informazioni sui profitti)
+        cur.execute("""
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
+                   p.sale_price, p.sale_date, p.profit_percentage,
+                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(i.amount, 0) as user_investment_amount,
+                   COALESCE(i.status, 'none') as user_investment_status
+            FROM projects p 
+            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
+            WHERE p.status = 'sold'
+            ORDER BY p.sale_date DESC
+        """, (uid,))
+        
+        sold_projects = cur.fetchall()
+        
+        # 5. ELABORAZIONE DATI PROGETTI
+        def process_projects(projects_list):
+            for project in projects_list:
+                # Calcola percentuale completamento
+                if project['total_amount'] and project['total_amount'] > 0:
+                    project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
+                else:
+                    project['completion_percent'] = 0
+                
+                # Aggiungi campi mancanti per compatibilità template
+                project['location'] = project.get('location', 'N/A')
+                project['roi'] = project.get('roi', 8.5)
+                project['min_investment'] = project.get('min_investment', 1000)
+                
+                # PLACEHOLDER IMMAGINI - Struttura per galleria
+                project['has_images'] = False
+                project['image_url'] = None
+                project['gallery_count'] = 0
+                
+                # Calcola informazioni profitto per progetti venduti
+                if project['status'] == 'sold' and project['sale_price']:
+                    project['profit_amount'] = project['sale_price'] - project['total_amount']
+                    project['profit_percentage'] = project.get('profit_percentage', 0)
+                else:
+                    project['profit_amount'] = 0
+                    project['profit_percentage'] = 0
             
-            # Aggiungi campi mancanti per compatibilità template
-            project['location'] = 'N/A'  # Non presente nello schema attuale
-            project['roi'] = 8.5  # ROI fisso per ora
-            project['min_investment'] = 1000  # Investimento minimo fisso per ora
-            
-            # 4. PLACEHOLDER IMMAGINI - Struttura per galleria
-            project['has_images'] = False  # Placeholder per ora
-            project['image_url'] = None    # Sarà implementato con upload immagini
-            project['gallery_count'] = 0   # Numero foto in galleria
+            return projects_list
+        
+        # Processa tutte le liste
+        active_projects = process_projects(active_projects)
+        completed_projects = process_projects(completed_projects)
+        sold_projects = process_projects(sold_projects)
     
     return render_template("user/projects.html", 
                          user_id=uid,
-                         projects=projects,
+                         active_projects=active_projects,
+                         completed_projects=completed_projects,
+                         sold_projects=sold_projects,
                          is_kyc_verified=is_kyc_verified,
                          current_page="projects")

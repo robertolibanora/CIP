@@ -37,6 +37,9 @@
     <!-- CSS per forzare rimozione sidebar -->
     <link rel="stylesheet" href="{{ url_for('assets', filename='css/no-sidebar.css') }}">
     
+    <!-- CSS per pulsante torna indietro -->
+    <link rel="stylesheet" href="{{ url_for('assets', filename='css/back-button.css') }}">
+    
     {% block extra_css %}{% endblock %}
     
     <style>
@@ -100,13 +103,24 @@
     <!-- Header Minimal - Solo titolo semplice -->
     <header class="bg-white border-b border-gray-200 py-4">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center">
-                <!-- Solo titolo "Azioni Rapide" -->
-                <h1 class="text-2xl font-bold text-gray-900">Azioni Rapide</h1>
+            <div style="display: flex; align-items: center; width: 100%;">
+                <!-- Pulsante Torna Indietro all'estrema sinistra -->
+                <button onclick="goBack()" style="display: flex; align-items: center; color: #6b7280; padding: 8px; border-radius: 6px; border: none; background: none; cursor: pointer; margin-right: 16px;" onmouseover="this.style.color='#111827'; this.style.backgroundColor='#f3f4f6';" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent';" title="Torna alla pagina precedente">
+                    <svg style="width: 20px; height: 20px; margin-right: 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span style="display: none;" class="sm:inline">Indietro</span>
+                </button>
                 
-                <!-- Solo pulsante logout minimal -->
-                <a href="{{ url_for('auth.logout') }}" class="text-gray-500 hover:text-gray-700 p-2 rounded-md hover:bg-gray-100 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Titolo "Azioni Rapide" -->
+                <h1 style="font-size: 1.5rem; font-weight: bold; color: #111827; margin: 0;">Azioni Rapide</h1>
+                
+                <!-- Spacer per spingere logout a destra -->
+                <div style="flex: 1;"></div>
+                
+                <!-- Pulsante logout a destra -->
+                <a href="{{ url_for('auth.logout') }}" style="color: #6b7280; padding: 8px; border-radius: 6px; text-decoration: none;" onmouseover="this.style.color='#374151'; this.style.backgroundColor='#f3f4f6';" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent';">
+                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                     </svg>
                 </a>
@@ -207,6 +221,34 @@
 
         // Start auto-refresh on load
         document.addEventListener('DOMContentLoaded', startAutoRefresh);
+        
+        // Funzione per tornare alla pagina precedente
+        function goBack() {
+            // Controlla se c'è una cronologia di navigazione
+            if (window.history.length > 1) {
+                // Usa il metodo back() del browser
+                window.history.back();
+            } else {
+                // Se non c'è cronologia, vai alla dashboard admin
+                window.location.href = '{{ url_for("admin.admin_dashboard") }}';
+            }
+        }
+        
+        // Funzione per tornare con URL personalizzato
+        function goBackCustom(customUrl) {
+            if (customUrl) {
+                window.location.href = customUrl;
+            } else {
+                goBack();
+            }
+        }
+        
+        // Supporto per il tasto ESC per tornare indietro
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                goBack();
+            }
+        });
     </script>
     
     <!-- Performance Monitoring (solo in development) -->
