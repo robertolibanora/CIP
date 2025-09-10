@@ -25,12 +25,12 @@
   </a>
 
   <!-- Referral -->
-  <a href="{{ url_for('user.referral_page') }}" 
+  <a href="{{ url_for('user.referral') }}" 
      class="tabbar-item"
-     style="height: 48px !important; width: 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 12px !important; transition: all 0.2s ease !important; user-select: none !important; {{ 'background-color: rgb(59 130 246) !important; color: white !important; transform: scale(1.05) !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;' if ep == 'user.referral_page' else 'background-color: rgb(249 250 251) !important; border: 1px solid rgb(229 231 235) !important;' }}"
+     style="height: 48px !important; width: 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 12px !important; transition: all 0.2s ease !important; user-select: none !important; {{ 'background-color: rgb(59 130 246) !important; color: white !important; transform: scale(1.05) !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;' if ep == 'user.referral' else 'background-color: rgb(249 250 251) !important; border: 1px solid rgb(229 231 235) !important;' }}"
      aria-label="Referral"
-     aria-current="{{ 'page' if ep == 'user.referral_page' else 'false' }}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="height: 24px !important; width: 24px !important; {{ 'opacity: 1 !important; color: white !important;' if ep == 'user.referral_page' else 'opacity: 0.9 !important; color: rgb(75 85 99) !important;' }}">
+     aria-current="{{ 'page' if ep == 'user.referral' else 'false' }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="height: 24px !important; width: 24px !important; {{ 'opacity: 1 !important; color: white !important;' if ep == 'user.referral' else 'opacity: 0.9 !important; color: rgb(75 85 99) !important;' }}">
       <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
     </svg>
   </a>

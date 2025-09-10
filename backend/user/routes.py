@@ -703,8 +703,42 @@ def change_password():
     if not data or not data.get('current_password') or not data.get('new_password'):
         return jsonify({'success': False, 'error': 'Password mancanti'}), 400
     
-    # TODO: Implementare verifica password corrente e hash nuova password
-    # Per ora restituiamo successo simulato
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    
+    # Regole basilari nuova password
+    if len(new_password) < 8:
+        return jsonify({'success': False, 'error': 'La nuova password deve avere almeno 8 caratteri'}), 400
+    
+    import hashlib
+    
+    def hash_password(p: str) -> str:
+        return hashlib.sha256(p.encode()).hexdigest()
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Verifica password corrente
+        cur.execute("""
+            SELECT password_hash FROM users WHERE id = %s
+        """, (uid,))
+        row = cur.fetchone()
+        if not row or not row.get('password_hash'):
+            return jsonify({'success': False, 'error': 'Utente non trovato'}), 404
+        
+        if row['password_hash'] != hash_password(current_password):
+            return jsonify({'success': False, 'error': 'Password corrente non corretta'}), 400
+        
+        # Evita riuso stessa password
+        if row['password_hash'] == hash_password(new_password):
+            return jsonify({'success': False, 'error': 'La nuova password deve essere diversa da quella attuale'}), 400
+        
+        # Aggiorna password
+        new_hash = hash_password(new_password)
+        cur.execute("""
+            UPDATE users 
+            SET password_hash = %s, updated_at = NOW()
+            WHERE id = %s
+        """, (new_hash, uid))
+        conn.commit()
     
     return jsonify({'success': True, 'message': 'Password cambiata con successo'})
 
@@ -815,12 +849,7 @@ def get_referral_link():
         print(f"Errore nel recupero link referral: {e}")
         return jsonify({'error': 'Errore nel recupero del link referral'}), 500
 
-@user_bp.get("/referral")
-@login_required
-@kyc_verified
-def referral_page():
-    """Pagina dedicata al sistema referral"""
-    return render_template('user/referral.html')
+# Rotta duplicata rimossa: la pagina referral è gestita dalla funzione `referral` sopra
 
 
 # Info referente (utente sopra di te)
