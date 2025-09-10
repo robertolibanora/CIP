@@ -24,7 +24,7 @@
                     <span class="text-sm font-medium text-green-700">Disponibile</span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Capitale Libero</h3>
-                <p class="text-3xl font-bold text-green-600" id="free-capital">€0.00</p>
+                <p class="text-3xl font-bold text-green-600" id="free-capital">€{{ "%.2f"|format(portfolio.free_capital|float) }}</p>
                 <p class="text-sm text-green-600 mt-1">Sempre prelevabile</p>
             </div>
 
@@ -39,7 +39,7 @@
                     <span class="text-sm font-medium text-blue-700">Bloccato</span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Capitale Investito</h3>
-                <p class="text-3xl font-bold text-blue-600" id="invested-capital">€0.00</p>
+                <p class="text-3xl font-bold text-blue-600" id="invested-capital">€{{ "%.2f"|format(portfolio.invested_capital|float) }}</p>
                 <p class="text-sm text-blue-600 mt-1">Fino alla vendita</p>
             </div>
 
@@ -54,7 +54,7 @@
                     <span class="text-sm font-medium text-purple-700">Bonus</span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Bonus Referral</h3>
-                <p class="text-3xl font-bold text-purple-600" id="referral-bonus">€0.00</p>
+                <p class="text-3xl font-bold text-purple-600" id="referral-bonus">€{{ "%.2f"|format(portfolio.referral_bonus|float) }}</p>
                 <p class="text-sm text-purple-600 mt-1">1% sui profitti</p>
             </div>
 
@@ -69,7 +69,7 @@
                     <span class="text-sm font-medium text-orange-700">Rendimenti</span>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Profitti</h3>
-                <p class="text-3xl font-bold text-orange-600" id="profits">€0.00</p>
+                <p class="text-3xl font-bold text-orange-600" id="profits">€{{ "%.2f"|format(portfolio.profits|float) }}</p>
                 <p class="text-sm text-orange-600 mt-1">Accumulati</p>
             </div>
         </div>
@@ -82,9 +82,20 @@
                     <p class="text-gray-600">Saldo complessivo disponibile e investito</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-3xl font-bold text-gray-900" id="total-balance">€0.00</p>
-                    <p class="text-sm text-gray-500" id="last-updated"></p>
+                    <p class="text-3xl font-bold text-gray-900" id="total-balance">€{{ "%.2f"|format((portfolio.free_capital + portfolio.invested_capital + portfolio.referral_bonus + portfolio.profits)|float) }}</p>
+                    <p class="text-sm text-gray-500" id="last-updated">Aggiornato ora</p>
                 </div>
+            </div>
+            
+            <!-- Pulsante Sposta Capitale -->
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <button onclick="openTransferModal()" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Sposta Capitale
+                </button>
             </div>
         </div>
     </div>
@@ -173,7 +184,7 @@
                         </svg>
                         <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun investimento attivo</h3>
                         <p class="text-gray-600">Inizia a investire nei nostri progetti immobiliari per vedere i tuoi investimenti qui.</p>
-                        <a href="{{ url_for('user.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        <a href="{{ url_for('user_projects.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
                             Vedi Progetti
                         </a>
                     </div>
@@ -1586,6 +1597,415 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
     }
+  });
+</script>
+
+<!-- Modal Sposta Capitale -->
+<div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0" id="transferModalContent">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">Sposta Capitale</h3>
+                </div>
+                <button onclick="closeTransferModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Form -->
+            <form id="transferForm" class="p-6 space-y-6">
+                <!-- Da -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Da</label>
+                    <select id="fromSource" name="from_source" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Seleziona fonte...</option>
+                        <option value="free_capital">Capitale Libero</option>
+                        <option value="profits">Profitti</option>
+                        <option value="referral_bonus">Bonus Referral</option>
+                    </select>
+                    <p id="fromAmount" class="text-sm text-gray-500 mt-1"></p>
+                </div>
+                
+                <!-- A -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">A</label>
+                    <select id="toSource" name="to_source" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Seleziona destinazione...</option>
+                        <option value="free_capital">Capitale Libero</option>
+                        <option value="profits">Profitti</option>
+                        <option value="referral_bonus">Bonus Referral</option>
+                    </select>
+                    <p id="toAmount" class="text-sm text-gray-500 mt-1"></p>
+                </div>
+                
+                <!-- Importo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Importo (€)</label>
+                    <input type="number" id="transferAmount" name="amount" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="0.00" min="0.01" step="0.01" required>
+                    <p class="text-xs text-gray-500 mt-1">Importo minimo: €0.01</p>
+                </div>
+                
+                <!-- Note -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium">Nota importante:</p>
+                            <p>Il capitale investito non può essere spostato in quanto è bloccato fino alla vendita dell'immobile.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pulsanti -->
+                <div class="flex space-x-3 pt-6">
+                    <button type="button" onclick="closeTransferModal()" 
+                            class="flex-1 px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-semibold transition-all duration-200 hover:shadow-md">
+                        Annulla
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-105">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            Conferma Trasferimento
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gestione modal trasferimento
+function openTransferModal() {
+    const modal = document.getElementById('transferModal');
+    const content = document.getElementById('transferModalContent');
+    
+    modal.classList.remove('hidden');
+    loadPortfolioData();
+    
+    // Anima l'apertura
+    setTimeout(() => {
+        content.style.transform = 'scale(1)';
+        content.style.opacity = '1';
+    }, 10);
+}
+
+function closeTransferModal() {
+    const modal = document.getElementById('transferModal');
+    const content = document.getElementById('transferModalContent');
+    
+    // Anima la chiusura
+    content.style.transform = 'scale(0.95)';
+    content.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.getElementById('transferForm').reset();
+        document.getElementById('fromAmount').textContent = '';
+        document.getElementById('toAmount').textContent = '';
+    }, 300);
+}
+
+// Carica i dati del portafoglio
+async function loadPortfolioData() {
+    try {
+        const response = await fetch('/user/api/portfolio-data');
+        if (response.ok) {
+            const data = await response.json();
+            window.portfolioData = data;
+            updateSourceOptions();
+        } else {
+            console.error('Errore nel caricamento dati portafoglio');
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento dati portafoglio:', error);
+    }
+}
+
+// Aggiorna le opzioni delle select
+function updateSourceOptions() {
+    if (!window.portfolioData) return;
+    
+    const fromSelect = document.getElementById('fromSource');
+    const toSelect = document.getElementById('toSource');
+    
+    // Aggiorna le opzioni "Da"
+    Array.from(fromSelect.options).forEach(option => {
+        if (option.value) {
+            const amount = window.portfolioData[option.value];
+            const baseText = option.textContent.split(' (€')[0]; // Rimuove la parte esistente con l'importo
+            option.textContent = `${baseText} (€${amount.toFixed(2)})`;
+            option.disabled = amount <= 0;
+        }
+    });
+    
+    // Aggiorna le opzioni "A"
+    Array.from(toSelect.options).forEach(option => {
+        if (option.value) {
+            const amount = window.portfolioData[option.value];
+            const baseText = option.textContent.split(' (€')[0]; // Rimuove la parte esistente con l'importo
+            option.textContent = `${baseText} (€${amount.toFixed(2)})`;
+        }
+    });
+}
+
+// Event listeners per le select
+document.getElementById('fromSource').addEventListener('change', function() {
+    const value = this.value;
+    if (value && window.portfolioData) {
+        const amount = window.portfolioData[value];
+        document.getElementById('fromAmount').textContent = `Disponibile: €${amount.toFixed(2)}`;
+        document.getElementById('transferAmount').max = amount;
+    } else {
+        document.getElementById('fromAmount').textContent = '';
+    }
+});
+
+document.getElementById('toSource').addEventListener('change', function() {
+    const value = this.value;
+    if (value && window.portfolioData) {
+        const amount = window.portfolioData[value];
+        document.getElementById('toAmount').textContent = `Attuale: €${amount.toFixed(2)}`;
+    } else {
+        document.getElementById('toAmount').textContent = '';
+    }
+});
+
+// Gestione form trasferimento
+document.getElementById('transferForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fromSource = document.getElementById('fromSource').value;
+    const toSource = document.getElementById('toSource').value;
+    const amount = parseFloat(document.getElementById('transferAmount').value);
+    
+    if (!fromSource || !toSource) {
+        alert('Seleziona sia la fonte che la destinazione');
+        return;
+    }
+    
+    if (fromSource === toSource) {
+        alert('La fonte e la destinazione devono essere diverse');
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Inserisci un importo valido');
+        return;
+    }
+    
+    if (amount > window.portfolioData[fromSource]) {
+        alert('Importo superiore al capitale disponibile');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/user/api/transfer-capital', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from_source: fromSource,
+                to_source: toSource,
+                amount: amount
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccessModal(result.message);
+            closeTransferModal();
+            // Ricarica la pagina dopo 2 secondi per mostrare il popup
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showErrorModal(result.error);
+        }
+    } catch (error) {
+        console.error('Errore durante il trasferimento:', error);
+        alert('Errore durante il trasferimento. Riprova.');
+    }
+});
+
+// Funzioni per i modali di successo e errore
+function showSuccessModal(message) {
+    const modal = document.getElementById('successModal');
+    const messageElement = document.getElementById('successMessage');
+    if (modal && messageElement) {
+        messageElement.textContent = message;
+        modal.classList.remove('hidden');
+        
+        // Auto-chiudi dopo 3 secondi
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 3000);
+    } else {
+        alert(message);
+    }
+}
+
+function showErrorModal(message) {
+    const modal = document.getElementById('errorModal');
+    const messageElement = document.getElementById('errorMessage');
+    if (modal && messageElement) {
+        messageElement.textContent = message;
+        modal.classList.remove('hidden');
+        
+        // Auto-chiudi dopo 5 secondi
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 5000);
+    } else {
+        alert(`Errore: ${message}`);
+    }
+}
+
+function closeSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('errorModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Chiudi modal cliccando fuori
+document.getElementById('transferModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTransferModal();
+    }
+});
+</script>
+
+<!-- Modal di Successo -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="successModalContent">
+            <div class="p-8 text-center">
+                <!-- Icona di successo -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                
+                <!-- Titolo -->
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Trasferimento Completato!</h3>
+                
+                <!-- Messaggio -->
+                <p id="successMessage" class="text-gray-600 mb-8 text-lg"></p>
+                
+                <!-- Pulsante -->
+                <button onclick="closeSuccessModal()" 
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di Errore -->
+<div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="errorModalContent">
+            <div class="p-8 text-center">
+                <!-- Icona di errore -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                    <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+                
+                <!-- Titolo -->
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Errore</h3>
+                
+                <!-- Messaggio -->
+                <p id="errorMessage" class="text-gray-600 mb-8 text-lg"></p>
+                
+                <!-- Pulsante -->
+                <button onclick="closeErrorModal()" 
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Animazioni per i modali
+document.addEventListener('DOMContentLoaded', function() {
+    const successModal = document.getElementById('successModal');
+    const errorModal = document.getElementById('errorModal');
+    const successContent = document.getElementById('successModalContent');
+    const errorContent = document.getElementById('errorModalContent');
+    
+    // Observer per animare l'apertura
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const target = mutation.target;
+                if (!target.classList.contains('hidden')) {
+                    // Mostra il modal
+                    setTimeout(() => {
+                        if (target === successContent || target === errorContent) {
+                            target.style.transform = 'scale(1)';
+                            target.style.opacity = '1';
+                        }
+                    }, 10);
+                } else {
+                    // Nascondi il modal
+                    if (target === successContent || target === errorContent) {
+                        target.style.transform = 'scale(0.95)';
+                        target.style.opacity = '0';
+                    }
+                }
+            }
+        });
+    });
+    
+    observer.observe(successContent, { attributes: true });
+    observer.observe(errorContent, { attributes: true });
+    
+    // Chiudi cliccando fuori dai modali
+    successModal.addEventListener('click', function(e) {
+        if (e.target === successModal) {
+            closeSuccessModal();
+        }
+    });
+    
+    errorModal.addEventListener('click', function(e) {
+        if (e.target === errorModal) {
+            closeErrorModal();
+        }
+    });
 });
 </script>
 {% endblock %}

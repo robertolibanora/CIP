@@ -430,13 +430,127 @@ def portfolio():
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
+        
+        # Dati portafoglio - TABELLA: user_portfolios
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio_data = cur.fetchone()
+        
+        # Se non esiste portfolio, creane uno
+        if not portfolio_data:
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0, 0, 0, 0)
+            """, (uid,))
+            conn.commit()
+            portfolio_data = {
+                'free_capital': 0,
+                'invested_capital': 0,
+                'referral_bonus': 0,
+                'profits': 0
+            }
     
     return render_template("user/portfolio.html", 
                          user_id=uid,
                          user=user_data,
+                         portfolio=portfolio_data,
                          tab=tab,
                          investments=rows,
                          current_page="portfolio")
+
+@user_bp.get("/api/portfolio-data")
+@can_access_portfolio
+def get_portfolio_data():
+    """API per ottenere i dati del portafoglio per il trasferimento"""
+    uid = session.get("user_id")
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio_data = cur.fetchone()
+        
+        if not portfolio_data:
+            return jsonify({
+                'free_capital': 0,
+                'invested_capital': 0,
+                'referral_bonus': 0,
+                'profits': 0
+            })
+        
+        return jsonify({
+            'free_capital': float(portfolio_data['free_capital']),
+            'invested_capital': float(portfolio_data['invested_capital']),
+            'referral_bonus': float(portfolio_data['referral_bonus']),
+            'profits': float(portfolio_data['profits'])
+        })
+
+@user_bp.post("/api/transfer-capital")
+@can_access_portfolio
+def transfer_capital():
+    """API per trasferire capitale tra le sezioni del portafoglio"""
+    uid = session.get("user_id")
+    
+    try:
+        data = request.get_json()
+        from_source = data.get('from_source')
+        to_source = data.get('to_source')
+        amount = float(data.get('amount', 0))
+        
+        # Validazione
+        if not from_source or not to_source:
+            return jsonify({"error": "Fonte e destinazione richieste"}), 400
+        
+        if from_source == to_source:
+            return jsonify({"error": "Fonte e destinazione devono essere diverse"}), 400
+        
+        if amount <= 0:
+            return jsonify({"error": "Importo deve essere positivo"}), 400
+        
+        # Verifica che il capitale investito non sia coinvolto
+        if from_source == 'invested_capital' or to_source == 'invested_capital':
+            return jsonify({"error": "Il capitale investito non può essere spostato"}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica fondi disponibili
+            cur.execute("""
+                SELECT free_capital, invested_capital, referral_bonus, profits
+                FROM user_portfolios 
+                WHERE user_id = %s
+            """, (uid,))
+            portfolio = cur.fetchone()
+            
+            if not portfolio:
+                return jsonify({"error": "Portafoglio non trovato"}), 404
+            
+            # Controlla fondi sufficienti
+            available_funds = portfolio[from_source]
+            if amount > available_funds:
+                return jsonify({"error": f"Fondi insufficienti. Disponibili: €{available_funds:.2f}"}), 400
+            
+            # Esegui il trasferimento
+            cur.execute(f"""
+                UPDATE user_portfolios 
+                SET {from_source} = {from_source} - %s,
+                    {to_source} = {to_source} + %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s
+            """, (amount, amount, uid))
+            
+            conn.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Trasferimento di €{amount:.2f} da {from_source} a {to_source} completato con successo!"
+            })
+            
+    except Exception as e:
+        return jsonify({"error": f"Errore durante il trasferimento: {str(e)}"}), 500
 
 @user_bp.get("/portfolio/<int:investment_id>")
 @can_access_portfolio
@@ -465,65 +579,9 @@ def portfolio_detail(investment_id):
 # =====================================================
 # 5. PROGETTI - Lista e dettagli dei progetti disponibili
 # =====================================================
-
-@user_bp.get("/projects")
-@login_required
-def projects():
-    """Lista progetti disponibili per investimento"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # 1. VERIFICA STATO KYC UTENTE
-        cur.execute("""
-            SELECT kyc_status FROM users WHERE id = %s
-        """, (uid,))
-        user = cur.fetchone()
-        
-        is_kyc_verified = user and user['kyc_status'] == 'verified'
-        
-        # 2. PROGETTI DISPONIBILI CON INFORMAZIONI INVESTIMENTI
-        cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.status, p.created_at, 
-                   p.code, p.location, p.min_investment, p.image_url, p.roi, p.duration,
-                   COALESCE(SUM(CASE WHEN inv.status = 'active' THEN inv.amount ELSE 0 END), 0) as funded_amount,
-                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
-                   COALESCE(i.amount, 0) as user_investment_amount,
-                   COALESCE(i.status, 'none') as user_investment_status
-            FROM projects p 
-            LEFT JOIN investments inv ON p.id = inv.project_id AND inv.status = 'active'
-            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
-            WHERE p.status = 'active'
-            GROUP BY p.id, p.name, p.description, p.total_amount, p.status, p.created_at, 
-                     p.code, p.location, p.min_investment, p.image_url, p.roi, p.duration,
-                     i.id, i.amount, i.status
-            ORDER BY p.created_at DESC
-        """, (uid,))
-        
-        projects = cur.fetchall()
-        
-        # 3. ELABORAZIONE DATI PROGETTI
-        for project in projects:
-            # Calcola percentuale completamento
-            if project['total_amount'] and project['total_amount'] > 0:
-                project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
-            else:
-                project['completion_percent'] = 0
-            
-            # Usa i campi reali dal database
-            project['location'] = project['location'] or None
-            project['roi'] = project['roi'] or 8.5  # Usa il valore dal DB o default
-            project['min_investment'] = project['min_investment'] or 1000  # Usa il valore dal DB se disponibile
-            
-            # 4. GESTIONE IMMAGINI - Struttura per galleria
-            project['has_images'] = bool(project['image_url'])
-            project['photo_filename'] = project['image_url']  # Per compatibilità con template
-            project['gallery_count'] = 1 if project['image_url'] else 0
-    
-    return render_template("user/projects.html", 
-                         user_id=uid,
-                         projects=projects,
-                         is_kyc_verified=is_kyc_verified,
-                         current_page="projects")
+# NOTA: La route /projects è stata spostata in backend/user/projects.py
+# per evitare conflitti con il template che si aspetta active_projects, 
+# completed_projects, sold_projects separati
 
 # =====================================================
 # 5.b KYC USER PAGE - Pagina dedicata verifica identità

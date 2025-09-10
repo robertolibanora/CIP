@@ -35,7 +35,7 @@
             {% if active_projects %}
                 <div class="space-y-6">
                     {% for project in active_projects %}
-                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden" data-project-id="{{ project.id }}">
                         <!-- Header con foto e info principali -->
                         <div class="flex flex-col md:flex-row">
                             <!-- Foto immobile -->
@@ -153,7 +153,7 @@
             {% if completed_projects %}
                 <div class="space-y-6">
                     {% for project in completed_projects %}
-                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden" data-project-id="{{ project.id }}">
                         <div class="flex flex-col md:flex-row">
                             <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
                                 {% if project.photo_filename %}
@@ -255,7 +255,7 @@
             {% if sold_projects %}
                 <div class="space-y-6">
                     {% for project in sold_projects %}
-                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden" data-project-id="{{ project.id }}">
                         <div class="flex flex-col md:flex-row">
                             <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
                                 {% if project.photo_filename %}
@@ -381,6 +381,30 @@
                 <p class="text-xs text-gray-500 mt-1">Importo minimo: €100</p>
             </div>
             
+            <!-- Selezione fonte fondi -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fonte fondi</label>
+                <select id="fundSourceSelect" name="fund_source" 
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="">Seleziona fonte fondi...</option>
+                    <option value="free_capital">Capitale Libero</option>
+                    <option value="profits">Profitti</option>
+                    <option value="referral_bonus">Bonus Referral</option>
+                </select>
+                
+                <!-- Visualizzazione fondi disponibili -->
+                <div id="fundsDisplay" class="mt-3 p-3 bg-gray-50 rounded-lg hidden">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-700">Disponibile:</span>
+                        <span id="availableAmount" class="text-sm font-bold text-green-600">€0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-xs text-gray-500">Fonte:</span>
+                        <span id="selectedSource" class="text-xs text-gray-600">-</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="bg-blue-50 p-3 rounded-lg">
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-600">ROI atteso:</span>
@@ -462,17 +486,117 @@ if (formEl){
   });
 }
 let currentProjectId = null;
+let userFunds = null;
 
 function openInvestmentModal(projectId) {
     currentProjectId = projectId;
     document.getElementById('investmentModal').classList.remove('hidden');
     document.getElementById('investmentAmount').focus();
+    
+    // Carica i fondi dell'utente
+    loadUserFunds(projectId);
 }
 
 function closeInvestmentModal() {
     document.getElementById('investmentModal').classList.add('hidden');
     document.getElementById('investmentForm').reset();
     currentProjectId = null;
+    userFunds = null;
+}
+
+// Carica i fondi dell'utente per il progetto
+async function loadUserFunds(projectId) {
+    try {
+        const response = await fetch(`/user/projects/${projectId}/funds`);
+        if (response.ok) {
+            const data = await response.json();
+            userFunds = data;
+            updateFundsDisplay(data.funds);
+            updateInvestmentLimits(data.project);
+        } else {
+            console.error('Errore nel caricamento fondi:', await response.text());
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento fondi:', error);
+    }
+}
+
+// Aggiorna la visualizzazione dei fondi disponibili
+function updateFundsDisplay(funds) {
+    // Salva i fondi per l'uso nel dropdown
+    window.userFundsData = funds;
+    
+    // Popola le opzioni del dropdown con i fondi disponibili
+    const select = document.getElementById('fundSourceSelect');
+    const options = select.querySelectorAll('option');
+    
+    options.forEach(option => {
+        if (option.value === 'free_capital') {
+            option.textContent = `Capitale Libero (€${funds.free_capital.toFixed(2)})`;
+            option.disabled = funds.free_capital <= 0;
+        } else if (option.value === 'profits') {
+            option.textContent = `Profitti (€${funds.profits.toFixed(2)})`;
+            option.disabled = funds.profits <= 0;
+        } else if (option.value === 'referral_bonus') {
+            option.textContent = `Bonus Referral (€${funds.referral_bonus.toFixed(2)})`;
+            option.disabled = funds.referral_bonus <= 0;
+        }
+    });
+    
+    // Seleziona automaticamente la prima opzione disponibile
+    const firstAvailable = select.querySelector('option:not([disabled]):not([value=""])');
+    if (firstAvailable) {
+        select.value = firstAvailable.value;
+        updateFundsDisplayForSelected();
+    }
+}
+
+// Aggiorna la visualizzazione quando viene selezionata una fonte
+function updateFundsDisplayForSelected() {
+    const select = document.getElementById('fundSourceSelect');
+    const fundsDisplay = document.getElementById('fundsDisplay');
+    const availableAmount = document.getElementById('availableAmount');
+    const selectedSource = document.getElementById('selectedSource');
+    
+    if (!window.userFundsData || !select.value) {
+        fundsDisplay.classList.add('hidden');
+        return;
+    }
+    
+    const selectedValue = select.value;
+    const funds = window.userFundsData;
+    let amount = 0;
+    let sourceName = '';
+    
+    switch(selectedValue) {
+        case 'free_capital':
+            amount = funds.free_capital;
+            sourceName = 'Capitale Libero';
+            break;
+        case 'profits':
+            amount = funds.profits;
+            sourceName = 'Profitti';
+            break;
+        case 'referral_bonus':
+            amount = funds.referral_bonus;
+            sourceName = 'Bonus Referral';
+            break;
+    }
+    
+    availableAmount.textContent = `€${amount.toFixed(2)}`;
+    selectedSource.textContent = sourceName;
+    fundsDisplay.classList.remove('hidden');
+}
+
+// Aggiorna i limiti di investimento
+function updateInvestmentLimits(project) {
+    const amountInput = document.getElementById('investmentAmount');
+    amountInput.min = project.min_investment;
+    amountInput.max = project.remaining_capacity;
+    
+    // Aggiorna il testo di aiuto
+    const helpText = amountInput.nextElementSibling;
+    helpText.textContent = `Importo minimo: €${project.min_investment} | Massimo: €${project.remaining_capacity.toFixed(2)}`;
 }
 
 function viewProjectDocuments(projectId, documentsFilename) {
@@ -524,20 +648,177 @@ function viewPdfInBrowser(filename) {
     window.open(url, '_blank');
 }
 
+// Event listener per il dropdown
+document.getElementById('fundSourceSelect').addEventListener('change', updateFundsDisplayForSelected);
+
 // Gestione form investimento
-document.getElementById('investmentForm').addEventListener('submit', function(e) {
+document.getElementById('investmentForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const amount = document.getElementById('investmentAmount').value;
+    const amount = parseFloat(document.getElementById('investmentAmount').value);
+    const fundSource = document.getElementById('fundSourceSelect').value;
+    
     if (!amount || amount < 100) {
         alert('Inserisci un importo valido (minimo €100)');
         return;
     }
     
-    // TODO: Implementare la logica di investimento
-    alert(`Investimento di €${amount} registrato per il progetto ${currentProjectId}`);
-    closeInvestmentModal();
+    if (!fundSource) {
+        alert('Seleziona una fonte fondi');
+        return;
+    }
+    
+    if (!userFunds) {
+        alert('Errore: fondi non caricati. Riprova.');
+        return;
+    }
+    
+    // Verifica fondi disponibili
+    const availableFunds = userFunds.funds[fundSource];
+    if (availableFunds < amount) {
+        alert(`Fondi insufficienti. Disponibili: €${availableFunds.toFixed(2)}`);
+        return;
+    }
+    
+    // Verifica limiti progetto
+    if (amount > userFunds.project.remaining_capacity) {
+        alert(`Importo troppo alto. Capacità rimanente: €${userFunds.project.remaining_capacity.toFixed(2)}`);
+        return;
+    }
+    
+    // Disabilita il pulsante e mostra loading
+    const submitButton = document.querySelector('#investmentForm button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Elaborazione...</span>';
+    
+    try {
+        const response = await fetch('/user/projects/invest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                project_id: currentProjectId,
+                amount: amount,
+                fund_source: fundSource
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Aggiorna la barra di progresso del progetto
+            if (result.project_update) {
+                updateProjectProgress(currentProjectId, result.project_update);
+            }
+            
+            showSuccessModal(result.message);
+            closeInvestmentModal();
+            // Ricarica la pagina dopo 2 secondi per mostrare il popup
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showErrorModal(result.error);
+            // Ripristina il pulsante in caso di errore
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    } catch (error) {
+        console.error('Errore durante l\'investimento:', error);
+        showErrorModal(`Errore di connessione: ${error.message}`);
+        // Ripristina il pulsante in caso di errore
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+    }
 });
+
+// Funzioni per i modali di successo e errore
+function showSuccessModal(message) {
+    const modal = document.getElementById('successModal');
+    const messageElement = document.getElementById('successMessage');
+    
+    if (modal && messageElement) {
+        messageElement.textContent = message;
+        modal.classList.remove('hidden');
+    }
+}
+
+function showErrorModal(message) {
+    const modal = document.getElementById('errorModal');
+    const messageElement = document.getElementById('errorMessage');
+    
+    if (modal && messageElement) {
+        messageElement.textContent = message;
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function closeErrorModal() {
+    const modal = document.getElementById('errorModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Funzione per aggiornare la barra di progresso del progetto
+function updateProjectProgress(projectId, projectUpdate) {
+    // Trova la card del progetto
+    const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
+    if (!projectCard) return;
+    
+    // Aggiorna la percentuale di completamento
+    const progressBar = projectCard.querySelector('.bg-blue-600');
+    const progressText = projectCard.querySelector('.text-sm.text-gray-600 span:last-child');
+    
+    if (progressBar) {
+        progressBar.style.width = `${projectUpdate.completion_percent}%`;
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${projectUpdate.completion_percent}%`;
+    }
+    
+    // Aggiorna gli importi - cerca tutti gli span e filtra per contenuto
+    const allSpans = projectCard.querySelectorAll('span');
+    let fundedAmount = null;
+    let remainingAmount = null;
+    
+    allSpans.forEach(span => {
+        if (span.textContent.includes('Raccolto:')) {
+            fundedAmount = span;
+        } else if (span.textContent.includes('Rimanente:')) {
+            remainingAmount = span;
+        }
+    });
+    
+    if (fundedAmount) {
+        fundedAmount.textContent = `Raccolto: €${projectUpdate.funded_amount.toLocaleString()}`;
+    }
+    
+    if (remainingAmount) {
+        remainingAmount.textContent = `Rimanente: €${projectUpdate.remaining_amount.toLocaleString()}`;
+    }
+    
+    // Se il progetto è completamente finanziato, aggiorna lo stato
+    if (projectUpdate.is_funded) {
+        const investButton = projectCard.querySelector('button[onclick*="openInvestmentModal"]');
+        if (investButton) {
+            investButton.textContent = 'Progetto Completato';
+            investButton.disabled = true;
+            investButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            investButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        }
+    }
+}
 
 // Chiudi modal cliccando fuori
 document.getElementById('investmentModal').addEventListener('click', function(e) {
@@ -550,6 +831,93 @@ document.getElementById('documentsModal').addEventListener('click', function(e) 
     if (e.target === this) {
         closeDocumentsModal();
     }
+});
+</script>
+
+<!-- Modali di Successo e Errore -->
+<!-- Modal di Successo -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="successModalContent">
+            <div class="p-8 text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                    <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Investimento Completato!</h3>
+                <p id="successMessage" class="text-gray-600 mb-8 text-lg"></p>
+                <button onclick="closeSuccessModal()" 
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di Errore -->
+<div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="errorModalContent">
+            <div class="p-8 text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                    <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Errore</h3>
+                <p id="errorMessage" class="text-gray-600 mb-8 text-lg"></p>
+                <button onclick="closeErrorModal()" 
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Animazioni per i modali
+document.addEventListener('DOMContentLoaded', function() {
+    const successModal = document.getElementById('successModal');
+    const errorModal = document.getElementById('errorModal');
+    const successContent = document.getElementById('successModalContent');
+    const errorContent = document.getElementById('errorModalContent');
+    
+    // Observer for animations
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const target = mutation.target;
+                const contentTarget = target.id === 'successModal' ? successContent : 
+                                      (target.id === 'errorModal' ? errorContent : null);
+                
+                if (contentTarget) {
+                    if (!target.classList.contains('hidden')) {
+                        setTimeout(() => {
+                            contentTarget.style.transform = 'scale(1)';
+                            contentTarget.style.opacity = '1';
+                        }, 10);
+                    } else {
+                        contentTarget.style.transform = 'scale(0.95)';
+                        contentTarget.style.opacity = '0';
+                    }
+                }
+            }
+        });
+    });
+    
+    observer.observe(successModal, { attributes: true });
+    observer.observe(errorModal, { attributes: true });
+    
+    // Close on outside click
+    successModal.addEventListener('click', function(e) { 
+        if (e.target === successModal) closeSuccessModal(); 
+    });
+    errorModal.addEventListener('click', function(e) { 
+        if (e.target === errorModal) closeErrorModal(); 
+    });
 });
 </script>
 {% endblock %}

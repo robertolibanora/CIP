@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIP Academy</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/assets/css/output.css">
+    <link rel="stylesheet" href="/assets/css/auth-forms.css">
+    <link rel="stylesheet" href="/assets/css/form-fix.css">
+    <link rel="stylesheet" href="/assets/css/kyc-popups.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/assets/logo.png">
+    
+    
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Main content -->
+    <main class="h-full">
+        
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-white to-primary-50 relative overflow-hidden">
+  <!-- Background decorative elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="relative z-10 w-full max-w-md px-4 sm:px-6 lg:px-8">
+    <!-- Logo and Title -->
+    <div class="text-center mb-8">
+      <div class="mx-auto h-16 w-16 mb-4">
+        <img src="/assets/logo.png" alt="CIP Academy" class="h-full w-full object-contain">
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Benvenuto</h1>
+      <p class="text-gray-600">Accedi al tuo account CIP Academy</p>
+    </div>
+
+    <!-- Login Form Card -->
+    <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+      <form method="POST" action="/auth/login" class="space-y-6" id="loginForm" novalidate>
+        <!-- CSRF Token removed - not configured -->
+
+        <div class="space-y-2">
+          <label for="email" class="block text-sm font-semibold text-gray-700">
+            Email
+          </label>
+          <div class="input-field-container">
+            <div class="left-icon">
+              <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m6.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              name="email"
+              id="email"
+              required
+              class="input-field input-with-left-icon bg-gray-50 focus:bg-white transition-colors duration-200"
+              placeholder="Inserisci la tua email"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label for="password" class="block text-sm font-semibold text-gray-700">
+            Password
+          </label>
+          <div class="input-field-container">
+            <div class="left-icon">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              required
+              class="input-field input-with-left-icon input-with-right-icon bg-gray-50 focus:bg-white transition-colors duration-200"
+              placeholder="Inserisci la tua password"
+            />
+            <button
+              type="button"
+              class="right-icon"
+              onclick="togglePassword()"
+            >
+              <svg id="eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit" id="loginSubmit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+        >
+          Accedi
+        </button>
+        <p id="loginError" class="mt-2 text-sm text-red-600 hidden"></p>
+      </form>
+
+      <!-- Footer Links -->
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <div class="text-center space-y-3">
+          <p class="text-gray-600">
+            Non hai un account? 
+            <a href="/auth/register" class="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200">
+              Registrati qui
+            </a>
+          </p>
+          <a 
+            href="/" 
+            class="inline-flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors duration-200"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Torna alla homepage
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="mt-6 text-center">
+      <p class="text-xs text-gray-500">
+        Accedi con le credenziali fornite dalla tua organizzazione
+      </p>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  
+    
+  
+</div>
+
+<script>
+function togglePassword() {
+  const passwordInput = document.getElementById('password');
+  const eyeIcon = document.getElementById('eye-icon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    eyeIcon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+    `;
+  } else {
+    passwordInput.type = 'password';
+    eyeIcon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    `;
+  }
+}
+
+// Auto-hide flash messages after 5 seconds
+setTimeout(function() {
+  const flashMessages = document.querySelectorAll('.fixed.top-4.right-4');
+  flashMessages.forEach(function(message) {
+    message.style.opacity = '0';
+    setTimeout(function() {
+      message.remove();
+    }, 300);
+  });
+}, 5000);
+
+// UX: validazione rapida e stato loading
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  const email = document.getElementById('email');
+  const password = document.getElementById('password');
+  const err = document.getElementById('loginError');
+  const btn = document.getElementById('loginSubmit');
+  if (err) { err.classList.add('hidden'); err.textContent=''; }
+  const emailVal = (email.value||'').trim();
+  const passVal = (password.value||'').trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailVal || !emailRegex.test(emailVal)){
+    e.preventDefault();
+    if (err){ err.textContent = 'Inserisci un\'email valida'; err.classList.remove('hidden'); }
+    return;
+  }
+  if (!passVal){
+    e.preventDefault();
+    if (err){ err.textContent = 'Inserisci la password'; err.classList.remove('hidden'); }
+    return;
+  }
+  if (btn){
+    btn.disabled = true;
+    btn.classList.add('opacity-80');
+    btn.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Accesso...</span>';
+  }
+});
+</script>
+
+<style>
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+</style>
+
+    </main>
+    
+    <!-- JavaScript -->
+    
+</body>
+</html>

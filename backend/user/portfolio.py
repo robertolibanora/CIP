@@ -23,7 +23,7 @@ def portfolio():
     """
     Portafoglio dettagliato con investimenti attivi e completati
     ACCESSO: Solo tramite navbar mobile-nav.html
-    TABELLE: investments, projects, investment_yields
+    TABELLE: investments, projects, investment_yields, user_portfolios
     """
     uid = session.get("user_id")
     tab = request.args.get("tab", "attivi")
@@ -50,12 +50,35 @@ def portfolio():
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
+        
+        # Dati portafoglio - TABELLA: user_portfolios
+        cur.execute("""
+            SELECT free_capital, invested_capital, referral_bonus, profits
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        portfolio_data = cur.fetchone()
+        
+        # Se non esiste portfolio, creane uno
+        if not portfolio_data:
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0, 0, 0, 0)
+            """, (uid,))
+            conn.commit()
+            portfolio_data = {
+                'free_capital': 0,
+                'invested_capital': 0,
+                'referral_bonus': 0,
+                'profits': 0
+            }
     
     return render_template("user/portfolio.html", 
                          user_id=uid,
                          tab=tab,
                          investments=rows,
                          user=user_data,
+                         portfolio=portfolio_data,
                          current_page="portfolio")
 
 @portfolio_bp.get("/portfolio/<int:investment_id>")
