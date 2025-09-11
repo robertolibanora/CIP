@@ -211,6 +211,40 @@ def serve_project_file(filename):
     
     return send_from_directory(projects_folder, filename)
 
+@admin_bp.get("/projects/<int:pid>/sale-data")
+@admin_required
+def project_sale_data(pid):
+    """Ottiene i dati necessari per la vendita di un progetto"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Dettagli progetto
+        cur.execute("""
+            SELECT id, code, name, description, total_amount, funded_amount, 
+                   min_investment, status, created_at
+            FROM projects 
+            WHERE id = %s
+        """, (pid,))
+        project = cur.fetchone()
+        
+        if not project:
+            return jsonify({'error': 'Progetto non trovato'}), 404
+        
+        # Investimenti attivi per questo progetto
+        cur.execute("""
+            SELECT i.id, i.amount, i.status, i.created_at,
+                   u.id as user_id, u.nome, u.cognome, u.email,
+                   CONCAT(u.nome, ' ', u.cognome) as user_name
+            FROM investments i
+            JOIN users u ON u.id = i.user_id
+            WHERE i.project_id = %s AND i.status = 'active'
+            ORDER BY i.created_at DESC
+        """, (pid,))
+        investments = cur.fetchall()
+        
+        return jsonify({
+            'project': project,
+            'investments': investments
+        })
+
 @admin_bp.get("/projects/<int:pid>")
 @admin_required
 def project_detail(pid):

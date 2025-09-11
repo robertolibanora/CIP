@@ -2,6 +2,8 @@
 
 {% block title %}Progetti - Admin{% endblock %}
 
+
+
 {% block content %}
 <div class="admin-card admin-card-body mb-6">
     <div class="admin-flex admin-flex--between">
@@ -126,6 +128,7 @@
             <button onclick="resetFilters()" class="admin-btn admin-btn--secondary">Reset Filtri</button>
         </div>
         
+
         <!-- Projects Info Bar -->
         <div class="admin-card admin-card-body mb-6">
             <div class="admin-flex admin-flex--between">
@@ -152,113 +155,37 @@
     </div>
 </div>
 
+<!-- Modal Component -->
+{% include 'admin/components/modal.html' %}
+
 <!-- Modal Nuovo Progetto -->
 {% include 'admin/projects/create_project_modal.html' %}
 
 <!-- Modal Vendita Progetto -->
-<div id="sell-project-modal" class="admin-modal hidden" style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 99999;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    pointer-events: none;
-">
-    <div class="admin-modal-backdrop" onclick="closeModal('sell-project-modal')" style="
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        pointer-events: auto;
-    "></div>
-    <div class="admin-modal-container" style="
-        position: relative;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        max-width: 800px;
-        width: 90%;
-        max-height: 90vh;
-        overflow: hidden;
-        z-index: 100000;
-        pointer-events: auto;
-    ">
-        <div class="admin-modal-header" style="
-            padding: 24px 24px 16px 24px;
-            border-bottom: 1px solid #e5e7eb;
-            background: #f9fafb;
-            border-radius: 12px 12px 0 0;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 class="admin-heading-2" style="margin: 0; color: #1f2937; font-size: 24px; font-weight: 600;">
-                    🏠 Vendita Progetto
-                </h2>
-                <button onclick="closeModal('sell-project-modal')" class="admin-btn admin-btn--secondary admin-btn--sm" style="
-                    background: #f3f4f6;
-                    border: 1px solid #d1d5db;
-                    color: #6b7280;
-                    padding: 8px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
+<div id="sell-project-modal" class="admin-modal hidden">
+    <div class="admin-modal-backdrop" onclick="closeModal('sell-project-modal')"></div>
+    <div class="admin-modal-container">
+        <div class="admin-modal-header">
+            <h2 class="admin-heading-2">Vendita Progetto</h2>
+            <button onclick="closeModal('sell-project-modal')" class="admin-btn admin-btn--secondary admin-btn--sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
         </div>
         
-        <div class="admin-modal-body" style="
-            max-height: 70vh;
-            overflow-y: auto;
-            padding: 24px;
-            background: white;
-        ">
+        <div class="admin-modal-body" style="max-height: 70vh; overflow-y: auto;">
             <div id="sell-project-content">
                 <!-- Contenuto dinamico -->
             </div>
         </div>
         
-        <div class="admin-modal-footer" style="
-            padding: 16px 24px 24px 24px;
-            border-top: 1px solid #e5e7eb;
-            background: #f9fafb;
-            border-radius: 0 0 12px 12px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        ">
-            <button onclick="closeModal('sell-project-modal')" class="admin-btn admin-btn--secondary" style="
-                background: #f3f4f6;
-                color: #374151;
-                padding: 12px 24px;
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 500;
-                transition: all 0.2s;
-            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+        <div class="admin-modal-footer">
+            <button onclick="closeModal('sell-project-modal')" class="admin-btn admin-btn--secondary mr-2">
                 Annulla
             </button>
-            <button onclick="confirmProjectSale()" class="admin-btn admin-btn--warning" id="confirm-sale-btn" style="
-                background: #f59e0b;
-                color: white;
-                padding: 12px 24px;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-                transition: all 0.2s;
-            " onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
-                💰 Conferma Vendita
+            <button onclick="confirmProjectSale()" class="admin-btn admin-btn--warning" id="confirm-sale-btn">
+                Conferma Vendita
             </button>
         </div>
     </div>
@@ -278,22 +205,9 @@ async function sellProject(projectId) {
     try {
         // Carica i dettagli del progetto e degli investimenti
         console.log('Caricamento dati vendita per progetto:', projectId);
-        const response = await fetch(`/admin/projects/${projectId}/sale-data`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-        
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        
+        const response = await fetch(`/admin/projects/${projectId}/sale-data`);
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Response error:', errorText);
-            throw new Error(`Errore HTTP ${response.status}: ${errorText}`);
+            throw new Error('Errore nel caricamento dei dati');
         }
         
         const data = await response.json();
@@ -302,8 +216,12 @@ async function sellProject(projectId) {
         openModal('sell-project-modal');
         
     } catch (error) {
-        console.error('Errore completo:', error);
-        alert('Errore nel caricamento dei dati per la vendita: ' + error.message);
+        console.error('Errore:', error);
+        if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+            projectsManager.showAlert('error', 'Errore nel caricamento dei dati per la vendita');
+        } else {
+            alert('Errore nel caricamento dei dati per la vendita');
+        }
     }
 }
 
@@ -320,235 +238,67 @@ function displaySaleModal(data) {
     const totalInvestors = investments.length;
     
     content.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="space-y-6">
             <!-- Info Progetto -->
-            <div style="
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 20px;
-            ">
-                <h3 style="
-                    margin: 0 0 16px 0;
-                    color: #1e293b;
-                    font-size: 18px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    📊 Dettagli Progetto
-                </h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="admin-card admin-card-body">
+                <h3 class="admin-heading-3 mb-4">Dettagli Progetto</h3>
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label style="
-                            display: block;
-                            color: #64748b;
-                            font-size: 14px;
-                            font-weight: 500;
-                            margin-bottom: 4px;
-                        ">Nome Progetto</label>
-                        <p style="
-                            margin: 0;
-                            color: #1e293b;
-                            font-size: 16px;
-                            font-weight: 500;
-                        ">${project.name || 'N/A'}</p>
+                        <label class="admin-label">Nome Progetto</label>
+                        <p class="admin-text-body">${project.name || project.title || 'N/A'}</p>
                     </div>
                     <div>
-                        <label style="
-                            display: block;
-                            color: #64748b;
-                            font-size: 14px;
-                            font-weight: 500;
-                            margin-bottom: 4px;
-                        ">Codice</label>
-                        <p style="
-                            margin: 0;
-                            color: #1e293b;
-                            font-size: 16px;
-                            font-weight: 500;
-                        ">${project.code || 'N/A'}</p>
+                        <label class="admin-label">Codice</label>
+                        <p class="admin-text-body">${project.code || 'N/A'}</p>
                     </div>
                     <div>
-                        <label style="
-                            display: block;
-                            color: #64748b;
-                            font-size: 14px;
-                            font-weight: 500;
-                            margin-bottom: 4px;
-                        ">Importo Investito</label>
-                        <p style="
-                            margin: 0;
-                            color: #059669;
-                            font-size: 18px;
-                            font-weight: 700;
-                        ">€${totalInvested.toLocaleString()}</p>
+                        <label class="admin-label">Importo Investito</label>
+                        <p class="admin-text-body font-bold">€${totalInvested.toLocaleString()}</p>
                     </div>
                     <div>
-                        <label style="
-                            display: block;
-                            color: #64748b;
-                            font-size: 14px;
-                            font-weight: 500;
-                            margin-bottom: 4px;
-                        ">Numero Investitori</label>
-                        <p style="
-                            margin: 0;
-                            color: #1e293b;
-                            font-size: 18px;
-                            font-weight: 700;
-                        ">${totalInvestors}</p>
+                        <label class="admin-label">Numero Investitori</label>
+                        <p class="admin-text-body font-bold">${totalInvestors}</p>
                     </div>
                 </div>
             </div>
             
             <!-- Prezzo di Vendita -->
-            <div style="
-                background: #fef3c7;
-                border: 1px solid #f59e0b;
-                border-radius: 12px;
-                padding: 20px;
-            ">
-                <h3 style="
-                    margin: 0 0 16px 0;
-                    color: #92400e;
-                    font-size: 18px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    💰 Prezzo di Vendita
-                </h3>
-                <div>
-                    <label style="
-                        display: block;
-                        color: #92400e;
-                        font-size: 14px;
-                        font-weight: 600;
-                        margin-bottom: 8px;
-                    ">Prezzo di vendita (€)</label>
-                    <input type="number" id="sale-price" style="
-                        width: 100%;
-                        padding: 12px 16px;
-                        border: 2px solid #f59e0b;
-                        border-radius: 8px;
-                        font-size: 16px;
-                        font-weight: 600;
-                        color: #92400e;
-                        background: white;
-                        transition: all 0.2s;
-                        box-sizing: border-box;
-                    " placeholder="Inserisci il prezzo di vendita" 
-                           min="0" step="0.01" required
-                           onfocus="this.style.borderColor='#d97706'; this.style.boxShadow='0 0 0 3px rgba(245, 158, 11, 0.1)'"
-                           onblur="this.style.borderColor='#f59e0b'; this.style.boxShadow='none'">
-                    <p style="
-                        margin: 8px 0 0 0;
-                        color: #92400e;
-                        font-size: 14px;
-                        font-style: italic;
-                    ">
+            <div class="admin-card admin-card-body">
+                <h3 class="admin-heading-3 mb-4">Prezzo di Vendita</h3>
+                <div class="admin-form-group">
+                    <label class="admin-label">Prezzo di vendita (€)</label>
+                    <input type="number" id="sale-price" class="admin-input" 
+                           placeholder="Inserisci il prezzo di vendita" 
+                           min="0" step="0.01" required>
+                    <p class="admin-text-small text-gray-600 mt-2">
                         Inserisci il prezzo al quale l'immobile è stato venduto
                     </p>
                 </div>
             </div>
             
             <!-- Preview Profitti -->
-            <div style="
-                background: #f0f9ff;
-                border: 1px solid #0ea5e9;
-                border-radius: 12px;
-                padding: 20px;
-            ">
-                <h3 style="
-                    margin: 0 0 16px 0;
-                    color: #0c4a6e;
-                    font-size: 18px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    📈 Preview Distribuzione Profitti
-                </h3>
-                <div id="profit-preview" style="min-height: 120px;">
-                    <div style="
-                        text-align: center;
-                        color: #64748b;
-                        font-size: 16px;
-                        padding: 40px 20px;
-                        background: white;
-                        border-radius: 8px;
-                        border: 2px dashed #cbd5e1;
-                    ">
+            <div class="admin-card admin-card-body">
+                <h3 class="admin-heading-3 mb-4">Preview Distribuzione Profitti</h3>
+                <div id="profit-preview" class="space-y-4">
+                    <div class="text-center text-gray-500">
                         Inserisci un prezzo di vendita per vedere la preview
                     </div>
                 </div>
             </div>
             
             <!-- Lista Investitori -->
-            <div style="
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 20px;
-            ">
-                <h3 style="
-                    margin: 0 0 16px 0;
-                    color: #1e293b;
-                    font-size: 18px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    👥 Investitori (${totalInvestors})
-                </h3>
-                <div style="
-                    max-height: 300px;
-                    overflow-y: auto;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px;
-                ">
+            <div class="admin-card admin-card-body">
+                <h3 class="admin-heading-3 mb-4">Investitori (${totalInvestors})</h3>
+                <div class="space-y-3 max-h-60 overflow-y-auto">
                     ${investments.map(inv => `
-                        <div style="
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            padding: 16px;
-                            background: white;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 8px;
-                            transition: all 0.2s;
-                        " onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <div>
-                                <p style="
-                                    margin: 0 0 4px 0;
-                                    color: #1e293b;
-                                    font-size: 16px;
-                                    font-weight: 600;
-                                ">${inv.user_name || 'Utente'}</p>
-                                <p style="
-                                    margin: 0;
-                                    color: #64748b;
-                                    font-size: 14px;
-                                ">Investimento: €${parseFloat(inv.amount).toLocaleString()}</p>
+                                <p class="admin-text-body font-medium">${inv.user_name || 'Utente'}</p>
+                                <p class="admin-text-small text-gray-600">Investimento: €${parseFloat(inv.amount).toLocaleString()}</p>
                             </div>
-                            <div style="text-align: right;">
-                                <p style="
-                                    margin: 0 0 4px 0;
-                                    color: #64748b;
-                                    font-size: 12px;
-                                ">Quota: ${((parseFloat(inv.amount) / totalInvested) * 100).toFixed(2)}%</p>
-                                <p style="
-                                    margin: 0;
-                                    font-size: 16px;
-                                    font-weight: 600;
-                                    color: #059669;
-                                " id="profit-${inv.id}">€0.00</p>
+                            <div class="text-right">
+                                <p class="admin-text-small text-gray-600">Quota: ${((parseFloat(inv.amount) / totalInvested) * 100).toFixed(2)}%</p>
+                                <p class="admin-text-small font-medium" id="profit-${inv.id}">€0.00</p>
                             </div>
                         </div>
                     `).join('')}
@@ -559,12 +309,6 @@ function displaySaleModal(data) {
     
     // Aggiungi event listener per il calcolo dinamico dei profitti
     document.getElementById('sale-price').addEventListener('input', updateProfitPreview);
-    
-    // Salva il testo originale del pulsante
-    const confirmBtn = document.getElementById('confirm-sale-btn');
-    if (confirmBtn) {
-        confirmBtn.setAttribute('data-original-text', confirmBtn.innerHTML);
-    }
 }
 
 function updateProfitPreview() {
@@ -593,94 +337,33 @@ function updateProfitPreview() {
         profitIcon = '📉';
     }
     
-    const profitColor = totalProfit > 0 ? '#059669' : totalProfit < 0 ? '#dc2626' : '#6b7280';
-    const bgColor = totalProfit > 0 ? '#f0fdf4' : totalProfit < 0 ? '#fef2f2' : '#f9fafb';
-    const borderColor = totalProfit > 0 ? '#22c55e' : totalProfit < 0 ? '#ef4444' : '#d1d5db';
-    
     document.getElementById('profit-preview').innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-            <div style="
-                text-align: center;
-                padding: 20px;
-                background: white;
-                border: 2px solid ${borderColor};
-                border-radius: 12px;
-                transition: all 0.2s;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px -5px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <div style="font-size: 32px; margin-bottom: 8px;">${profitIcon}</div>
-                <p style="
-                    margin: 0 0 8px 0;
-                    color: #64748b;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">Profitto Totale</p>
-                <p style="
-                    margin: 0;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: ${profitColor};
-                ">€${totalProfit.toLocaleString()}</p>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-gray-50 rounded">
+                <div class="text-2xl mb-2">${profitIcon}</div>
+                <p class="admin-text-small text-gray-600">Profitto Totale</p>
+                <p class="admin-text-body font-bold text-${profitStatus === 'success' ? 'green' : profitStatus === 'warning' ? 'red' : 'gray'}-600">
+                    €${totalProfit.toLocaleString()}
+                </p>
             </div>
-            <div style="
-                text-align: center;
-                padding: 20px;
-                background: white;
-                border: 2px solid ${borderColor};
-                border-radius: 12px;
-                transition: all 0.2s;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px -5px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <div style="font-size: 32px; margin-bottom: 8px;">📊</div>
-                <p style="
-                    margin: 0 0 8px 0;
-                    color: #64748b;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">Rendimento</p>
-                <p style="
-                    margin: 0;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: ${profitColor};
-                ">${profitPercentage.toFixed(2)}%</p>
+            <div class="text-center p-4 bg-gray-50 rounded">
+                <div class="text-2xl mb-2">📊</div>
+                <p class="admin-text-small text-gray-600">Rendimento</p>
+                <p class="admin-text-body font-bold text-${profitStatus === 'success' ? 'green' : profitStatus === 'warning' ? 'red' : 'gray'}-600">
+                    ${profitPercentage.toFixed(2)}%
+                </p>
             </div>
-            <div style="
-                text-align: center;
-                padding: 20px;
-                background: white;
-                border: 2px solid ${borderColor};
-                border-radius: 12px;
-                transition: all 0.2s;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px -5px rgba(0, 0, 0, 0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <div style="font-size: 32px; margin-bottom: 8px;">💰</div>
-                <p style="
-                    margin: 0 0 8px 0;
-                    color: #64748b;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">ROI per Investitore</p>
-                <p style="
-                    margin: 0;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: ${profitColor};
-                ">${(profitPercentage / 100).toFixed(2)}x</p>
+            <div class="text-center p-4 bg-gray-50 rounded">
+                <div class="text-2xl mb-2">💰</div>
+                <p class="admin-text-small text-gray-600">ROI per Investitore</p>
+                <p class="admin-text-body font-bold text-${profitStatus === 'success' ? 'green' : profitStatus === 'warning' ? 'red' : 'gray'}-600">
+                    ${(profitPercentage / 100).toFixed(2)}x
+                </p>
             </div>
         </div>
         
-        <div style="
-            padding: 20px;
-            background: ${bgColor};
-            border: 2px solid ${borderColor};
-            border-radius: 12px;
-            text-align: center;
-        ">
-            <p style="
-                margin: 0;
-                font-size: 16px;
-                font-weight: 600;
-                color: ${profitColor};
-                line-height: 1.5;
-            ">
+        <div class="mt-4 p-4 bg-${profitStatus === 'success' ? 'green' : profitStatus === 'warning' ? 'yellow' : 'gray'}-50 rounded">
+            <p class="admin-text-small text-${profitStatus === 'success' ? 'green' : profitStatus === 'warning' ? 'yellow' : 'gray'}-800">
                 ${totalProfit > 0 ? 
                     `✅ Vendita profittevole! Gli investitori riceveranno il loro capitale + €${totalProfit.toLocaleString()} di profitti.` :
                     totalProfit < 0 ? 
@@ -709,28 +392,11 @@ function updateIndividualProfits(salePrice, totalInvested) {
             const individualProfit = totalInvested > 0 ? (individualAmount / totalInvested) * totalProfit : 0;
             const individualReturn = individualAmount + individualProfit;
             
-            const profitColor = individualProfit >= 0 ? '#059669' : '#dc2626';
-            const profitIcon = individualProfit >= 0 ? '📈' : '📉';
-            
             element.innerHTML = `
-                <div style="text-align: right;">
-                    <p style="
-                        margin: 0 0 4px 0;
-                        color: #64748b;
-                        font-size: 12px;
-                        font-weight: 500;
-                    ">Ritorno: €${individualReturn.toLocaleString()}</p>
-                    <p style="
-                        margin: 0;
-                        font-size: 16px;
-                        font-weight: 700;
-                        color: ${profitColor};
-                        display: flex;
-                        align-items: center;
-                        justify-content: flex-end;
-                        gap: 4px;
-                    ">
-                        ${profitIcon} ${individualProfit >= 0 ? '+' : ''}€${individualProfit.toLocaleString()}
+                <div class="text-right">
+                    <p class="admin-text-small text-gray-600">Ritorno: €${individualReturn.toLocaleString()}</p>
+                    <p class="admin-text-small font-medium text-${individualProfit >= 0 ? 'green' : 'red'}-600">
+                        ${individualProfit >= 0 ? '+' : ''}€${individualProfit.toLocaleString()}
                     </p>
                 </div>
             `;
@@ -742,12 +408,20 @@ async function confirmProjectSale() {
     const salePrice = parseFloat(document.getElementById('sale-price').value);
     
     if (!salePrice || salePrice <= 0) {
-        alert('Inserisci un prezzo di vendita valido');
+        if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+            projectsManager.showAlert('error', 'Inserisci un prezzo di vendita valido');
+        } else {
+            alert('Inserisci un prezzo di vendita valido');
+        }
         return;
     }
     
     if (!currentSaleProject) {
-        alert('Errore: progetto non selezionato');
+        if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+            projectsManager.showAlert('error', 'Errore: progetto non selezionato');
+        } else {
+            alert('Errore: progetto non selezionato');
+        }
         return;
     }
     
@@ -755,108 +429,46 @@ async function confirmProjectSale() {
     setButtonLoading(confirmBtn, true, 'Elaborando vendita...');
     
     try {
-        console.log('Iniziando vendita progetto:', currentSaleProject);
-        
-        // Crea la data corrente nel formato YYYY-MM-DD
-        const today = new Date();
-        const saleDate = today.toISOString().split('T')[0];
-        
-        console.log('Dati da inviare:', {
-            project_id: currentSaleProject,
-            sale_price: salePrice,
-            sale_date: saleDate
-        });
-        
-        console.log('Invio richiesta a /api/admin/project-sale...');
-        const response = await fetch('/api/admin/project-sale', {
+        const response = await fetch('/admin/profits/api/admin/project-sale', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'same-origin',
             body: JSON.stringify({
                 project_id: currentSaleProject,
-                sale_price: salePrice,
-                sale_date: saleDate
+                sale_price: salePrice
             })
         });
         
-        console.log('Risposta ricevuta:', response.status, response.statusText);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Errore HTTP:', response.status, errorText);
-            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-        }
-        
         const result = await response.json();
-        console.log('Risultato JSON:', result);
         
         if (result.success) {
-            alert(`Vendita completata! Profitti distribuiti a ${result.investors_count} investitori.`);
-            closeModal('sell-project-modal');
-            if (typeof projectsManager !== 'undefined' && projectsManager.loadProjects) {
+            if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+                projectsManager.showAlert('success', `Vendita completata! Profitti distribuiti a ${result.investors_count} investitori.`);
+                closeModal('sell-project-modal');
                 await projectsManager.loadProjects();
             } else {
-                window.location.reload();
+                alert(`Vendita completata! Profitti distribuiti a ${result.investors_count} investitori.`);
+                closeModal('sell-project-modal');
             }
         } else {
-            alert(result.error || 'Errore durante la vendita');
+            if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+                projectsManager.showAlert('error', result.error || 'Errore durante la vendita');
+            } else {
+                alert(result.error || 'Errore durante la vendita');
+            }
         }
         
     } catch (error) {
-        console.error('Errore completo vendita:', error);
-        console.error('Stack trace:', error.stack);
-        alert('Errore di connessione durante la vendita: ' + error.message);
+        console.error('Errore vendita:', error);
+        if (typeof projectsManager !== 'undefined' && projectsManager.showAlert) {
+            projectsManager.showAlert('error', 'Errore di connessione durante la vendita');
+        } else {
+            alert('Errore di connessione durante la vendita');
+        }
     } finally {
         setButtonLoading(confirmBtn, false);
     }
-}
-
-// === UTILITY FUNCTIONS ===
-function setButtonLoading(button, loading, text = '') {
-    if (loading) {
-        button.disabled = true;
-        button.innerHTML = text || 'Caricamento...';
-        button.style.opacity = '0.7';
-    } else {
-        button.disabled = false;
-        button.innerHTML = button.getAttribute('data-original-text') || 'Conferma Vendita';
-        button.style.opacity = '1';
-    }
-}
-
-// === MODAL FUNCTIONS ===
-function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-        // Non modificare l'overflow del body per evitare effetti indesiderati
-        
-        // Forza il centramento perfetto
-        const container = modal.querySelector('.admin-modal-container');
-        if (container) {
-            container.style.position = 'fixed';
-            container.style.top = '50%';
-            container.style.left = '50%';
-            container.style.transform = 'translate(-50%, -50%)';
-            container.style.margin = '0';
-        }
-    }
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-        // Non modificare l'overflow del body
-    }
-}
-
-function openCreateProjectModal() {
-    openModal('create-project-modal');
 }
 
 // Gestione Progetti Admin
@@ -1020,7 +632,7 @@ class ProjectsManager {
                     <img src="${imgSrc}" alt="foto" class="w-full h-40 object-cover rounded mb-3"/>
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <h3 class="admin-heading-3">${project.name || 'Senza titolo'}</h3>
+                            <h3 class="admin-heading-3">${project.name || project.title || 'Senza titolo'}</h3>
                             <p class="admin-text-caption">${project.code || 'N/A'}</p>
                         </div>
                         <span class="admin-badge admin-badge--${color}">${label}</span>
@@ -1227,6 +839,9 @@ class ProjectsManager {
     }
 }
 
+// Istanza globale
+let projectsManager;
+
 // Funzioni globali
 function applyFilters() {
     projectsManager.filters.status = document.getElementById('status-filter').value;
@@ -1254,6 +869,75 @@ function refreshProjects() {
     projectsManager.loadProjects(true);
 }
 
+function openCreateProjectModal() {
+    openModal('create-project-modal');
+    
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    
+    document.querySelector('[name="start_date"]').value = today;
+    document.querySelector('[name="end_date"]').value = nextMonth.toISOString().split('T')[0];
+}
+
+async function submitCreateProject() {
+    const form = document.getElementById('create-project-form');
+    const formData = new FormData(form);
+    
+    // Validazione campi obbligatori
+    if (!formData.get('code') || !formData.get('title') || !formData.get('description') || 
+        !formData.get('target_amount') || !formData.get('address')) {
+        projectsManager.showAlert('error', 'Codice, nome, descrizione e importo target sono obbligatori');
+        return;
+    }
+    
+    // Validazione importi
+    const totalAmount = parseFloat(formData.get('target_amount'));
+    const minInvestment = parseFloat(formData.get('min_investment')) || 1000;
+    
+    if (totalAmount <= 0 || minInvestment <= 0) {
+        projectsManager.showAlert('error', 'Gli importi devono essere maggiori di zero');
+        return;
+    }
+    
+    // Validazione file (opzionale)
+    const photo = formData.get('photo');
+    if (photo && photo.size > 0) {
+        if (photo.size > 5 * 1024 * 1024) { // 5MB
+            projectsManager.showAlert('error', 'Foto troppo grande (max 5MB)');
+            return;
+        }
+    }
+    
+    const btn = document.getElementById('create-project-btn');
+    setButtonLoading(btn, true, 'Creazione...');
+    
+    try {
+        const response = await fetch('/admin/projects/new', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.id || result.success) {
+            const projectName = formData.get('title') || formData.get('name') || 'Progetto';
+            projectsManager.showAlert('success', `Progetto "${projectName}" creato con successo!`);
+            closeModal('create-project-modal');
+            form.reset();
+            await projectsManager.loadProjects();
+        } else {
+            projectsManager.showAlert('error', result.error || 'Errore nella creazione');
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        projectsManager.showAlert('error', 'Errore di connessione');
+    } finally {
+        setButtonLoading(btn, false);
+    }
+}
+
 function editProject(id) {
     window.location.href = `/admin/projects/${id}`;
 }
@@ -1273,6 +957,39 @@ ProjectsManager.prototype.updateDisplay = function() {
     updateTotalProjectsCount();
 };
 
+        // === MODAL FUNCTIONS ===
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+                // Forza il centramento perfetto
+                const container = modal.querySelector('.admin-modal-container');
+                if (container) {
+                    container.style.position = 'fixed';
+                    container.style.top = '50%';
+                    container.style.left = '50%';
+                    container.style.transform = 'translate(-50%, -50%)';
+                    container.style.margin = '0';
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function openCreateProjectModal() {
+            openModal('create-project-modal');
+        }
+
 // Close modal when clicking outside
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('admin-modal-backdrop')) {
@@ -1286,25 +1003,25 @@ document.addEventListener('click', function(e) {
 // Close modal with Escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        const openModal = document.querySelector('.admin-modal[style*="flex"]');
+        const openModal = document.querySelector('.admin-modal[style*="block"]');
         if (openModal) {
             closeModal(openModal.id);
         }
     }
 });
 
-// Inizializzazione
-document.addEventListener('DOMContentLoaded', function() {
-    projectsManager = new ProjectsManager();
-    
-    // Event listener per il tasto Crea Progetto
-    const createBtn = document.getElementById('create-project-btn');
-    if (createBtn) {
-        createBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openCreateProjectModal();
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            projectsManager = new ProjectsManager();
+            
+            // Event listener per il tasto Crea Progetto
+            const createBtn = document.getElementById('create-project-btn');
+            if (createBtn) {
+                createBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openCreateProjectModal();
+                });
+            }
         });
-    }
-});
 </script>
 {% endblock %}

@@ -148,6 +148,14 @@ def create_app():
     except Exception as e:
         app.logger.error(f"Errore registrazione blueprint Portfolio: {e}")
     
+    # Registra blueprint Profits
+    try:
+        from backend.profits import profits_bp
+        app.register_blueprint(profits_bp)
+        app.logger.info("Blueprint Profits registrato con successo")
+    except Exception as e:
+        app.logger.error(f"Errore registrazione blueprint Profits: {e}")
+    
     # Blueprint Withdrawals è registrato in main.py insieme agli altri moduli API
     
     # Deposits blueprint è registrato in main.py insieme agli altri moduli API
