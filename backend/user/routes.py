@@ -8,7 +8,7 @@ def get_conn():
     return get_connection()
 
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, kyc_verified, can_access_portfolio, can_invest
+from backend.auth.decorators import login_required, kyc_verified, can_invest
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -87,14 +87,19 @@ def dashboard():
             portfolio = cur.fetchone()
             conn.commit()
         
-        # Investimenti attivi dettagliati
+        # Investimenti attivi dettagliati (raggruppati per progetto)
         cur.execute("""
-            SELECT i.id, i.amount, i.created_at as date_invested, p.name as project_name,
-                   CASE WHEN p.total_amount > 0 THEN (i.amount / p.total_amount * 100) ELSE 0 END as percentage
+            SELECT p.id as project_id, p.name as project_name, 
+                   SUM(i.amount) as total_amount,
+                   MIN(i.created_at) as first_investment_date,
+                   MAX(i.created_at) as last_investment_date,
+                   COUNT(i.id) as investment_count,
+                   CASE WHEN p.total_amount > 0 THEN (SUM(i.amount) / p.total_amount * 100) ELSE 0 END as percentage
             FROM investments i 
             JOIN projects p ON p.id = i.project_id 
             WHERE i.user_id = %s AND i.status = 'active'
-            ORDER BY i.created_at DESC
+            GROUP BY p.id, p.name, p.total_amount
+            ORDER BY MAX(i.created_at) DESC
         """, (uid,))
         active_investments_data = cur.fetchall()
         
@@ -397,7 +402,6 @@ def invest(project_id):
 # =====================================================
 
 @user_bp.get("/portfolio")
-@can_access_portfolio
 @kyc_verified
 def portfolio():
     """Portafoglio dettagliato con investimenti attivi e completati"""
@@ -410,12 +414,19 @@ def portfolio():
     statuses = ('active',) if tab == 'attivi' else ('completed','cancelled','rejected')
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Ottieni investimenti
+        # Ottieni investimenti (raggruppati per progetto)
         cur.execute("""
-            SELECT i.id, p.name AS project_title, i.amount, i.status, i.created_at
-            FROM investments i JOIN projects p ON p.id=i.project_id
+            SELECT p.id as project_id, p.name AS project_title, 
+                   SUM(i.amount) as total_amount, 
+                   i.status, 
+                   MIN(i.created_at) as first_investment_date,
+                   MAX(i.created_at) as last_investment_date,
+                   COUNT(i.id) as investment_count
+            FROM investments i 
+            JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s AND i.status = ANY(%s)
-            ORDER BY i.created_at DESC
+            GROUP BY p.id, p.name, i.status
+            ORDER BY MAX(i.created_at) DESC
         """, (uid, list(statuses)))
         rows = cur.fetchall()
         
@@ -462,7 +473,7 @@ def portfolio():
                          current_page="portfolio")
 
 @user_bp.get("/api/portfolio-data")
-@can_access_portfolio
+@kyc_verified
 def get_portfolio_data():
     """API per ottenere i dati del portafoglio per il trasferimento"""
     uid = session.get("user_id")
@@ -491,7 +502,7 @@ def get_portfolio_data():
         })
 
 @user_bp.post("/api/transfer-capital")
-@can_access_portfolio
+@kyc_verified
 def transfer_capital():
     """API per trasferire capitale tra le sezioni del portafoglio"""
     uid = session.get("user_id")
@@ -553,7 +564,6 @@ def transfer_capital():
         return jsonify({"error": f"Errore durante il trasferimento: {str(e)}"}), 500
 
 @user_bp.get("/portfolio/<int:investment_id>")
-@can_access_portfolio
 @kyc_verified
 def portfolio_detail(investment_id):
     """Dettaglio specifico di un investimento"""
@@ -601,8 +611,13 @@ def serve_project_file_user(filename):
     from flask import current_app, send_from_directory
     import os
     
-    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
-    projects_folder = os.path.join(upload_folder, 'projects')
+    # Permetti accesso sia a user che admin
+    user_role = session.get('role')
+    if user_role not in ['user', 'admin']:
+        abort(403)
+    
+    # Usa la cartella uploads/projects nella root del progetto
+    projects_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
     
     if not os.path.exists(os.path.join(projects_folder, filename)):
         abort(404)

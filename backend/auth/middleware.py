@@ -269,6 +269,7 @@ def setup_auth_middleware(app):
         if (request.path.startswith("/static") or 
             request.path.startswith("/assets") or
             request.path.startswith("/kyc/api/") or  # Tutte le API KYC
+            request.path.startswith("/uploads/") or  # Route per file upload
             request.endpoint in ['auth.login', 'auth.register', 'auth.logout']):
             return
         
@@ -304,8 +305,11 @@ def setup_auth_middleware(app):
             if request.endpoint:
                 user_role = session.get('user_role', 'investor')
                 
-                # Admin NON deve accedere a rotte user
+                # Admin NON deve accedere a rotte user (eccetto immagini)
                 if user_role == 'admin' and request.endpoint.startswith('user.'):
+                    # Permetti accesso alle immagini dei progetti
+                    if request.endpoint == 'user.serve_project_file_user':
+                        return  # Lascia che la route gestisca la richiesta
                     logger.warning(f"ADMIN ha tentato accesso rotta USER: {request.endpoint}")
                     flash("Accesso negato: Gli amministratori devono usare il pannello admin", "error")
                     return redirect(url_for('admin.admin_dashboard'))
@@ -357,15 +361,3 @@ def can_user_withdraw(user_id: int) -> bool:
     # Utenti normali devono avere KYC verificato
     return user.get('kyc_status') == KYCStatus.VERIFIED.value
 
-def can_user_access_portfolio(user_id: int) -> bool:
-    """Verifica se un utente può accedere al portafoglio"""
-    user = get_user_by_id(user_id)
-    if not user:
-        return False
-    
-    # Admin può sempre accedere
-    if user.get('role') == UserRole.ADMIN.value:
-        return True
-    
-    # Utenti normali devono avere KYC verificato
-    return user.get('kyc_status') == KYCStatus.VERIFIED.value

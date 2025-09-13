@@ -9,7 +9,7 @@ from typing import Callable, Any, Union, List
 import logging
 
 from backend.shared.models import UserRole, KYCStatus
-from backend.auth.middleware import get_current_user, is_authenticated
+from backend.auth.middleware import get_current_user, is_authenticated, validate_session_security
 from backend.utils.http import is_api_request
 
 logger = logging.getLogger(__name__)
@@ -40,9 +40,22 @@ def guest_only(f: Callable) -> Callable:
     """Decorator per utenti non autenticati (es. login, register)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if is_authenticated():
+        # Se è una richiesta POST (login/register), permetti sempre l'accesso
+        # per permettere la validazione delle credenziali
+        if request.method == 'POST':
+            return f(*args, **kwargs)
+        
+        # Se l'utente è autenticato e la sessione è valida, reindirizza
+        if is_authenticated() and validate_session_security():
             flash("Sei già autenticato", "info")
             return redirect(url_for('user.dashboard'))
+        
+        # Se l'utente è autenticato ma la sessione non è valida, distruggi la sessione
+        # e permetti l'accesso alla pagina di login per mostrare errori
+        if is_authenticated() and not validate_session_security():
+            from backend.auth.middleware import destroy_session
+            destroy_session()
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -264,40 +277,6 @@ def can_withdraw(f: Callable) -> Callable:
         return f(*args, **kwargs)
     return decorated_function
 
-def can_access_portfolio(f: Callable) -> Callable:
-    """Decorator per verificare se l'utente può accedere al portafoglio"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not is_authenticated():
-            flash("Accesso richiesto per visualizzare questa pagina", "warning")
-            return redirect(url_for('auth.login'))
-        
-        user = get_current_user()
-        if not user:
-            flash("Sessione utente non valida", "error")
-            return redirect(url_for('auth.login'))
-        
-        # Admin può sempre accedere
-        if user.get('role') == UserRole.ADMIN.value:
-            return f(*args, **kwargs)
-        
-        # Utenti normali devono avere KYC verificato
-        if user.get('kyc_status') != KYCStatus.VERIFIED.value:
-            # Se è una richiesta AJAX, restituisci errore JSON
-            from flask import request, jsonify
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'error': 'kyc_required',
-                    'message': 'Verifica KYC richiesta per accedere al portafoglio',
-                    'kyc_status': user.get('kyc_status')
-                }), 403
-            
-            # Altrimenti, reindirizza al profilo (fallback per browser senza JS)
-            flash("Verifica KYC richiesta per accedere al portafoglio", "warning")
-            return redirect(url_for('user.profile'))
-        
-        return f(*args, **kwargs)
-    return decorated_function
 
 # ============================================================================
 # DECORATORI CONDIZIONALI

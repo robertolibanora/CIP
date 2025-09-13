@@ -42,13 +42,20 @@ def projects():
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
                    p.image_url,
-                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
-                   COALESCE(i.amount, 0) as user_investment_amount,
-                   COALESCE(i.status, 'none') as user_investment_status
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(user_investments.total_amount, 0) as user_investment_amount,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
             FROM projects p 
-            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
+            LEFT JOIN (
+                SELECT project_id, SUM(amount) as total_amount
+                FROM investments 
+                WHERE user_id = %s AND status = 'active'
+                GROUP BY project_id
+            ) user_investments ON p.id = user_investments.project_id
             WHERE p.status = 'active'
-            ORDER BY p.created_at DESC
+            ORDER BY 
+                CASE WHEN user_investments.total_amount IS NOT NULL THEN 0 ELSE 1 END,
+                p.created_at DESC
         """, (uid,))
         
         active_projects = cur.fetchall()
@@ -58,11 +65,16 @@ def projects():
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
                    p.image_url,
-                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
-                   COALESCE(i.amount, 0) as user_investment_amount,
-                   COALESCE(i.status, 'none') as user_investment_status
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(user_investments.total_amount, 0) as user_investment_amount,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
             FROM projects p 
-            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
+            LEFT JOIN (
+                SELECT project_id, SUM(amount) as total_amount
+                FROM investments 
+                WHERE user_id = %s AND status = 'active'
+                GROUP BY project_id
+            ) user_investments ON p.id = user_investments.project_id
             WHERE p.status = 'completed'
             ORDER BY p.created_at DESC
         """, (uid,))
@@ -73,15 +85,19 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url, ps.sale_amount as sale_price, ps.sale_date,
-                   CASE WHEN i.id IS NOT NULL THEN true ELSE false END as user_invested,
-                   COALESCE(i.amount, 0) as user_investment_amount,
-                   COALESCE(i.status, 'none') as user_investment_status
+                   p.image_url, p.sale_price, p.sale_date,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(user_investments.total_amount, 0) as user_investment_amount,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
             FROM projects p 
-            LEFT JOIN project_sales ps ON p.id = ps.project_id
-            LEFT JOIN investments i ON p.id = i.project_id AND i.user_id = %s AND i.status = 'active'
+            LEFT JOIN (
+                SELECT project_id, SUM(amount) as total_amount
+                FROM investments 
+                WHERE user_id = %s AND status = 'completed'
+                GROUP BY project_id
+            ) user_investments ON p.id = user_investments.project_id
             WHERE p.status = 'sold'
-            ORDER BY ps.sale_date DESC
+            ORDER BY p.sale_date DESC
         """, (uid,))
         
         sold_projects = cur.fetchall()
@@ -103,7 +119,11 @@ def projects():
                 
                 # GESTIONE IMMAGINI - Struttura per galleria
                 project['has_images'] = bool(project.get('image_url'))
-                project['photo_filename'] = project.get('image_url')  # Per compatibilità con template
+                # Estrai solo il nome del file dal percorso completo
+                if project.get('image_url'):
+                    project['photo_filename'] = project['image_url'].split('/')[-1]
+                else:
+                    project['photo_filename'] = None
                 project['gallery_count'] = 1 if project.get('image_url') else 0
                 
                 # Calcola informazioni profitto per progetti venduti

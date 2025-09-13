@@ -46,7 +46,10 @@ def login():
         flash("Email e password sono richiesti", "error")
         return render_template("auth/login.html")
 
-    with get_conn() as conn, conn.cursor() as cur:
+    conn = get_conn()
+    cur = conn.cursor()
+    
+    try:
         # Cerca utente per email
         cur.execute(
             """
@@ -56,6 +59,8 @@ def login():
             (email,),
         )
         user = cur.fetchone()
+        if user:
+            user = dict(user)  # Converte Row in dict per SQLite
 
         # Verifica password con hash
         if user and user["password_hash"] == hash_password(password):
@@ -86,6 +91,9 @@ def login():
             if is_api_request():
                 return jsonify({"error": "Credenziali non valide"}), 401
             flash("Credenziali non valide", "error")
+    
+    finally:
+        conn.close()
 
     return render_template("auth/login.html")
 

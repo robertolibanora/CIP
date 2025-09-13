@@ -39,6 +39,7 @@
                         <option value="active">Attivo</option>
                         <option value="funded">Finanziato</option>
                         <option value="completed">Completato</option>
+                        <option value="sold">Venduto</option>
                         <option value="cancelled">Annullato</option>
                     </select>
                 </div>
@@ -259,6 +260,271 @@
                 transition: all 0.2s;
             " onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
                 💰 Conferma Vendita
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Annullamento Progetto -->
+<div id="cancel-project-modal" class="admin-modal" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+">
+    <div class="admin-modal-content" style="
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 600px;
+        width: 90%;
+        max-height: 85vh;
+        overflow: hidden;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    ">
+        <div class="admin-modal-header" style="
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 12px 12px 0 0;
+        ">
+            <h3 class="admin-heading-3" style="
+                margin: 0;
+                color: #dc2626;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                ⚠️ Annulla Progetto
+            </h3>
+            <p class="admin-text-small text-gray-600 mt-2">
+                Questa azione restituirà tutti i fondi investiti al capitale libero degli utenti
+            </p>
+        </div>
+        
+        <div class="admin-modal-body" style="
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 24px;
+            background: white;
+        ">
+            <div id="cancel-project-content">
+                <div class="mb-6">
+                    <h4 class="admin-heading-4 mb-4">Dettagli Progetto</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="admin-text-small text-gray-600">Nome Progetto</label>
+                                <p class="admin-text-body font-medium" id="cancel-project-name">-</p>
+                            </div>
+                            <div>
+                                <label class="admin-text-small text-gray-600">Codice</label>
+                                <p class="admin-text-body font-medium" id="cancel-project-code">-</p>
+                            </div>
+                            <div>
+                                <label class="admin-text-small text-gray-600">Investitori</label>
+                                <p class="admin-text-body font-medium" id="cancel-project-investors">-</p>
+                            </div>
+                            <div>
+                                <label class="admin-text-small text-gray-600">Totale Investito</label>
+                                <p class="admin-text-body font-medium text-green-600" id="cancel-project-total-invested">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="admin-heading-4 mb-4">Lista Investitori</h4>
+                    <div id="cancel-investors-list" class="space-y-2">
+                        <!-- Lista dinamica degli investitori -->
+                    </div>
+                </div>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        <div>
+                            <h5 class="admin-text-body font-medium text-red-800">Attenzione!</h5>
+                            <p class="admin-text-small text-red-700 mt-1">
+                                L'annullamento del progetto restituirà tutti i fondi investiti al capitale libero degli utenti. 
+                                Questa azione non può essere annullata.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-modal-footer" style="
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        ">
+            <button onclick="closeModal('cancel-project-modal')" class="admin-btn admin-btn--secondary" style="
+                background: #f3f4f6;
+                color: #374151;
+                padding: 12px 24px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                Annulla
+            </button>
+            <button onclick="confirmProjectCancel()" class="admin-btn admin-btn--danger" id="confirm-cancel-btn" style="
+                background: #dc2626;
+                color: white;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                🚫 Conferma Annullamento
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminazione Progetto -->
+<div id="delete-project-modal" class="admin-modal" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+">
+    <div class="admin-modal-content" style="
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 500px;
+        width: 90%;
+        max-height: 85vh;
+        overflow: hidden;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    ">
+        <div class="admin-modal-header" style="
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 12px 12px 0 0;
+        ">
+            <h3 class="admin-heading-3" style="
+                margin: 0;
+                color: #dc2626;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                🗑️ Elimina Progetto
+            </h3>
+            <p class="admin-text-small text-gray-600 mt-2">
+                Questa azione eliminerà permanentemente il progetto dal sistema
+            </p>
+        </div>
+        
+        <div class="admin-modal-body" style="
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 24px;
+            background: white;
+        ">
+            <div id="delete-project-content">
+                <div class="mb-6">
+                    <h4 class="admin-heading-4 mb-4">Dettagli Progetto</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="admin-text-small text-gray-600">Nome Progetto</label>
+                                <p class="admin-text-body font-medium" id="delete-project-name">-</p>
+                            </div>
+                            <div>
+                                <label class="admin-text-small text-gray-600">Codice</label>
+                                <p class="admin-text-body font-medium" id="delete-project-code">-</p>
+                            </div>
+                            <div>
+                                <label class="admin-text-small text-gray-600">Status</label>
+                                <p class="admin-text-body font-medium" id="delete-project-status">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-red-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        <div>
+                            <h5 class="admin-text-body font-medium text-red-800">Attenzione!</h5>
+                            <p class="admin-text-small text-red-700 mt-1">
+                                L'eliminazione del progetto rimuoverà permanentemente tutti i dati associati. 
+                                Questa azione non può essere annullata.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-modal-footer" style="
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        ">
+            <button onclick="closeModal('delete-project-modal')" class="admin-btn admin-btn--secondary" style="
+                background: #f3f4f6;
+                color: #374151;
+                padding: 12px 24px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">
+                Annulla
+            </button>
+            <button onclick="confirmProjectDelete()" class="admin-btn admin-btn--danger" id="confirm-delete-btn" style="
+                background: #dc2626;
+                color: white;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                🗑️ Conferma Eliminazione
             </button>
         </div>
     </div>
@@ -813,6 +1079,242 @@ async function confirmProjectSale() {
     }
 }
 
+// === PROJECT CANCEL FUNCTIONS ===
+let currentCancelProject = null;
+
+async function cancelProject(projectId) {
+    console.log('cancelProject chiamata con ID:', projectId);
+    currentCancelProject = projectId;
+    
+    try {
+        // Carica i dettagli del progetto e degli investimenti
+        console.log('Caricamento dati per annullamento progetto:', projectId);
+        const response = await fetch(`/admin/projects/${projectId}/cancel-data`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error:', errorText);
+            throw new Error(`Errore HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Dati ricevuti:', data);
+        displayCancelModal(data);
+        openModal('cancel-project-modal');
+        
+    } catch (error) {
+        console.error('Errore completo:', error);
+        alert('Errore nel caricamento dei dati per l\'annullamento: ' + error.message);
+    }
+}
+
+function displayCancelModal(data) {
+    const project = data.project;
+    const investments = data.investments;
+    
+    // Aggiorna il contenuto del modal
+    document.getElementById('cancel-project-name').textContent = project.name || 'Progetto senza nome';
+    document.getElementById('cancel-project-code').textContent = project.code || 'N/A';
+    document.getElementById('cancel-project-investors').textContent = investments.length;
+    document.getElementById('cancel-project-total-invested').textContent = '€' + investments.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString();
+    
+    // Mostra la lista degli investitori
+    const investorsList = document.getElementById('cancel-investors-list');
+    investorsList.innerHTML = investments.map(inv => `
+        <div class="flex justify-between items-center p-2 bg-gray-50 rounded mb-2">
+            <div>
+                <span class="font-medium">${inv.user_name || 'N/A'}</span>
+                <span class="text-sm text-gray-500 ml-2">${inv.email || ''}</span>
+            </div>
+            <span class="font-semibold text-green-600">€${parseFloat(inv.amount || 0).toLocaleString()}</span>
+        </div>
+    `).join('');
+}
+
+async function confirmProjectCancel() {
+    if (!currentCancelProject) {
+        alert('Errore: progetto non selezionato');
+        return;
+    }
+    
+    const confirmBtn = document.getElementById('confirm-cancel-btn');
+    setButtonLoading(confirmBtn, true, 'Elaborando annullamento...');
+    
+    try {
+        console.log('Iniziando annullamento progetto:', currentCancelProject);
+        
+        const response = await fetch('/api/admin/project-cancel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                project_id: currentCancelProject
+            })
+        });
+        
+        console.log('Risposta ricevuta:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Errore HTTP:', response.status, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        
+        const result = await response.json();
+        console.log('Risultato JSON:', result);
+        
+        if (result.success) {
+            // Chiudi il modal
+            closeModal('cancel-project-modal');
+            
+            // Mostra messaggio di successo
+            alert(result.message);
+            
+            // Ricarica i progetti
+            if (typeof projectsManager !== 'undefined' && projectsManager.loadProjects) {
+                await projectsManager.loadProjects();
+            } else {
+                window.location.reload();
+            }
+        } else {
+            throw new Error(result.error || 'Errore sconosciuto durante l\'annullamento');
+        }
+        
+    } catch (error) {
+        console.error('Errore durante l\'annullamento:', error);
+        alert('Errore di connessione durante l\'annullamento: ' + error.message);
+    } finally {
+        setButtonLoading(confirmBtn, false, 'Conferma Annullamento');
+    }
+}
+
+// === PROJECT DELETE FUNCTIONS ===
+let currentDeleteProject = null;
+
+async function deleteProject(projectId) {
+    console.log('deleteProject chiamata con ID:', projectId);
+    currentDeleteProject = projectId;
+    
+    try {
+        // Carica i dettagli del progetto
+        console.log('Caricamento dati per eliminazione progetto:', projectId);
+        const response = await fetch(`/admin/projects/${projectId}/delete-data`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                alert('Sessione scaduta. Ricarica la pagina e riprova.');
+                window.location.reload();
+                return;
+            }
+            const errorText = await response.text();
+            console.error('Response error:', errorText);
+            throw new Error(`Errore HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Dati ricevuti:', data);
+        displayDeleteModal(data);
+        openModal('delete-project-modal');
+        
+    } catch (error) {
+        console.error('Errore completo:', error);
+        alert('Errore nel caricamento dei dati per l\'eliminazione: ' + error.message);
+    }
+}
+
+function displayDeleteModal(data) {
+    const project = data.project;
+    
+    // Aggiorna il contenuto del modal
+    document.getElementById('delete-project-name').textContent = project.name || 'Progetto senza nome';
+    document.getElementById('delete-project-code').textContent = project.code || 'N/A';
+    document.getElementById('delete-project-status').textContent = project.status || 'N/A';
+}
+
+async function confirmProjectDelete() {
+    if (!currentDeleteProject) {
+        alert('Errore: progetto non selezionato');
+        return;
+    }
+    
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    setButtonLoading(confirmBtn, true, 'Elaborando eliminazione...');
+    
+    try {
+        console.log('Iniziando eliminazione progetto:', currentDeleteProject);
+        
+        const response = await fetch('/api/admin/project-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                project_id: currentDeleteProject
+            })
+        });
+        
+        console.log('Risposta ricevuta:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                alert('Sessione scaduta. Ricarica la pagina e riprova.');
+                window.location.reload();
+                return;
+            }
+            const errorText = await response.text();
+            console.error('Errore HTTP:', response.status, errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        
+        const result = await response.json();
+        console.log('Risultato JSON:', result);
+        
+        if (result.success) {
+            // Chiudi il modal
+            closeModal('delete-project-modal');
+            
+            // Mostra messaggio di successo
+            alert(result.message);
+            
+            // Ricarica i progetti
+            if (typeof projectsManager !== 'undefined' && projectsManager.loadProjects) {
+                await projectsManager.loadProjects();
+            } else {
+                window.location.reload();
+            }
+        } else {
+            throw new Error(result.error || 'Errore sconosciuto durante l\'eliminazione');
+        }
+        
+    } catch (error) {
+        console.error('Errore durante l\'eliminazione:', error);
+        alert('Errore di connessione durante l\'eliminazione: ' + error.message);
+    } finally {
+        setButtonLoading(confirmBtn, false, 'Conferma Eliminazione');
+    }
+}
+
 // === UTILITY FUNCTIONS ===
 function setButtonLoading(button, loading, text = '') {
     if (loading) {
@@ -830,18 +1332,17 @@ function setButtonLoading(button, loading, text = '') {
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.classList.remove('hidden');
         modal.style.display = 'flex';
-        // Non modificare l'overflow del body per evitare effetti indesiderati
         
-        // Forza il centramento perfetto
-        const container = modal.querySelector('.admin-modal-container');
-        if (container) {
-            container.style.position = 'fixed';
-            container.style.top = '50%';
-            container.style.left = '50%';
-            container.style.transform = 'translate(-50%, -50%)';
-            container.style.margin = '0';
+        // Per i modal di annullamento, eliminazione e creazione, assicurati che siano centrati
+        if (modalId === 'cancel-project-modal' || modalId === 'delete-project-modal' || modalId === 'create-project-modal') {
+            const content = modal.querySelector('.admin-modal-content') || modal.querySelector('.admin-modal-container');
+            if (content) {
+                content.style.position = 'fixed';
+                content.style.top = '50%';
+                content.style.left = '50%';
+                content.style.transform = 'translate(-50%, -50%)';
+            }
         }
     }
 }
@@ -849,15 +1350,14 @@ function openModal(modalId) {
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-        modal.classList.add('hidden');
         modal.style.display = 'none';
         // Non modificare l'overflow del body
     }
 }
 
-function openCreateProjectModal() {
-    openModal('create-project-modal');
-}
+// Funzione openCreateProjectModal ora è nel modal create_project_modal.html
+
+// Funzione submitCreateProject ora è nel modal create_project_modal.html
 
 // Gestione Progetti Admin
 class ProjectsManager {
@@ -937,22 +1437,29 @@ class ProjectsManager {
             );
         }
         
-        // Ordinamento
-        const [field, direction] = this.filters.sort.split('-');
+        // Ordinamento personalizzato: Attivi → Completati → Venduti → Altri
         filtered.sort((a, b) => {
-            let aVal = a[field] || '';
-            let bVal = b[field] || '';
+            // Prima ordina per status secondo la logica richiesta
+            const statusOrder = {
+                'active': 1,
+                'completed': 2,
+                'sold': 3,
+                'funded': 4,
+                'draft': 5,
+                'cancelled': 6
+            };
             
-            if (field === 'total_amount' || field === 'target_amount' || field === 'min_investment') {
-                aVal = parseFloat(aVal) || 0;
-                bVal = parseFloat(bVal) || 0;
+            const aStatusOrder = statusOrder[a.status] || 99;
+            const bStatusOrder = statusOrder[b.status] || 99;
+            
+            if (aStatusOrder !== bStatusOrder) {
+                return aStatusOrder - bStatusOrder;
             }
             
-            if (direction === 'desc') {
-                return aVal < bVal ? 1 : -1;
-            } else {
-                return aVal > bVal ? 1 : -1;
-            }
+            // Se stesso status, ordina per data di creazione (più recenti prima)
+            const aDate = new Date(a.created_at || 0);
+            const bDate = new Date(b.created_at || 0);
+            return bDate - aDate;
         });
         
         this.filteredProjects = filtered;
@@ -996,6 +1503,7 @@ class ProjectsManager {
             active: 'blue', 
             funded: 'green',
             completed: 'purple',
+            sold: 'green',
             cancelled: 'red'
         };
         
@@ -1004,6 +1512,7 @@ class ProjectsManager {
             active: 'Attivo',
             funded: 'Finanziato', 
             completed: 'Completato',
+            sold: 'Venduto',
             cancelled: 'Annullato'
         };
         
@@ -1075,10 +1584,22 @@ class ProjectsManager {
                     </div>
                     
                     <div class="admin-flex">
-                        <button onclick="sellProject(${project.id})" 
-                                class="admin-btn admin-btn--warning admin-btn--sm flex-1 mr-2">
-                            Vendita
-                        </button>
+                        ${project.status === 'sold' ? `
+                            <button onclick="deleteProject(${project.id})" 
+                                    class="admin-btn admin-btn--danger admin-btn--sm flex-1 mr-2">
+                                Elimina
+                            </button>
+                        ` : project.status === 'active' ? `
+                            <button onclick="cancelProject(${project.id})" 
+                                    class="admin-btn admin-btn--danger admin-btn--sm flex-1 mr-2">
+                                Annulla
+                            </button>
+                        ` : `
+                            <button onclick="sellProject(${project.id})" 
+                                    class="admin-btn admin-btn--warning admin-btn--sm flex-1 mr-2">
+                                Vendita
+                            </button>
+                        `}
                         <button onclick="editProject(${project.id})" 
                                 class="admin-btn admin-btn--primary admin-btn--sm flex-1">
                             Modifica
@@ -1153,6 +1674,7 @@ class ProjectsManager {
             active: this.projects.filter(p => p.status === 'active').length,
             funded: this.projects.filter(p => p.status === 'funded').length,
             completed: this.projects.filter(p => p.status === 'completed').length,
+            sold: this.projects.filter(p => p.status === 'sold').length,
             cancelled: this.projects.filter(p => p.status === 'cancelled').length
         };
         
@@ -1171,8 +1693,20 @@ class ProjectsManager {
                     <span class="admin-badge admin-badge--success">${stats.funded}</span>
                 </div>
                 <div class="flex justify-between">
+                    <span class="admin-text-small">Completati:</span>
+                    <span class="admin-badge admin-badge--success">${stats.completed}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Venduti:</span>
+                    <span class="admin-badge admin-badge--green">${stats.sold}</span>
+                </div>
+                <div class="flex justify-between">
                     <span class="admin-text-small">Bozze:</span>
                     <span class="admin-badge admin-badge--warning">${stats.draft}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Cancellati:</span>
+                    <span class="admin-badge admin-badge--error">${stats.cancelled}</span>
                 </div>
             </div>
         `;
@@ -1290,6 +1824,22 @@ document.addEventListener('keydown', function(e) {
         if (openModal) {
             closeModal(openModal.id);
         }
+    }
+});
+
+// Close modal when clicking outside (solo per modal con background)
+document.addEventListener('click', function(e) {
+    // Per il modal di annullamento, chiudi solo se si clicca sul contenitore principale
+    if (e.target.id === 'cancel-project-modal') {
+        closeModal('cancel-project-modal');
+    }
+    // Per il modal di eliminazione, chiudi solo se si clicca sul contenitore principale
+    if (e.target.id === 'delete-project-modal') {
+        closeModal('delete-project-modal');
+    }
+    // Per il modal di creazione, chiudi solo se si clicca sul contenitore principale
+    if (e.target.id === 'create-project-modal') {
+        closeModal('create-project-modal');
     }
 });
 

@@ -14,6 +14,7 @@ portfolio_bp = Blueprint("portfolio_api2", __name__)
 def get_conn():
     return get_connection()
 
+
 def ensure_deposits_schema(cur):
     pass
 
@@ -183,32 +184,54 @@ def get_capital_movements():
     return jsonify({'movements': movements})
 
 @portfolio_bp.route('/api/portfolio/profits', methods=['GET'])
-def get_profits_and_yields():
-    """API per ottenere profitti e rendimenti accumulati"""
+def get_profits_movements():
+    """API per ottenere i movimenti della sezione profitti"""
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Ottieni profitti dai rendimenti investimenti
+        # Ottieni i movimenti della sezione profitti
         cur.execute("""
             SELECT 
-                p.name as project_title,
-                i.amount as invested_amount,
-                i.roi_earned as profit,
-                ROUND((i.roi_earned / i.amount * 100), 2) as roi_percentage,
-                i.completion_date,
-                i.status
-            FROM investments i
-            JOIN projects p ON p.id = i.project_id
-            WHERE i.user_id = %s AND i.status = 'completed'
-            ORDER BY i.completion_date DESC
+                pt.id,
+                pt.type,
+                pt.amount,
+                pt.balance_before,
+                pt.balance_after,
+                pt.description,
+                pt.created_at,
+                pt.status
+            FROM portfolio_transactions pt
+            WHERE pt.user_id = %s 
+            AND (pt.type = 'roi' OR pt.description LIKE '%profitti%' OR pt.description LIKE '%profit%')
+            ORDER BY pt.created_at DESC
         """, (uid,))
         
-        profits = cur.fetchall()
+        movements = cur.fetchall()
+        
+        # Ottieni il saldo attuale dei profitti
+        cur.execute("""
+            SELECT profits FROM user_portfolios WHERE user_id = %s
+        """, (uid,))
+        portfolio = cur.fetchone()
+        current_balance = float(portfolio['profits']) if portfolio else 0.0
+        
+        # Calcola totali
+        total_entries = sum(float(m['amount']) for m in movements if m['type'] == 'roi')
+        total_exits = sum(float(m['amount']) for m in movements if 'withdrawal' in m['description'].lower() or 'prelievo' in m['description'].lower())
         
         # Converti Decimal in float per JSON
-        for profit in profits:
-            profit['invested_amount'] = float(profit['invested_amount'])
-            profit['profit'] = float(profit['profit'])
-            profit['roi_percentage'] = float(profit['roi_percentage'])
+        for movement in movements:
+            movement['amount'] = float(movement['amount'])
+            movement['balance_before'] = float(movement['balance_before'])
+            movement['balance_after'] = float(movement['balance_after'])
     
-    return jsonify({'profits': profits})
+    return jsonify({
+        'movements': movements,
+        'current_balance': current_balance,
+        'summary': {
+            'total_entries': total_entries,
+            'total_exits': total_exits,
+            'net_profit': total_entries - total_exits
+        }
+    })
+

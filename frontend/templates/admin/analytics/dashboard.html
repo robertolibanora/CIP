@@ -946,8 +946,8 @@ class AnalyticsManager {
                     <span class="admin-text-caption text-gray-500">${project.funding_percentage}%</span>
                 </td>
                 <td class="px-4 py-3">
-                    <span class="admin-badge admin-badge--${project.status === 'active' ? 'success' : 'warning'}">
-                        ${project.status === 'active' ? 'Attivo' : 'Completato'}
+                    <span class="admin-badge admin-badge--${project.status === 'active' ? 'success' : project.status === 'sold' ? 'success' : 'warning'}">
+                        ${project.status === 'active' ? 'Attivo' : project.status === 'sold' ? 'Venduto' : 'Completato'}
                     </span>
                 </td>
             </tr>

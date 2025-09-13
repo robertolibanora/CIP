@@ -11,7 +11,6 @@ from .middleware import (
     role_required,
     can_user_invest,
     can_user_withdraw,
-    can_user_access_portfolio,
     setup_auth_middleware
 )
 
@@ -23,7 +22,6 @@ from .decorators import (
     kyc_pending_allowed,
     can_invest,
     can_withdraw,
-    can_access_portfolio,
     conditional_access,
     rate_limit
 )
@@ -62,7 +60,6 @@ __all__ = [
     'role_required',
     'can_user_invest',
     'can_user_withdraw',
-    'can_user_access_portfolio',
     'setup_auth_middleware',
     
     # Decoratori
@@ -73,7 +70,6 @@ __all__ = [
     'kyc_pending_allowed',
     'can_invest',
     'can_withdraw',
-    'can_access_portfolio',
     'conditional_access',
     'rate_limit',
     

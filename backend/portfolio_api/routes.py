@@ -15,7 +15,7 @@ def get_conn():
     return get_connection()
 
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import can_access_portfolio
+from backend.auth.decorators import kyc_verified
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -25,7 +25,7 @@ from backend.auth.decorators import can_access_portfolio
 # =====================================================
 
 @portfolio_api_bp.route('/api/overview', methods=['GET'])
-@can_access_portfolio
+@kyc_verified
 def get_portfolio_overview():
     """Ottiene l'overview completo del portafoglio con le 4 sezioni"""
     uid = session.get("user_id")
@@ -92,7 +92,7 @@ def get_portfolio_overview():
     })
 
 @portfolio_api_bp.route('/api/sections/<section>', methods=['GET'])
-@can_access_portfolio
+@kyc_verified
 def get_portfolio_section(section):
     """Ottiene i dettagli di una sezione specifica del portafoglio"""
     uid = session.get("user_id")
@@ -152,7 +152,7 @@ def get_portfolio_section(section):
     })
 
 @portfolio_api_bp.route('/api/transactions', methods=['GET'])
-@can_access_portfolio
+@kyc_verified
 def get_portfolio_transactions():
     """Ottiene tutte le transazioni del portafoglio con filtri"""
     uid = session.get("user_id")
@@ -221,7 +221,7 @@ def get_portfolio_transactions():
     })
 
 @portfolio_api_bp.route('/api/transactions/<int:transaction_id>', methods=['GET'])
-@can_access_portfolio
+@kyc_verified
 def get_transaction_detail(transaction_id):
     """Ottiene i dettagli di una transazione specifica"""
     uid = session.get("user_id")
@@ -255,7 +255,7 @@ def get_transaction_detail(transaction_id):
     return jsonify({'transaction': transaction})
 
 @portfolio_api_bp.route('/api/movements', methods=['POST'])
-@can_access_portfolio
+@kyc_verified
 def create_portfolio_movement():
     """Crea un nuovo movimento nel portafoglio (solo per operazioni interne)"""
     uid = session.get("user_id")
@@ -370,7 +370,7 @@ def create_portfolio_movement():
     })
 
 @portfolio_api_bp.route('/api/balance', methods=['GET'])
-@can_access_portfolio
+@kyc_verified
 def get_current_balance():
     """Ottiene il balance corrente del portafoglio"""
     uid = session.get("user_id")

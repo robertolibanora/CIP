@@ -3,7 +3,7 @@ import uuid
 import time
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -93,10 +93,25 @@ def projects_list():
         if status:
             q.append("status=%s"); params.append(status)
         where = ("WHERE "+" AND ".join(q)) if q else ""
-        sql = f"SELECT * FROM projects {where} ORDER BY created_at DESC"
+        sql = f"""SELECT * FROM projects {where} ORDER BY 
+            CASE 
+                WHEN status = 'active' THEN 1
+                WHEN status = 'completed' THEN 2
+                WHEN status = 'sold' THEN 3
+                ELSE 4
+            END,
+            created_at DESC"""
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute(sql, params)
             rows = cur.fetchall()
+            
+            # Aggiungi photo_filename per compatibilità con template
+            for row in rows:
+                if row.get('image_url'):
+                    row['photo_filename'] = row['image_url'].split('/')[-1]
+                else:
+                    row['photo_filename'] = None
+                    
         return jsonify(rows)
     
     # Altrimenti restituisce il template HTML con metriche
@@ -114,12 +129,16 @@ def projects_list():
         
         cur.execute("SELECT COUNT(*) as completed FROM projects WHERE status = 'completed'")
         projects_completed = cur.fetchone()['completed']
+        
+        cur.execute("SELECT COUNT(*) as sold FROM projects WHERE status = 'sold'")
+        projects_sold = cur.fetchone()['sold']
     
     metrics = {
         'projects_total': projects_total,
         'projects_active': projects_active,
         'projects_draft': projects_draft,
         'projects_completed': projects_completed,
+        'projects_sold': projects_sold,
         'projects_active': projects_active  # Per compatibilità con sidebar
     }
     
@@ -128,83 +147,99 @@ def projects_list():
 @admin_bp.post("/projects/new")
 @admin_required
 def projects_new():
-    data = request.form or request.json or {}
-    
-    # Validazione campi obbligatori (allineati allo schema attuale)
-    required_fields = ['code', 'title', 'description', 'target_amount', 'min_investment', 'start_date', 'end_date']
-    for field in required_fields:
-        if not data.get(field):
-            abort(400, description=f"Campo obbligatorio mancante: {field}")
-    
-    # Gestione file upload
-    photo = request.files.get('photo')
-    documents = request.files.get('documents')
-    
-    if not photo or not documents:
-        abort(400, description="Foto immobile e documenti tecnici sono obbligatori")
-    
-    # Salva i file (in uploads/projects)
-    photo_filename = None
-    documents_filename = None
-    
     try:
-        if photo:
-            ext = os.path.splitext(photo.filename)[1].lower() or '.jpg'
-            photo_filename = secure_filename(f"{data['code']}_photo_{int(time.time())}{ext}")
-            photo_path = os.path.join(get_upload_folder(), 'projects', photo_filename)
-            os.makedirs(os.path.dirname(photo_path), exist_ok=True)
-            photo.save(photo_path)
+        # Gestisce sia form data che JSON
+        if request.is_json:
+            data = request.json or {}
+        else:
+            data = request.form.to_dict()
         
-        if documents:
-            extd = os.path.splitext(documents.filename)[1].lower() or '.pdf'
-            documents_filename = secure_filename(f"{data['code']}_docs_{int(time.time())}{extd}")
-            documents_path = os.path.join(get_upload_folder(), 'projects', documents_filename)
-            os.makedirs(os.path.dirname(documents_path), exist_ok=True)
-            documents.save(documents_path)
-    
+        # Nessun campo obbligatorio - validazione solo per valori numerici se forniti
+        
+        # Gestione file upload (solo se non è JSON)
+        photo = request.files.get('photo') if not request.is_json else None
+        documents = request.files.get('documents') if not request.is_json else None
+        
+        # Salva i file (in uploads/projects)
+        photo_filename = None
+        documents_filename = None
+        
+        try:
+            if photo and photo.filename:
+                ext = os.path.splitext(photo.filename)[1].lower() or '.jpg'
+                code_value = data.get('code') or f'PRJ{int(time.time())}'
+                photo_filename = secure_filename(f"{code_value}_photo_{int(time.time())}{ext}")
+                photo_path = os.path.join(get_upload_folder(), 'projects', photo_filename)
+                os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+                photo.save(photo_path)
+            
+            # Documenti non più richiesti
+        
+        except Exception as e:
+            logger.error(f"Errore nel salvataggio dei file: {e}")
+            # Non bloccare la creazione del progetto se il file non si salva
+        
+        # Mappa address -> location (compatibilità schema) con valori di default
+        location_value = data.get('address') or data.get('location') or 'Indirizzo non specificato'
+        status_value = data.get('status', 'draft')
+        
+        # Campi opzionali schema esteso con valori di default
+        roi_value = float(data.get('roi', 8.0))
+        duration_value = int(data.get('duration', 12))
+        project_type = data.get('type', 'residential')
+        
+        # Valori di default per campi obbligatori
+        code_value = data.get('code') or f'PRJ{int(time.time())}'
+        name_value = data.get('title') or data.get('name') or 'Progetto senza nome'
+        description_value = data.get('description') or 'Descrizione non fornita'
+        total_amount_value = float(data.get('target_amount', 100000))
+        min_investment_value = float(data.get('min_investment', 1000))
+        
+        # Date obbligatorie - usa date di default se non fornite
+        start_date_value = data.get('start_date') or date.today().isoformat()
+        end_date_value = data.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
+        
+        # Inserisci nel database (schema con location, image_url, senza documents)
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO projects (
+                    code, name, description, status, total_amount, start_date, end_date,
+                    location, min_investment, image_url, roi, duration, type
+                )
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+                """,
+                (
+                    code_value, name_value, description_value, status_value,
+                    total_amount_value, start_date_value, end_date_value,
+                    location_value, min_investment_value, photo_filename,
+                    roi_value, duration_value, project_type
+                )
+            )
+            result = cur.fetchone()
+            if result:
+                pid = result['id']
+            else:
+                pid = cur.lastrowid
+            
+            conn.commit()
+        
+        return jsonify({"id": pid, "message": "Progetto creato con successo"})
+        
     except Exception as e:
-        abort(500, description=f"Errore nel salvataggio dei file: {str(e)}")
-    
-    # Mappa address -> location (compatibilità schema)
-    location_value = data.get('address') or data.get('location') or ''
-    status_value = data.get('status', 'draft')
-    
-    # Campi opzionali schema esteso
-    roi_value = data.get('roi')
-    duration_value = data.get('duration')
-    project_type = data.get('type')
-    
-    # Prepara documents JSONB come array semplice di filenames
-    documents_json = [documents_filename] if documents_filename else None
-    
-    # Inserisci nel database (schema con location, image_url, documents JSONB)
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO projects (
-                code, name, description, status, total_amount, start_date, end_date,
-                location, min_investment, image_url, documents, roi, duration, type
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            RETURNING id
-            """,
-            (
-                data['code'], data['title'], data['description'], status_value,
-                data['target_amount'], data.get('start_date'), data.get('end_date'),
-                location_value, data.get('min_investment'), photo_filename, json.dumps(documents_json) if documents_json else None,
-                roi_value, duration_value, project_type
-            )
-        )
-        pid = cur.fetchone()['id']
-    
-    return jsonify({"id": pid, "message": "Progetto creato con successo"})
+        logger.error(f"Errore nella creazione del progetto: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Errore interno del server"
+        }), 500
 
 @admin_bp.get("/uploads/projects/<filename>")
 @admin_required
 def serve_project_file(filename):
     """Serve i file upload dei progetti (foto e documenti)"""
-    upload_folder = get_upload_folder()
-    projects_folder = os.path.join(upload_folder, 'projects')
+    # Usa la cartella uploads/projects nella root del progetto
+    projects_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
     
     if not os.path.exists(os.path.join(projects_folder, filename)):
         abort(404)
@@ -243,6 +278,61 @@ def project_sale_data(pid):
         return jsonify({
             'project': project,
             'investments': investments
+        })
+
+@admin_bp.get("/projects/<int:pid>/cancel-data")
+@admin_required
+def project_cancel_data(pid):
+    """Ottiene i dati necessari per l'annullamento di un progetto"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Dettagli progetto (solo se attivo)
+        cur.execute("""
+            SELECT id, code, name, description, total_amount, funded_amount, 
+                   min_investment, status, created_at
+            FROM projects 
+            WHERE id = %s AND status = 'active'
+        """, (pid,))
+        project = cur.fetchone()
+        
+        if not project:
+            return jsonify({'error': 'Progetto non trovato o non attivo'}), 404
+        
+        # Investimenti attivi per questo progetto
+        cur.execute("""
+            SELECT i.id, i.amount, i.status, i.created_at,
+                   u.id as user_id, u.nome, u.cognome, u.email,
+                   CONCAT(u.nome, ' ', u.cognome) as user_name
+            FROM investments i
+            JOIN users u ON u.id = i.user_id
+            WHERE i.project_id = %s AND i.status = 'active'
+            ORDER BY i.created_at DESC
+        """, (pid,))
+        investments = cur.fetchall()
+        
+        return jsonify({
+            'project': project,
+            'investments': investments
+        })
+
+@admin_bp.get("/projects/<int:pid>/delete-data")
+@admin_required
+def project_delete_data(pid):
+    """Ottiene i dati necessari per l'eliminazione di un progetto"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Dettagli progetto (solo se venduto)
+        cur.execute("""
+            SELECT id, code, name, description, total_amount, funded_amount, 
+                   min_investment, status, created_at
+            FROM projects 
+            WHERE id = %s AND status = 'sold'
+        """, (pid,))
+        project = cur.fetchone()
+        
+        if not project:
+            return jsonify({'error': 'Progetto non trovato o non venduto'}), 404
+        
+        return jsonify({
+            'project': project
         })
 
 @admin_bp.get("/projects/<int:pid>")
@@ -4087,31 +4177,33 @@ def kyc_user_documents(user_id):
 def create_project():
     """Crea un nuovo progetto immobiliare"""
     try:
-        # Ottieni i dati dal form
-        code = request.form.get('code', '').strip()
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
-        total_amount = request.form.get('total_amount', type=float)
+        # Ottieni i dati dal form con valori di default
+        code = request.form.get('code', '').strip() or f'PRJ{int(time.time())}'
+        name = request.form.get('name', '').strip() or 'Progetto senza nome'
+        description = request.form.get('description', '').strip() or 'Descrizione non fornita'
+        total_amount = request.form.get('total_amount', type=float) or 100000
         min_investment = request.form.get('min_investment', type=float) or 1000
-        location = request.form.get('location', '').strip()
+        location = request.form.get('location', '').strip() or 'Indirizzo non specificato'
         project_type = request.form.get('type', 'residential')
         roi = request.form.get('roi', type=float) or 8.0
         duration = request.form.get('duration', type=int) or 12
-        start_date = request.form.get('start_date')
-        end_date = request.form.get('end_date')
+        # Date obbligatorie - usa date di default se non fornite
+        start_date = request.form.get('start_date') or date.today().isoformat()
+        end_date = request.form.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
         
-        # Validazione campi obbligatori
-        if not code or not name or not total_amount:
+        # Nessun campo obbligatorio - validazione solo per valori numerici se forniti
+        
+        # Validazione importi (solo se forniti)
+        if total_amount and total_amount <= 0:
             return jsonify({
                 'success': False,
-                'message': 'Codice, nome e importo totale sono obbligatori'
+                'message': 'L\'importo target deve essere maggiore di zero'
             }), 400
-        
-        # Validazione importi
-        if total_amount <= 0 or min_investment <= 0:
+            
+        if min_investment <= 0:
             return jsonify({
                 'success': False,
-                'message': 'Gli importi devono essere maggiori di zero'
+                'message': 'L\'investimento minimo deve essere maggiore di zero'
             }), 400
         
         with get_conn() as conn, conn.cursor() as cur:
@@ -4146,16 +4238,18 @@ def create_project():
                 INSERT INTO projects (code, name, description, total_amount, min_investment, 
                                    location, type, roi, duration, start_date, end_date, image_url, status)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
+                RETURNING id
             """, (code, name, description, total_amount, min_investment, 
                   location, project_type, roi, duration, start_date, end_date, image_url))
             
-            project_id = cur.lastrowid
+            result = cur.fetchone()
+            project_id = result['id'] if result else None
             
             # Log dell'azione
             cur.execute("""
-                INSERT INTO admin_actions (admin_id, action, details, created_at)
-                VALUES (%s, 'project_created', %s, CURRENT_TIMESTAMP)
-            """, (session.get('user_id'), f'Progetto creato: {name} (ID: {project_id})'))
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details, created_at)
+                VALUES (%s, 'project_created', 'project', %s, %s, CURRENT_TIMESTAMP)
+            """, (session.get('user_id'), project_id, f'Progetto creato: {name} (ID: {project_id})'))
             
             conn.commit()
             

@@ -15,275 +15,21 @@ def get_conn():
     return get_connection()
 
 # Importa decoratori di autorizzazione
-from backend.auth.decorators import login_required, can_access_portfolio, admin_required
-
-# Rimuove il before_request globale e usa decoratori specifici
-# per ogni route che richiede autorizzazione
-
-# =====================================================
-# 5. RENDIMENTI API - Calcoli e distribuzioni
-# =====================================================
-
-@profits_bp.route('/overview', methods=['GET'])
-@can_access_portfolio
-def get_profits_overview():
-    """Ottiene l'overview dei rendimenti dell'utente"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Ottieni profitti totali dal portfolio
-        cur.execute("""
-            SELECT profits FROM user_portfolios WHERE user_id = %s
-        """, (uid,))
-        portfolio = cur.fetchone()
-        total_profits = portfolio['profits'] if portfolio else Decimal('0.00')
-        
-        # Ottieni investimenti attivi con ROI potenziale
-        cur.execute("""
-            SELECT i.id, i.amount, i.percentage, i.investment_date,
-                   p.name as project_name, p.code as project_code, p.roi
-            FROM investments i
-            JOIN projects p ON i.project_id = p.id
-            WHERE i.user_id = %s AND i.status = 'active'
-            ORDER BY i.investment_date ASC
-        """, (uid,))
-        active_investments = cur.fetchall()
-        
-        # Calcola ROI potenziale per ogni investimento
-        for investment in active_investments:
-            investment['potential_roi'] = float(investment['amount'] * investment['roi'] / 100)
-        
-        # Ottieni distribuzioni profitti ricevute
-        cur.execute("""
-            SELECT pd.profit_share, pd.referral_bonus, pd.total_payout, pd.paid_at,
-                   p.name as project_name, ps.sale_price, ps.sale_date
-            FROM profit_distributions pd
-            JOIN project_sales ps ON pd.project_sale_id = ps.id
-            JOIN projects p ON ps.project_id = p.id
-            WHERE pd.user_id = %s AND pd.status = 'completed'
-            ORDER BY pd.paid_at DESC
-        """, (uid,))
-        profit_distributions = cur.fetchall()
-        
-        # Calcola totali
-        total_profit_share = sum(Decimal(str(d['profit_share'])) for d in profit_distributions)
-        total_referral_bonus = sum(Decimal(str(d['referral_bonus'])) for d in profit_distributions)
-        total_payouts = sum(Decimal(str(d['total_payout'])) for d in profit_distributions)
-    
-    return jsonify({
-        'total_profits': float(total_profits),
-        'active_investments': active_investments,
-        'profit_distributions': profit_distributions,
-        'summary': {
-            'total_profit_share': float(total_profit_share),
-            'total_referral_bonus': float(total_referral_bonus),
-            'total_payouts': float(total_payouts)
-        }
-    })
-
-@profits_bp.route('/investments/<int:investment_id>/roi', methods=['GET'])
-@can_access_portfolio
-def get_investment_roi(investment_id):
-    """Ottiene i dettagli ROI di un investimento specifico"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica proprietà investimento
-        cur.execute("""
-            SELECT i.id, i.amount, i.percentage, i.status, i.investment_date,
-                   p.name as project_name, p.code as project_code, p.roi, p.total_amount
-            FROM investments i
-            JOIN projects p ON i.project_id = p.id
-            WHERE i.id = %s AND i.user_id = %s
-        """, (investment_id, uid))
-        investment = cur.fetchone()
-        
-        if not investment:
-            return jsonify({'error': 'Investimento non trovato'}), 404
-        
-        # Calcola ROI potenziale
-        potential_roi = investment['amount'] * investment['roi'] / 100
-        
-        # Ottieni rendimenti già ricevuti
-        cur.execute("""
-            SELECT amount, period_start, period_end, created_at
-            FROM investment_yields 
-            WHERE investment_id = %s
-            ORDER BY period_end DESC
-        """, (investment_id,))
-        yields = cur.fetchall()
-        
-        total_yields = sum(Decimal(str(y['amount'])) for y in yields)
-        
-        # Calcola ROI realizzato vs potenziale
-        roi_realized = total_yields
-        roi_pending = potential_roi - total_yields if potential_roi > total_yields else Decimal('0.00')
-    
-    return jsonify({
-        'investment': investment,
-        'roi_calculation': {
-            'potential_roi': float(potential_roi),
-            'realized_roi': float(roi_realized),
-            'pending_roi': float(roi_pending),
-            'roi_percentage': float(investment['roi'])
-        },
-        'yields': yields,
-        'total_yields': float(total_yields)
-    })
-
-@profits_bp.route('/distributions', methods=['GET'])
-@can_access_portfolio
-def get_profit_distributions():
-    """Ottiene tutte le distribuzioni profitti dell'utente"""
-    uid = session.get("user_id")
-    
-    # Parametri di filtro
-    status = request.args.get('status')
-    limit = min(int(request.args.get('limit', 50)), 100)  # Max 100
-    offset = int(request.args.get('offset', 0))
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Costruisci query con filtri
-        where_conditions = ["pd.user_id = %s"]
-        params = [uid]
-        
-        if status:
-            where_conditions.append("pd.status = %s")
-            params.append(status)
-        
-        where_clause = " AND ".join(where_conditions)
-        
-        # Conta totale distribuzioni
-        cur.execute(f"""
-            SELECT COUNT(*) as total
-            FROM profit_distributions pd
-            WHERE {where_clause}
-        """, params)
-        total_count = cur.fetchone()['total']
-        
-        # Ottieni distribuzioni paginate
-        cur.execute(f"""
-            SELECT pd.id, pd.profit_share, pd.referral_bonus, pd.total_payout,
-                   pd.status, pd.created_at, pd.paid_at,
-                   p.name as project_name, p.code as project_code,
-                   ps.sale_price, ps.sale_date
-            FROM profit_distributions pd
-            JOIN project_sales ps ON pd.project_sale_id = ps.id
-            JOIN projects p ON ps.project_id = p.id
-            WHERE {where_clause}
-            ORDER BY pd.created_at DESC 
-            LIMIT %s OFFSET %s
-        """, params + [limit, offset])
-        distributions = cur.fetchall()
-    
-    return jsonify({
-        'distributions': distributions,
-        'pagination': {
-            'total': total_count,
-            'limit': limit,
-            'offset': offset,
-            'has_more': offset + limit < total_count
-        }
-    })
-
-@profits_bp.route('/distributions/<int:distribution_id>', methods=['GET'])
-@can_access_portfolio
-def get_profit_distribution_detail(distribution_id):
-    """Ottiene i dettagli di una distribuzione profitti specifica"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT pd.id, pd.profit_share, pd.referral_bonus, pd.total_payout,
-                   pd.status, pd.created_at, pd.paid_at,
-                   p.name as project_name, p.code as project_code,
-                   ps.sale_price, ps.sale_date
-            FROM profit_distributions pd
-            JOIN project_sales ps ON pd.project_sale_id = ps.id
-            JOIN projects p ON ps.project_id = p.id
-            WHERE pd.id = %s AND pd.user_id = %s
-        """, (distribution_id, uid))
-        distribution = cur.fetchone()
-        
-        if not distribution:
-            return jsonify({'error': 'Distribuzione non trovata'}), 404
-    
-    return jsonify({'distribution': distribution})
-
-@profits_bp.route('/referral-bonuses', methods=['GET'])
-@can_access_portfolio
-def get_referral_bonuses():
-    """Ottiene i bonus referral dell'utente"""
-    uid = session.get("user_id")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Ottieni bonus referral dal portfolio
-        cur.execute("""
-            SELECT referral_bonus FROM user_portfolios WHERE user_id = %s
-        """, (uid,))
-        portfolio = cur.fetchone()
-        total_referral_bonus = portfolio['referral_bonus'] if portfolio else Decimal('0.00')
-        
-        # Ottieni dettagli bonus referral
-        cur.execute("""
-            SELECT pd.referral_bonus, pd.created_at,
-                   p.name as project_name, p.code as project_code,
-                   u.full_name as referred_user_name, u.email as referred_user_email
-            FROM profit_distributions pd
-            JOIN project_sales ps ON pd.project_sale_id = ps.id
-            JOIN projects p ON ps.project_id = p.id
-            JOIN investments i ON pd.investment_id = i.id
-            JOIN users u ON i.user_id = u.id
-            WHERE pd.user_id = %s AND pd.referral_bonus > 0
-            ORDER BY pd.created_at DESC
-        """, (uid,))
-        referral_details = cur.fetchall()
-        
-        # Ottieni statistiche referral
-        cur.execute("""
-            SELECT COUNT(*) as total_referrals,
-                   COUNT(CASE WHEN u.kyc_status = 'verified' THEN 1 END) as verified_referrals
-            FROM users u WHERE u.referred_by = %s
-        """, (uid,))
-        referral_stats = cur.fetchone()
-    
-    return jsonify({
-        'total_referral_bonus': float(total_referral_bonus),
-        'referral_details': referral_details,
-        'referral_stats': referral_stats
-    })
-
-# =====================================================
-# ENDPOINT ADMIN (richiedono ruolo admin)
-# =====================================================
-
-@profits_bp.route('/test-sale', methods=['POST'])
-def test_project_sale():
-    """ENDPOINT TEMPORANEO - Test vendita progetto senza autenticazione"""
-    try:
-        data = request.get_json() or {}
-        return jsonify({
-            'success': True,
-            'message': 'Test endpoint funzionante',
-            'received_data': data,
-            'note': 'Questo è un endpoint di test - rimuovere in produzione'
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Errore test endpoint: {str(e)}'
-        }), 500
+from backend.auth.decorators import login_required, kyc_verified, admin_required
 
 @profits_bp.route('/admin/project-sale', methods=['POST'])
+@admin_required
 def admin_create_project_sale():
-    """Admin crea una vendita progetto per calcolare rendimenti - VERSIONE TEST"""
+    """Admin crea una vendita progetto e distribuisce i fondi secondo la logica richiesta:
+    - Vendita in profitto: denaro investito torna in capitale libero + profitti in sezione profitti
+    - Vendita in perdita: tutto il denaro rimasto va in capitale libero
+    """
     
     try:
         data = request.get_json() or {}
         
-        # TEST: Verifica che i dati arrivino correttamente
         project_id = data.get('project_id')
-        sale_price = data.get('sale_price')
+        sale_price = float(data.get('sale_price', 0))
         sale_date = data.get('sale_date')
         
         if not project_id or not sale_price or not sale_date:
@@ -292,52 +38,420 @@ def admin_create_project_sale():
                 'error': 'Dati mancanti: project_id, sale_price, sale_date sono richiesti'
             }), 400
         
-        # Per ora, restituisci successo per testare la connettività
-        return jsonify({
-            'success': True,
-            'message': f'VENDITA SIMULATA COMPLETATA per progetto {project_id}',
-            'project_id': project_id,
-            'sale_price': sale_price,
-            'sale_date': sale_date,
-            'investors_count': 4,  # Simulato
-            'note': 'Questa è una simulazione - la vendita reale sarà implementata dopo i test'
-        })
+        if sale_price <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'Il prezzo di vendita deve essere maggiore di zero'
+            }), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Inizia transazione
+            conn.autocommit = False
+            
+            try:
+                # 1. Verifica che il progetto esista e sia attivo
+                cur.execute("""
+                    SELECT id, name, total_amount, funded_amount, status
+                    FROM projects 
+                    WHERE id = %s AND status = 'active'
+                """, (project_id,))
+                project = cur.fetchone()
+                
+                if not project:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Progetto non trovato o non attivo'
+                    }), 404
+                
+                # 2. Ottieni tutti gli investimenti attivi per questo progetto
+                cur.execute("""
+                    SELECT i.id, i.user_id, i.amount, i.status,
+                           u.nome, u.cognome, u.email
+                    FROM investments i
+                    JOIN users u ON u.id = i.user_id
+                    WHERE i.project_id = %s AND i.status = 'active'
+                    ORDER BY i.created_at ASC
+                """, (project_id,))
+                investments = cur.fetchall()
+                
+                if not investments:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Nessun investimento attivo trovato per questo progetto'
+                    }), 400
+                
+                # 3. Calcola la distribuzione del denaro
+                total_invested = sum(Decimal(str(inv['amount'])) for inv in investments)
+                total_profit = Decimal(str(sale_price)) - total_invested
+                
+                # 4. Crea record di vendita
+                cur.execute("""
+                    INSERT INTO project_sales (project_id, sale_amount, sale_date, roi_distributed)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                """, (project_id, sale_price, sale_date, 0))
+                sale_record = cur.fetchone()
+                sale_id = sale_record['id']
+                
+                investors_processed = 0
+                
+                if total_profit >= 0:  # Vendita in profitto
+                    for investment in investments:
+                        user_id = investment['user_id']
+                        invested_amount = Decimal(str(investment['amount']))
+                        profit_share = (invested_amount / total_invested) * total_profit
+                        
+                        # Ottieni portfolio attuale
+                        cur.execute("""
+                            SELECT free_capital, profits, invested_capital
+                            FROM user_portfolios 
+                            WHERE user_id = %s
+                        """, (user_id,))
+                        portfolio = cur.fetchone()
+                        
+                        if portfolio:
+                            # Aggiorna portfolio
+                            new_free_capital = portfolio['free_capital'] + invested_amount
+                            new_profits = portfolio['profits'] + profit_share
+                            new_invested_capital = portfolio['invested_capital'] - invested_amount
+                            
+                            cur.execute("""
+                                UPDATE user_portfolios 
+                                SET free_capital = %s, profits = %s, invested_capital = %s
+                                WHERE user_id = %s
+                            """, (new_free_capital, new_profits, new_invested_capital, user_id))
+                            
+                            # Registra transazioni
+                            cur.execute("""
+                                INSERT INTO portfolio_transactions 
+                                (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
+                                VALUES (%s, 'investment', %s, %s, %s, %s, 'project_sale', %s, 'completed')
+                            """, (user_id, invested_amount, portfolio['free_capital'], new_free_capital, 
+                                  f"Restituzione capitale investito - Vendita {project['name']}", sale_id))
+                            
+                            if profit_share > 0:
+                                cur.execute("""
+                                    INSERT INTO portfolio_transactions 
+                                    (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
+                                    VALUES (%s, 'roi', %s, %s, %s, %s, 'project_sale', %s, 'completed')
+                                """, (user_id, profit_share, portfolio['profits'], new_profits, 
+                                      f"Profitto vendita progetto - {project['name']}", sale_id))
+                            
+                            # Registra distribuzione profitti
+                            cur.execute("""
+                                INSERT INTO profit_distributions 
+                                (project_sale_id, user_id, investment_id, roi_amount, referral_bonus, total_distributed, distribution_date)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            """, (sale_id, user_id, investment['id'], profit_share, 0, 
+                                  invested_amount + profit_share, sale_date))
+                            
+                            investors_processed += 1
+                
+                else:  # Vendita in perdita
+                    for investment in investments:
+                        user_id = investment['user_id']
+                        invested_amount = Decimal(str(investment['amount']))
+                        loss_ratio = Decimal(str(sale_price)) / total_invested
+                        returned_amount = invested_amount * loss_ratio
+                        
+                        # Ottieni portfolio attuale
+                        cur.execute("""
+                            SELECT free_capital, invested_capital
+                            FROM user_portfolios 
+                            WHERE user_id = %s
+                        """, (user_id,))
+                        portfolio = cur.fetchone()
+                        
+                        if portfolio:
+                            # Aggiorna portfolio
+                            new_free_capital = portfolio['free_capital'] + returned_amount
+                            new_invested_capital = portfolio['invested_capital'] - invested_amount
+                            
+                            cur.execute("""
+                                UPDATE user_portfolios 
+                                SET free_capital = %s, invested_capital = %s
+                                WHERE user_id = %s
+                            """, (new_free_capital, new_invested_capital, user_id))
+                            
+                            # Registra transazione
+                            cur.execute("""
+                                INSERT INTO portfolio_transactions 
+                                (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
+                                VALUES (%s, 'investment', %s, %s, %s, %s, 'project_sale', %s, 'completed')
+                            """, (user_id, returned_amount, portfolio['free_capital'], new_free_capital, 
+                                  f"Restituzione parziale capitale - Vendita in perdita {project['name']}", sale_id))
+                            
+                            # Registra distribuzione profitti
+                            cur.execute("""
+                                INSERT INTO profit_distributions 
+                                (project_sale_id, user_id, investment_id, roi_amount, referral_bonus, total_distributed, distribution_date)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            """, (sale_id, user_id, investment['id'], 0, 0, returned_amount, sale_date))
+                            
+                            investors_processed += 1
+                
+                # 5. Aggiorna lo stato del progetto
+                cur.execute("""
+                    UPDATE projects 
+                    SET status = 'sold', 
+                        sale_price = %s,
+                        sale_date = %s,
+                        sold_by_admin_id = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (sale_price, sale_date, session.get('user_id'), project_id))
+                
+                # 6. Marca tutti gli investimenti come completati
+                cur.execute("""
+                    UPDATE investments 
+                    SET status = 'completed', 
+                        completed_at = NOW()
+                    WHERE project_id = %s AND status = 'active'
+                """, (project_id,))
+                
+                # Commit della transazione
+                conn.commit()
+                conn.autocommit = True
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Vendita completata con successo!',
+                    'project_id': project_id,
+                    'sale_price': sale_price,
+                    'sale_date': sale_date,
+                    'investors_count': investors_processed,
+                    'total_invested': float(total_invested),
+                    'total_profit': float(total_profit),
+                    'sale_type': 'profit' if total_profit >= 0 else 'loss'
+                })
+                
+            except Exception as e:
+                # Rollback in caso di errore
+                conn.rollback()
+                conn.autocommit = True
+                raise e
         
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': f'Errore endpoint: {str(e)}'
+            'error': f'Errore durante la vendita: {str(e)}'
         }), 500
 
-@profits_bp.route('/admin/distributions/pay/<int:distribution_id>', methods=['POST'])
+@profits_bp.route('/admin/project-cancel', methods=['POST'])
 @admin_required
-def admin_pay_profit_distribution(distribution_id):
-    """Admin marca una distribuzione profitti come pagata"""
+def admin_cancel_project():
+    """Admin annulla un progetto attivo e restituisce tutti i fondi al capitale libero"""
     
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica distribuzione esiste e è pending
-        cur.execute("""
-            SELECT id, status FROM profit_distributions 
-            WHERE id = %s
-        """, (distribution_id,))
-        distribution = cur.fetchone()
+    try:
+        data = request.get_json() or {}
+        project_id = data.get('project_id')
         
-        if not distribution:
-            return jsonify({'error': 'Distribuzione non trovata'}), 404
+        if not project_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID progetto richiesto'
+            }), 400
         
-        if distribution['status'] != 'pending':
-            return jsonify({'error': 'Distribuzione già processata'}), 400
+        with get_conn() as conn, conn.cursor() as cur:
+            # Inizia transazione
+            conn.autocommit = False
+            
+            try:
+                # 1. Verifica che il progetto esista e sia attivo
+                cur.execute("""
+                    SELECT id, name, total_amount, funded_amount, status
+                    FROM projects 
+                    WHERE id = %s AND status = 'active'
+                """, (project_id,))
+                project = cur.fetchone()
+                
+                if not project:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Progetto non trovato o non attivo'
+                    }), 404
+                
+                # 2. Ottieni tutti gli investimenti attivi per questo progetto
+                cur.execute("""
+                    SELECT i.id, i.user_id, i.amount, i.status,
+                           u.nome, u.cognome, u.email
+                    FROM investments i
+                    JOIN users u ON u.id = i.user_id
+                    WHERE i.project_id = %s AND i.status = 'active'
+                    ORDER BY i.created_at ASC
+                """, (project_id,))
+                investments = cur.fetchall()
+                
+                if not investments:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Nessun investimento attivo trovato per questo progetto'
+                    }), 400
+                
+                # 3. Restituisci tutti i fondi al capitale libero
+                investors_processed = 0
+                total_refunded = Decimal('0')
+                
+                for investment in investments:
+                    user_id = investment['user_id']
+                    invested_amount = Decimal(str(investment['amount']))
+                    total_refunded += invested_amount
+                    
+                    # Ottieni portfolio attuale
+                    cur.execute("""
+                        SELECT free_capital, invested_capital
+                        FROM user_portfolios 
+                        WHERE user_id = %s
+                    """, (user_id,))
+                    portfolio = cur.fetchone()
+                    
+                    if portfolio:
+                        # Aggiorna portfolio: restituisci al capitale libero
+                        new_free_capital = portfolio['free_capital'] + invested_amount
+                        new_invested_capital = portfolio['invested_capital'] - invested_amount
+                        
+                        cur.execute("""
+                            UPDATE user_portfolios 
+                            SET free_capital = %s, invested_capital = %s
+                            WHERE user_id = %s
+                        """, (new_free_capital, new_invested_capital, user_id))
+                        
+                        # Registra transazione
+                        cur.execute("""
+                            INSERT INTO portfolio_transactions 
+                            (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
+                            VALUES (%s, 'investment', %s, %s, %s, %s, 'project_cancel', %s, 'completed')
+                        """, (user_id, invested_amount, portfolio['free_capital'], new_free_capital, 
+                              f"Restituzione capitale investito - Annullamento {project['name']}", project_id))
+                        
+                        investors_processed += 1
+                
+                # 4. Aggiorna lo stato del progetto a 'cancelled'
+                cur.execute("""
+                    UPDATE projects 
+                    SET status = 'cancelled', 
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (project_id,))
+                
+                # 5. Marca tutti gli investimenti come cancellati
+                cur.execute("""
+                    UPDATE investments 
+                    SET status = 'cancelled', 
+                        completed_at = NOW()
+                    WHERE project_id = %s AND status = 'active'
+                """, (project_id,))
+                
+                # Commit della transazione
+                conn.commit()
+                conn.autocommit = True
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Progetto annullato con successo! Restituiti €{total_refunded} a {investors_processed} investitori.',
+                    'project_id': project_id,
+                    'investors_count': investors_processed,
+                    'total_refunded': float(total_refunded)
+                })
+                
+            except Exception as e:
+                # Rollback in caso di errore
+                conn.rollback()
+                conn.autocommit = True
+                raise e
         
-        # Marca come pagata
-        cur.execute("""
-            UPDATE profit_distributions 
-            SET status = 'completed', paid_at = NOW()
-            WHERE id = %s
-        """, (distribution_id,))
-        
-        conn.commit()
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Errore durante l\'annullamento: {str(e)}'
+        }), 500
+
+@profits_bp.route('/admin/project-delete', methods=['POST'])
+@admin_required
+def admin_delete_project():
+    """Admin elimina permanentemente un progetto venduto"""
     
-    return jsonify({
-        'success': True,
-        'message': 'Distribuzione profitti marcata come pagata'
-    })
+    try:
+        data = request.get_json() or {}
+        project_id = data.get('project_id')
+        
+        if not project_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID progetto richiesto'
+            }), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Inizia transazione
+            conn.autocommit = False
+            
+            try:
+                # 1. Verifica che il progetto esista e sia venduto
+                cur.execute("""
+                    SELECT id, name, status
+                    FROM projects 
+                    WHERE id = %s AND status = 'sold'
+                """, (project_id,))
+                project = cur.fetchone()
+                
+                if not project:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Progetto non trovato o non venduto'
+                    }), 404
+                
+                # 2. Elimina tutti i record correlati (in ordine per evitare errori di foreign key)
+                
+                # Elimina transazioni portfolio correlate
+                cur.execute("""
+                    DELETE FROM portfolio_transactions 
+                    WHERE reference_type = 'project_sale' AND reference_id = %s
+                """, (project_id,))
+                
+                # Elimina distribuzioni profitti
+                cur.execute("""
+                    DELETE FROM profit_distributions 
+                    WHERE project_sale_id IN (
+                        SELECT id FROM project_sales WHERE project_id = %s
+                    )
+                """, (project_id,))
+                
+                # Elimina vendite progetto
+                cur.execute("""
+                    DELETE FROM project_sales 
+                    WHERE project_id = %s
+                """, (project_id,))
+                
+                # Elimina investimenti
+                cur.execute("""
+                    DELETE FROM investments 
+                    WHERE project_id = %s
+                """, (project_id,))
+                
+                # 3. Elimina il progetto stesso
+                cur.execute("""
+                    DELETE FROM projects 
+                    WHERE id = %s
+                """, (project_id,))
+                
+                # Commit della transazione
+                conn.commit()
+                conn.autocommit = True
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Progetto "{project["name"]}" eliminato permanentemente dal sistema.',
+                    'project_id': project_id
+                })
+                
+            except Exception as e:
+                # Rollback in caso di errore
+                conn.rollback()
+                conn.autocommit = True
+                raise e
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Errore durante l\'eliminazione: {str(e)}'
+        }), 500

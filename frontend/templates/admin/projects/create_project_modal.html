@@ -1,148 +1,333 @@
 <!-- Modal Nuovo Progetto -->
-<div id="create-project-modal" class="admin-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-    <div class="admin-modal-backdrop" onclick="closeModal('create-project-modal')" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-    <div class="admin-modal-container" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 90%; max-width: 700px; max-height: 85vh; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; margin: 0;">
-        <div class="admin-modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 24px 32px; display: flex; justify-content: space-between; align-items: center;">
+<div id="create-project-modal" class="admin-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: transparent; align-items: center; justify-content: center;">
+    <div class="admin-modal-backdrop" onclick="closeModal('create-project-modal')" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent;"></div>
+    <div class="admin-modal-container" style="position: relative; background: white; width: 90%; max-width: 600px; max-height: 90vh; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column;">
+        <div class="admin-modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: white;">Nuovo Progetto</h3>
-                    <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: rgba(255,255,255,0.8);">Crea un nuovo progetto immobiliare</p>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: white;">Nuovo Progetto</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: rgba(255,255,255,0.8);">Crea un nuovo progetto immobiliare</p>
                 </div>
             </div>
-            <button type="button" onclick="closeModal('create-project-modal')" style="background: rgba(255,255,255,0.1); border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button type="button" onclick="closeModal('create-project-modal')" style="background: rgba(255,255,255,0.1); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
         
-        <div class="admin-modal-body" style="flex: 1; overflow-y: auto; padding: 32px;">
-            <form id="create-project-form" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="admin-modal-body" style="flex: 1; overflow-y: auto; padding: 24px; max-height: calc(90vh - 140px);">
+            <form id="create-project-form" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 16px;">
                 <!-- Informazioni Base -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Codice Progetto <span style="color: #ef4444;">*</span></label>
-                        <input type="text" name="code" required 
-                               placeholder="es. PRJ001" maxlength="20" 
-                               style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Codice Progetto *</label>
+                        <input type="text" name="code" 
+                               placeholder="es. PRJ001" maxlength="20" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
                     <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Nome Progetto <span style="color: #ef4444;">*</span></label>
-                        <input type="text" name="title" required 
-                               placeholder="es. Residenza Milano Centro" 
-                               style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Nome Progetto *</label>
+                        <input type="text" name="name" 
+                               placeholder="es. Residenza Milano Centro" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
                 </div>
                 
                 <div style="display: flex; flex-direction: column;">
-                    <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Descrizione <span style="color: #ef4444;">*</span></label>
-                    <textarea name="description" rows="3" required 
-                              placeholder="Descrizione dettagliata del progetto..." 
-                              style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa; resize: vertical; min-height: 80px;" 
+                    <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Descrizione *</label>
+                    <textarea name="description" rows="2" 
+                              placeholder="Descrizione dettagliata del progetto..." required
+                              style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa; resize: vertical; min-height: 60px;" 
                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'"></textarea>
                 </div>
                 
                 <!-- Informazioni Finanziarie -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Importo Target (€) <span style="color: #ef4444;">*</span></label>
-                        <input type="number" name="target_amount" required 
-                               min="1000" step="100" placeholder="100000" 
-                               style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Importo Target (€) *</label>
+                        <input type="number" name="total_amount" 
+                               min="1000" step="100" placeholder="100000" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
                     <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 8px; font-weight: 600; color: #374151; font-size: 0.875rem;">Investimento Minimo (€)</label>
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Investimento Minimo (€) *</label>
                         <input type="number" name="min_investment" 
-                               min="100" step="50" placeholder="1000" value="1000" 
-                               style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               min="100" step="50" placeholder="1000" value="1000" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
                 </div>
                 
                 <!-- Informazioni Immobile -->
-                <div class="admin-grid admin-grid--2">
-                    <div class="admin-form-group">
-                        <label class="admin-label">Indirizzo (obbligatorio)</label>
-                        <input type="text" name="address" class="admin-input" required
-                               placeholder="es. Milano, Via Roma 123">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Indirizzo</label>
+                        <input type="text" name="location" 
+                               placeholder="es. Milano, Via Roma 123"
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
-                    <div class="admin-form-group">
-                        <label class="admin-label">Tipo Immobile</label>
-                        <select name="type" class="admin-select">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Tipo Immobile *</label>
+                        <select name="type" required
+                                style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                             <option value="residential">Residenziale</option>
                             <option value="commercial">Commerciale</option>
-                            <option value="mixed">Misto</option>
+                            <option value="industrial">Industriale</option>
                         </select>
                     </div>
                 </div>
                 
                 <!-- ROI e Durata -->
-                <div class="admin-grid admin-grid--2">
-                    <div class="admin-form-group">
-                        <label class="admin-label">ROI Atteso (%)</label>
-                        <input type="number" name="roi" class="admin-input" 
-                               min="0" max="50" step="0.1" placeholder="8.5" value="8.0">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">ROI Atteso (%) *</label>
+                        <input type="number" name="roi" 
+                               min="0" max="50" step="0.1" placeholder="8.5" value="8.0" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
-                    <div class="admin-form-group">
-                        <label class="admin-label">Durata (mesi)</label>
-                        <input type="number" name="duration" class="admin-input" 
-                               min="1" max="60" placeholder="12" value="12">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Durata (mesi) *</label>
+                        <input type="number" name="duration" 
+                               min="1" max="60" placeholder="12" value="12" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
-                </div>
-                
-                <!-- Upload Foto/Documenti -->
-                <div class="admin-form-group">
-                    <label class="admin-label">Foto Progetto (obbligatorio)</label>
-                    <input type="file" name="photo" class="admin-input" accept=".jpg,.jpeg,.png" required>
-                    <p class="admin-text-small text-gray-500 mt-1">Formato JPG/PNG, max 5MB</p>
-                </div>
-                <div class="admin-form-group">
-                    <label class="admin-label">Documenti Tecnici PDF (obbligatorio)</label>
-                    <input type="file" name="documents" class="admin-input" accept=".pdf" required>
-                    <p class="admin-text-small text-gray-500 mt-1">Formato PDF, max 10MB</p>
                 </div>
                 
                 <!-- Date -->
-                <div class="admin-grid admin-grid--2">
-                    <div class="admin-form-group">
-                        <label class="admin-label">Data Inizio</label>
-                        <input type="date" name="start_date" class="admin-input">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Data Inizio *</label>
+                        <input type="date" name="start_date" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
-                    <div class="admin-form-group">
-                        <label class="admin-label">Data Fine</label>
-                        <input type="date" name="end_date" class="admin-input">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Data Fine *</label>
+                        <input type="date" name="end_date" required
+                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
+                </div>
+                
+                <!-- Upload Foto -->
+                <div style="display: flex; flex-direction: column;">
+                    <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Foto Progetto</label>
+                    <input type="file" name="photo" accept=".jpg,.jpeg,.png"
+                           style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                           onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                           onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
+                    <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #6b7280;">Formato JPG/PNG, max 5MB</p>
                 </div>
             </form>
         </div>
         
-        <div style="background: #f8fafc; padding: 24px 32px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px;">
+        <div style="background: #f8fafc; padding: 20px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px;">
             <button type="button" onclick="closeModal('create-project-modal')" 
-                    style="background: white; color: #6b7280; padding: 12px 24px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;" 
+                    style="background: white; color: #6b7280; padding: 10px 20px; border: 2px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s;" 
                     onmouseover="this.style.borderColor='#d1d5db'; this.style.color='#374151'" 
                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.color='#6b7280'">
                 Annulla
             </button>
             <button type="button" onclick="submitCreateProject()" id="create-project-submit-btn" 
-                    style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);" 
+                    style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);" 
                     onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(59, 130, 246, 0.4)'" 
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.3)'">
-                <span style="margin-right: 8px;">+</span>
+                <svg style="width: 16px; height: 16px; margin-right: 8px; display: inline-block; vertical-align: middle;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
                 Crea Progetto
             </button>
         </div>
     </div>
 </div>
+
+<script>
+// Funzione per aprire il modal
+function openCreateProjectModal() {
+    // Imposta le date di default
+    const today = new Date();
+    const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+    
+    document.querySelector('input[name="start_date"]').value = today.toISOString().split('T')[0];
+    document.querySelector('input[name="end_date"]').value = nextYear.toISOString().split('T')[0];
+    
+    openModal('create-project-modal');
+}
+
+// Funzione per chiudere il modal
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        // Reset del form
+        if (modalId === 'create-project-modal') {
+            document.getElementById('create-project-form').reset();
+        }
+    }
+}
+
+// Funzione per aprire il modal
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+// Funzione per creare il progetto
+async function submitCreateProject() {
+    const form = document.getElementById('create-project-form');
+    const formData = new FormData(form);
+    
+            // Validazione campi obbligatori
+            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'duration', 'start_date', 'end_date'];
+    
+    for (const field of requiredFields) {
+        if (!formData.get(field) || formData.get(field).trim() === '') {
+            alert(`Il campo ${field} è obbligatorio`);
+            return;
+        }
+    }
+    
+    // Validazione importi
+    const totalAmount = parseFloat(formData.get('total_amount'));
+    const minInvestment = parseFloat(formData.get('min_investment'));
+    
+    if (totalAmount <= 0) {
+        alert('L\'importo target deve essere maggiore di zero');
+        return;
+    }
+    
+    if (minInvestment <= 0) {
+        alert('L\'investimento minimo deve essere maggiore di zero');
+        return;
+    }
+    
+    // Validazione ROI
+    const roi = parseFloat(formData.get('roi'));
+    if (roi < 0 || roi > 50) {
+        alert('Il ROI deve essere tra 0 e 50%');
+        return;
+    }
+    
+    // Validazione durata
+    const duration = parseInt(formData.get('duration'));
+    if (duration < 1 || duration > 60) {
+        alert('La durata deve essere tra 1 e 60 mesi');
+        return;
+    }
+    
+    // Validazione date
+    const startDate = new Date(formData.get('start_date'));
+    const endDate = new Date(formData.get('end_date'));
+    
+    if (startDate >= endDate) {
+        alert('La data di fine deve essere successiva alla data di inizio');
+        return;
+    }
+    
+    // Validazione file (opzionale)
+    const photo = formData.get('photo');
+    if (photo && photo.size > 0) {
+        if (photo.size > 5 * 1024 * 1024) { // 5MB
+            alert('La foto è troppo grande (max 5MB)');
+            return;
+        }
+    }
+    
+    const submitBtn = document.getElementById('create-project-submit-btn');
+    setButtonLoading(submitBtn, true, 'Creazione progetto...');
+    
+    try {
+        const response = await fetch('/admin/projects/create', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                alert('Sessione scaduta. Ricarica la pagina e riprova.');
+                window.location.reload();
+                return;
+            }
+            const errorText = await response.text();
+            throw new Error(`Errore HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Chiudi il modal
+            closeModal('create-project-modal');
+            
+            // Mostra messaggio di successo
+            alert(result.message || 'Progetto creato con successo!');
+            
+            // Ricarica i progetti
+            if (typeof projectsManager !== 'undefined' && projectsManager.loadProjects) {
+                await projectsManager.loadProjects();
+            } else {
+                window.location.reload();
+            }
+        } else {
+            throw new Error(result.message || 'Errore sconosciuto durante la creazione');
+        }
+        
+    } catch (error) {
+        console.error('Errore durante la creazione:', error);
+        alert('Errore di connessione durante la creazione: ' + error.message);
+    } finally {
+        setButtonLoading(submitBtn, false, 'Crea Progetto');
+    }
+}
+
+// Funzione per gestire il loading del pulsante
+function setButtonLoading(button, loading, text) {
+    if (loading) {
+        button.disabled = true;
+        button.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            ${text}
+        `;
+    } else {
+        button.disabled = false;
+        button.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            ${text}
+        `;
+    }
+}
+</script>
