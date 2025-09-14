@@ -1,0 +1,151 @@
+{% extends "auth/base_auth.html" %}
+
+{% block title %}Termini e Condizioni - CIP Academy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-white to-primary-50 relative overflow-hidden py-8">
+  <!-- Background decorative elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="relative z-10 w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="mx-auto h-16 w-16 mb-4">
+        <img src="{{ url_for('assets', filename='logo.png') }}" alt="CIP Academy" class="h-full w-full object-contain">
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Termini e Condizioni d'Uso</h1>
+      <p class="text-gray-600">Ultimo aggiornamento: 13/09/2025</p>
+    </div>
+
+    <!-- Content Card -->
+    <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+      <div class="prose max-w-none">
+        <div class="space-y-6 text-sm leading-relaxed">
+          <p>
+            Benvenuto/a su <strong>C.I.P. Network</strong>, la piattaforma di crowdfunding immobiliare che permette agli utenti di investire collettivamente in operazioni di compravendita di immobili.
+            Accedendo e utilizzando i nostri servizi, l'utente dichiara di aver letto, compreso e accettato integralmente i presenti Termini e Condizioni.
+          </p>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">1. Oggetto del Servizio</h3>
+            <p>C.I.P. Network offre la possibilità di investire in progetti di compravendita immobiliare.</p>
+            <p>L'intero processo (ricerca, acquisto, gestione e vendita degli immobili) è gestito da C.I.P. Network, mentre l'utente partecipa come investitore senza acquisire diritti di gestione o decisionali.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">2. Natura e limiti dell'investimento</h3>
+            <p>L'investimento proposto è di natura immobiliare e non costituisce uno strumento finanziario quotato o regolamentato da mercati borsistici.</p>
+            <p>I rendimenti dipendono esclusivamente dall'andamento delle singole operazioni immobiliari e non è garantito alcun guadagno minimo.</p>
+            <p>C.I.P. Network raccomanda agli utenti di non investire somme superiori al 5% del proprio patrimonio netto, al fine di contenere il rischio personale.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">3. Rischi connessi</h3>
+            <p>L'utente dichiara di essere a conoscenza e di accettare i rischi connessi all'investimento, tra cui:</p>
+            <ul class="list-disc list-inside ml-4 space-y-2">
+              <li>Catastrofi naturali (terremoti, alluvioni, incendi, eventi straordinari) che possano danneggiare o distruggere gli immobili;</li>
+              <li>Oscillazioni del mercato immobiliare, che possono determinare guadagni inferiori rispetto alle previsioni o ritardi nella rivendita;</li>
+              <li>Eventuali ritardi burocratici o normativi.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">4. Assenza di potere decisionale dell'utente</h3>
+            <p>L'utente riconosce e accetta di non avere alcun potere decisionale riguardo:</p>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+              <li>la scelta degli immobili,</li>
+              <li>l'acquisto o la vendita,</li>
+              <li>le modalità e i tempi delle operazioni.</li>
+            </ul>
+            <p>Ogni decisione è di esclusiva competenza di C.I.P. Network.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">5. Banca depositaria</h3>
+            <p>Tutti i fondi raccolti sono gestiti tramite una banca depositaria terza, incaricata di verificare e controllare i flussi finanziari (entrate e uscite) a garanzia di trasparenza e correttezza.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">6. Modalità di partecipazione</h3>
+            <p>Per investire, l'utente deve registrarsi fornendo dati corretti e aggiornati.</p>
+            <p>L'importo minimo e massimo di partecipazione viene definito di volta in volta per ciascun progetto.</p>
+            <p>Gli investimenti sono vincolati fino alla conclusione del progetto e non sono immediatamente liquidabili, salvo diversa previsione esplicitamente indicata nella scheda progetto.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">7. Trasparenza e comunicazioni</h3>
+            <p>C.I.P. Network si impegna a:</p>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+              <li>fornire aggiornamenti periodici sull'andamento dei progetti;</li>
+              <li>rendere disponibili report dettagliati su costi, spese e ricavi;</li>
+              <li>comunicare tempestivamente eventuali variazioni significative.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">8. Risoluzione delle controversie</h3>
+            <p>In caso di controversia tra utente e C.I.P. Network:</p>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+              <li>Le parti si impegna innanzitutto a ricercare un accordo bonario.</li>
+              <li>In mancanza di accordo, la controversia sarà regolata dalla legge italiana e sarà competente in via esclusiva il foro di [Città della sede legale].</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">9. Privacy e protezione dei dati</h3>
+            <p>Il trattamento dei dati personali avviene nel rispetto del Regolamento UE 679/2016 (GDPR) e della normativa nazionale vigente.</p>
+            <p>I dati saranno utilizzati esclusivamente per finalità connesse all'erogazione del servizio e non saranno ceduti a terzi non autorizzati.</p>
+            <p>L'utente potrà consultare l'Informativa Privacy all'interno dell'app.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">10. Accettazione dei Termini</h3>
+            <p>Registrandosi e utilizzando la piattaforma, l'utente dichiara di aver letto, compreso e accettato integralmente i presenti Termini e Condizioni.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-8 pt-6 border-t border-gray-200 flex justify-center">
+        <a href="{{ url_for('auth.register') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+          Torna alla Registrazione
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+</style>
+{% endblock %}

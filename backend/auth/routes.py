@@ -303,3 +303,15 @@ if os.environ.get("TESTING") == "1":
     def test_logout():
         destroy_session()
         return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/terms")
+def terms():
+    """Pagina Termini e Condizioni"""
+    return render_template("auth/terms.html")
+
+
+@auth_bp.route("/privacy")
+def privacy():
+    """Pagina Privacy Policy"""
+    return render_template("auth/privacy.html")

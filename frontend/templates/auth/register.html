@@ -238,11 +238,11 @@
           <div class="text-sm">
             <label for="terms" class="text-gray-700">
               Accetto i 
-              <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="{{ url_for('auth.terms') }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
                 Termini e Condizioni
               </a>
               e la 
-              <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="{{ url_for('auth.privacy') }}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
                 Privacy Policy
               </a>
             </label>
@@ -472,4 +472,6 @@ if (referralInput.value.trim()) {
   animation-delay: 4s;
 }
 </style>
+
+
 {% endblock %}

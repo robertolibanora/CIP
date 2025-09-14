@@ -198,57 +198,48 @@ function renderUsers() {
         return;
     }
     
-    container.innerHTML = filteredUsers.map(user => `
-        <div class="referral-user-card p-4 border-b border-gray-100 last:border-b-0">
-            <div class="flex items-center">
-                <!-- Sezione Utente -->
-                <div class="referral-user-info flex items-center" onclick="showUserDetails(${user.id})" style="cursor: pointer;">
-                    <div class="referral-user-avatar w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-4">
-                        <span class="text-white font-semibold text-sm">${(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+    container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${filteredUsers.map(user => `
+                <div class="referral-user-card-compact bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200">
+                    <!-- Header con avatar e nome -->
+                    <div class="flex items-center mb-3" onclick="showUserDetails(${user.id})" style="cursor: pointer;">
+                        <div class="referral-user-avatar w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white font-semibold text-xs">${(user.full_name || 'U').charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold text-gray-900 truncate">${user.full_name || 'Utente'}</h3>
+                            <p class="text-xs text-gray-500 truncate">${user.email || ''}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <h3 class="text-sm font-semibold text-gray-900 truncate">${user.full_name || 'Utente'}</h3>
-                        <p class="text-xs text-gray-500 truncate">${user.email || ''}</p>
-                        <p class="text-xs text-gray-400 mt-1">${formatDate(user.created_at)}</p>
-                    </div>
-                </div>
 
-                <!-- Statistiche in layout compatto (centro, occupa spazio disponibile) -->
-                <div class="referral-stats-container mx-8 flex-1">
-                    <div class="referral-stat-item">
-                        <div class="referral-stat-label">Inviti</div>
-                        <div class="referral-stat-value text-blue-600">${user.invited_count || 0}</div>
+                    <!-- Statistiche compatte - solo Inviti e Bonus -->
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-1">Inviti</div>
+                            <div class="text-lg font-bold text-blue-600">${user.invited_count || 0}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500 mb-1">Bonus</div>
+                            <div class="text-lg font-bold text-orange-600">${formatCurrency(user.bonus_earned || 0)}</div>
+                        </div>
                     </div>
-                    <div class="referral-stat-item">
-                        <div class="referral-stat-label">Investito</div>
-                        <div class="referral-stat-value text-green-600">${formatCurrency(user.total_invested || 0)}</div>
-                    </div>
-                    <div class="referral-stat-item">
-                        <div class="referral-stat-label">Profitti</div>
-                        <div class="referral-stat-value text-purple-600">${formatCurrency(user.total_profits || 0)}</div>
-                    </div>
-                    <div class="referral-stat-item">
-                        <div class="referral-stat-label">Bonus</div>
-                        <div class="referral-stat-value text-orange-600">${formatCurrency(user.bonus_earned || 0)}</div>
-                    </div>
-                </div>
 
-                <!-- Azioni - container a destra -->
-                <div class="referral-actions ml-auto flex items-center">
-                    <button onclick="event.stopPropagation(); startMoveUser(${user.id}, '${user.full_name || 'Utente'}')" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                        </svg>
-                        Sposta
-                    </button>
-                    <svg class="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
+                    <!-- Data e azioni -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-400">${formatDate(user.created_at)}</span>
+                        <button onclick="event.stopPropagation(); startMoveUser(${user.id}, '${user.full_name || 'Utente'}')" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            Sposta
+                        </button>
+                    </div>
                 </div>
-            </div>
+            `).join('')}
         </div>
-    `).join('');
+    `;
     
 }
 

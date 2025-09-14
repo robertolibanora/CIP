@@ -1,0 +1,150 @@
+{% extends "auth/base_auth.html" %}
+
+{% block title %}Privacy Policy - CIP Academy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream-50 via-white to-primary-50 relative overflow-hidden py-8">
+  <!-- Background decorative elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="relative z-10 w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="mx-auto h-16 w-16 mb-4">
+        <img src="{{ url_for('assets', filename='logo.png') }}" alt="CIP Academy" class="h-full w-full object-contain">
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
+      <p class="text-gray-600">Ultimo aggiornamento: 13/09/2025</p>
+    </div>
+
+    <!-- Content Card -->
+    <div class="card p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+      <div class="prose max-w-none">
+        <div class="space-y-6 text-sm leading-relaxed">
+          <p>
+            La presente Informativa Privacy descrive come <strong>C.I.P. Network</strong> raccoglie, utilizza e protegge le informazioni personali degli utenti della piattaforma di crowdfunding immobiliare.
+          </p>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">1. Titolare del Trattamento</h3>
+            <p>Il Titolare del trattamento dei dati personali è C.I.P. Network, con sede legale in [Indirizzo completo].</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">2. Dati Raccolti</h3>
+            <p>Raccogliamo le seguenti categorie di dati personali:</p>
+            <ul class="list-disc list-inside ml-4 space-y-2">
+              <li><strong>Dati identificativi:</strong> nome, cognome, data di nascita, codice fiscale</li>
+              <li><strong>Dati di contatto:</strong> indirizzo email, numero di telefono, indirizzo di residenza</li>
+              <li><strong>Dati finanziari:</strong> informazioni bancarie per gli investimenti</li>
+              <li><strong>Dati di navigazione:</strong> indirizzo IP, cookie, dati di utilizzo della piattaforma</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">3. Finalità del Trattamento</h3>
+            <p>I dati personali vengono utilizzati per:</p>
+            <ul class="list-disc list-inside ml-4 space-y-2">
+              <li>Fornire i servizi della piattaforma di crowdfunding immobiliare</li>
+              <li>Gestire gli investimenti e le operazioni finanziarie</li>
+              <li>Rispettare gli obblighi normativi e fiscali</li>
+              <li>Comunicare con l'utente riguardo ai servizi</li>
+              <li>Migliorare la piattaforma e i servizi offerti</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">4. Base Giuridica</h3>
+            <p>Il trattamento dei dati personali si basa su:</p>
+            <ul class="list-disc list-inside ml-4 space-y-2">
+              <li><strong>Consenso:</strong> per l'invio di comunicazioni marketing</li>
+              <li><strong>Esecuzione del contratto:</strong> per la fornitura dei servizi</li>
+              <li><strong>Obbligo legale:</strong> per il rispetto delle normative fiscali e antiriciclaggio</li>
+              <li><strong>Legittimo interesse:</strong> per il miglioramento dei servizi</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">5. Conservazione dei Dati</h3>
+            <p>I dati personali vengono conservati per il tempo necessario alle finalità per cui sono stati raccolti e comunque non oltre i termini previsti dalla normativa vigente.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">6. Diritti dell'Interessato</h3>
+            <p>L'utente ha il diritto di:</p>
+            <ul class="list-disc list-inside ml-4 space-y-2">
+              <li>Accedere ai propri dati personali</li>
+              <li>Richiedere la rettifica o l'aggiornamento</li>
+              <li>Richiedere la cancellazione</li>
+              <li>Limitare il trattamento</li>
+              <li>Opporsi al trattamento</li>
+              <li>Richiedere la portabilità dei dati</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">7. Sicurezza</h3>
+            <p>Adottiamo misure tecniche e organizzative appropriate per proteggere i dati personali da accessi non autorizzati, alterazioni, divulgazioni o distruzioni.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">8. Cookie</h3>
+            <p>Utilizziamo cookie per migliorare l'esperienza di navigazione e per analizzare l'utilizzo della piattaforma. L'utente può gestire le preferenze sui cookie attraverso le impostazioni del browser.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">9. Modifiche</h3>
+            <p>Questa Privacy Policy può essere aggiornata periodicamente. Le modifiche sostanziali saranno comunicate agli utenti attraverso la piattaforma o via email.</p>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">10. Contatti</h3>
+            <p>Per qualsiasi domanda riguardo al trattamento dei dati personali, è possibile contattarci all'indirizzo email: privacy@cipimmobiliare.it</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-8 pt-6 border-t border-gray-200 flex justify-center">
+        <a href="{{ url_for('auth.register') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+          Torna alla Registrazione
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+</style>
+{% endblock %}
