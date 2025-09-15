@@ -44,6 +44,24 @@ def get_deposit_config():
             'wallet_config': wallet_config
         })
 
+@user_bp.get("/api/telegram-config")
+@login_required
+def get_telegram_config():
+    """Ottieni configurazione Telegram per l'utente"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Configurazione Telegram
+        cur.execute("""
+            SELECT config_value
+            FROM system_configurations 
+            WHERE config_key = 'telegram_link' AND is_active = true
+            LIMIT 1
+        """)
+        telegram_config = cur.fetchone()
+        
+        return jsonify({
+            'telegram_link': telegram_config['config_value'] if telegram_config else None
+        })
+
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
 

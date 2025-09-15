@@ -158,6 +158,62 @@ def get_deposit_requests():
     
     return jsonify({'deposit_requests': requests})
 
+@deposits_bp.route('/api/rate-limit-status', methods=['GET'])
+@login_required
+def get_rate_limit_status():
+    """Controlla lo stato del rate limiting per i depositi"""
+    uid = session.get("user_id")
+    
+    if not uid:
+        return jsonify({'error': 'unauthorized'}), 401
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT created_at 
+                FROM deposit_requests 
+                WHERE user_id = %s 
+                AND created_at > NOW() - INTERVAL '10 minutes'
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """, (uid,))
+            recent_request = cur.fetchone()
+            
+            if recent_request:
+                # Calcola il tempo rimanente
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                last_request_time = recent_request['created_at']
+                if last_request_time.tzinfo is None:
+                    last_request_time = last_request_time.replace(tzinfo=timezone.utc)
+                
+                time_diff = now - last_request_time
+                remaining_seconds = 600 - int(time_diff.total_seconds())  # 10 minuti = 600 secondi
+                
+                if remaining_seconds > 0:
+                    minutes = remaining_seconds // 60
+                    seconds = remaining_seconds % 60
+                    return jsonify({
+                        'rate_limited': True,
+                        'remaining_seconds': remaining_seconds,
+                        'message': f'Puoi fare una nuova richiesta di deposito tra {minutes}m {seconds}s',
+                        'last_request': last_request_time.isoformat()
+                    })
+            
+            return jsonify({
+                'rate_limited': False,
+                'remaining_seconds': 0,
+                'message': 'Puoi fare una nuova richiesta di deposito'
+            })
+            
+    except Exception as e:
+        logger.warning("[deposits] rate limit status check failed: %s", e)
+        return jsonify({
+            'rate_limited': False,
+            'remaining_seconds': 0,
+            'message': 'Puoi fare una nuova richiesta di deposito'
+        })
+
 @deposits_bp.route('/api/requests/<int:request_id>', methods=['GET'])
 @login_required
 def get_deposit_request_detail(request_id):
@@ -210,6 +266,42 @@ def create_deposit_request():
         return jsonify({'error': 'unauthorized'}), 401
     logger.info("[deposits] POST /api/requests/new uid=%s payload=%s", uid, data)
     
+    # Rate limiting: controlla se l'utente ha già fatto una richiesta negli ultimi 10 minuti
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT created_at 
+                FROM deposit_requests 
+                WHERE user_id = %s 
+                AND created_at > NOW() - INTERVAL '10 minutes'
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """, (uid,))
+            recent_request = cur.fetchone()
+            
+            if recent_request:
+                # Calcola il tempo rimanente
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                last_request_time = recent_request['created_at']
+                if last_request_time.tzinfo is None:
+                    last_request_time = last_request_time.replace(tzinfo=timezone.utc)
+                
+                time_diff = now - last_request_time
+                remaining_seconds = 600 - int(time_diff.total_seconds())  # 10 minuti = 600 secondi
+                
+                if remaining_seconds > 0:
+                    minutes = remaining_seconds // 60
+                    seconds = remaining_seconds % 60
+                    return jsonify({
+                        'error': 'Rate limit exceeded',
+                        'message': f'Puoi fare una nuova richiesta di deposito tra {minutes}m {seconds}s',
+                        'remaining_seconds': remaining_seconds
+                    }), 429
+    except Exception as e:
+        logger.warning("[deposits] rate limiting check failed: %s", e)
+        # Continua comunque se il controllo fallisce
+    
     # Validazione dati
     if 'amount' not in data:
         return jsonify({'error': 'Importo obbligatorio'}), 400
@@ -252,28 +344,32 @@ def create_deposit_request():
                     'bic_swift': ''
                 }
             
+            # Ottieni configurazione wallet USDT
+            cur.execute("""
+                SELECT wallet_address, network
+                FROM wallet_configurations 
+                WHERE is_active = true 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """)
+            wallet_config = cur.fetchone()
+            logger.info("[deposits] active wallet config fetched: %s", wallet_config)
+            
+            if not wallet_config:
+                # Se non esiste una configurazione attiva, usa valori di default
+                import os
+                wallet_config = {
+                    'wallet_address': os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000'),
+                    'network': 'BEP20'
+                }
+            
             # Determina destinatario fondi in base al metodo
             # - bank: usa IBAN configurato
             # - usdt: usa wallet configurato
             if method == 'bank':
                 receiver_field_value = bank_config['iban']
             else:
-                # Ottieni configurazione wallet USDT
-                cur.execute("""
-                    SELECT wallet_address, network
-                    FROM wallet_configurations 
-                    WHERE is_active = true 
-                    ORDER BY created_at DESC 
-                    LIMIT 1
-                """)
-                wallet_config = cur.fetchone()
-                
-                if wallet_config and wallet_config['wallet_address']:
-                    receiver_field_value = wallet_config['wallet_address']
-                else:
-                    # Fallback se non c'è configurazione
-                    import os
-                    receiver_field_value = os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000')
+                receiver_field_value = wallet_config['wallet_address']
 
             # Prova inserimento con retry per evitare collisioni univoche
             attempts = 0
@@ -326,16 +422,10 @@ def create_deposit_request():
             'bic_swift': bank_config.get('bic_swift', '')
         })
     else:  # USDT
-        if 'wallet_config' in locals() and wallet_config:
-            response_data.update({
-                'wallet_address': wallet_config['wallet_address'],
-                'network': wallet_config['network']
-            })
-        else:
-            response_data.update({
-                'wallet_address': receiver_field_value,
-                'network': 'BEP20'
-            })
+        response_data.update({
+            'wallet_address': wallet_config['wallet_address'],
+            'network': wallet_config['network']
+        })
     
     return jsonify({
         'success': True,

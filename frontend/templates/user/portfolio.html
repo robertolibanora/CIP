@@ -2,6 +2,52 @@
 
 {% block title %}Portfolio - CIP Immobiliare{% endblock %}
 
+<style>
+/* Forza il campo wallet a mantenere il case originale */
+#withdrawal-wallet {
+    text-transform: none !important;
+    -webkit-text-transform: none !important;
+    -moz-text-transform: none !important;
+    -ms-text-transform: none !important;
+    font-family: 'Courier New', monospace !important;
+    text-transform: none !important;
+}
+
+/* Preveni conversioni automatiche del browser */
+#withdrawal-wallet:focus {
+    text-transform: none !important;
+    -webkit-text-transform: none !important;
+    -moz-text-transform: none !important;
+    -ms-text-transform: none !important;
+}
+
+#withdrawal-wallet:active {
+    text-transform: none !important;
+    -webkit-text-transform: none !important;
+    -moz-text-transform: none !important;
+    -ms-text-transform: none !important;
+}
+
+#withdrawal-wallet:hover {
+    text-transform: none !important;
+    -webkit-text-transform: none !important;
+    -moz-text-transform: none !important;
+    -ms-text-transform: none !important;
+}
+
+/* Forza il case per tutti gli stati */
+#withdrawal-wallet,
+#withdrawal-wallet:focus,
+#withdrawal-wallet:active,
+#withdrawal-wallet:hover,
+#withdrawal-wallet:visited {
+    text-transform: none !important;
+    -webkit-text-transform: none !important;
+    -moz-text-transform: none !important;
+    -ms-text-transform: none !important;
+}
+</style>
+
 {% block content %}
 <div class="min-h-screen bg-white">
     <!-- Header -->
@@ -236,23 +282,27 @@
                               <!-- Carta (mappata su metodo supportato) -->
                               <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
                                 <input type="radio" name="payment_method" value="usdt" class="mb-2" required>
-                                <span class="text-gray-800 font-medium" id="usdt-network-label">usdt bsc(bep20)</span>
+                                <span class="text-gray-800 font-medium" id="usdt-network-label">USDT</span>
                               </label>
                               <!-- Bonifico -->
                               <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
                                 <input type="radio" name="payment_method" value="bank" class="mb-2" required>
-                                <span class="text-gray-800 font-medium">Bonifico Bancario</span>
+                                <span class="text-gray-800 font-medium">Bonifico</span>
                               </label>
                             </div>
                           </div>
 
                           <!-- Bottone -->
-                          <button
-                            type="submit"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow"
-                          >
-                            Conferma Deposito
-                          </button>
+        <button
+          type="submit"
+          id="deposit-submit-btn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow transition-colors"
+        >
+          <span id="deposit-btn-text">Conferma Deposito</span>
+          <span id="deposit-countdown" class="hidden">
+            Riprova tra <span id="countdown-timer">0:00</span>
+          </span>
+        </button>
                         </div>
 
                         <!-- Istruzioni dinamiche -->
@@ -302,7 +352,7 @@
                                                 <span class="text-white font-bold text-sm">₮</span>
                                             </div>
                                             <div>
-                                                <div class="font-medium text-gray-900">USDT (BEP20)</div>
+                                                <div class="font-medium text-gray-900">USDT</div>
                                                 <div class="text-sm text-gray-500">Prelievo in criptovaluta</div>
                                             </div>
                                         </div>
@@ -316,7 +366,7 @@
                                                 <span class="text-white font-bold text-sm">€</span>
                                             </div>
                                             <div>
-                                                <div class="font-medium text-gray-900">Bonifico Bancario</div>
+                                                <div class="font-medium text-gray-900">Bonifico</div>
                                                 <div class="text-sm text-gray-500">Prelievo tradizionale</div>
                                             </div>
                                         </div>
@@ -377,15 +427,22 @@
                             
                             <div>
                                 <label for="withdrawal-wallet" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Indirizzo Wallet USDT (BEP20)
+                                    Indirizzo Wallet USDT
                                 </label>
                                 <input type="text" 
                                        id="withdrawal-wallet" 
                                        name="wallet_address" 
                                        placeholder="0x..."
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                                       pattern="^0x[a-fA-F0-9]{40}$">
-                                <p class="mt-1 text-xs text-gray-500">Inserisci l'indirizzo wallet BEP20 (inizia con 0x e ha 42 caratteri)</p>
+                                       autocomplete="off"
+                                       spellcheck="false"
+                                       autocorrect="off"
+                                       autocapitalize="off"
+                                       style="text-transform: none !important; -webkit-text-transform: none !important; -moz-text-transform: none !important; -ms-text-transform: none !important; font-family: 'Courier New', monospace;"
+                                       oninput="handleWalletInput(this)"
+                                       onkeydown="return true"
+                                       onkeyup="handleWalletKeyUp(this)">
+                                <p class="mt-1 text-xs text-gray-500">Inserisci l'indirizzo wallet (inizia con 0x e ha 42 caratteri)</p>
                             </div>
                         </div>
                         
@@ -535,6 +592,63 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rate Limiting - Design CIP -->
+<div id="rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 transition-all duration-300">
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="rate-limit-modal-content">
+            <!-- Header con icona -->
+            <div class="p-6 border-b border-cip-primary-darker text-center">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-cip-neutral-800 mb-2">Attendere prima del prossimo deposito</h3>
+                <p class="text-sm text-cip-neutral-600">Per non intasare il sistema, la prossima richiesta potrà essere effettuata tra:</p>
+            </div>
+            
+            <!-- Contenuto principale -->
+            <div class="p-6 text-center">
+                <!-- Timer principale -->
+                <div class="mb-6">
+                    <div id="rate-limit-timer" class="text-4xl font-bold text-cip-bg mb-2">
+                        10:00
+                    </div>
+                    <p class="text-sm text-cip-neutral-500">minuti e secondi</p>
+                </div>
+                
+                <!-- Barra di progresso -->
+                <div class="w-full bg-cip-neutral-200 rounded-full h-2 mb-4">
+                    <div id="rate-limit-progress" class="bg-gradient-to-r from-cip-bg to-cip-bg-light h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                
+                <!-- Messaggio informativo -->
+                <div class="bg-cip-neutral-50 border border-cip-neutral-200 rounded-cip p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-cip-bg mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-left">
+                            <p class="text-sm font-medium text-cip-neutral-800 mb-1">Perché questo limite?</p>
+                            <p class="text-xs text-cip-neutral-600">Questo sistema previene spam e garantisce un'elaborazione più veloce delle richieste di deposito per tutti gli utenti.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-6 pt-0">
+                <button id="rate-limit-close" class="btn-mobile btn-mobile-primary w-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Ho Capito
                 </button>
             </div>
         </div>
@@ -779,7 +893,7 @@ async function loadDeposits(){
         <div class="flex justify-between items-start mb-2">
           <div>
             <p class="font-medium text-gray-900">€${parseFloat(d.amount).toLocaleString('it-IT',{minimumFractionDigits:2})}</p>
-            <p class="text-sm text-gray-500">Metodo: ${(d.method||'bank')==='usdt'?'USDT (BEP20)':'Bonifico Bancario'}</p>
+            <p class="text-sm text-gray-500">Metodo: ${(d.method||'bank')==='usdt'?'USDT':'Bonifico'}</p>
             <p class="text-xs text-gray-500">Chiave: <span class="font-mono">${d.unique_key||''}</span></p>
           </div>
           <span class="px-3 py-1 rounded-full text-xs font-medium ${d.status==='completed'?'bg-green-100 text-green-800': d.status==='pending'?'bg-yellow-100 text-yellow-800': d.status==='cancelled'?'bg-gray-100 text-gray-800':'bg-red-100 text-red-800'}">
@@ -838,20 +952,222 @@ function stopDepositsPolling(){
   }
 }
 
+// Sistema di rate limiting per depositi
+let depositCountdownTimer = null;
+let depositRateLimited = false;
+let rateLimitModalTimer = null;
+let currentCountdownSeconds = 0;
+
+
+// Funzione per mostrare il modal di rate limiting
+function showRateLimitModal(remainingSeconds) {
+    const modal = document.getElementById('rate-limit-modal');
+    const modalContent = document.getElementById('rate-limit-modal-content');
+    const timerElement = document.getElementById('rate-limit-timer');
+    const progressElement = document.getElementById('rate-limit-progress');
+    
+    if (!modal || !modalContent || !timerElement || !progressElement) {
+        console.error('Elementi del modal non trovati');
+        return;
+    }
+    
+    // Mostra il modal con animazione
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modalContent.style.transform = 'scale(1)';
+        modalContent.style.opacity = '1';
+    }, 10);
+    
+    // Avvia il timer del modal
+    let currentSeconds = remainingSeconds;
+    const totalSeconds = remainingSeconds;
+    
+    function updateModalTimer() {
+        const minutes = Math.floor(currentSeconds / 60);
+        const seconds = currentSeconds % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Aggiorna la barra di progresso
+        const progress = ((totalSeconds - currentSeconds) / totalSeconds) * 100;
+        progressElement.style.width = `${progress}%`;
+        
+        if (currentSeconds <= 0) {
+            // Timer finito, chiudi il modal
+            clearInterval(rateLimitModalTimer);
+            rateLimitModalTimer = null;
+            closeRateLimitModal();
+        } else {
+            currentSeconds--;
+        }
+    }
+    
+    // Avvia il timer del modal
+    updateModalTimer();
+    rateLimitModalTimer = setInterval(updateModalTimer, 1000);
+}
+
+// Funzione per chiudere il modal di rate limiting
+function closeRateLimitModal() {
+    const modal = document.getElementById('rate-limit-modal');
+    const modalContent = document.getElementById('rate-limit-modal-content');
+    
+    if (!modal || !modalContent) return;
+    
+    // Chiudi il modal con animazione
+    modalContent.style.transform = 'scale(0.95)';
+    modalContent.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+    
+    // Pulisci il timer del modal
+    if (rateLimitModalTimer) {
+        clearInterval(rateLimitModalTimer);
+        rateLimitModalTimer = null;
+    }
+}
+
+// Funzione per avviare il countdown
+function startDepositCountdown(remainingSeconds) {
+    const btn = document.getElementById('deposit-submit-btn');
+    const btnText = document.getElementById('deposit-btn-text');
+    const countdownSpan = document.getElementById('deposit-countdown');
+    const timerSpan = document.getElementById('countdown-timer');
+    
+    if (!btn || !btnText || !countdownSpan || !timerSpan) {
+        console.error('Elementi del pulsante non trovati');
+        return;
+    }
+    
+    // NON disabilitare il pulsante - deve rimanere cliccabile
+    depositRateLimited = true;
+    currentCountdownSeconds = remainingSeconds;
+    
+    // Mostra countdown ma mantieni il pulsante cliccabile
+    btnText.classList.add('hidden');
+    countdownSpan.classList.remove('hidden');
+    
+    // Cambia lo stile del pulsante per indicare che è in countdown ma cliccabile
+    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+    btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    
+    // NON mostrare il modal automaticamente - solo al click del pulsante
+    
+    // Funzione per aggiornare il timer
+    function updateTimer() {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        timerSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Aggiorna i secondi rimanenti globali
+        currentCountdownSeconds = remainingSeconds;
+        
+        if (remainingSeconds <= 0) {
+            // Countdown finito, ripristina il pulsante normale
+            clearInterval(depositCountdownTimer);
+            depositCountdownTimer = null;
+            depositRateLimited = false;
+            currentCountdownSeconds = 0;
+            
+            // Ripristina il testo e lo stile del pulsante
+            btnText.classList.remove('hidden');
+            countdownSpan.classList.add('hidden');
+            btn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            remainingSeconds--;
+        }
+    }
+    
+    // Avvia il timer
+    updateTimer();
+    depositCountdownTimer = setInterval(updateTimer, 1000);
+}
+
+// Funzione per controllare lo stato del rate limiting
+async function checkDepositRateLimit() {
+    try {
+        const response = await fetch('/deposits/api/rate-limit-status');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.rate_limited && data.remaining_seconds > 0) {
+                // Avvia solo il countdown, NON il modal
+                startDepositCountdown(data.remaining_seconds);
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('Errore controllo rate limit:', error);
+    }
+    return false;
+}
+
+// Controlla il rate limiting al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    checkDepositRateLimit();
+    
+    // Event listener per il pulsante di chiusura del modal rate limiting
+    const closeBtn = document.getElementById('rate-limit-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeRateLimitModal);
+    }
+    
+    // Chiudi modal cliccando fuori
+    const modal = document.getElementById('rate-limit-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeRateLimitModal();
+            }
+        });
+    }
+    
+    // Event listener per il pulsante deposito - mostra modal se rate limited
+    const depositBtn = document.getElementById('deposit-submit-btn');
+    if (depositBtn) {
+        depositBtn.addEventListener('click', function(e) {
+            if (depositRateLimited && currentCountdownSeconds > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                showRateLimitModal(currentCountdownSeconds);
+            }
+        });
+    }
+});
+
 // Gestione form deposito
 const depositForm = document.getElementById('deposit-form');
 if (depositForm) {
   depositForm.addEventListener('submit', async function(e){
     e.preventDefault();
+    
+    // Controlla se il rate limiting è attivo
+    if (depositRateLimited) {
+      // Il modal viene già gestito dall'event listener del pulsante
+      // Non bloccare il form, lascia che l'event listener gestisca il click
+      return;
+    }
+    
     const form = new FormData(this);
     const amount = parseFloat(form.get('amount'));
     if (isNaN(amount) || amount < 500) { alert('Importo minimo 500€'); return; }
     const method = form.get('payment_method');
     const payload = { amount, payment_method: method };
+    
+    // Disabilita temporaneamente il pulsante per evitare doppi click
+    const btn = document.getElementById('deposit-submit-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>Elaborazione...</span>';
+    
     try {
       const r = await fetch('/deposits/api/requests/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       const j = await r.json();
+      
       if (r.ok) {
+        // Deposito riuscito, avvia countdown di 10 minuti
+        startDepositCountdown(600); // 10 minuti = 600 secondi
         // Mostra popup di successo
         showDepositSuccessModal(j.deposit_request, method);
         
@@ -859,11 +1175,15 @@ if (depositForm) {
         const box = document.getElementById('deposit-instructions');
         let html = '';
         if (method === 'usdt') {
-          const wallet = '0xF00DBABECAFEBABE000000000000000000000000'; // provvisorio
+          const wallet = j.deposit_request.wallet_address || '0xF00DBABECAFEBABE000000000000000000000000';
+          const network = j.deposit_request.network || 'BEP20';
+          const networkLabel = network === 'BEP20' ? 'BSC (BEP20)' : 
+                              network === 'ERC20' ? 'Ethereum (ERC20)' : 
+                              network === 'TRC20' ? 'Tron (TRC20)' : network;
           html = `
-            <h4 class="font-semibold mb-2">Invia USDT (BEP20)</h4>
+            <h4 class="font-semibold mb-2">Invia USDT (${networkLabel})</h4>
             <p class="text-sm text-gray-700">Importo: <strong>€${j.deposit_request.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</strong></p>
-            <p class="text-sm text-gray-700">Network: <strong>BSC (BEP20)</strong></p>
+            <p class="text-sm text-gray-700">Network: <strong>${networkLabel}</strong></p>
             <div class="flex items-center gap-2">
             <p class="text-sm text-gray-700">Wallet: <code class="font-mono">${wallet}</code></p>
               <button onclick="copyToClipboard('${wallet}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1">
@@ -900,11 +1220,22 @@ if (depositForm) {
         this.reset();
       } else {
         console.error('Deposito API error:', j);
-        alert((j.error || 'Errore creazione richiesta') + (j.debug ? `\nDettagli: ${j.debug}` : ''));
+        
+        // Gestione specifica per rate limiting
+        if (r.status === 429 && j.remaining_seconds) {
+          startDepositCountdown(j.remaining_seconds);
+          // Il modal viene mostrato automaticamente da startDepositCountdown
+        } else {
+          alert((j.error || 'Errore creazione richiesta') + (j.debug ? `\nDettagli: ${j.debug}` : ''));
+        }
       }
     } catch (err) {
       console.error('Deposito network error:', err);
       alert('Errore di rete');
+    } finally {
+      // Riabilita il pulsante in caso di errore
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   })
 }
@@ -921,15 +1252,7 @@ async function loadWalletConfig() {
                 const network = data.wallet_config.network.toLowerCase();
                 const networkLabel = document.getElementById('usdt-network-label');
                 if (networkLabel) {
-                    if (network === 'bep20') {
-                        networkLabel.textContent = 'usdt bsc(bep20)';
-                    } else if (network === 'erc20') {
-                        networkLabel.textContent = 'usdt eth(erc20)';
-                    } else if (network === 'trc20') {
-                        networkLabel.textContent = 'usdt tron(trc20)';
-                    } else {
-                        networkLabel.textContent = `usdt ${network}`;
-                    }
+                    networkLabel.textContent = 'USDT';
                 }
             }
         }
@@ -1252,12 +1575,16 @@ function showDepositSuccessModal(depositRequest, method) {
   // Genera i dettagli del deposito
   let detailsHtml = '';
   if (method === 'usdt') {
-    const wallet = '0xF00DBABECAFEBABE000000000000000000000000'; // provvisorio
+    const wallet = depositRequest.wallet_address || '0xF00DBABECAFEBABE000000000000000000000000';
+    const network = depositRequest.network || 'BEP20';
+    const networkLabel = network === 'BEP20' ? 'BSC (BEP20)' : 
+                        network === 'ERC20' ? 'Ethereum (ERC20)' : 
+                        network === 'TRC20' ? 'Tron (TRC20)' : network;
     detailsHtml = `
       <div class="space-y-2">
         <div class="flex justify-between">
           <span class="text-sm font-medium text-gray-700">Metodo:</span>
-          <span class="text-sm text-gray-900">USDT (BEP20)</span>
+          <span class="text-sm text-gray-900">USDT (${networkLabel})</span>
         </div>
         <div class="flex justify-between">
           <span class="text-sm font-medium text-gray-700">Importo:</span>
@@ -1271,7 +1598,7 @@ function showDepositSuccessModal(depositRequest, method) {
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <p class="text-xs text-yellow-800 mb-1">
-                <strong>Wallet:</strong>
+                <strong>Wallet (${network}):</strong>
               </p>
               <code class="font-mono text-xs text-yellow-900 break-all">${wallet}</code>
             </div>
@@ -1290,7 +1617,7 @@ function showDepositSuccessModal(depositRequest, method) {
       <div class="space-y-2">
         <div class="flex justify-between">
           <span class="text-sm font-medium text-gray-700">Metodo:</span>
-          <span class="text-sm text-gray-900">Bonifico Bancario</span>
+          <span class="text-sm text-gray-900">Bonifico</span>
         </div>
         <div class="flex justify-between">
           <span class="text-sm font-medium text-gray-700">Importo:</span>
@@ -1347,7 +1674,7 @@ function showWithdrawalSuccessModal(withdrawalData) {
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-sm font-medium text-cip-neutral-700">Metodo:</span>
-            <span class="text-sm text-cip-neutral-600">USDT (BEP20)</span>
+            <span class="text-sm text-cip-neutral-600">USDT</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-sm font-medium text-cip-neutral-700">Importo:</span>
@@ -1384,7 +1711,7 @@ function showWithdrawalSuccessModal(withdrawalData) {
         <div class="space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-sm font-medium text-cip-neutral-700">Metodo:</span>
-            <span class="text-sm text-cip-neutral-600">Bonifico Bancario</span>
+            <span class="text-sm text-cip-neutral-600">Bonifico</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-sm font-medium text-cip-neutral-700">Importo:</span>
@@ -1448,7 +1775,7 @@ async function loadWithdrawals() {
                         <div>
                             <p class="font-medium text-gray-900">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
                             <p class="text-sm text-gray-500">
-                                Metodo: ${withdrawal.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}
+                                Metodo: ${withdrawal.method === 'usdt' ? 'USDT' : 'Bonifico'}
                             </p>
                             <p class="text-sm text-gray-500">
                                 Fonte: ${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
@@ -1496,6 +1823,19 @@ async function loadWithdrawals() {
     }
 }
 
+// Funzioni per gestire l'input del wallet
+function handleWalletInput(field) {
+    // Mantieni il case originale
+    const originalValue = field.value;
+    field.value = originalValue;
+}
+
+function handleWalletKeyUp(field) {
+    // Mantieni il valore originale dopo il keyup
+    const originalValue = field.value;
+    field.value = originalValue;
+}
+
 // Gestione cambio metodo di prelievo
 function toggleWithdrawalMethod() {
     const usdtRadio = document.querySelector('input[name="method"][value="usdt"]');
@@ -1529,6 +1869,27 @@ document.addEventListener('DOMContentLoaded', function() {
     methodRadios.forEach(radio => {
         radio.addEventListener('change', toggleWithdrawalMethod);
     });
+    
+    // Prevenire conversione automatica a minuscolo per il campo wallet
+    const walletInput = document.getElementById('withdrawal-wallet');
+    if (walletInput) {
+        // Forza il mantenimento del case originale
+        walletInput.addEventListener('input', function(e) {
+            const originalValue = this.value;
+            this.value = originalValue;
+        });
+        
+        walletInput.addEventListener('keydown', function(e) {
+            // Permetti tutti i caratteri
+            return true;
+        });
+        
+        walletInput.addEventListener('keyup', function(e) {
+            // Mantieni il valore originale
+            const originalValue = this.value;
+            this.value = originalValue;
+        });
+    }
     
     // Form prelievo
     const withdrawalForm = document.getElementById('withdrawal-form');

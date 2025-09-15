@@ -2829,6 +2829,14 @@ def config_wallet_save():
         if not data.get(field):
             return jsonify({"error": f"Campo {field} richiesto"}), 400
     
+    # Validazione indirizzo wallet
+    try:
+        from backend.shared.validators import validate_wallet_address, validate_wallet_network
+        network = validate_wallet_network(data.get('network', 'BEP20'))
+        wallet_address = validate_wallet_address(data.get('wallet_address'), network)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
     with get_conn() as conn, conn.cursor() as cur:
         try:
             # Disattiva tutte le configurazioni precedenti
@@ -2837,11 +2845,12 @@ def config_wallet_save():
             # Inserisci nuova configurazione
             cur.execute("""
                 INSERT INTO wallet_configurations 
-                (wallet_address, network, created_by)
-                VALUES (%s, %s, %s)
+                (wallet_name, wallet_address, network, created_by)
+                VALUES (%s, %s, %s, %s)
             """, (
-                data.get('wallet_address', ''),
-                data.get('network', 'BEP20'),
+                f"Wallet {network}",
+                wallet_address,
+                network,
                 session.get('user_id')
             ))
             
@@ -2849,7 +2858,7 @@ def config_wallet_save():
             cur.execute("""
                 INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
                 VALUES (%s, 'config_update', 'wallet', %s, %s)
-            """, (session.get('user_id'), 0, f"Aggiornata configurazione wallet: {data.get('wallet_address', 'N/A')}"))
+            """, (session.get('user_id'), 0, f"Aggiornata configurazione wallet: {wallet_address} ({network})"))
             
             conn.commit()
             return jsonify({"success": True, "message": "Configurazione wallet salvata"})

@@ -191,3 +191,54 @@ def validate_bank_details(bank_details):
         raise ValidationError("IBAN non valido")
     
     return bank_details
+
+def validate_wallet_address(wallet_address, network='BEP20'):
+    """Valida indirizzo wallet USDT"""
+    if not wallet_address:
+        raise ValidationError("Indirizzo wallet richiesto")
+    
+    wallet_address = wallet_address.strip()
+    
+    if network.upper() == 'BEP20':
+        # Validazione indirizzo BEP20 (Binance Smart Chain)
+        if not wallet_address.startswith('0x'):
+            raise ValidationError("Indirizzo BEP20 deve iniziare con 0x")
+        if len(wallet_address) != 42:
+            raise ValidationError("Indirizzo BEP20 deve essere di 42 caratteri")
+        if not re.match(r'^0x[a-fA-F0-9]{40}$', wallet_address):
+            raise ValidationError("Indirizzo BEP20 non valido")
+    
+    elif network.upper() == 'ERC20':
+        # Validazione indirizzo ERC20 (Ethereum)
+        if not wallet_address.startswith('0x'):
+            raise ValidationError("Indirizzo ERC20 deve iniziare con 0x")
+        if len(wallet_address) != 42:
+            raise ValidationError("Indirizzo ERC20 deve essere di 42 caratteri")
+        if not re.match(r'^0x[a-fA-F0-9]{40}$', wallet_address):
+            raise ValidationError("Indirizzo ERC20 non valido")
+    
+    elif network.upper() == 'TRC20':
+        # Validazione indirizzo TRC20 (Tron)
+        if not wallet_address.startswith('T'):
+            raise ValidationError("Indirizzo TRC20 deve iniziare con T")
+        if len(wallet_address) != 34:
+            raise ValidationError("Indirizzo TRC20 deve essere di 34 caratteri")
+        if not re.match(r'^T[a-zA-Z0-9]{33}$', wallet_address):
+            raise ValidationError("Indirizzo TRC20 non valido")
+    
+    else:
+        raise ValidationError(f"Network {network} non supportato")
+    
+    return wallet_address
+
+def validate_wallet_network(network):
+    """Valida network wallet"""
+    if not network:
+        return 'BEP20'
+    
+    valid_networks = ['BEP20', 'ERC20', 'TRC20']
+    network_upper = network.upper()
+    if network_upper not in valid_networks:
+        raise ValidationError(f"Network non supportato. Usa uno di: {', '.join(valid_networks)}")
+    
+    return network_upper
