@@ -33,6 +33,7 @@
                         <option value="">Tutti gli stati</option>
                         <option value="pending">In attesa</option>
                         <option value="approved">Approvati</option>
+                        <option value="completed">Completati</option>
                         <option value="rejected">Rifiutati</option>
                     </select>
                 </div>
@@ -53,11 +54,11 @@
             </div>
             
             <div class="admin-flex admin-flex--gap-2">
-                <button onclick="refreshDeposits()" class="admin-btn admin-btn--secondary">
+                <button onclick="deleteSelectedDeposits()" id="delete-selected-btn" class="admin-btn admin-btn--danger hidden" disabled>
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
-                    Aggiorna
+                    <span id="delete-selected-text">Elimina Selezionati (<span id="selected-count">0</span>)</span>
                 </button>
                 <button onclick="deleteAllDeposits()" class="admin-btn admin-btn--danger">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,10 +82,12 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
+                            <th class="admin-table-th w-12">
+                                <input type="checkbox" id="select-all-deposits" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" onchange="toggleAllDeposits()">
+                            </th>
                             <th class="admin-table-th">Utente</th>
                             <th class="admin-table-th">Importo</th>
                             <th class="admin-table-th">Metodo</th>
-                            <th class="admin-table-th">Dettagli</th>
                             <th class="admin-table-th">Stato</th>
                             <th class="admin-table-th">Data Richiesta</th>
                             <th class="admin-table-th">Data Approvazione</th>
@@ -282,6 +285,12 @@ function renderDeposits(deposits) {
             data-status="${deposit.status}" 
             data-method="${deposit.method}"
             data-search="${(deposit.full_name || '').toLowerCase()} ${(deposit.email || '').toLowerCase()}">
+            <td class="admin-table-td w-12">
+                <input type="checkbox" 
+                       class="deposit-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                       value="${deposit.id}" 
+                       onchange="updateSelectedCount()">
+            </td>
             <td class="admin-table-td">
                 <div>
                     <p class="font-medium text-gray-900">${deposit.full_name || 'Utente'}</p>
@@ -297,18 +306,13 @@ function renderDeposits(deposits) {
                 </span>
             </td>
             <td class="admin-table-td">
-                <div class="text-sm">
-                    <p class="font-mono text-xs break-all">${deposit.iban || deposit.wallet_address || '-'}</p>
-                </div>
-            </td>
-            <td class="admin-table-td">
                 <span class="px-2 py-1 text-xs font-medium rounded-full ${
                     deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    deposit.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    deposit.status === 'approved' || deposit.status === 'completed' ? 'bg-green-100 text-green-800' :
                     'bg-red-100 text-red-800'
                 }">
                     ${deposit.status === 'pending' ? 'In Attesa' :
-                      deposit.status === 'approved' ? 'Approvato' :
+                      deposit.status === 'approved' || deposit.status === 'completed' ? 'Approvato' :
                       deposit.status === 'rejected' ? 'Rifiutato' : deposit.status}
                 </span>
             </td>
@@ -331,12 +335,11 @@ function renderDeposits(deposits) {
             </td>
             <td class="admin-table-td">
                 <div class="flex gap-2">
-                    <button onclick="viewDepositDetails(${deposit.id})" class="admin-btn admin-btn--secondary admin-btn--sm">
+                    <button onclick="deleteDeposit(${deposit.id})" class="admin-btn admin-btn--danger admin-btn--sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
-                        Dettagli
+                        Elimina
                     </button>
                 </div>
             </td>
@@ -449,10 +452,114 @@ async function deleteAllDeposits() {
     }
 }
 
-// Visualizza dettagli deposito
-function viewDepositDetails(id) {
-    // Per ora mostriamo solo un alert, poi possiamo implementare un modal
-    alert('Dettagli deposito ID: ' + id + '\n\nFunzionalità in sviluppo...');
+// Elimina singolo deposito
+async function deleteDeposit(id) {
+    if (!confirm('Sei sicuro di voler eliminare questo deposito? Questa azione non può essere annullata!')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch(`/deposits/api/admin/delete/${id}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Deposito eliminato con successo', 'success');
+            loadDepositsHistory(1);
+        } else {
+            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
+        }
+    } catch (error) {
+        console.error('Errore eliminazione:', error);
+        showError('Errore nell\'eliminazione del deposito');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Gestione selezione multipla
+function toggleAllDeposits() {
+    const selectAllCheckbox = document.getElementById('select-all-deposits');
+    const checkboxes = document.querySelectorAll('.deposit-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.deposit-checkbox');
+    const selectedCheckboxes = document.querySelectorAll('.deposit-checkbox:checked');
+    const selectedCount = selectedCheckboxes.length;
+    const totalCount = checkboxes.length;
+    
+    // Aggiorna il contatore
+    document.getElementById('selected-count').textContent = selectedCount;
+    
+    // Mostra/nascondi il pulsante di eliminazione multipla
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    if (selectedCount > 0) {
+        deleteSelectedBtn.classList.remove('hidden');
+        deleteSelectedBtn.disabled = false;
+    } else {
+        deleteSelectedBtn.classList.add('hidden');
+        deleteSelectedBtn.disabled = true;
+    }
+    
+    // Aggiorna lo stato del checkbox "Seleziona tutto"
+    const selectAllCheckbox = document.getElementById('select-all-deposits');
+    if (selectedCount === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (selectedCount === totalCount) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+async function deleteSelectedDeposits() {
+    const selectedCheckboxes = document.querySelectorAll('.deposit-checkbox:checked');
+    const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+    
+    if (selectedIds.length === 0) {
+        showError('Nessun deposito selezionato');
+        return;
+    }
+    
+    if (!confirm(`Sei sicuro di voler eliminare ${selectedIds.length} depositi selezionati? Questa azione non può essere annullata!`)) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/deposits/api/admin/delete-multiple', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ deposit_ids: selectedIds })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification(`Eliminati ${data.deleted_count} depositi con successo`, 'success');
+            loadDepositsHistory(1);
+        } else {
+            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
+        }
+    } catch (error) {
+        console.error('Errore eliminazione multipla:', error);
+        showError('Errore nell\'eliminazione dei depositi selezionati');
+    } finally {
+        hideLoading();
+    }
 }
 
 // Chiudi modal

@@ -375,6 +375,52 @@
                             </div>
                         </div>
 
+                        <!-- Selezione Rete USDT -->
+                        <div id="network-selection" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rete USDT</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="relative">
+                                    <input type="radio" name="network" value="trc20" class="sr-only peer" required>
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                        <div class="text-center">
+                                            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                <span class="text-white font-bold text-xs">T</span>
+                                            </div>
+                                            <div class="font-medium text-gray-900">TRC20</div>
+                                            <div class="text-xs text-gray-500">Tron Network</div>
+                                            <div class="text-xs text-green-600 font-medium">Fee: ~1 USDT</div>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="relative">
+                                    <input type="radio" name="network" value="bsc" class="sr-only peer" required>
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                        <div class="text-center">
+                                            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                <span class="text-white font-bold text-xs">B</span>
+                                            </div>
+                                            <div class="font-medium text-gray-900">BSC</div>
+                                            <div class="text-xs text-gray-500">Binance Smart Chain</div>
+                                            <div class="text-xs text-green-600 font-medium">Fee: ~1-2 USDT</div>
+                                        </div>
+                                    </div>
+                                </label>
+                                <label class="relative">
+                                    <input type="radio" name="network" value="erc20" class="sr-only peer" required>
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                        <div class="text-center">
+                                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                <span class="text-white font-bold text-xs">E</span>
+                                            </div>
+                                            <div class="font-medium text-gray-900">ERC20</div>
+                                            <div class="text-xs text-gray-500">Ethereum Network</div>
+                                            <div class="text-xs text-orange-600 font-medium">Fee: ~5-20 USDT</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Importo e sezione -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -417,9 +463,14 @@
                                     </div>
                                     <div class="ml-3">
                                         <h3 class="text-sm font-medium text-yellow-800">Attenzione Importante</h3>
-                                        <div class="mt-2 text-sm text-yellow-700">
-                                            <p>Non ci assumiamo responsabilità per errori nell'indirizzo wallet. Se inserisci un indirizzo errato, i fondi andranno persi definitivamente.</p>
-                                            <p class="mt-1"><strong>Assicurati di inserire l'indirizzo corretto della rete BEP20 (Binance Smart Chain).</strong></p>
+                                        <div class="mt-2 text-sm text-yellow-700 space-y-2">
+                                            <p><strong>Indirizzo Wallet:</strong> Non ci assumiamo responsabilità per errori nell'indirizzo wallet. Se inserisci un indirizzo errato, i fondi andranno persi definitivamente. Assicurati di inserire l'indirizzo corretto per la rete selezionata.</p>
+                                            <p><strong>Commissioni di Transazione:</strong> Dal denaro prelevato saranno detratte le commissioni di transazione della rete:</p>
+                                            <ul class="list-disc list-inside ml-2 space-y-1">
+                                                <li><strong>TRC20:</strong> ~1 USDT</li>
+                                                <li><strong>BSC:</strong> ~1-2 USDT</li>
+                                                <li><strong>ERC20:</strong> ~5-20 USDT (può variare in base al traffico della rete)</li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
@@ -432,7 +483,7 @@
                                 <input type="text" 
                                        id="withdrawal-wallet" 
                                        name="wallet_address" 
-                                       placeholder="0x..."
+                                       placeholder="Inserisci l'indirizzo wallet..."
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                                        autocomplete="off"
                                        spellcheck="false"
@@ -442,7 +493,7 @@
                                        oninput="handleWalletInput(this)"
                                        onkeydown="return true"
                                        onkeyup="handleWalletKeyUp(this)">
-                                <p class="mt-1 text-xs text-gray-500">Inserisci l'indirizzo wallet (inizia con 0x e ha 42 caratteri)</p>
+                                <p class="mt-1 text-xs text-gray-500" id="wallet-format-hint">Seleziona una rete per vedere il formato richiesto</p>
                             </div>
                         </div>
                         
@@ -1842,10 +1893,12 @@ function toggleWithdrawalMethod() {
     const bankRadio = document.querySelector('input[name="method"][value="bank"]');
     const usdtDetails = document.getElementById('usdt-details');
     const bankDetails = document.getElementById('bank-details');
+    const networkSelection = document.getElementById('network-selection');
     
     if (usdtRadio && usdtRadio.checked) {
         usdtDetails.classList.remove('hidden');
         bankDetails.classList.add('hidden');
+        networkSelection.classList.remove('hidden');
         // Rendi richiesti i campi USDT
         document.getElementById('withdrawal-wallet').required = true;
         document.getElementById('withdrawal-iban').required = false;
@@ -1854,11 +1907,49 @@ function toggleWithdrawalMethod() {
     } else if (bankRadio && bankRadio.checked) {
         usdtDetails.classList.add('hidden');
         bankDetails.classList.remove('hidden');
+        networkSelection.classList.add('hidden');
         // Rendi richiesti i campi bancari
         document.getElementById('withdrawal-wallet').required = false;
         document.getElementById('withdrawal-iban').required = true;
         document.getElementById('withdrawal-holder').required = true;
         document.getElementById('withdrawal-bank').required = true;
+    }
+}
+
+// Gestione cambio rete USDT
+function toggleNetworkSelection() {
+    const networkRadios = document.querySelectorAll('input[name="network"]');
+    const walletInput = document.getElementById('withdrawal-wallet');
+    const walletHint = document.getElementById('wallet-format-hint');
+    
+    networkRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                const network = this.value;
+                updateWalletPlaceholder(network, walletInput, walletHint);
+            }
+        });
+    });
+}
+
+// Aggiorna placeholder e hint in base alla rete selezionata
+function updateWalletPlaceholder(network, walletInput, walletHint) {
+    switch(network) {
+        case 'trc20':
+            walletInput.placeholder = 'T... (indirizzo Tron)';
+            walletHint.textContent = 'Inserisci l\'indirizzo TRC20 (inizia con T e ha 34 caratteri)';
+            break;
+        case 'bsc':
+            walletInput.placeholder = '0x... (indirizzo BSC)';
+            walletHint.textContent = 'Inserisci l\'indirizzo BSC (inizia con 0x e ha 42 caratteri)';
+            break;
+        case 'erc20':
+            walletInput.placeholder = '0x... (indirizzo Ethereum)';
+            walletHint.textContent = 'Inserisci l\'indirizzo ERC20 (inizia con 0x e ha 42 caratteri)';
+            break;
+        default:
+            walletInput.placeholder = 'Inserisci l\'indirizzo wallet...';
+            walletHint.textContent = 'Seleziona una rete per vedere il formato richiesto';
     }
 }
 
@@ -1869,6 +1960,9 @@ document.addEventListener('DOMContentLoaded', function() {
     methodRadios.forEach(radio => {
         radio.addEventListener('change', toggleWithdrawalMethod);
     });
+    
+    // Event listeners per cambio rete
+    toggleNetworkSelection();
     
     // Prevenire conversione automatica a minuscolo per il campo wallet
     const walletInput = document.getElementById('withdrawal-wallet');
@@ -1901,6 +1995,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const method = formData.get('method');
             const amount = parseFloat(formData.get('amount'));
             const sourceSection = formData.get('source_section');
+            const network = formData.get('network');
             
             // Validazioni
             if (!method) {
@@ -1918,11 +2013,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            // Validazione rete per USDT
+            if (method === 'usdt' && !network) {
+                showErrorModal('Seleziona una rete per il prelievo USDT');
+                return;
+            }
+            
             // Prepara dati
       const data = {
                 amount: amount,
                 method: method,
-                source_section: sourceSection
+                source_section: sourceSection,
+                network: network
             };
             
             if (method === 'usdt') {

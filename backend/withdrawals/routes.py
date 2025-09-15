@@ -526,14 +526,74 @@ def admin_get_withdrawals_history():
             
     except Exception as e:
         logger.exception(f"Errore nel recupero storico prelievi: {e}")
-        return jsonify({'error': 'Errore interno del server'}), 500
+        return jsonify({'error': 'Errore interno del server'        }), 500
+
+@withdrawals_bp.route('/api/admin/delete-multiple', methods=['DELETE'])
+@admin_required
+def admin_delete_multiple_withdrawals():
+    """Admin elimina più prelievi dal database"""
+    
+    try:
+        admin_user_id = session.get("user_id")
+        data = request.get_json()
+        
+        if not data or 'withdrawal_ids' not in data:
+            return jsonify({'error': 'Lista ID prelievi mancante'}), 400
+        
+        withdrawal_ids = data['withdrawal_ids']
+        if not isinstance(withdrawal_ids, list) or len(withdrawal_ids) == 0:
+            return jsonify({'error': 'Lista ID prelievi non valida'}), 400
+        
+        # Verifica che tutti gli ID siano numeri interi
+        try:
+            withdrawal_ids = [int(id) for id in withdrawal_ids]
+        except (ValueError, TypeError):
+            return jsonify({'error': 'ID prelievi non validi'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Prima verifichiamo quanti prelievi esistono
+            placeholders = ','.join(['%s'] * len(withdrawal_ids))
+            cur.execute(f"""
+                SELECT id, user_id, amount, status, created_at
+                FROM withdrawal_requests 
+                WHERE id IN ({placeholders})
+            """, withdrawal_ids)
+            
+            existing_withdrawals = cur.fetchall()
+            existing_ids = [w['id'] for w in existing_withdrawals]
+            
+            if len(existing_ids) != len(withdrawal_ids):
+                missing_ids = set(withdrawal_ids) - set(existing_ids)
+                return jsonify({'error': f'Prelievi non trovati: {list(missing_ids)}'}), 404
+            
+            logger.warning(f"[ADMIN DELETE MULTIPLE] User {admin_user_id} is deleting {len(withdrawal_ids)} withdrawals: {withdrawal_ids}")
+            
+            # Elimina i prelievi
+            cur.execute(f"DELETE FROM withdrawal_requests WHERE id IN ({placeholders})", withdrawal_ids)
+            deleted_count = cur.rowcount
+            
+            if deleted_count == 0:
+                return jsonify({'error': 'Nessun prelievo eliminato'}), 404
+            
+            conn.commit()
+            
+            logger.warning(f"[ADMIN DELETE MULTIPLE] Completed: {deleted_count} withdrawals deleted")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Eliminati {deleted_count} prelievi con successo',
+                'deleted_count': deleted_count,
+                'deleted_ids': existing_ids
+            })
+        
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE MULTIPLE] Error deleting withdrawals: {e}")
+        return jsonify({
+            'error': 'Errore durante l\'eliminazione dei prelievi',
+            'debug': str(e)
+        }), 500
 
 # Route per pagine admin (senza prefisso)
-@withdrawals_bp.route('/admin/withdrawals/faq', methods=['GET'])
-@admin_required
-def admin_withdrawals_faq():
-    """Admin: Pagina FAQ prelievi"""
-    return render_template('admin/withdrawals/faq.html')
 
 @withdrawals_bp.route('/admin/withdrawals/history', methods=['GET'])
 @admin_required
@@ -581,3 +641,49 @@ def admin_delete_all_withdrawals():
     except Exception as e:
         logger.exception(f"[ADMIN DELETE] Error deleting withdrawals: {e}")
         return jsonify({'error': 'Errore durante l\'eliminazione dei prelievi', 'debug': str(e)}), 500
+
+@withdrawals_bp.route('/api/admin/delete/<int:withdrawal_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_single_withdrawal(withdrawal_id):
+    """Admin elimina un singolo prelievo dal database"""
+    
+    try:
+        admin_user_id = session.get("user_id")
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Prima verifichiamo che il prelievo esista
+            cur.execute("""
+                SELECT id, user_id, amount, status, created_at
+                FROM withdrawal_requests 
+                WHERE id = %s
+            """, (withdrawal_id,))
+            
+            withdrawal = cur.fetchone()
+            if not withdrawal:
+                return jsonify({'error': 'Prelievo non trovato'}), 404
+            
+            logger.warning(f"[ADMIN DELETE SINGLE] User {admin_user_id} is deleting withdrawal {withdrawal_id} (user: {withdrawal['user_id']}, amount: {withdrawal['amount']}, status: {withdrawal['status']})")
+            
+            # Elimina il prelievo
+            cur.execute("DELETE FROM withdrawal_requests WHERE id = %s", (withdrawal_id,))
+            deleted_count = cur.rowcount
+            
+            if deleted_count == 0:
+                return jsonify({'error': 'Prelievo non trovato'}), 404
+            
+            conn.commit()
+            
+            logger.warning(f"[ADMIN DELETE SINGLE] Completed: withdrawal {withdrawal_id} deleted")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Prelievo {withdrawal_id} eliminato con successo',
+                'deleted_id': withdrawal_id
+            })
+        
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE SINGLE] Error deleting withdrawal {withdrawal_id}: {e}")
+        return jsonify({
+            'error': 'Errore durante l\'eliminazione del prelievo',
+            'debug': str(e)
+        }), 500

@@ -785,6 +785,117 @@ def admin_delete_all_deposits():
             'debug': str(e)
         }), 500
 
+@deposits_bp.route('/api/admin/delete/<int:deposit_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_single_deposit(deposit_id):
+    """Admin elimina un singolo deposito dal database"""
+    
+    try:
+        admin_user_id = session.get("user_id")
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Prima verifichiamo che il deposito esista
+            cur.execute("""
+                SELECT id, user_id, amount, status, created_at
+                FROM deposit_requests 
+                WHERE id = %s
+            """, (deposit_id,))
+            
+            deposit = cur.fetchone()
+            if not deposit:
+                return jsonify({'error': 'Deposito non trovato'}), 404
+            
+            logger.warning(f"[ADMIN DELETE SINGLE] User {admin_user_id} is deleting deposit {deposit_id} (user: {deposit['user_id']}, amount: {deposit['amount']}, status: {deposit['status']})")
+            
+            # Elimina il deposito
+            cur.execute("DELETE FROM deposit_requests WHERE id = %s", (deposit_id,))
+            deleted_count = cur.rowcount
+            
+            if deleted_count == 0:
+                return jsonify({'error': 'Deposito non trovato'}), 404
+            
+            conn.commit()
+            
+            logger.warning(f"[ADMIN DELETE SINGLE] Completed: deposit {deposit_id} deleted")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Deposito {deposit_id} eliminato con successo',
+                'deleted_id': deposit_id
+            })
+        
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE SINGLE] Error deleting deposit {deposit_id}: {e}")
+        return jsonify({
+            'error': 'Errore durante l\'eliminazione del deposito',
+            'debug': str(e)
+        }), 500
+
+@deposits_bp.route('/api/admin/delete-multiple', methods=['DELETE'])
+@admin_required
+def admin_delete_multiple_deposits():
+    """Admin elimina più depositi dal database"""
+    
+    try:
+        admin_user_id = session.get("user_id")
+        data = request.get_json()
+        
+        if not data or 'deposit_ids' not in data:
+            return jsonify({'error': 'Lista ID depositi mancante'}), 400
+        
+        deposit_ids = data['deposit_ids']
+        if not isinstance(deposit_ids, list) or len(deposit_ids) == 0:
+            return jsonify({'error': 'Lista ID depositi non valida'}), 400
+        
+        # Verifica che tutti gli ID siano numeri interi
+        try:
+            deposit_ids = [int(id) for id in deposit_ids]
+        except (ValueError, TypeError):
+            return jsonify({'error': 'ID depositi non validi'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Prima verifichiamo quanti depositi esistono
+            placeholders = ','.join(['%s'] * len(deposit_ids))
+            cur.execute(f"""
+                SELECT id, user_id, amount, status, created_at
+                FROM deposit_requests 
+                WHERE id IN ({placeholders})
+            """, deposit_ids)
+            
+            existing_deposits = cur.fetchall()
+            existing_ids = [dep['id'] for dep in existing_deposits]
+            
+            if len(existing_ids) != len(deposit_ids):
+                missing_ids = set(deposit_ids) - set(existing_ids)
+                return jsonify({'error': f'Depositi non trovati: {list(missing_ids)}'}), 404
+            
+            logger.warning(f"[ADMIN DELETE MULTIPLE] User {admin_user_id} is deleting {len(deposit_ids)} deposits: {deposit_ids}")
+            
+            # Elimina i depositi
+            cur.execute(f"DELETE FROM deposit_requests WHERE id IN ({placeholders})", deposit_ids)
+            deleted_count = cur.rowcount
+            
+            if deleted_count == 0:
+                return jsonify({'error': 'Nessun deposito eliminato'}), 404
+            
+            conn.commit()
+            
+            logger.warning(f"[ADMIN DELETE MULTIPLE] Completed: {deleted_count} deposits deleted")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Eliminati {deleted_count} depositi con successo',
+                'deleted_count': deleted_count,
+                'deleted_ids': existing_ids
+            })
+        
+    except Exception as e:
+        logger.exception(f"[ADMIN DELETE MULTIPLE] Error deleting deposits: {e}")
+        return jsonify({
+            'error': 'Errore durante l\'eliminazione dei depositi',
+            'debug': str(e)
+        }), 500
+
 @deposits_bp.route('/api/admin/metrics', methods=['GET'])
 @admin_required
 def admin_get_deposits_metrics():
@@ -826,11 +937,6 @@ def admin_get_deposits_metrics():
         return jsonify({'error': 'Errore interno del server'}), 500
 
 # Route per pagine admin (senza prefisso)
-@deposits_bp.route('/admin/deposits/faq', methods=['GET'])
-@admin_required
-def admin_deposits_faq():
-    """Admin: Pagina FAQ depositi"""
-    return render_template('admin/deposits/faq.html')
 
 @deposits_bp.route('/admin/deposits/history', methods=['GET'])
 @admin_required
