@@ -105,7 +105,7 @@ def projects_list():
             cur.execute(sql, params)
             rows = cur.fetchall()
             
-            # Aggiungi photo_filename per compatibilità con template
+            # Aggiungi photo_filename per compatibilit con template
             for row in rows:
                 if row.get('image_url'):
                     row['photo_filename'] = row['image_url'].split('/')[-1]
@@ -139,7 +139,7 @@ def projects_list():
         'projects_draft': projects_draft,
         'projects_completed': projects_completed,
         'projects_sold': projects_sold,
-        'projects_active': projects_active  # Per compatibilità con sidebar
+        'projects_active': projects_active  # Per compatibilit con sidebar
     }
     
     return render_template("admin/projects/list.html", metrics=metrics)
@@ -156,7 +156,7 @@ def projects_new():
         
         # Nessun campo obbligatorio - validazione solo per valori numerici se forniti
         
-        # Gestione file upload (solo se non è JSON)
+        # Gestione file upload (solo se non  JSON)
         photo = request.files.get('photo') if not request.is_json else None
         documents = request.files.get('documents') if not request.is_json else None
         
@@ -173,13 +173,13 @@ def projects_new():
                 os.makedirs(os.path.dirname(photo_path), exist_ok=True)
                 photo.save(photo_path)
             
-            # Documenti non più richiesti
+            # Documenti non pi richiesti
         
         except Exception as e:
             logger.error(f"Errore nel salvataggio dei file: {e}")
             # Non bloccare la creazione del progetto se il file non si salva
         
-        # Mappa address -> location (compatibilità schema) con valori di default
+        # Mappa address -> location (compatibilit schema) con valori di default
         location_value = data.get('address') or data.get('location') or 'Indirizzo non specificato'
         status_value = data.get('status', 'draft')
         
@@ -548,7 +548,7 @@ def portfolio_dashboard():
         'users_verified': users_verified,
         'kyc_pending': kyc_pending,
         'users_suspended': users_suspended,
-        'total_users': users_total  # Per compatibilità con sidebar
+        'total_users': users_total  # Per compatibilit con sidebar
     }
     
     return render_template("admin/portfolio/dashboard.html", metrics=metrics)
@@ -778,7 +778,7 @@ def projects_export():
         
         # Header CSV
         writer.writerow([
-            'ID', 'Codice', 'Nome', 'Descrizione', 'Località', 'Tipologia',
+            'ID', 'Codice', 'Nome', 'Descrizione', 'Localit', 'Tipologia',
             'Importo Totale', 'Min Investment', 'ROI', 'Durata', 'Stato',
             'Data Inizio', 'Data Fine', 'Data Creazione'
         ])
@@ -849,7 +849,7 @@ def kyc_dashboard():
         'users_verified': users_verified,
         'kyc_pending': kyc_pending,
         'users_suspended': users_suspended,
-        'total_users': users_total  # Per compatibilità con sidebar
+        'total_users': users_total  # Per compatibilit con sidebar
     }
     
     return render_template("admin/kyc/dashboard.html", metrics=metrics)
@@ -1381,7 +1381,7 @@ def user_detail(user_id):
         """, (user_id,))
         kyc_documents = cur.fetchall()
         
-        # Attività recente (mock data)
+        # Attivit recente (mock data)
         cur.execute("""
             SELECT 'investment' as type, 'Nuovo investimento' as description, created_at
             FROM investments 
@@ -1414,7 +1414,7 @@ def toggle_user_status(user_id):
         
         # Non permettere di sospendere admin
         if user['role'] == 'admin':
-            return jsonify({"error": "Non è possibile sospendere un amministratore"}), 400
+            return jsonify({"error": "Non  possibile sospendere un amministratore"}), 400
         
         new_status = 'verified' if user['kyc_status'] == 'rejected' else 'rejected'
         
@@ -1588,7 +1588,7 @@ def api_admin_users_list():
         params = []
 
         # Il filtro 'investor' qui NON usa il ruolo utente, ma il saldo portafoglio.
-        # Applicheremo questo filtro dopo la query perché dipende da un calcolo.
+        # Applicheremo questo filtro dopo la query perch dipende da un calcolo.
 
         if kyc_param:
             # mappa 'verified' e 'unverified' alle nostre opzioni
@@ -1925,7 +1925,7 @@ def api_admin_update_investment(user_id: int, investment_id: int):
 @admin_bp.post("/api/admin/users/portfolio/bulk-adjust")
 @admin_required
 def api_admin_portfolio_bulk_adjust():
-    """Aggiunge o rimuove un importo dalla sezione profits di più utenti.
+    """Aggiunge o rimuove un importo dalla sezione profits di pi utenti.
     Body: { user_ids: [int], op: 'add'|'remove', amount: number }
     """
     data = request.get_json() or {}
@@ -1982,7 +1982,7 @@ def api_admin_portfolio_bulk_adjust():
             """,
             (session.get('user_id'), f'portfolio_{op}', f'Bulk {op} profits {amount} su {len(user_ids)} utenti')
         )
-        # Log per-utente per tracciabilità dettagliata
+        # Log per-utente per tracciabilit dettagliata
         per_user_details = 'Aggiunta profitti' if op == 'add' else 'Rimozione profitti'
         for uid in user_ids:
             try:
@@ -2033,7 +2033,7 @@ def api_admin_delete_user(user_id: int):
         if not target:
             return jsonify({'error': 'Utente non trovato'}), 404
         if target.get('role') == 'admin':
-            return jsonify({'error': 'Non è possibile eliminare un amministratore'}), 400
+            return jsonify({'error': 'Non  possibile eliminare un amministratore'}), 400
 
         # Prima di eliminare: fai "slittare" tutti gli invitati diretti al referrer del target
         cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
@@ -2121,7 +2121,7 @@ def api_admin_users_history():
     return jsonify({'items': items})
 
 
-## Endpoint rimosso: clear dello storico non più disponibile
+## Endpoint rimosso: clear dello storico non pi disponibile
 
 # ---- Analytics e Reporting ----
 @admin_bp.get("/analytics")
@@ -2158,7 +2158,7 @@ def analytics_dashboard():
         'users_verified': users_verified,
         'kyc_pending': kyc_pending,
         'users_suspended': users_suspended,
-        'total_users': users_total  # Per compatibilità con sidebar
+        'total_users': users_total  # Per compatibilit con sidebar
     }
     
     return render_template("admin/analytics/dashboard.html", metrics=metrics)
@@ -2629,7 +2629,7 @@ def export_analytics_csv(analytics_data, export_type):
     
     if export_type == 'projects_performance':
         # Export top projects data
-        writer.writerow(['Codice', 'Titolo', 'ROI %', 'Volume €', 'Investitori', 'Finanziamento %', 'Stato'])
+        writer.writerow(['Codice', 'Titolo', 'ROI %', 'Volume ', 'Investitori', 'Finanziamento %', 'Stato'])
         
         for project in analytics_data.get('top_projects', []):
             writer.writerow([
@@ -2646,9 +2646,9 @@ def export_analytics_csv(analytics_data, export_type):
         writer.writerow(['Metrica', 'Valore', 'Variazione %'])
         
         kpis = analytics_data.get('kpis', {})
-        writer.writerow(['Revenue Totale', f"€{kpis.get('total_revenue', 0):,.2f}", f"{kpis.get('revenue_change', 0):.1f}%"])
+        writer.writerow(['Revenue Totale', f"{kpis.get('total_revenue', 0):,.2f}", f"{kpis.get('revenue_change', 0):.1f}%"])
         writer.writerow(['Nuovi Utenti', kpis.get('new_users', 0), f"{kpis.get('users_change', 0):.1f}%"])
-        writer.writerow(['Volume Investimenti', f"€{kpis.get('investment_volume', 0):,.2f}", f"{kpis.get('investment_change', 0):.1f}%"])
+        writer.writerow(['Volume Investimenti', f"{kpis.get('investment_volume', 0):,.2f}", f"{kpis.get('investment_change', 0):.1f}%"])
         writer.writerow(['Progetti Attivi', kpis.get('active_projects', 0), kpis.get('projects_change', 0)])
         
         writer.writerow([])  # Empty row
@@ -2656,7 +2656,7 @@ def export_analytics_csv(analytics_data, export_type):
         
         metrics = analytics_data.get('metrics', {})
         writer.writerow(['Tasso Conversione', f"{metrics.get('conversion_rate', 0):.1f}%", ''])
-        writer.writerow(['Investimento Medio', f"€{metrics.get('avg_investment', 0):,.2f}", ''])
+        writer.writerow(['Investimento Medio', f"{metrics.get('avg_investment', 0):,.2f}", ''])
         writer.writerow(['ROI Medio', f"{metrics.get('avg_roi', 0):.1f}%", ''])
         writer.writerow(['KYC Pendenti', metrics.get('kyc_pending', 0), ''])
         writer.writerow(['Tempo Approvazione Medio', f"{metrics.get('avg_approval_time', 0):.1f} giorni", ''])
@@ -2717,7 +2717,7 @@ def config_dashboard():
         'users_verified': users_verified,
         'kyc_pending': kyc_pending,
         'users_suspended': users_suspended,
-        'total_users': users_total  # Per compatibilità con sidebar
+        'total_users': users_total  # Per compatibilit con sidebar
     }
     
     return render_template("admin/config/dashboard.html", metrics=metrics)
@@ -2817,14 +2817,14 @@ def config_bank_save():
         except Exception as e:
             conn.rollback()
             return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
-
+    
 @admin_bp.post("/config/wallet")
 @admin_required
 def config_wallet_save():
     """Salva configurazione wallet USDT"""
     data = request.json or {}
     
-    required_fields = ['wallet_name', 'wallet_address']
+    required_fields = ['wallet_address']
     for field in required_fields:
         if not data.get(field):
             return jsonify({"error": f"Campo {field} richiesto"}), 400
@@ -2832,7 +2832,7 @@ def config_wallet_save():
     with get_conn() as conn, conn.cursor() as cur:
         try:
             # Disattiva tutte le configurazioni precedenti
-            cur.execute("UPDATE wallet_configurations SET is_active = 0")
+            cur.execute("UPDATE wallet_configurations SET is_active = false")
             
             # Inserisci nuova configurazione
             cur.execute("""
@@ -2849,7 +2849,7 @@ def config_wallet_save():
             cur.execute("""
                 INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
                 VALUES (%s, 'config_update', 'wallet', %s, %s)
-            """, (session.get('user_id'), 0, f"Aggiornata configurazione wallet: {data['wallet_name']}"))
+            """, (session.get('user_id'), 0, f"Aggiornata configurazione wallet: {data.get('wallet_address', 'N/A')}"))
             
             conn.commit()
             return jsonify({"success": True, "message": "Configurazione wallet salvata"})
@@ -2956,7 +2956,7 @@ def users_list():
 @admin_bp.get("/users/<int:uid>")
 @admin_required
 def user_detail_legacy(uid):
-    """Dettaglio utente legacy - mantenuto per compatibilità"""
+    """Dettaglio utente legacy - mantenuto per compatibilit"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
@@ -3120,7 +3120,7 @@ def kyc_verify(uid):
 @admin_bp.post("/kyc/<int:uid>/reject")
 @admin_required
 def kyc_reject_legacy(uid):
-    """KYC reject legacy - mantenuto per compatibilità"""
+    """KYC reject legacy - mantenuto per compatibilit"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET kyc_status='rejected' WHERE id=%s", (uid,))
     return jsonify({"kyc_status": "rejected"})
@@ -3282,7 +3282,7 @@ def notifications_templates_delete(tid):
 @admin_bp.get("/analytics/legacy")
 @admin_required
 def analytics_legacy():
-    """Analytics legacy - mantenuto per compatibilità"""
+    """Analytics legacy - mantenuto per compatibilit"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT date_trunc('month', created_at) AS month, SUM(amount) AS invested
@@ -3397,92 +3397,12 @@ def get_admin_metrics():
             'transactions_today': 0
         }
 
-# ---- TASK 2.7 - Transazioni Sistema ----
+# ---- TASK 2.7 - Transazioni Sistema (RIMOSSA) ----
 @admin_bp.get("/transactions")
 @admin_required
 def transactions_dashboard():
-    """Dashboard per visualizzazione transazioni sistema"""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica se le tabelle esistono
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'portfolio_transactions'
-                );
-            """)
-            table_exists = cur.fetchone()[0]
-            
-            if not table_exists:
-                return render_template('admin/transactions/dashboard.html', 
-                                     transactions=[],
-                                     metrics={
-                                         'total_transactions': 0,
-                                         'today_transactions': 0,
-                                         'total_volume': 0.0,
-                                         'pending_transactions': 0
-                                     })
-            
-            # Statistiche transazioni
-            cur.execute("""
-                SELECT 
-                    COUNT(*) as total_transactions,
-                    COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as today_transactions,
-                    COALESCE(SUM(ABS(amount)), 0) as total_volume,
-                    COUNT(*) FILTER (WHERE status = 'pending') as pending_transactions
-                FROM portfolio_transactions
-            """)
-            metrics = cur.fetchone()
-            
-            # Lista transazioni recenti
-            page = request.args.get('page', 1, type=int)
-            per_page = 20
-            offset = (page - 1) * per_page
-            
-            cur.execute("""
-                SELECT pt.*, u.full_name, u.email
-                FROM portfolio_transactions pt
-                JOIN users u ON u.id = pt.user_id
-                ORDER BY pt.created_at DESC
-                LIMIT %s OFFSET %s
-            """, (per_page, offset))
-            transactions = cur.fetchall()
-            
-            # Conta totale per paginazione
-            cur.execute("SELECT COUNT(*) FROM portfolio_transactions")
-            total_count_result = cur.fetchone()
-            total_count = total_count_result[0] if total_count_result else 0
-        
-        # Ottieni metriche generali per il sidebar
-        admin_metrics = get_admin_metrics()
-        
-        return render_template('admin/transactions/dashboard.html', 
-                             transactions=transactions,
-                             metrics={
-                                 'total_transactions': metrics[0] if metrics else 0,
-                                 'today_transactions': metrics[1] if metrics else 0,
-                                 'total_volume': float(metrics[2]) if metrics and metrics[2] else 0.0,
-                                 'pending_transactions': metrics[3] if metrics else 0,
-                                 **admin_metrics  # Unpack metriche generali
-                             },
-                             page=page,
-                             per_page=per_page,
-                             total_count=total_count)
-                             
-    except Exception as e:
-        print(f"Errore in transactions_dashboard: {e}")
-        return render_template('admin/transactions/dashboard.html', 
-                             transactions=[],
-                             metrics={
-                                 'total_transactions': 0,
-                                 'today_transactions': 0,
-                                 'total_volume': 0.0,
-                                 'pending_transactions': 0,
-                                 **get_admin_metrics()  # Unpack metriche generali
-                             },
-                             page=1,
-                             per_page=20,
-                             total_count=0)
+    """Dashboard transazioni - Pagina vuota"""
+    return render_template('admin/transactions/dashboard.html')
 
 # ---- TASK 2.7 - Sistema Referral (NUOVO) ----
 @admin_bp.get("/referral")
@@ -3661,7 +3581,7 @@ def move_user_referral(user_id):
             
             # Evita auto-referral
             if user_id == new_referrer_id:
-                return jsonify({'error': 'Un utente non può essere referrer di se stesso'}), 400
+                return jsonify({'error': 'Un utente non pu essere referrer di se stesso'}), 400
             
             # Aggiorna il referrer
             cur.execute("""
@@ -3748,7 +3668,7 @@ def save_iban_configuration():
         
         # Validazione dati
         if not data.get('iban'):
-            return jsonify({'error': 'IBAN è obbligatorio'}), 400
+            return jsonify({'error': 'IBAN  obbligatorio'}), 400
         
         # Validazione formato IBAN (base)
         iban = data['iban'].replace(' ', '').upper()
@@ -3847,83 +3767,7 @@ def set_iban_configuration():
     except Exception as e:
         return jsonify({'error': f'Errore nel salvataggio: {str(e)}'}), 500
 
-# ---- TASK 2.7 - Monitoraggio Transazioni ----
-@admin_bp.get("/api/transactions-overview")
-@admin_required
-def transactions_overview():
-    """Monitoraggio transazioni: overview completo"""
-    with get_conn() as conn, conn.cursor() as cur:
-        # Statistiche ricariche
-        cur.execute("""
-            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-            FROM deposit_requests 
-            GROUP BY status
-        """)
-        deposits_stats = cur.fetchall()
-        
-        # Statistiche prelievi
-        cur.execute("""
-            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-            FROM withdrawal_requests 
-            GROUP BY status
-        """)
-        withdrawals_stats = cur.fetchall()
-        
-        # Transazioni recenti
-        cur.execute("""
-            SELECT pt.*, u.full_name, u.email
-            FROM portfolio_transactions pt
-            JOIN users u ON u.id = pt.user_id
-            ORDER BY pt.created_at DESC
-            LIMIT 50
-        """)
-        recent_transactions = cur.fetchall()
-    
-    return jsonify({
-        'deposits_stats': deposits_stats,
-        'withdrawals_stats': withdrawals_stats,
-        'recent_transactions': recent_transactions
-    })
-
-@admin_bp.get("/api/transactions")
-@admin_required
-def transactions_filtered():
-    """Monitoraggio transazioni con filtri"""
-    status = request.args.get('status')
-    transaction_type = request.args.get('type')
-    user_id = request.args.get('user_id')
-    
-    where_conditions = []
-    params = []
-    
-    if status:
-        where_conditions.append("pt.status = %s")
-        params.append(status)
-    
-    if transaction_type:
-        where_conditions.append("pt.type = %s")
-        params.append(transaction_type)
-    
-    if user_id:
-        where_conditions.append("pt.user_id = %s")
-        params.append(user_id)
-    
-    where_clause = " AND ".join(where_conditions)
-    if where_clause:
-        where_clause = "WHERE " + where_clause
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(f"""
-            SELECT pt.*, u.full_name, u.email
-            FROM portfolio_transactions pt
-            JOIN users u ON u.id = pt.user_id
-            {where_clause}
-            ORDER BY pt.created_at DESC
-            LIMIT 100
-        """, params)
-        transactions = cur.fetchall()
-    
-    return jsonify(transactions)
+# ---- TASK 2.7 - Monitoraggio Transazioni (RIMOSSO) ----
 
 # ---- TASK 2.7 - Gestione Referral (RIMOSSA) ----
 
@@ -4003,12 +3847,12 @@ def create_project():
             }), 400
         
         with get_conn() as conn, conn.cursor() as cur:
-            # Verifica che il codice non esista già
+            # Verifica che il codice non esista gi
             cur.execute("SELECT id FROM projects WHERE code = %s", (code,))
             if cur.fetchone():
                 return jsonify({
                     'success': False,
-                    'message': 'Un progetto con questo codice esiste già'
+                    'message': 'Un progetto con questo codice esiste gi'
                 }), 400
             
             # Gestione upload foto
