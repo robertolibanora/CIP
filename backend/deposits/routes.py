@@ -232,42 +232,48 @@ def create_deposit_request():
         with get_conn() as conn, conn.cursor() as cur:
             # Garantisce schema in dev
             ensure_deposits_schema(cur)
-            # Ottieni IBAN attivo
+            # Ottieni configurazione bonifici attiva
             cur.execute("""
-                SELECT iban, bank_name, account_holder
-                FROM iban_configurations 
-                WHERE is_active = TRUE 
+                SELECT iban, bank_name, account_holder, bic_swift
+                FROM bank_configurations 
+                WHERE is_active = true 
+                ORDER BY created_at DESC 
                 LIMIT 1
             """)
-            iban_config = cur.fetchone()
-            logger.info("[deposits] active IBAN fetched: %s", iban_config)
+            bank_config = cur.fetchone()
+            logger.info("[deposits] active bank config fetched: %s", bank_config)
             
-            if not iban_config:
-                # Se non esiste una configurazione IBAN attiva, crea una voce di default
-                default_iban = 'IT60X0542811101000000123456'
-                default_bank = 'Banca Example'
-                default_holder = 'CIP Immobiliare SRL'
-                cur.execute("""
-                    INSERT INTO iban_configurations (iban, bank_name, account_holder, is_active)
-                    VALUES (%s, %s, %s, TRUE)
-                    ON CONFLICT (iban) DO UPDATE SET 
-                        bank_name = EXCLUDED.bank_name,
-                        account_holder = EXCLUDED.account_holder,
-                        is_active = TRUE,
-                        updated_at = NOW()
-                """, (default_iban, default_bank, default_holder))
-                iban_config = {
-                    'iban': default_iban,
-                    'bank_name': default_bank,
-                    'account_holder': default_holder
+            if not bank_config:
+                # Se non esiste una configurazione attiva, usa valori di default
+                bank_config = {
+                    'iban': 'IT60X0542811101000000123456',
+                    'bank_name': 'Banca Example',
+                    'account_holder': 'CIP Immobiliare SRL',
+                    'bic_swift': ''
                 }
             
             # Determina destinatario fondi in base al metodo
             # - bank: usa IBAN configurato
-            # - usdt: usa wallet BEP20 configurato tramite env (fallback placeholder)
-            import os
-            usdt_wallet = os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000')
-            receiver_field_value = iban_config['iban'] if method == 'bank' else usdt_wallet
+            # - usdt: usa wallet configurato
+            if method == 'bank':
+                receiver_field_value = bank_config['iban']
+            else:
+                # Ottieni configurazione wallet USDT
+                cur.execute("""
+                    SELECT wallet_address, network
+                    FROM wallet_configurations 
+                    WHERE is_active = true 
+                    ORDER BY created_at DESC 
+                    LIMIT 1
+                """)
+                wallet_config = cur.fetchone()
+                
+                if wallet_config and wallet_config['wallet_address']:
+                    receiver_field_value = wallet_config['wallet_address']
+                else:
+                    # Fallback se non c'è configurazione
+                    import os
+                    receiver_field_value = os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000')
 
             # Prova inserimento con retry per evitare collisioni univoche
             attempts = 0
@@ -300,20 +306,40 @@ def create_deposit_request():
         # Risposta dettagliata in dev per debug rapido
         return jsonify({'error': 'Errore interno durante la creazione della richiesta', 'debug': str(e)}), 500
     
+    # Prepara dati di risposta
+    response_data = {
+        'id': new_request['id'],
+        'amount': float(amount),
+        'method': method,
+        'unique_key': unique_key,
+        'payment_reference': payment_reference,
+        'status': 'pending',
+        'created_at': new_request['created_at'].isoformat() if new_request['created_at'] else None
+    }
+    
+    # Aggiungi dati specifici per metodo
+    if method == 'bank':
+        response_data.update({
+            'iban': bank_config['iban'],
+            'bank_name': bank_config['bank_name'],
+            'account_holder': bank_config['account_holder'],
+            'bic_swift': bank_config.get('bic_swift', '')
+        })
+    else:  # USDT
+        if 'wallet_config' in locals() and wallet_config:
+            response_data.update({
+                'wallet_address': wallet_config['wallet_address'],
+                'network': wallet_config['network']
+            })
+        else:
+            response_data.update({
+                'wallet_address': receiver_field_value,
+                'network': 'BEP20'
+            })
+    
     return jsonify({
         'success': True,
-        'deposit_request': {
-            'id': new_request['id'],
-            'amount': float(amount),
-            'iban': iban_config['iban'],
-            'bank_name': iban_config['bank_name'],
-            'account_holder': iban_config['account_holder'],
-            'method': method,
-            'unique_key': unique_key,
-            'payment_reference': payment_reference,
-            'status': 'pending',
-            'created_at': new_request['created_at'].isoformat() if new_request['created_at'] else None
-        },
+        'deposit_request': response_data,
         'message': 'Richiesta di ricarica creata con successo'
     })
 
@@ -357,20 +383,22 @@ def get_iban_info():
     """Ottiene le informazioni IBAN per le ricariche"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT iban, bank_name, account_holder
-            FROM iban_configurations 
-            WHERE is_active = TRUE 
+            SELECT iban, bank_name, account_holder, bic_swift
+            FROM bank_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
             LIMIT 1
         """)
-        iban_info = cur.fetchone()
+        bank_info = cur.fetchone()
         
-        if not iban_info:
-            return jsonify({'error': 'Nessun IBAN configurato'}), 404
+        if not bank_info:
+            return jsonify({'error': 'Nessuna configurazione bancaria configurata'}), 404
     
     return jsonify({
-        'iban': iban_info['iban'],
-        'bank_name': iban_info['bank_name'],
-        'account_holder': iban_info['account_holder']
+        'iban': bank_info['iban'],
+        'bank_name': bank_info['bank_name'],
+        'account_holder': bank_info['account_holder'],
+        'bic_swift': bank_info.get('bic_swift', '')
     })
 
 @deposits_bp.route('/api/status/<unique_key>', methods=['GET'])

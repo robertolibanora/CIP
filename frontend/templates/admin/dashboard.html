@@ -19,7 +19,7 @@
       {"icon":"users","title":"Utenti","desc":"Gestione utenti e investitori","href": url_for('admin.users_management_page'), "btn":"Gestisci Utenti", "variant":"purple"},
       {"icon":"bar-chart","title":"Transazioni","desc":"Monitoraggio e tracking","href": url_for('admin.transactions_dashboard'), "btn":"Vedi Transazioni", "variant":"indigo"},
       {"icon":"share-2","title":"Referral","desc":"Gestione sistema referral e inviti","href": url_for('admin.referral_dashboard'), "btn":"Gestisci Referral", "variant":"blue"},
-      {"icon":"settings","title":"Config","desc":"IBAN e configurazioni","href": url_for('admin.settings_dashboard'), "btn":"Configurazioni", "variant":"gray"}
+      {"icon":"settings","title":"Config","desc":"Configurazioni bonifici e wallet","href": url_for('admin.config_dashboard'), "btn":"Configurazioni", "variant":"gray"}
     ] %}
     {% for a in actions %}
       {% include "admin/_action_card.html" with context %}

@@ -10,6 +10,40 @@ def get_conn():
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_verified, can_invest
 
+# =====================================================
+# CONFIGURAZIONI SISTEMA - Dati per depositi
+# =====================================================
+
+@user_bp.get("/api/deposit-config")
+@login_required
+def get_deposit_config():
+    """Ottieni configurazioni per i depositi (bonifici e wallet)"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Configurazione bonifici
+        cur.execute("""
+            SELECT bank_name, account_holder, iban, bic_swift
+            FROM bank_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        bank_config = cur.fetchone()
+        
+        # Configurazione wallet USDT
+        cur.execute("""
+            SELECT wallet_address, network
+            FROM wallet_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        wallet_config = cur.fetchone()
+        
+        return jsonify({
+            'bank_config': bank_config,
+            'wallet_config': wallet_config
+        })
+
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
 

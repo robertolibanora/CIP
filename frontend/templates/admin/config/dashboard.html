@@ -1,0 +1,245 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Configurazione Sistema - Admin CIP Immobiliare{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="admin-card admin-card-body mb-6">
+    <div class="admin-flex admin-flex--between">
+        <div>
+            <h1 class="admin-heading-1">Configurazione Sistema</h1>
+            <p class="admin-text-small">Gestione configurazioni bonifici e wallet USDT</p>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div id="config-alerts" class="mb-6"></div>
+
+<!-- Configurazione Bonifici -->
+<div class="admin-card mb-6">
+    <div class="admin-card-header">
+        <h2 class="admin-heading-2">Configurazione Bonifici</h2>
+        <p class="admin-text-small">Gestione dati bancari per i depositi degli utenti</p>
+    </div>
+    <div class="admin-card-body">
+        <div class="admin-grid admin-grid--2">
+            <div class="admin-form-group">
+                <label class="admin-label">Nome Banca</label>
+                <input type="text" id="bank-name" class="admin-input" placeholder="Es. Banca Popolare di Milano">
+                <p class="admin-help-text">Nome della banca per i bonifici</p>
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">Intestatario Conto</label>
+                <input type="text" id="account-holder" class="admin-input" placeholder="Es. CIP Immobiliare S.R.L.">
+                <p class="admin-help-text">Nome dell'intestatario del conto</p>
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">IBAN</label>
+                <input type="text" id="iban" class="admin-input" placeholder="IT60 X054 2811 1010 0000 0123 456" 
+                       maxlength="34" style="border-color: #d1d5db !important;">
+                <p class="admin-help-text">IBAN per ricevere i bonifici</p>
+            </div>
+            
+            <div class="admin-form-group">
+                <label class="admin-label">BIC/SWIFT</label>
+                <input type="text" id="bic-swift" class="admin-input" placeholder="BCITITMM" maxlength="11">
+                <p class="admin-help-text">Codice BIC/SWIFT della banca</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <button onclick="saveBankConfig()" class="admin-btn admin-btn--primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Salva Configurazione Bonifici
+            </button>
+        </div>
+    </div>
+</div>
+
+        <!-- Configurazione Wallet USDT -->
+        <div class="admin-card mb-6">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Configurazione Wallet USDT</h2>
+                <p class="admin-text-small">Gestione wallet per depositi in criptovalute</p>
+            </div>
+            <div class="admin-card-body">
+                <div class="admin-grid admin-grid--2">
+                    <div class="admin-form-group">
+                        <label class="admin-label">Indirizzo Wallet</label>
+                        <input type="text" id="wallet-address" class="admin-input" placeholder="0x..." maxlength="42">
+                        <p class="admin-help-text">Indirizzo del wallet USDT</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label">Network</label>
+                        <select id="wallet-network" class="admin-input admin-select">
+                            <option value="BEP20" selected>BEP20 (Binance Smart Chain)</option>
+                            <option value="ERC20">ERC20 (Ethereum)</option>
+                            <option value="TRC20">TRC20 (Tron)</option>
+                        </select>
+                        <p class="admin-help-text">Rete blockchain del wallet</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <button onclick="saveWalletConfig()" class="admin-btn admin-btn--primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Salva Configurazione Wallet
+                    </button>
+                </div>
+            </div>
+        </div>
+
+{% block extra_js %}
+<script>
+// Config Management System
+class ConfigManager {
+    constructor() {
+        this.config = {};
+        this.init();
+    }
+    
+    async init() {
+        await this.loadConfig();
+        this.setupEventListeners();
+    }
+    
+    async loadConfig() {
+        try {
+            const response = await fetch('/admin/config/data');
+            if (response.ok) {
+                this.config = await response.json();
+                this.populateFields();
+            }
+        } catch (error) {
+            console.error('Errore caricamento configurazione:', error);
+            this.showAlert('error', 'Errore nel caricamento della configurazione');
+        }
+    }
+    
+    populateFields() {
+        // Configurazione bonifici
+        if (this.config.bank_config) {
+            document.getElementById('bank-name').value = this.config.bank_config.bank_name || '';
+            document.getElementById('account-holder').value = this.config.bank_config.account_holder || '';
+            document.getElementById('iban').value = this.config.bank_config.iban || '';
+            document.getElementById('bic-swift').value = this.config.bank_config.bic_swift || '';
+        }
+        
+        // Configurazione wallet
+        if (this.config.wallet_config) {
+            document.getElementById('wallet-address').value = this.config.wallet_config.wallet_address || '';
+            document.getElementById('wallet-network').value = this.config.wallet_config.network || 'BEP20';
+        }
+        
+    }
+    
+    setupEventListeners() {
+        // Formattazione IBAN
+        document.getElementById('iban').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\s/g, '').toUpperCase();
+            e.target.value = value.replace(/(.{4})/g, '$1 ').trim();
+        });
+        
+        // Formattazione indirizzo wallet
+        document.getElementById('wallet-address').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toLowerCase();
+        });
+    }
+    
+    async saveBankConfig() {
+        const data = {
+            bank_name: document.getElementById('bank-name').value || '',
+            account_holder: document.getElementById('account-holder').value || '',
+            iban: document.getElementById('iban').value.replace(/\s/g, '') || '',
+            bic_swift: document.getElementById('bic-swift').value || ''
+        };
+        
+        await this.saveConfig('/admin/config/bank', data, 'Configurazione bonifici');
+    }
+    
+    async saveWalletConfig() {
+        const data = {
+            wallet_address: document.getElementById('wallet-address').value || '',
+            network: document.getElementById('wallet-network').value
+        };
+        
+        await this.saveConfig('/admin/config/wallet', data, 'Configurazione wallet');
+    }
+    
+    async saveConfig(url, data, description) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                this.showAlert('success', `${description} salvata con successo`);
+            } else {
+                const result = await response.json();
+                this.showAlert('error', result.error || 'Errore nel salvataggio');
+            }
+        } catch (error) {
+            console.error('Errore salvataggio configurazione:', error);
+            this.showAlert('error', 'Errore di connessione');
+        }
+    }
+    
+    
+    showAlert(type, message) {
+        const container = document.getElementById('config-alerts');
+        const alertId = 'alert-' + Date.now();
+        
+        container.innerHTML = `
+            <div id="${alertId}" class="admin-alert admin-alert--${type} admin-fade-in">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <p class="text-sm">${message}</p>
+                    </div>
+                    <button onclick="document.getElementById('${alertId}').remove()" class="ml-3 text-sm opacity-70 hover:opacity-100">×</button>
+                </div>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) alert.remove();
+        }, 5000);
+    }
+}
+
+// Global variables and functions
+let configManager;
+
+function saveBankConfig() {
+    configManager.saveBankConfig();
+}
+
+function saveWalletConfig() {
+    configManager.saveWalletConfig();
+}
+
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    configManager = new ConfigManager();
+});
+</script>
+
+<style>
+.admin-form-group--full {
+    grid-column: 1 / -1;
+}
+</style>
+
+{% endblock %}
+{% endblock %}

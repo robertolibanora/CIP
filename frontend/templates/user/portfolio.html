@@ -236,7 +236,7 @@
                               <!-- Carta (mappata su metodo supportato) -->
                               <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
                                 <input type="radio" name="payment_method" value="usdt" class="mb-2" required>
-                                <span class="text-gray-800 font-medium">usdt bsc(bep20)</span>
+                                <span class="text-gray-800 font-medium" id="usdt-network-label">usdt bsc(bep20)</span>
                               </label>
                               <!-- Bonifico -->
                               <label class="flex flex-col items-center justify-center border rounded-lg p-6 h-28 cursor-pointer hover:border-blue-500 text-center">
@@ -722,6 +722,7 @@ function showSection(sectionName) {
         if (!window.depositsLoaded) {
             loadDeposits();
         }
+        loadWalletConfig();
         startDepositsPolling();
     } else if (sectionName === 'withdrawals' && !window.withdrawalsLoaded) {
         loadWithdrawals();
@@ -909,6 +910,33 @@ if (depositForm) {
 }
 
 
+
+// Carica configurazione wallet
+async function loadWalletConfig() {
+    try {
+        const response = await fetch('/api/deposit-config');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.wallet_config && data.wallet_config.network) {
+                const network = data.wallet_config.network.toLowerCase();
+                const networkLabel = document.getElementById('usdt-network-label');
+                if (networkLabel) {
+                    if (network === 'bep20') {
+                        networkLabel.textContent = 'usdt bsc(bep20)';
+                    } else if (network === 'erc20') {
+                        networkLabel.textContent = 'usdt eth(erc20)';
+                    } else if (network === 'trc20') {
+                        networkLabel.textContent = 'usdt tron(trc20)';
+                    } else {
+                        networkLabel.textContent = `usdt ${network}`;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Errore caricamento configurazione wallet:', error);
+    }
+}
 
 // Carica movimenti capitali
 async function loadMovements() {

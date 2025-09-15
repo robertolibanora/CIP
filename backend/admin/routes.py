@@ -2682,16 +2682,16 @@ def export_analytics_pdf(analytics_data):
     # TODO: Implement PDF export using reportlab
     return jsonify({'message': 'Export PDF in sviluppo'}), 501
 
-# ---- Sistema Configurazione ----
-@admin_bp.get("/settings")
+
+
+
+
+
+# ---- Configurazione Sistema ----
+@admin_bp.get("/config")
 @admin_required
-def settings_dashboard():
-    """Dashboard configurazione admin"""
-    # Se richiesta AJAX, restituisce JSON
-    if request.headers.get('Content-Type') == 'application/json' or request.args.get('format') == 'json':
-        return jsonify(get_settings_data())
-    
-    # Altrimenti restituisce il template HTML
+def config_dashboard():
+    """Dashboard configurazione sistema"""
     from flask import render_template
     
     # Ottieni metriche utenti per il sidebar
@@ -2720,393 +2720,189 @@ def settings_dashboard():
         'total_users': users_total  # Per compatibilità con sidebar
     }
     
-    return render_template("admin/settings/dashboard.html", metrics=metrics)
+    return render_template("admin/config/dashboard.html", metrics=metrics)
 
-@admin_bp.get("/settings/data")
+@admin_bp.get("/config/data")
 @admin_required
-def settings_data():
-    """Dati configurazione sistema"""
-    return jsonify(get_settings_data())
-
-def get_settings_data():
-    """Helper per ottenere dati configurazione"""
+def config_data():
+    """Ottieni dati configurazione"""
     with get_conn() as conn, conn.cursor() as cur:
-        try:
-            # Carica tutte le impostazioni dalla tabella settings
-            cur.execute("""
-                SELECT category, key, value, value_type
-                FROM system_settings
-                ORDER BY category, key
-            """)
-            settings_raw = cur.fetchall()
-        except Exception as e:
-            # Se tabella non esiste, usa valori predefiniti
-            logger.warning(f"Tabella system_settings non esiste: {e}")
-            settings_raw = []
+        # Configurazione bonifici
+        cur.execute("""
+            SELECT bank_name, account_holder, iban, bic_swift, created_at, updated_at
+            FROM bank_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        bank_config = cur.fetchone()
         
-        # Organizza le impostazioni per categoria
-        settings = {
-            'general': {},
-            'iban': {},
-            'financial': {},
-            'security': {},
-            'system': {}
-        }
+        # Configurazione wallet USDT
+        cur.execute("""
+            SELECT wallet_address, network, created_at, updated_at
+            FROM wallet_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        wallet_config = cur.fetchone()
         
-        for setting in settings_raw:
-            category = setting['category']
-            key = setting['key']
-            value = setting['value']
-            value_type = setting['value_type']
+        # Configurazioni generali
+        cur.execute("""
+            SELECT config_key, config_value, config_type 
+            FROM system_configurations 
+            WHERE is_active = 1
+        """)
+        system_configs = cur.fetchall()
+        
+        # Organizza le configurazioni generali
+        general_configs = {}
+        for config in system_configs:
+            key = config['config_key']
+            value = config['config_value']
+            config_type = config['config_type']
             
             # Converti il valore nel tipo corretto
-            if value_type == 'boolean':
-                value = value.lower() == 'true'
-            elif value_type == 'integer':
-                value = int(value) if value else 0
-            elif value_type == 'float':
-                value = float(value) if value else 0.0
+            if config_type == 'number':
+                try:
+                    value = float(value) if '.' in value else int(value)
+                except ValueError:
+                    value = 0
+            elif config_type == 'boolean':
+                value = value.lower() == 'true' or value == '1'
             
-            if category in settings:
-                settings[category][key] = value
+            general_configs[key] = value
         
-        # Valori predefiniti se non esistono
-        if not settings['general']:
-            settings['general'] = {
-                'platform_name': 'CIP Immobiliare',
-                'description': 'Piattaforma di investimenti immobiliari innovativa',
-                'contact_email': 'info@cipimmobiliare.it',
-                'support_phone': '+39 02 1234567',
-                'company_address': 'Via Roma 123, 20121 Milano (MI)'
-            }
-        
-        if not settings['financial']:
-            settings['financial'] = {
-                'min_investment': 500,
-                'max_investment': 100000,
-                'daily_limit': 10000,
-                'monthly_limit': 50000,
-                'platform_commission': 2.0,
-                'referral_commission': 1.0,
-                'withdrawal_fee': 5.0,
-                'free_withdrawal_threshold': 1000,
-                'referral_active': True
-            }
-        
-        if not settings['security']:
-            settings['security'] = {
-                'kyc_timeout': 7,
-                'no_kyc_limit': 0,
-                'auto_approve_kyc': 'never',
-                'session_duration': 24,
-                'max_login_attempts': 5,
-                'account_lockout_duration': 30,
-                'min_password_length': 8,
-                'require_id_card': True,
-                'require_fiscal_code': True,
-                'require_address_proof': False,
-                'require_income_proof': False,
-                'require_password_uppercase': True,
-                'require_password_numbers': True,
-                'require_password_symbols': False,
-                'enable_2fa': False
-            }
-        
-        return settings
+        return jsonify({
+            'bank_config': bank_config,
+            'wallet_config': wallet_config,
+            'general_configs': general_configs
+        })
 
-@admin_bp.post("/settings/save")
+@admin_bp.post("/config/bank")
 @admin_required
-def settings_save():
-    """Salva configurazione sistema"""
+def config_bank_save():
+    """Salva configurazione bonifici"""
     data = request.json or {}
-    category = data.get('category')
-    settings_data = data.get('data', {})
     
-    if not category:
-        return jsonify({"error": "Categoria richiesta"}), 400
+    # Tutti i campi sono ora opzionali
     
     with get_conn() as conn, conn.cursor() as cur:
         try:
-            # Salva ogni impostazione nella tabella
-            for key, value in settings_data.items():
+            # Disattiva tutte le configurazioni precedenti
+            cur.execute("UPDATE bank_configurations SET is_active = false")
+            
+            # Inserisci nuova configurazione
+            cur.execute("""
+                INSERT INTO bank_configurations 
+                (bank_name, account_holder, iban, bic_swift, created_by)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                data.get('bank_name', ''),
+                data.get('account_holder', ''),
+                data.get('iban', ''),
+                data.get('bic_swift', ''),
+                session.get('user_id')
+            ))
+            
+            # Log dell'azione admin
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, 'config_update', 'bank', %s, %s)
+            """, (session.get('user_id'), 0, f"Aggiornata configurazione bonifici: {data['bank_name']}"))
+            
+            conn.commit()
+            return jsonify({"success": True, "message": "Configurazione bonifici salvata"})
+            
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
+
+@admin_bp.post("/config/wallet")
+@admin_required
+def config_wallet_save():
+    """Salva configurazione wallet USDT"""
+    data = request.json or {}
+    
+    required_fields = ['wallet_name', 'wallet_address']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({"error": f"Campo {field} richiesto"}), 400
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        try:
+            # Disattiva tutte le configurazioni precedenti
+            cur.execute("UPDATE wallet_configurations SET is_active = 0")
+            
+            # Inserisci nuova configurazione
+            cur.execute("""
+                INSERT INTO wallet_configurations 
+                (wallet_address, network, created_by)
+                VALUES (%s, %s, %s)
+            """, (
+                data.get('wallet_address', ''),
+                data.get('network', 'BEP20'),
+                session.get('user_id')
+            ))
+            
+            # Log dell'azione admin
+            cur.execute("""
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, 'config_update', 'wallet', %s, %s)
+            """, (session.get('user_id'), 0, f"Aggiornata configurazione wallet: {data['wallet_name']}"))
+            
+            conn.commit()
+            return jsonify({"success": True, "message": "Configurazione wallet salvata"})
+            
+        except Exception as e:
+            conn.rollback()
+            return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
+
+@admin_bp.post("/config/general")
+@admin_required
+def config_general_save():
+    """Salva configurazioni generali"""
+    data = request.json or {}
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        try:
+            for key, value in data.items():
                 # Determina il tipo di valore
                 if isinstance(value, bool):
                     value_type = 'boolean'
                     value_str = str(value).lower()
-                elif isinstance(value, int):
-                    value_type = 'integer'
-                    value_str = str(value)
-                elif isinstance(value, float):
-                    value_type = 'float'
+                elif isinstance(value, (int, float)):
+                    value_type = 'number'
                     value_str = str(value)
                 else:
                     value_type = 'string'
                     value_str = str(value)
                 
-                # Inserisci o aggiorna l'impostazione
+                # Inserisci o aggiorna la configurazione
                 cur.execute("""
-                    INSERT INTO system_settings (category, key, value, value_type, updated_at, updated_by)
-                    VALUES (%s, %s, %s, %s, NOW(), %s)
-                    ON CONFLICT (category, key) 
+                    INSERT INTO system_configurations 
+                    (config_key, config_value, config_type, updated_by)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (config_key) 
                     DO UPDATE SET 
-                        value = EXCLUDED.value,
-                        value_type = EXCLUDED.value_type,
-                        updated_at = EXCLUDED.updated_at,
-                        updated_by = EXCLUDED.updated_by
-                """, (category, key, value_str, value_type, session.get('user_id')))
+                        config_value = EXCLUDED.config_value,
+                        config_type = EXCLUDED.config_type,
+                        updated_by = EXCLUDED.updated_by,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (key, value_str, value_type, session.get('user_id')))
             
             # Log dell'azione admin
             cur.execute("""
                 INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-                VALUES (%s, 'settings_update', 'system', %s, %s)
-            """, (session.get('user_id'), 0, f"Aggiornate impostazioni {category}"))
+                VALUES (%s, 'config_update', 'general', %s, %s)
+            """, (session.get('user_id'), 0, f"Aggiornate configurazioni generali: {', '.join(data.keys())}"))
             
             conn.commit()
+            return jsonify({"success": True, "message": "Configurazioni generali salvate"})
             
         except Exception as e:
             conn.rollback()
             return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
-    
-    return jsonify({"success": True, "message": f"Impostazioni {category} salvate"})
-
-@admin_bp.post("/settings/backup")
-@admin_required
-def settings_backup():
-    """Crea backup del sistema"""
-    data = request.json or {}
-    backup_type = data.get('type', 'full')
-    compression = data.get('compression', 'gzip')
-    notes = data.get('notes', '')
-    
-    try:
-        import subprocess
-        import os
-        from datetime import datetime
-        
-        # Timestamp per il nome del backup
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_filename = f"cip_backup_{backup_type}_{timestamp}"
-        
-        # Directory backup (assicurati che esista)
-        backup_dir = "/tmp/cip_backups"
-        os.makedirs(backup_dir, exist_ok=True)
-        
-        if backup_type in ['full', 'database']:
-            # Backup database (mock command - sostituisci con i tuoi parametri)
-            db_backup_cmd = [
-                'pg_dump',
-                '-h', 'localhost',
-                '-U', 'cip_user',
-                '-d', 'cip_database',
-                '-f', f"{backup_dir}/{backup_filename}_db.sql"
-            ]
-            
-            # Per demo, creiamo un file vuoto
-            with open(f"{backup_dir}/{backup_filename}_db.sql", 'w') as f:
-                f.write(f"-- CIP Database Backup\n-- Created: {datetime.now()}\n-- Notes: {notes}\n")
-        
-        if backup_type in ['full', 'files']:
-            # Backup file uploads
-            files_backup_cmd = [
-                'tar', '-czf',
-                f"{backup_dir}/{backup_filename}_files.tar.gz",
-                'uploads/'  # Ajusta el path según tu estructura
-            ]
-            # subprocess.run(files_backup_cmd, check=True)
-        
-        # Registra il backup nel database
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO system_backups (filename, backup_type, size_bytes, created_by, notes)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (backup_filename, backup_type, 1024, session.get('user_id'), notes))
-            
-            # Log dell'azione
-            cur.execute("""
-                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-                VALUES (%s, 'backup_create', 'system', %s, %s)
-            """, (session.get('user_id'), 0, f"Backup {backup_type} creato: {backup_filename}"))
-        
-        return jsonify({
-            "success": True, 
-            "message": "Backup creato con successo",
-            "filename": backup_filename
-        })
-        
-    except Exception as e:
-        return jsonify({"error": f"Errore nella creazione del backup: {str(e)}"}), 500
-
-@admin_bp.get("/settings/backup/download")
-@admin_required
-def settings_backup_download():
-    """Download ultimo backup"""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                SELECT filename, backup_type, created_at
-                FROM system_backups
-                ORDER BY created_at DESC
-                LIMIT 1
-            """)
-            backup = cur.fetchone()
-            
-            if not backup:
-                return jsonify({"error": "Nessun backup disponibile"}), 404
-            
-            # Per demo, restituiamo informazioni sul backup
-            return jsonify({
-                "filename": backup['filename'],
-                "type": backup['backup_type'],
-                "created_at": backup['created_at'].isoformat(),
-                "download_url": f"/admin/uploads/backups/{backup['filename']}.zip"
-            })
-    
-    except Exception as e:
-        return jsonify({"error": f"Errore nel download: {str(e)}"}), 500
-
-@admin_bp.get("/settings/logs")
-@admin_required
-def settings_logs():
-    """Visualizza log sistema"""
-    log_type = request.args.get('type')
-    period = request.args.get('period', 'week')
-    search = request.args.get('search')
-    
-    # Calcola il range di date
-    from datetime import datetime, timedelta
-    now = datetime.now()
-    
-    if period == 'today':
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif period == 'week':
-        start_date = now - timedelta(days=7)
-    elif period == 'month':
-        start_date = now - timedelta(days=30)
-    else:  # all
-        start_date = datetime(2020, 1, 1)
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Build query conditions
-        where_conditions = ["created_at >= %s"]
-        params = [start_date]
-        
-        if log_type:
-            where_conditions.append("level = %s")
-            params.append(log_type)
-        
-        if search:
-            where_conditions.append("(message ILIKE %s OR details ILIKE %s)")
-            search_param = f"%{search}%"
-            params.extend([search_param, search_param])
-        
-        where_clause = " AND ".join(where_conditions)
-        
-        try:
-            # Query dei log (assumendo una tabella system_logs)
-            cur.execute(f"""
-                SELECT level, message, details, source, created_at
-                FROM system_logs
-                WHERE {where_clause}
-                ORDER BY created_at DESC
-                LIMIT 200
-            """, params)
-            
-            logs = cur.fetchall()
-        except Exception as e:
-            # Se tabella non esiste, usa log di esempio
-            logger.warning(f"Tabella system_logs non esiste: {e}")
-            logs = []
-        
-        # Se non ci sono log nella tabella, restituiamo log di esempio
-        if not logs:
-            logs = generate_mock_logs()
-    
-    return jsonify([
-        {
-            'level': log.get('level', 'info'),
-            'message': log.get('message', ''),
-            'details': log.get('details'),
-            'source': log.get('source', 'Sistema'),
-            'timestamp': log.get('created_at', now).isoformat() if hasattr(log.get('created_at', now), 'isoformat') else str(log.get('created_at', now))
-        }
-        for log in logs
-    ])
-
-def generate_mock_logs():
-    """Genera log di esempio per demo"""
-    from datetime import datetime, timedelta
-    import random
-    
-    now = datetime.now()
-    levels = ['info', 'warning', 'error', 'security', 'admin']
-    sources = ['Sistema', 'Database', 'Auth', 'API', 'Backup']
-    
-    messages = {
-        'info': ['Sistema avviato con successo', 'Backup completato', 'Utente registrato', 'Investimento processato'],
-        'warning': ['Memoria RAM alta (85%)', 'Tentativo login fallito', 'Disco quasi pieno', 'Connessione lenta database'],
-        'error': ['Errore connessione database', 'Upload file fallito', 'Timeout API esterna', 'Errore elaborazione pagamento'],
-        'security': ['Tentativo accesso non autorizzato', 'IP bloccato per troppi tentativi', 'Password debole rilevata', 'Attività sospetta rilevata'],
-        'admin': ['Impostazioni aggiornate', 'Backup manuale creato', 'Utente sospeso', 'Progetto approvato']
-    }
-    
-    logs = []
-    for i in range(50):
-        level = random.choice(levels)
-        message = random.choice(messages[level])
-        timestamp = now - timedelta(minutes=random.randint(1, 10080))  # Ultima settimana
-        
-        logs.append({
-            'level': level,
-            'message': message,
-            'details': f"Dettagli aggiuntivi per: {message}" if random.random() > 0.5 else None,
-            'source': random.choice(sources),
-            'created_at': timestamp
-        })
-    
-    return sorted(logs, key=lambda x: x['created_at'], reverse=True)
-
-@admin_bp.get("/settings/logs/export")
-@admin_required
-def settings_logs_export():
-    """Esporta log in CSV"""
-    format_type = request.args.get('format', 'csv')
-    
-    # Ottieni i log (riusa la logica di settings_logs)
-    logs_data = settings_logs()
-    logs = logs_data.get_json()
-    
-    if format_type == 'csv':
-        import csv
-        from io import StringIO
-        from flask import Response
-        
-        output = StringIO()
-        writer = csv.writer(output)
-        
-        # Header CSV
-        writer.writerow(['Timestamp', 'Livello', 'Sorgente', 'Messaggio', 'Dettagli'])
-        
-        # Dati log
-        for log in logs:
-            writer.writerow([
-                log['timestamp'],
-                log['level'],
-                log['source'],
-                log['message'],
-                log['details'] or ''
-            ])
-        
-        output.seek(0)
-        
-        filename = f"system_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        
-        return Response(
-            output.getvalue(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': f'attachment; filename={filename}'}
-        )
-    
-    return jsonify(logs)
 
 # ---- Performance Monitoring ----
 @admin_bp.post("/performance/report")
