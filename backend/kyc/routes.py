@@ -14,6 +14,7 @@ from backend.auth.decorators import login_required, admin_required
 kyc_bp = Blueprint("kyc", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 def get_upload_folder():

@@ -10,6 +10,7 @@ from backend.shared.database import get_connection
 profile_bp = Blueprint("profile", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @profile_bp.before_request

@@ -12,6 +12,7 @@ from backend.shared.models import TransactionStatus
 profits_bp = Blueprint("profits", __name__, url_prefix="/api")
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 # Importa decoratori di autorizzazione
@@ -342,49 +343,46 @@ def admin_cancel_project():
                 """, (project_id,))
                 investments = cur.fetchall()
                 
-                if not investments:
-                    return jsonify({
-                        'success': False,
-                        'error': 'Nessun investimento attivo trovato per questo progetto'
-                    }), 400
+                # Se non ci sono investimenti attivi, procedi comunque con l'annullamento
                 
-                # 3. Restituisci tutti i fondi al capitale libero
+                # 3. Restituisci tutti i fondi al capitale libero (solo se ci sono investimenti)
                 investors_processed = 0
                 total_refunded = Decimal('0')
                 
-                for investment in investments:
-                    user_id = investment['user_id']
-                    invested_amount = Decimal(str(investment['amount']))
-                    total_refunded += invested_amount
-                    
-                    # Ottieni portfolio attuale
-                    cur.execute("""
-                        SELECT free_capital, invested_capital
-                        FROM user_portfolios 
-                        WHERE user_id = %s
-                    """, (user_id,))
-                    portfolio = cur.fetchone()
-                    
-                    if not portfolio:
-                        # Crea portfolio se non esiste
+                if investments:
+                    for investment in investments:
+                        user_id = investment['user_id']
+                        invested_amount = Decimal(str(investment['amount']))
+                        total_refunded += invested_amount
+                        
+                        # Ottieni portfolio attuale
                         cur.execute("""
-                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
-                            VALUES (%s, 0, 0, 0, 0)
+                            SELECT free_capital, invested_capital
+                            FROM user_portfolios 
+                            WHERE user_id = %s
                         """, (user_id,))
-                        portfolio = {'free_capital': 0, 'invested_capital': 0}
-                    
-                    # Aggiorna portfolio: restituisci al capitale libero
-                    new_free_capital = Decimal(str(portfolio['free_capital'])) + invested_amount
-                    new_invested_capital = Decimal(str(portfolio['invested_capital'])) - invested_amount
-                    
-                    cur.execute("""
-                        UPDATE user_portfolios 
-                        SET free_capital = %s, invested_capital = %s,
-                            updated_at = NOW()
-                        WHERE user_id = %s
-                    """, (new_free_capital, new_invested_capital, user_id))
-                    
-                    investors_processed += 1
+                        portfolio = cur.fetchone()
+                        
+                        if not portfolio:
+                            # Crea portfolio se non esiste
+                            cur.execute("""
+                                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                VALUES (%s, 0, 0, 0, 0)
+                            """, (user_id,))
+                            portfolio = {'free_capital': 0, 'invested_capital': 0}
+                        
+                        # Aggiorna portfolio: restituisci al capitale libero
+                        new_free_capital = Decimal(str(portfolio['free_capital'])) + invested_amount
+                        new_invested_capital = Decimal(str(portfolio['invested_capital'])) - invested_amount
+                        
+                        cur.execute("""
+                            UPDATE user_portfolios 
+                            SET free_capital = %s, invested_capital = %s,
+                                updated_at = NOW()
+                            WHERE user_id = %s
+                        """, (new_free_capital, new_invested_capital, user_id))
+                        
+                        investors_processed += 1
                 
                 # 4. Aggiorna lo stato del progetto a 'cancelled'
                 cur.execute("""
@@ -398,7 +396,7 @@ def admin_cancel_project():
                 cur.execute("""
                     UPDATE investments 
                     SET status = 'cancelled', 
-                        completed_at = NOW()
+                        completion_date = NOW()
                     WHERE project_id = %s AND status = 'active'
                 """, (project_id,))
                 
@@ -406,9 +404,14 @@ def admin_cancel_project():
                 conn.commit()
                 conn.autocommit = True
                 
+                if investors_processed > 0:
+                    message = f'Progetto annullato con successo! Restituiti €{total_refunded} a {investors_processed} investitori.'
+                else:
+                    message = 'Progetto annullato con successo! Nessun investimento attivo da restituire.'
+                
                 return jsonify({
                     'success': True,
-                    'message': f'Progetto annullato con successo! Restituiti €{total_refunded} a {investors_processed} investitori.',
+                    'message': message,
                     'project_id': project_id,
                     'investors_count': investors_processed,
                     'total_refunded': float(total_refunded)

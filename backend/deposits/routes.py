@@ -18,6 +18,7 @@ deposits_bp = Blueprint("deposits", __name__)
 logger = logging.getLogger(__name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 def generate_unique_key(length=6):

@@ -14,7 +14,7 @@ UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER") or os.path.join(INSTANCE_DIR, "upload
 class Config:
     """Configurazione base Flask"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
-    DATABASE_URL = os.environ.get('DATABASE_URL') or 'postgresql://postgres:postgres@localhost:5432/cip'
+    DATABASE_URL = os.environ.get('DATABASE_URL') or 'postgresql://localhost/cip_immobiliare'
     UPLOAD_FOLDER = UPLOAD_FOLDER  # Usa il percorso KYC specifico
     INSTANCE_UPLOADS_DIR = UPLOAD_FOLDER  # Alias per chiarezza
     TEMPLATE_FOLDER = TEMPLATES_DIR

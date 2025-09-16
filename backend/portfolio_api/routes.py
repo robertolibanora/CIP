@@ -12,6 +12,7 @@ from backend.shared.models import TransactionType, TransactionStatus
 portfolio_api_bp = Blueprint("portfolio_api", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 # Importa decoratori di autorizzazione

@@ -10,6 +10,7 @@ from backend.shared.database import get_connection
 new_project_bp = Blueprint("new_project", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @new_project_bp.before_request

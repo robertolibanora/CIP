@@ -12,6 +12,7 @@ from backend.shared.validators import ValidationError
 portfolio_bp = Blueprint("portfolio_api2", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 

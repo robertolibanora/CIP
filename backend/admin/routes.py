@@ -204,18 +204,19 @@ def projects_new():
                 """
                 INSERT INTO projects (
                     code, name, description, status, total_amount, start_date, end_date,
-                    location, min_investment, image_url, roi, type, funded_amount
+                    location, min_investment, image_url, roi, type, funded_amount, duration
                 )
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
                 """,
                 (
                     code_value, name_value, description_value, status_value,
                     total_amount_value, start_date_value, end_date_value,
                     location_value, min_investment_value, photo_filename,
-                    roi_value, project_type, 0.0
+                    roi_value, project_type, 0.0, 365
                 )
             )
-            pid = cur.lastrowid
+            pid = cur.fetchone()['id']
             
             conn.commit()
         
@@ -346,7 +347,7 @@ def project_detail(pid):
             
             # Investimenti collegati
             cur.execute("""
-                SELECT i.id, i.amount, i.status, i.created_at, i.activated_at,
+                SELECT i.id, i.amount, i.status, i.created_at, i.investment_date,
                        u.id as user_id, u.full_name, u.email, u.kyc_status
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
@@ -3183,7 +3184,7 @@ def investment_detail(iid):
 @admin_required
 def investment_confirm_wire(iid):
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("UPDATE investments SET status='active', activated_at=NOW() WHERE id=%s", (iid,))
+        cur.execute("UPDATE investments SET status='active', investment_date=NOW() WHERE id=%s", (iid,))
     return jsonify({"status": "active"})
 
 @admin_bp.post("/investments/<int:iid>/yield")
@@ -3972,7 +3973,7 @@ def create_project():
         
         with get_conn() as conn, conn.cursor() as cur:
             # Verifica che il codice non esista gi
-            cur.execute("SELECT id FROM projects WHERE code = ?", (code,))
+            cur.execute("SELECT id FROM projects WHERE code = %s", (code,))
             if cur.fetchone():
                 return jsonify({
                     'success': False,
@@ -4000,12 +4001,13 @@ def create_project():
             # Inserisci progetto nel database
             cur.execute("""
                 INSERT INTO projects (code, name, description, total_amount, min_investment, 
-                                   location, type, roi, start_date, end_date, image_url, status, funded_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   location, type, roi, start_date, end_date, image_url, status, funded_amount, duration)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             """, (code, name, description, total_amount, min_investment, 
-                  location, project_type, roi, start_date, end_date, image_url, 'active', 0.0))
+                  location, project_type, roi, start_date, end_date, image_url, 'active', 0.0, 365))
             
-            project_id = cur.lastrowid
+            project_id = cur.fetchone()['id']
             
             # Log dell'azione (temporaneamente disabilitato - tabella admin_actions non esiste)
             # cur.execute("""

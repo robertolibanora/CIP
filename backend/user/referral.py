@@ -10,6 +10,7 @@ from backend.shared.database import get_connection
 referral_bp = Blueprint("referral", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @referral_bp.before_request

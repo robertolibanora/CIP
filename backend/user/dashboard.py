@@ -10,6 +10,7 @@ from backend.shared.database import get_connection
 dashboard_bp = Blueprint("dashboard", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @dashboard_bp.before_request

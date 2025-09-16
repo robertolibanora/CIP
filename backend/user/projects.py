@@ -11,6 +11,7 @@ from backend.auth.decorators import can_invest
 projects_bp = Blueprint("user_projects", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @projects_bp.before_request
@@ -250,7 +251,7 @@ def invest_in_project():
             # 6. Esegui l'investimento
             # 6a. Crea il record di investimento
             cur.execute("""
-                INSERT INTO investments (user_id, project_id, amount, status, activated_at)
+                INSERT INTO investments (user_id, project_id, amount, status, investment_date)
                 VALUES (%s, %s, %s, 'active', CURRENT_TIMESTAMP)
                 RETURNING id
             """, (uid, project_id, amount))

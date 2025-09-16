@@ -10,6 +10,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 

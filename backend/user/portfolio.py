@@ -10,6 +10,7 @@ from backend.shared.database import get_connection
 portfolio_bp = Blueprint("portfolio", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 @portfolio_bp.before_request

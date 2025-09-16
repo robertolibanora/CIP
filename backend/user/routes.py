@@ -5,6 +5,7 @@ from backend.shared.database import get_connection
 user_bp = Blueprint("user", __name__)
 
 def get_conn():
+    from backend.shared.database import get_connection
     return get_connection()
 
 # Importa decoratori di autorizzazione
