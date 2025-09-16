@@ -38,7 +38,7 @@
             />
           </div>
           <p id="referral_info" class="text-sm mt-1 text-gray-600 hidden"></p>
-          <p class="text-xs text-gray-500">Se lasci vuoto, verrai inserito automaticamente sotto il primo codice disponibile.</p>
+          <p class="text-xs text-gray-500">Se lasci vuoto, verrai inserito automaticamente sotto il primo utente registrato.</p>
         </div>
         <!-- CSRF Token removed - not configured -->
 
@@ -415,7 +415,7 @@ let referralDebounce;
 async function validateReferral(code) {
   referralInfo.classList.remove('text-red-600', 'text-green-600');
   if (!code) {
-    referralInfo.textContent = 'Nessun codice inserito: verrà usato il codice predefinito.';
+    referralInfo.textContent = 'Nessun codice inserito: verrai assegnato a Marco Trapella.';
     referralInfo.classList.remove('hidden');
     return;
   }

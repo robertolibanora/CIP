@@ -100,6 +100,6 @@ def dashboard():
                          user=user_data,
                          greet_name=greet_name,
                          total_invested=total_invested,
-                         avg_roi=8.5,  # ROI medio simulato
+                         avg_roi=8.5,  # RA medio simulato
                          current_page="dashboard"
                          )

@@ -41,7 +41,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url,
+                   p.image_url, p.end_date,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -52,13 +52,34 @@ def projects():
                 WHERE user_id = %s AND status = 'active'
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
-            WHERE p.status = 'active'
+            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
             ORDER BY 
                 CASE WHEN user_investments.total_amount IS NOT NULL THEN 0 ELSE 1 END,
                 p.created_at DESC
         """, (uid,))
         
         active_projects = cur.fetchall()
+        
+        # 2.5. PROGETTI SCADUTI (non si può più investire perché scaduti)
+        cur.execute("""
+            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
+                   p.image_url, p.end_date,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
+                   COALESCE(user_investments.total_amount, 0) as user_investment_amount,
+                   CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
+            FROM projects p 
+            LEFT JOIN (
+                SELECT project_id, SUM(amount) as total_amount
+                FROM investments 
+                WHERE user_id = %s AND status = 'active'
+                GROUP BY project_id
+            ) user_investments ON p.id = user_investments.project_id
+            WHERE p.status = 'active' AND p.end_date < CURRENT_DATE
+            ORDER BY p.end_date DESC
+        """, (uid,))
+        
+        expired_projects = cur.fetchall()
         
         # 3. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
         cur.execute("""
@@ -141,12 +162,14 @@ def projects():
         
         # Processa tutte le liste
         active_projects = process_projects(active_projects)
+        expired_projects = process_projects(expired_projects)
         completed_projects = process_projects(completed_projects)
         sold_projects = process_projects(sold_projects)
     
     return render_template("user/projects.html", 
                          user_id=uid,
                          active_projects=active_projects,
+                         expired_projects=expired_projects,
                          completed_projects=completed_projects,
                          sold_projects=sold_projects,
                          is_kyc_verified=is_kyc_verified,
@@ -177,9 +200,9 @@ def invest_in_project():
         with get_conn() as conn, conn.cursor() as cur:
             # 1. Verifica che il progetto esista e sia attivo
             cur.execute("""
-                SELECT id, name, total_amount, funded_amount, min_investment
+                SELECT id, name, total_amount, funded_amount, min_investment, end_date
                 FROM projects 
-                WHERE id = %s AND status = 'active'
+                WHERE id = %s AND status = 'active' AND end_date >= CURRENT_DATE
             """, (project_id,))
             project = cur.fetchone()
             

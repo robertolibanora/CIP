@@ -108,14 +108,15 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 pb-[84px] md:pb-6">
+    <main class="flex-1 pb-[300px] md:pb-6">
         <div class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8">
             {% block content %}{% endblock %}
         </div>
+        
+        <!-- Fascia bianca per compensare la barra di navigazione mobile -->
+        <div class="h-[300px] bg-white md:hidden"></div>
     </main>
     
-    <!-- Spaziatore per il menu di navigazione -->
-    <div class="tabbar-spacer"></div>
 
     <!-- KYC Warning Modal -->
     <div id="kyc-warning-backdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">

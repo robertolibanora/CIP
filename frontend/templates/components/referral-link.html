@@ -97,13 +97,13 @@ function copyReferralLink() {
 
 // Condivisione WhatsApp
 function shareOnWhatsApp() {
-    const text = encodeURIComponent('Scopri progetti immobiliari con ROI garantito! Usa il mio link referral: {{ referral_link }}');
+    const text = encodeURIComponent('Scopri progetti immobiliari con RA garantito! Usa il mio link referral: {{ referral_link }}');
     window.open(`https://wa.me/?text=${text}`, '_blank');
 }
 
 // Condivisione Telegram
 function shareOnTelegram() {
-    const text = encodeURIComponent('Scopri progetti immobiliari con ROI garantito! Usa il mio link referral: {{ referral_link }}');
+    const text = encodeURIComponent('Scopri progetti immobiliari con RA garantito! Usa il mio link referral: {{ referral_link }}');
     window.open(`https://t.me/share/url?url={{ referral_link }}&text=${text}`, '_blank');
 }
 
@@ -112,7 +112,7 @@ function shareReferral() {
     if (navigator.share) {
         navigator.share({
             title: 'Investi in Immobili con CIP',
-            text: 'Scopri progetti immobiliari con ROI garantito! Usa il mio link referral:',
+            text: 'Scopri progetti immobiliari con RA garantito! Usa il mio link referral:',
             url: '{{ referral_link }}'
         });
     } else {

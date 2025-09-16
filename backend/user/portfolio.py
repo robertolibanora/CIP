@@ -41,7 +41,7 @@ def portfolio():
         
         # Aggiungi campi mancanti per compatibilità template
         for row in rows:
-            row['roi'] = 8.5  # ROI fisso per ora
+            row['roi'] = 8.5  # RA fisso per ora
         
         # Dati utente completi per il form profilo - TABELLA: users
         cur.execute("""

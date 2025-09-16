@@ -121,16 +121,7 @@
     }
 } */
 
-/* Spaziatore per contenuti */
-.tabbar-spacer {
-    height: 84px !important;
-}
-
-@media (min-width: 768px) {
-    .tabbar-spacer {
-        display: none !important;
-    }
-}
+/* Spaziatore per contenuti - RIMOSSO: ora usiamo una fascia bianca nel layout */
 
 /* Animazioni di entrata */
 @keyframes slideUp {

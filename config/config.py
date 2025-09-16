@@ -25,6 +25,9 @@ class Config:
     # KYC Upload settings
     ALLOWED_KYC_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
     
+    # Referral settings
+    # DEFAULT_REFERRAL_CODE rimosso - ora usiamo logica dinamica per assegnare al primo utente 'investor'
+    
     # ============================================================================
     # CONFIGURAZIONE SESSIONI SICURE
     # ============================================================================

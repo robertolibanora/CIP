@@ -181,7 +181,7 @@
     </div>
     
     <div class="admin-card admin-card-body text-center">
-        <h4 class="admin-text-small font-medium text-gray-600">ROI Medio</h4>
+        <h4 class="admin-text-small font-medium text-gray-600">RA Medio</h4>
         <p class="admin-text-large font-bold text-gray-800" id="avg-roi">0%</p>
         <p class="admin-text-caption text-gray-500">Progetti attivi</p>
     </div>
@@ -262,11 +262,11 @@
             <div class="admin-flex admin-flex--between">
                 <div>
                     <h2 class="admin-heading-2">Performance Progetti</h2>
-                    <p class="admin-text-small">ROI e stato finanziamento</p>
+                    <p class="admin-text-small">RA e stato finanziamento</p>
                 </div>
                 <div class="admin-flex">
                     <select id="projects-metric" class="admin-input admin-select admin-btn--sm" onchange="updateProjectsChart()">
-                        <option value="roi">ROI %</option>
+                        <option value="roi">RA %</option>
                         <option value="funding">% Finanziamento</option>
                         <option value="volume">Volume €</option>
                     </select>
@@ -337,11 +337,11 @@
             <div class="admin-flex admin-flex--between">
                 <div>
                     <h2 class="admin-heading-2">Top 10 Progetti Performance</h2>
-                    <p class="admin-text-small">Ordinati per ROI e volume investimenti</p>
+                    <p class="admin-text-small">Ordinati per RA e volume investimenti</p>
                 </div>
                 <div class="admin-flex">
                     <select id="projects-sort" class="admin-input admin-select admin-btn--sm mr-2" onchange="updateTopProjectsTable()">
-                        <option value="roi">ROI %</option>
+                        <option value="roi">RA %</option>
                         <option value="volume">Volume Investimenti</option>
                         <option value="investors">Numero Investitori</option>
                         <option value="funding">% Finanziamento</option>
@@ -361,7 +361,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left admin-text-caption">Progetto</th>
-                            <th class="px-4 py-3 text-left admin-text-caption">ROI %</th>
+                            <th class="px-4 py-3 text-left admin-text-caption">RA %</th>
                             <th class="px-4 py-3 text-left admin-text-caption">Volume €</th>
                             <th class="px-4 py-3 text-left admin-text-caption">Investitori</th>
                             <th class="px-4 py-3 text-left admin-text-caption">Finanziamento</th>
@@ -687,7 +687,7 @@ class AnalyticsManager {
             data: {
                 labels: this.analyticsData.charts?.projects_performance?.labels || [],
                 datasets: [{
-                    label: 'ROI %',
+                    label: 'RA %',
                     data: this.analyticsData.charts?.projects_performance?.roi_data || [],
                     backgroundColor: 'rgba(34, 197, 94, 0.8)',
                     borderColor: 'rgb(34, 197, 94)',
@@ -1039,7 +1039,7 @@ class AnalyticsManager {
             switch (metric) {
                 case 'roi':
                     data = this.analyticsData.charts.projects_performance.roi_data;
-                    label = 'ROI %';
+                    label = 'RA %';
                     break;
                 case 'funding':
                     data = this.analyticsData.charts.projects_performance.funding_data;

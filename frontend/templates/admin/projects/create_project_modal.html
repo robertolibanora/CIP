@@ -95,20 +95,12 @@
                     </div>
                 </div>
                 
-                <!-- ROI e Durata -->
+                <!-- RA -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">ROI Atteso (%) *</label>
+                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">RA Atteso (%) *</label>
                         <input type="number" name="roi" 
                                min="0" max="50" step="0.1" placeholder="8.5" value="8.0" required
-                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
-                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
-                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Durata (mesi) *</label>
-                        <input type="number" name="duration" 
-                               min="1" max="60" placeholder="12" value="12" required
                                style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
@@ -204,7 +196,7 @@ async function submitCreateProject() {
     const formData = new FormData(form);
     
             // Validazione campi obbligatori
-            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'duration', 'start_date', 'end_date'];
+            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'start_date', 'end_date'];
     
     for (const field of requiredFields) {
         if (!formData.get(field) || formData.get(field).trim() === '') {
@@ -227,17 +219,10 @@ async function submitCreateProject() {
         return;
     }
     
-    // Validazione ROI
+    // Validazione RA
     const roi = parseFloat(formData.get('roi'));
     if (roi < 0 || roi > 50) {
-        alert('Il ROI deve essere tra 0 e 50%');
-        return;
-    }
-    
-    // Validazione durata
-    const duration = parseInt(formData.get('duration'));
-    if (duration < 1 || duration > 60) {
-        alert('La durata deve essere tra 1 e 60 mesi');
+        alert('Il RA deve essere tra 0 e 50%');
         return;
     }
     

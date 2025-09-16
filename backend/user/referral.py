@@ -43,24 +43,26 @@ def referral():
             conn.commit()
         
         # Statistiche referral - TABELLA: users
+        # Esclude l'utente stesso per evitare auto-referral
         cur.execute("""
             SELECT COUNT(*) as total_referrals,
                    COUNT(CASE WHEN u.kyc_status = 'verified' THEN 1 END) as verified_referrals,
                    COUNT(CASE WHEN u.kyc_status != 'verified' THEN 1 END) as pending_referrals
-            FROM users u WHERE u.referred_by = %s
-        """, (uid,))
+            FROM users u WHERE u.referred_by = %s AND u.id != %s
+        """, (uid, uid))
         stats = cur.fetchone()
         
         # Lista referral - TABELLE: users + investments
+        # Esclude l'utente stesso per evitare auto-referral
         cur.execute("""
             SELECT u.id, u.full_name, u.email, u.created_at, u.kyc_status,
                    COALESCE(SUM(i.amount), 0) as total_invested
             FROM users u 
             LEFT JOIN investments i ON u.id = i.user_id AND i.status = 'active'
-            WHERE u.referred_by = %s
+            WHERE u.referred_by = %s AND u.id != %s
             GROUP BY u.id, u.full_name, u.email, u.created_at, u.kyc_status
             ORDER BY u.created_at DESC
-        """, (uid,))
+        """, (uid, uid))
         referrals = cur.fetchall()
         
         # Bonus totali - TABELLA: referral_bonuses

@@ -153,18 +153,33 @@ def register():
                     flash("Codice referral non valido", "error")
                     return render_template("auth/register.html")
             else:
-                # Nessun referral inserito: assegna il primo codice disponibile (utente fondatore)
+                # Nessun referral inserito: assegna al primo utente 'investor' (non admin)
                 cur.execute(
                     """
                     SELECT id FROM users 
-                    WHERE referral_code IS NOT NULL 
+                    WHERE role = 'investor' 
+                    AND referral_code IS NOT NULL 
                     ORDER BY created_at ASC 
                     LIMIT 1
                     """
                 )
-                default_row = cur.fetchone()
-                if default_row:
-                    referred_by = default_row["id"]
+                first_investor_row = cur.fetchone()
+                if first_investor_row:
+                    referred_by = first_investor_row["id"]
+                else:
+                    # Fallback: se non ci sono utenti investor, usa il primo utente disponibile (escluso admin)
+                    cur.execute(
+                        """
+                        SELECT id FROM users 
+                        WHERE role != 'admin' 
+                        AND referral_code IS NOT NULL 
+                        ORDER BY created_at ASC 
+                        LIMIT 1
+                        """
+                    )
+                    fallback_row = cur.fetchone()
+                    if fallback_row:
+                        referred_by = fallback_row["id"]
 
             # Genera codice referral unico
             import uuid

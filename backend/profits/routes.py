@@ -1,5 +1,5 @@
 """
-Profits API routes
+Profits API routes - VERSIONE CORRETTA
 API per gestione rendimenti: Calcoli e distribuzioni
 """
 
@@ -20,9 +20,11 @@ from backend.auth.decorators import login_required, kyc_verified, admin_required
 @profits_bp.route('/admin/project-sale', methods=['POST'])
 @admin_required
 def admin_create_project_sale():
-    """Admin crea una vendita progetto e distribuisce i fondi secondo la logica richiesta:
+    """
+    Vendita progetto con distribuzione fondi secondo la logica richiesta:
     - Vendita in profitto: denaro investito torna in capitale libero + profitti in sezione profitti
     - Vendita in perdita: tutto il denaro rimasto va in capitale libero
+    - 1% dei profitti di TUTTI gli utenti invitati va come bonus referral
     """
     
     try:
@@ -49,24 +51,31 @@ def admin_create_project_sale():
             conn.autocommit = False
             
             try:
-                # 1. Verifica che il progetto esista e sia attivo
+                # 1. Verifica che il progetto esista (può essere active, sold o completed)
                 cur.execute("""
                     SELECT id, name, total_amount, funded_amount, status
                     FROM projects 
-                    WHERE id = %s AND status = 'active'
+                    WHERE id = %s
                 """, (project_id,))
                 project = cur.fetchone()
                 
                 if not project:
                     return jsonify({
                         'success': False,
-                        'error': 'Progetto non trovato o non attivo'
+                        'error': 'Progetto non trovato'
                     }), 404
+                
+                # Verifica che il progetto non sia già stato cancellato
+                if project['status'] == 'cancelled':
+                    return jsonify({
+                        'success': False,
+                        'error': 'Progetto cancellato, non può essere venduto'
+                    }), 400
                 
                 # 2. Ottieni tutti gli investimenti attivi per questo progetto
                 cur.execute("""
                     SELECT i.id, i.user_id, i.amount, i.status,
-                           u.nome, u.cognome, u.email
+                           u.nome, u.cognome, u.email, u.referred_by
                     FROM investments i
                     JOIN users u ON u.id = i.user_id
                     WHERE i.project_id = %s AND i.status = 'active'
@@ -94,65 +103,84 @@ def admin_create_project_sale():
                 sale_id = sale_record['id']
                 
                 investors_processed = 0
+                referral_bonuses = {}  # Dizionario per accumulare i bonus referral
                 
                 if total_profit >= 0:  # Vendita in profitto
+                    # PRIMA FASE: Calcola tutti i bonus referral
                     for investment in investments:
                         user_id = investment['user_id']
                         invested_amount = Decimal(str(investment['amount']))
                         profit_share = (invested_amount / total_invested) * total_profit
                         
+                        # Se questo investitore è stato invitato, calcola il bonus per chi lo ha invitato
+                        if investment['referred_by']:
+                            referral_bonus = profit_share * Decimal('0.01')  # 1% del profitto dell'invitato
+                            if investment['referred_by'] not in referral_bonuses:
+                                referral_bonuses[investment['referred_by']] = Decimal('0')
+                            referral_bonuses[investment['referred_by']] += referral_bonus
+                    
+                    # SECONDA FASE: Distribuisci profitti e bonus
+                    for investment in investments:
+                        user_id = investment['user_id']
+                        invested_amount = Decimal(str(investment['amount']))
+                        profit_share = (invested_amount / total_invested) * total_profit
+                        
+                        # Calcola bonus referral da dedurre (se questo utente è stato invitato)
+                        referral_bonus_to_deduct = Decimal('0')
+                        if investment['referred_by']:
+                            referral_bonus_to_deduct = profit_share * Decimal('0.01')  # 1% del profitto
+                        
+                        # Calcola profitto finale DEDUCENDO il bonus referral
+                        final_profit = profit_share - referral_bonus_to_deduct
+                        
                         # Ottieni portfolio attuale
                         cur.execute("""
-                            SELECT free_capital, profits, invested_capital
+                            SELECT free_capital, profits, invested_capital, referral_bonus
                             FROM user_portfolios 
                             WHERE user_id = %s
                         """, (user_id,))
                         portfolio = cur.fetchone()
                         
-                        if portfolio:
-                            # Aggiorna portfolio
-                            new_free_capital = portfolio['free_capital'] + invested_amount
-                            new_profits = portfolio['profits'] + profit_share
-                            new_invested_capital = portfolio['invested_capital'] - invested_amount
-                            
+                        if not portfolio:
+                            # Crea portfolio se non esiste
                             cur.execute("""
-                                UPDATE user_portfolios 
-                                SET free_capital = %s, profits = %s, invested_capital = %s
-                                WHERE user_id = %s
-                            """, (new_free_capital, new_profits, new_invested_capital, user_id))
-                            
-                            # Registra transazioni
-                            cur.execute("""
-                                INSERT INTO portfolio_transactions 
-                                (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
-                                VALUES (%s, 'investment', %s, %s, %s, %s, 'project_sale', %s, 'completed')
-                            """, (user_id, invested_amount, portfolio['free_capital'], new_free_capital, 
-                                  f"Restituzione capitale investito - Vendita {project['name']}", sale_id))
-                            
-                            if profit_share > 0:
-                                cur.execute("""
-                                    INSERT INTO portfolio_transactions 
-                                    (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
-                                    VALUES (%s, 'roi', %s, %s, %s, %s, 'project_sale', %s, 'completed')
-                                """, (user_id, profit_share, portfolio['profits'], new_profits, 
-                                      f"Profitto vendita progetto - {project['name']}", sale_id))
-                            
-                            # Registra distribuzione profitti
-                            cur.execute("""
-                                INSERT INTO profit_distributions 
-                                (project_sale_id, user_id, investment_id, roi_amount, referral_bonus, total_distributed, distribution_date)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (sale_id, user_id, investment['id'], profit_share, 0, 
-                                  invested_amount + profit_share, sale_date))
-                            
-                            investors_processed += 1
+                                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                VALUES (%s, 0, 0, 0, 0)
+                            """, (user_id,))
+                            portfolio = {'free_capital': 0, 'profits': 0, 'invested_capital': 0, 'referral_bonus': 0}
+                        
+                        # Aggiorna portfolio: capitale investito torna in capitale libero + profitti (dopo deduzione bonus)
+                        new_free_capital = Decimal(str(portfolio['free_capital'])) + invested_amount
+                        new_profits = Decimal(str(portfolio['profits'])) + final_profit
+                        new_invested_capital = Decimal(str(portfolio['invested_capital'])) - invested_amount
+                        
+                        cur.execute("""
+                            UPDATE user_portfolios 
+                            SET free_capital = %s, 
+                                profits = %s, 
+                                invested_capital = %s,
+                                updated_at = NOW()
+                            WHERE user_id = %s
+                        """, (new_free_capital, new_profits, new_invested_capital, user_id))
+                        
+                        # Crea record di distribuzione profitti (con profitto finale dopo deduzione)
+                        cur.execute("""
+                            INSERT INTO profit_distributions (
+                                user_id, investment_id, project_sale_id, 
+                                roi_amount, referral_bonus, total_distributed, distribution_date
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (user_id, investment['id'], sale_id, final_profit, referral_bonus_to_deduct, final_profit, sale_date))
+                        
+                        investors_processed += 1
                 
                 else:  # Vendita in perdita
                     for investment in investments:
                         user_id = investment['user_id']
                         invested_amount = Decimal(str(investment['amount']))
-                        loss_ratio = Decimal(str(sale_price)) / total_invested
-                        returned_amount = invested_amount * loss_ratio
+                        
+                        # Calcola la perdita proporzionale
+                        loss_share = (invested_amount / total_invested) * abs(total_profit)
+                        returned_amount = invested_amount - loss_share
                         
                         # Ottieni portfolio attuale
                         cur.execute("""
@@ -162,46 +190,76 @@ def admin_create_project_sale():
                         """, (user_id,))
                         portfolio = cur.fetchone()
                         
-                        if portfolio:
-                            # Aggiorna portfolio
-                            new_free_capital = portfolio['free_capital'] + returned_amount
-                            new_invested_capital = portfolio['invested_capital'] - invested_amount
-                            
+                        if not portfolio:
+                            # Crea portfolio se non esiste
+                            cur.execute("""
+                                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                VALUES (%s, 0, 0, 0, 0)
+                            """, (user_id,))
+                            portfolio = {'free_capital': 0, 'invested_capital': 0}
+                        
+                        # Aggiorna portfolio: solo il capitale rimanente torna in capitale libero
+                        new_free_capital = Decimal(str(portfolio['free_capital'])) + returned_amount
+                        new_invested_capital = Decimal(str(portfolio['invested_capital'])) - invested_amount
+                        
+                        cur.execute("""
+                            UPDATE user_portfolios 
+                            SET free_capital = %s, 
+                                invested_capital = %s,
+                                updated_at = NOW()
+                            WHERE user_id = %s
+                        """, (new_free_capital, new_invested_capital, user_id))
+                        
+                        # Crea record di distribuzione (con perdita)
+                        cur.execute("""
+                            INSERT INTO profit_distributions (
+                                user_id, investment_id, project_sale_id, 
+                                roi_amount, referral_bonus, total_distributed, distribution_date
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (user_id, investment['id'], sale_id, -loss_share, 0, returned_amount, sale_date))
+                        
+                        investors_processed += 1
+                
+                # 5. Distribuisci bonus referral (solo per vendite in profitto)
+                if total_profit >= 0 and referral_bonuses:
+                    for referrer_id, bonus_amount in referral_bonuses.items():
+                        # Ottieni portfolio del referrer
+                        cur.execute("""
+                            SELECT referral_bonus
+                            FROM user_portfolios 
+                            WHERE user_id = %s
+                        """, (referrer_id,))
+                        referrer_portfolio = cur.fetchone()
+                        
+                        if referrer_portfolio:
+                            new_referral_bonus = Decimal(str(referrer_portfolio['referral_bonus'])) + bonus_amount
                             cur.execute("""
                                 UPDATE user_portfolios 
-                                SET free_capital = %s, invested_capital = %s
+                                SET referral_bonus = %s,
+                                    updated_at = NOW()
                                 WHERE user_id = %s
-                            """, (new_free_capital, new_invested_capital, user_id))
-                            
-                            # Registra transazione
+                            """, (new_referral_bonus, referrer_id))
+                        else:
+                            # Crea portfolio se non esiste
                             cur.execute("""
-                                INSERT INTO portfolio_transactions 
-                                (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
-                                VALUES (%s, 'investment', %s, %s, %s, %s, 'project_sale', %s, 'completed')
-                            """, (user_id, returned_amount, portfolio['free_capital'], new_free_capital, 
-                                  f"Restituzione parziale capitale - Vendita in perdita {project['name']}", sale_id))
-                            
-                            # Registra distribuzione profitti
-                            cur.execute("""
-                                INSERT INTO profit_distributions 
-                                (project_sale_id, user_id, investment_id, roi_amount, referral_bonus, total_distributed, distribution_date)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (sale_id, user_id, investment['id'], 0, 0, returned_amount, sale_date))
-                            
-                            investors_processed += 1
+                                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                VALUES (%s, 0, 0, 0, %s)
+                            """, (referrer_id, bonus_amount))
                 
-                # 5. Aggiorna lo stato del progetto
+                # 6. Aggiorna lo stato del progetto
+                profit_percentage = ((sale_price - float(total_invested)) / float(total_invested)) * 100 if total_invested > 0 else 0
                 cur.execute("""
                     UPDATE projects 
                     SET status = 'sold', 
                         sale_price = %s,
                         sale_date = %s,
+                        profit_percentage = %s,
                         sold_by_admin_id = %s,
                         updated_at = NOW()
                     WHERE id = %s
-                """, (sale_price, sale_date, session.get('user_id'), project_id))
+                """, (sale_price, sale_date, profit_percentage, session.get('user_id'), project_id))
                 
-                # 6. Marca tutti gli investimenti come completati
+                # 7. Marca tutti gli investimenti come completati
                 cur.execute("""
                     UPDATE investments 
                     SET status = 'completed', 
@@ -222,6 +280,8 @@ def admin_create_project_sale():
                     'investors_count': investors_processed,
                     'total_invested': float(total_invested),
                     'total_profit': float(total_profit),
+                    'profit_percentage': round(profit_percentage, 2),
+                    'referral_bonuses_distributed': len(referral_bonuses),
                     'sale_type': 'profit' if total_profit >= 0 else 'loss'
                 })
                 
@@ -305,26 +365,26 @@ def admin_cancel_project():
                     """, (user_id,))
                     portfolio = cur.fetchone()
                     
-                    if portfolio:
-                        # Aggiorna portfolio: restituisci al capitale libero
-                        new_free_capital = portfolio['free_capital'] + invested_amount
-                        new_invested_capital = portfolio['invested_capital'] - invested_amount
-                        
+                    if not portfolio:
+                        # Crea portfolio se non esiste
                         cur.execute("""
-                            UPDATE user_portfolios 
-                            SET free_capital = %s, invested_capital = %s
-                            WHERE user_id = %s
-                        """, (new_free_capital, new_invested_capital, user_id))
-                        
-                        # Registra transazione
-                        cur.execute("""
-                            INSERT INTO portfolio_transactions 
-                            (user_id, type, amount, balance_before, balance_after, description, reference_type, reference_id, status)
-                            VALUES (%s, 'investment', %s, %s, %s, %s, 'project_cancel', %s, 'completed')
-                        """, (user_id, invested_amount, portfolio['free_capital'], new_free_capital, 
-                              f"Restituzione capitale investito - Annullamento {project['name']}", project_id))
-                        
-                        investors_processed += 1
+                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                            VALUES (%s, 0, 0, 0, 0)
+                        """, (user_id,))
+                        portfolio = {'free_capital': 0, 'invested_capital': 0}
+                    
+                    # Aggiorna portfolio: restituisci al capitale libero
+                    new_free_capital = Decimal(str(portfolio['free_capital'])) + invested_amount
+                    new_invested_capital = Decimal(str(portfolio['invested_capital'])) - invested_amount
+                    
+                    cur.execute("""
+                        UPDATE user_portfolios 
+                        SET free_capital = %s, invested_capital = %s,
+                            updated_at = NOW()
+                        WHERE user_id = %s
+                    """, (new_free_capital, new_invested_capital, user_id))
+                    
+                    investors_processed += 1
                 
                 # 4. Aggiorna lo stato del progetto a 'cancelled'
                 cur.execute("""
@@ -401,12 +461,6 @@ def admin_delete_project():
                     }), 404
                 
                 # 2. Elimina tutti i record correlati (in ordine per evitare errori di foreign key)
-                
-                # Elimina transazioni portfolio correlate
-                cur.execute("""
-                    DELETE FROM portfolio_transactions 
-                    WHERE reference_type = 'project_sale' AND reference_id = %s
-                """, (project_id,))
                 
                 # Elimina distribuzioni profitti
                 cur.execute("""

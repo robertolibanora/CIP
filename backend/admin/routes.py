@@ -185,7 +185,6 @@ def projects_new():
         
         # Campi opzionali schema esteso con valori di default
         roi_value = float(data.get('roi', 8.0))
-        duration_value = int(data.get('duration', 12))
         project_type = data.get('type', 'residential')
         
         # Valori di default per campi obbligatori
@@ -205,33 +204,31 @@ def projects_new():
                 """
                 INSERT INTO projects (
                     code, name, description, status, total_amount, start_date, end_date,
-                    location, min_investment, image_url, roi, duration, type
+                    location, min_investment, image_url, roi, type, funded_amount
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                RETURNING id
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     code_value, name_value, description_value, status_value,
                     total_amount_value, start_date_value, end_date_value,
                     location_value, min_investment_value, photo_filename,
-                    roi_value, duration_value, project_type
+                    roi_value, project_type, 0.0
                 )
             )
-            result = cur.fetchone()
-            if result:
-                pid = result['id']
-            else:
-                pid = cur.lastrowid
+            pid = cur.lastrowid
             
             conn.commit()
         
         return jsonify({"id": pid, "message": "Progetto creato con successo"})
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Errore nella creazione del progetto: {e}")
+        logger.error(f"Traceback completo: {error_details}")
         return jsonify({
             "success": False,
-            "message": "Errore interno del server"
+            "message": f"Errore interno del server: {str(e)}"
         }), 500
 
 @admin_bp.get("/uploads/projects/<filename>")
@@ -455,21 +452,60 @@ def projects_edit(pid):
 @admin_bp.delete("/projects/<int:pid>")
 @admin_required
 def projects_delete(pid):
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica se ci sono investimenti attivi
-        cur.execute("SELECT COUNT(*) as count FROM investments WHERE project_id=%s AND status='active'", (pid,))
-        active_investments = cur.fetchone()['count']
-        
-        if active_investments > 0:
-            return jsonify({"error": "Impossibile eliminare: ci sono investimenti attivi"}), 400
-        
-        # Elimina il progetto
-        cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
-        
-        if cur.rowcount == 0:
-            abort(404)
-    
-    return jsonify({"deleted": True})
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Ottieni dettagli progetto
+            cur.execute("SELECT id, name, funded_amount FROM projects WHERE id=%s", (pid,))
+            project = cur.fetchone()
+            
+            if not project:
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            # Ottieni tutti gli investimenti attivi per questo progetto
+            cur.execute("""
+                SELECT i.id, i.user_id, i.amount, u.email
+                FROM investments i
+                JOIN users u ON u.id = i.user_id
+                WHERE i.project_id = %s AND i.status = 'active'
+            """, (pid,))
+            investments = cur.fetchall()
+            
+            # Rimborsa tutti gli investimenti attivi
+            for investment in investments:
+                user_id = investment['user_id']
+                amount = investment['amount']
+                
+                # Aggiorna il portfolio dell'utente: rimuovi da invested_capital e aggiungi a free_capital
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET invested_capital = invested_capital - %s,
+                        free_capital = free_capital + %s
+                    WHERE user_id = %s
+                """, (amount, amount, user_id))
+                
+                # Se il portfolio non esiste, crealo
+                if cur.rowcount == 0:
+                    cur.execute("""
+                        INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                        VALUES (%s, %s, 0, 0, 0)
+                    """, (user_id, amount))
+            
+            # Elimina tutti gli investimenti per questo progetto (per rispettare il vincolo di chiave esterna)
+            cur.execute("DELETE FROM investments WHERE project_id = %s", (pid,))
+            
+            # Ora elimina il progetto
+            cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
+            
+            if cur.rowcount == 0:
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            return jsonify({
+                "deleted": True, 
+                "message": f"Progetto eliminato. Rimborsati {len(investments)} investimenti per un totale di €{project['funded_amount']:,.2f}"
+            })
+            
+    except Exception as e:
+        return jsonify({"error": f"Errore durante l'eliminazione: {str(e)}"}), 500
 
 @admin_bp.post("/projects/<int:pid>/upload")
 @admin_required
@@ -779,7 +815,7 @@ def projects_export():
         # Header CSV
         writer.writerow([
             'ID', 'Codice', 'Nome', 'Descrizione', 'Localit', 'Tipologia',
-            'Importo Totale', 'Min Investment', 'ROI', 'Durata', 'Stato',
+            'Importo Totale', 'Min Investment', 'RA', 'Stato',
             'Data Inizio', 'Data Fine', 'Data Creazione'
         ])
         
@@ -795,7 +831,6 @@ def projects_export():
                 project.get('total_amount', ''),
                 project.get('min_investment', ''),
                 project.get('roi', ''),
-                project.get('duration', ''),
                 project.get('status', ''),
                 project.get('start_date', ''),
                 project.get('end_date', ''),
@@ -1874,6 +1909,47 @@ def api_admin_update_portfolio(user_id: int):
         params.append(user_id)
 
         cur.execute(f"UPDATE user_portfolios SET {', '.join(set_parts)} WHERE user_id = %s", params)
+        
+        # Se è stato modificato invested_capital, sincronizza con la tabella investments
+        if 'invested_capital' in updates:
+            new_invested_capital = updates['invested_capital']
+            
+            # Ottieni il totale attuale degli investimenti attivi
+            cur.execute("""
+                SELECT COALESCE(SUM(amount), 0) as total_investments
+                FROM investments 
+                WHERE user_id = %s AND status = 'active'
+            """, (user_id,))
+            current_total = cur.fetchone()['total_investments'] or 0
+            
+            # Calcola la differenza
+            difference = new_invested_capital - current_total
+            
+            if difference != 0:
+                # Se c'è una differenza, aggiorna proporzionalmente tutti gli investimenti attivi
+                if current_total > 0:
+                    # Aggiorna proporzionalmente ogni investimento
+                    cur.execute("""
+                        UPDATE investments 
+                        SET amount = amount * (%s / %s)
+                        WHERE user_id = %s AND status = 'active'
+                    """, (new_invested_capital, current_total, user_id))
+                else:
+                    # Se non ci sono investimenti attivi ma c'è capitale investito,
+                    # crea un investimento virtuale per il primo progetto attivo
+                    cur.execute("""
+                        SELECT id FROM projects 
+                        WHERE status = 'active' 
+                        ORDER BY created_at ASC 
+                        LIMIT 1
+                    """)
+                    first_project = cur.fetchone()
+                    if first_project:
+                        cur.execute("""
+                            INSERT INTO investments (user_id, project_id, amount, status, created_at)
+                            VALUES (%s, %s, %s, 'active', NOW())
+                        """, (user_id, first_project['id'], new_invested_capital))
+        
         cur.execute(
             """
             INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
@@ -1907,10 +1983,54 @@ def api_admin_update_investment(user_id: int, investment_id: int):
 
     with get_conn() as conn, conn.cursor() as cur:
         ensure_admin_actions_table(cur)
-        cur.execute(
-            f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
-            params
-        )
+        
+        # Se stai modificando l'importo, aggiorna anche il progetto
+        if 'amount' in updates:
+            new_amount = float(updates['amount'])
+            
+            # Ottieni l'investimento attuale per calcolare la differenza
+            cur.execute("""
+                SELECT amount, project_id 
+                FROM investments 
+                WHERE id = %s AND user_id = %s
+            """, (investment_id, user_id))
+            investment = cur.fetchone()
+            
+            if investment:
+                old_amount = float(investment['amount'])
+                project_id = investment['project_id']
+                difference = new_amount - old_amount
+                
+                # Aggiorna l'investimento
+                cur.execute(
+                    f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
+                    params
+                )
+                
+                # Aggiorna il funded_amount del progetto
+                cur.execute("""
+                    UPDATE projects 
+                    SET funded_amount = funded_amount + %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (difference, project_id))
+                
+                # Aggiorna anche il portfolio dell'utente
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET invested_capital = invested_capital + %s,
+                        updated_at = NOW()
+                    WHERE user_id = %s
+                """, (difference, user_id))
+            else:
+                return jsonify({'error': 'Investimento non trovato'}), 404
+        else:
+            # Se non stai modificando l'importo, aggiorna solo l'investimento
+            cur.execute(
+                f"UPDATE investments SET {', '.join(set_parts)} WHERE id = %s AND user_id = %s",
+                params
+            )
+        
         cur.execute(
             """
             INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
@@ -2368,7 +2488,7 @@ def calculate_secondary_metrics(cur, start_dt, end_dt):
     """, (start_dt, end_dt))
     avg_investment = cur.fetchone()['avg_investment'] or 0
     
-    # Average ROI
+    # Average RA
     cur.execute("""
         SELECT AVG(roi) as avg_roi
         FROM projects 
@@ -2458,7 +2578,7 @@ def generate_chart_data(cur, start_dt, end_dt, period):
     """, (start_dt, end_dt))
     investment_volume_data = cur.fetchall()
     
-    # Projects Performance (top 10 projects by ROI)
+    # Projects Performance (top 10 projects by RA)
     cur.execute("""
         SELECT p.name, p.roi, 
                (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) as volume,
@@ -2629,7 +2749,7 @@ def export_analytics_csv(analytics_data, export_type):
     
     if export_type == 'projects_performance':
         # Export top projects data
-        writer.writerow(['Codice', 'Titolo', 'ROI %', 'Volume ', 'Investitori', 'Finanziamento %', 'Stato'])
+        writer.writerow(['Codice', 'Titolo', 'RA %', 'Volume ', 'Investitori', 'Finanziamento %', 'Stato'])
         
         for project in analytics_data.get('top_projects', []):
             writer.writerow([
@@ -2657,7 +2777,7 @@ def export_analytics_csv(analytics_data, export_type):
         metrics = analytics_data.get('metrics', {})
         writer.writerow(['Tasso Conversione', f"{metrics.get('conversion_rate', 0):.1f}%", ''])
         writer.writerow(['Investimento Medio', f"{metrics.get('avg_investment', 0):,.2f}", ''])
-        writer.writerow(['ROI Medio', f"{metrics.get('avg_roi', 0):.1f}%", ''])
+        writer.writerow(['RA Medio', f"{metrics.get('avg_roi', 0):.1f}%", ''])
         writer.writerow(['KYC Pendenti', metrics.get('kyc_pending', 0), ''])
         writer.writerow(['Tempo Approvazione Medio', f"{metrics.get('avg_approval_time', 0):.1f} giorni", ''])
         writer.writerow(['Retention Rate', f"{metrics.get('retention_rate', 0):.1f}%", ''])
@@ -3407,11 +3527,7 @@ def get_admin_metrics():
         }
 
 # ---- TASK 2.7 - Transazioni Sistema (RIMOSSA) ----
-@admin_bp.get("/transactions")
-@admin_required
-def transactions_dashboard():
-    """Dashboard transazioni - Pagina vuota"""
-    return render_template('admin/transactions/dashboard.html')
+# Funzione rimossa - ora implementata più avanti nel file
 
 # ---- TASK 2.7 - Sistema Referral (NUOVO) ----
 @admin_bp.get("/referral")
@@ -3835,7 +3951,6 @@ def create_project():
         location = request.form.get('location', '').strip() or 'Indirizzo non specificato'
         project_type = request.form.get('type', 'residential')
         roi = request.form.get('roi', type=float) or 8.0
-        duration = request.form.get('duration', type=int) or 12
         # Date obbligatorie - usa date di default se non fornite
         start_date = request.form.get('start_date') or date.today().isoformat()
         end_date = request.form.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
@@ -3857,7 +3972,7 @@ def create_project():
         
         with get_conn() as conn, conn.cursor() as cur:
             # Verifica che il codice non esista gi
-            cur.execute("SELECT id FROM projects WHERE code = %s", (code,))
+            cur.execute("SELECT id FROM projects WHERE code = ?", (code,))
             if cur.fetchone():
                 return jsonify({
                     'success': False,
@@ -3885,20 +4000,18 @@ def create_project():
             # Inserisci progetto nel database
             cur.execute("""
                 INSERT INTO projects (code, name, description, total_amount, min_investment, 
-                                   location, type, roi, duration, start_date, end_date, image_url, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active')
-                RETURNING id
+                                   location, type, roi, start_date, end_date, image_url, status, funded_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (code, name, description, total_amount, min_investment, 
-                  location, project_type, roi, duration, start_date, end_date, image_url))
+                  location, project_type, roi, start_date, end_date, image_url, 'active', 0.0))
             
-            result = cur.fetchone()
-            project_id = result['id'] if result else None
+            project_id = cur.lastrowid
             
-            # Log dell'azione
-            cur.execute("""
-                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details, created_at)
-                VALUES (%s, 'project_created', 'project', %s, %s, CURRENT_TIMESTAMP)
-            """, (session.get('user_id'), project_id, f'Progetto creato: {name} (ID: {project_id})'))
+            # Log dell'azione (temporaneamente disabilitato - tabella admin_actions non esiste)
+            # cur.execute("""
+            #     INSERT INTO admin_actions (admin_id, action, target_type, target_id, details, created_at)
+            #     VALUES (%s, 'project_created', 'project', %s, %s, CURRENT_TIMESTAMP)
+            # """, (session.get('user_id'), project_id, f'Progetto creato: {name} (ID: {project_id})'))
             
             conn.commit()
             
@@ -3909,10 +4022,13 @@ def create_project():
             })
             
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Errore nella creazione del progetto: {e}")
+        logger.error(f"Traceback completo: {error_details}")
         return jsonify({
             'success': False,
-            'message': 'Errore interno del server'
+            'message': f'Errore interno del server: {str(e)}'
         }), 500
 
 # ---- Static uploads ----
@@ -3920,4 +4036,160 @@ def create_project():
 @admin_required
 def uploaded_file(filename):
     return send_from_directory(get_upload_folder(), filename)
+
+# =====================================================
+# TRANSACTIONS - Report e analisi transazioni
+# =====================================================
+
+@admin_bp.get('/transactions')
+@admin_required
+def transactions_dashboard():
+    """Dashboard transazioni con report e grafici"""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # 1. STATISTICHE GENERALI
+            # Depositi totali
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_deposits,
+                    COALESCE(SUM(amount), 0) as total_deposit_amount,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_deposits,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_deposit_amount
+                FROM deposit_requests
+            """)
+            deposits_stats = cur.fetchone()
+            
+            # Prelievi totali
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_withdrawals,
+                    COALESCE(SUM(amount), 0) as total_withdrawal_amount,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_withdrawals,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_withdrawal_amount
+                FROM withdrawal_requests
+            """)
+            withdrawals_stats = cur.fetchone()
+            
+            # Transazioni portfolio
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_transactions,
+                    COALESCE(SUM(amount), 0) as total_transaction_amount,
+                    COUNT(CASE WHEN type = 'deposit' THEN 1 END) as deposit_transactions,
+                    COUNT(CASE WHEN type = 'withdrawal' THEN 1 END) as withdrawal_transactions,
+                    COUNT(CASE WHEN type = 'investment' THEN 1 END) as investment_transactions,
+                    COUNT(CASE WHEN type = 'roi' THEN 1 END) as roi_transactions,
+                    COUNT(CASE WHEN type = 'referral' THEN 1 END) as referral_transactions
+                FROM portfolio_transactions
+                WHERE status = 'completed'
+            """)
+            portfolio_stats = cur.fetchone()
+            
+            # 2. GUADAGNI DA VENDITE
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_sales,
+                    COALESCE(SUM(sale_amount), 0) as total_sales_amount,
+                    COALESCE(SUM(sale_amount - (
+                        SELECT COALESCE(SUM(amount), 0) 
+                        FROM investments i 
+                        WHERE i.project_id = ps.project_id AND i.status = 'completed'
+                    )), 0) as total_profits
+                FROM project_sales ps
+                WHERE ps.roi_distributed = 1
+            """)
+            sales_stats = cur.fetchone()
+            
+            # 3. CAPITALE TOTALE DISPONIBILE
+            cur.execute("""
+                SELECT 
+                    COALESCE(SUM(free_capital), 0) as total_free_capital,
+                    COALESCE(SUM(invested_capital), 0) as total_invested_capital,
+                    COALESCE(SUM(referral_bonus), 0) as total_referral_bonus,
+                    COALESCE(SUM(profits), 0) as total_profits,
+                    COALESCE(SUM(free_capital + invested_capital + referral_bonus + profits), 0) as total_capital
+                FROM user_portfolios
+            """)
+            capital_stats = cur.fetchone()
+            
+            
+        return render_template('admin/transactions/dashboard.html',
+                             deposits_stats=deposits_stats,
+                             withdrawals_stats=withdrawals_stats,
+                             portfolio_stats=portfolio_stats,
+                             sales_stats=sales_stats,
+                             capital_stats=capital_stats)
+        
+    except Exception as e:
+        logger.error(f"Errore nel caricamento dashboard transazioni: {e}")
+        return render_template('admin/transactions/dashboard.html',
+                             error="Errore nel caricamento dei dati")
+
+
+@admin_bp.get('/transactions/<int:transaction_id>')
+@admin_required
+def transaction_detail(transaction_id):
+    """Dettaglio di una transazione specifica"""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            
+            # Dettagli transazione
+            cur.execute("""
+                SELECT 
+                    pt.*,
+                    u.email as user_email,
+                    u.full_name as user_name,
+                    u.nome,
+                    u.cognome
+                FROM portfolio_transactions pt
+                JOIN users u ON pt.user_id = u.id
+                WHERE pt.id = %s
+            """, (transaction_id,))
+            transaction = cur.fetchone()
+            
+            if not transaction:
+                return render_template('admin/transactions/detail.html', 
+                                     error="Transazione non trovata")
+            
+            # Transazioni correlate (stesso utente, stesso giorno)
+            cur.execute("""
+                SELECT 
+                    pt.id,
+                    pt.type,
+                    pt.amount,
+                    pt.description,
+                    pt.created_at
+                FROM portfolio_transactions pt
+                WHERE pt.user_id = %s
+                AND DATE(pt.created_at) = DATE(%s)
+                AND pt.id != %s
+                ORDER BY pt.created_at DESC
+                LIMIT 10
+            """, (transaction['user_id'], transaction['created_at'], transaction_id))
+            related_transactions = cur.fetchall()
+            
+            # Portfolio dell'utente al momento della transazione
+            cur.execute("""
+                SELECT 
+                    free_capital,
+                    invested_capital,
+                    referral_bonus,
+                    profits
+                FROM user_portfolios
+                WHERE user_id = %s
+            """, (transaction['user_id'],))
+            user_portfolio = cur.fetchone()
+            
+        return render_template('admin/transactions/detail.html',
+                             transaction=transaction,
+                             related_transactions=related_transactions,
+                             user_portfolio=user_portfolio)
+        
+    except Exception as e:
+        logger.error(f"Errore nel caricamento dettaglio transazione: {e}")
+        return render_template('admin/transactions/detail.html',
+                             error="Errore nel caricamento dei dati")
 

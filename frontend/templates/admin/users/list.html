@@ -95,18 +95,10 @@
       <button id="close-portfolio" class="btn" style="position:absolute; right:8px; top:8px;">×</button>
       <h3 style="margin:0 0 14px 0; font-size:20px;">Portafoglio utente</h3>
       <div id="portfolio-summary" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-bottom:12px;"></div>
-      <div class="card" style="padding:0; overflow:auto;">
-        <table class="table" style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th style="text-align:left; padding:14px;">Progetto</th>
-              <th style="text-align:left; padding:14px;">Importo</th>
-              <th style="text-align:left; padding:14px;">Stato</th>
-              <th style="text-align:left; padding:14px;">Data</th>
-            </tr>
-          </thead>
-          <tbody id="portfolio-tbody"></tbody>
-        </table>
+      <div class="card" style="padding:20px; text-center;">
+        <p style="color: #6b7280; margin: 0;">
+          ⚠️ Per modificare gli investimenti specifici sui progetti, vai alla sezione "Progetti" e seleziona il progetto desiderato.
+        </p>
       </div>
     </div>
   </div>
@@ -128,7 +120,7 @@
   const portfolioModal = document.getElementById('portfolio-modal');
   const closePortfolioBtn = document.getElementById('close-portfolio');
   const portfolioSummary = document.getElementById('portfolio-summary');
-  const portfolioTbody = document.getElementById('portfolio-tbody');
+  // portfolioTbody rimosso - tabella investimenti non più presente
   let currentPortfolioUserId = null;
   let currentHistoryItems = [];
   const userNameCache = {};
@@ -255,22 +247,7 @@
   // Pulsante Salva Saldi rimosso definitivamente
 
   // Save a single investment row
-  portfolioTbody.addEventListener('click', async (e)=>{
-    const btn = e.target.closest('.inv-save');
-    if(!btn) return;
-    const invid = btn.getAttribute('data-invid');
-    const amount = document.querySelector(`input.inv-amount[data-invid="${invid}"]`).value;
-    const status = document.querySelector(`select.inv-status[data-invid="${invid}"]`).value;
-    const res = await fetch(`/admin/api/admin/users/${currentPortfolioUserId}/portfolio/investments/${invid}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: parseFloat(amount || '0'), status })
-    });
-    if(res.ok){
-      showToast('Investimento aggiornato');
-      fetchUsers();
-    }
-  });
+  // Gestione investimenti rimossa - ora disponibile solo nella sezione Progetti
 
   function debouncedFetch(){
     clearTimeout(debounceTimer);
@@ -420,28 +397,7 @@
       `;
     }
     
-    portfolioTbody.innerHTML = '';
-    for(const inv of (data.investments||[])){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="padding:14px;">${inv.project_name||'-'}</td>
-        <td style="padding:14px;">
-          <input type="number" step="0.01" value="${inv.amount||0}" data-invid="${inv.id}" class="inv-amount" style="width:120px; padding:6px; border:1px solid #e5e7eb; border-radius:8px;" />
-        </td>
-        <td style="padding:14px; text-transform:capitalize;">
-          <select data-invid="${inv.id}" class="inv-status" style="padding:6px; border:1px solid #e5e7eb; border-radius:8px;">
-            <option value="active" ${inv.status==='active'?'selected':''}>active</option>
-            <option value="completed" ${inv.status==='completed'?'selected':''}>completed</option>
-            <option value="cancelled" ${inv.status==='cancelled'?'selected':''}>cancelled</option>
-          </select>
-        </td>
-        <td style="padding:14px; display:flex; align-items:center; gap:8px;">
-          ${(inv.created_at||'').slice(0,10)}
-          <button class="btn-theme btn-small inv-save" data-invid="${inv.id}">Salva</button>
-        </td>
-      `;
-      portfolioTbody.appendChild(tr);
-    }
+    // Tabella investimenti rimossa - ora gestita solo nella sezione Progetti
     openPortfolio();
     currentPortfolioUserId = id;
   }

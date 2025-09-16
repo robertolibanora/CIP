@@ -31,12 +31,12 @@
                     
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <span class="text-gray-600">ROI:</span>
+                            <span class="text-gray-600">RA:</span>
                             <span class="font-medium text-green-600 ml-1">{{ "%.1f"|format(project.roi|float) }}%</span>
                         </div>
                         <div>
-                            <span class="text-gray-600">Durata:</span>
-                            <span class="font-medium ml-1">{{ project.duration }} mesi</span>
+                            <span class="text-gray-600">Scadenza:</span>
+                            <span class="font-medium ml-1">{{ project.end_date.strftime('%d/%m/%Y') if project.end_date else 'N/A' }}</span>
                         </div>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                     </p>
                 </div>
 
-                <!-- Calcolo ROI -->
+                <!-- Calcolo RA -->
                 <div class="bg-blue-50 p-4 rounded-lg">
                     <h5 class="font-medium text-gray-900 mb-3">Proiezione Investimento</h5>
                     <div class="space-y-2 text-sm">
@@ -68,7 +68,7 @@
                             <span class="font-medium" id="investedAmount">€0</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-gray-600">ROI Atteso ({{ "%.1f"|format(project.roi|float) }}%):</span>
+                            <span class="text-gray-600">RA Atteso ({{ "%.1f"|format(project.roi|float) }}%):</span>
                             <span class="font-medium text-green-600" id="expectedReturn">€0</span>
                         </div>
                         <div class="flex justify-between">
@@ -125,10 +125,8 @@
 function calculateInvestment() {
     const amount = parseFloat(document.getElementById('amount').value) || 0;
     const roi = {{ project.roi|float }};
-    const duration = {{ project.duration }};
-    
     if (amount > 0) {
-        const expectedReturn = (amount * roi / 100) * (duration / 12);
+        const expectedReturn = (amount * roi / 100);
         const finalValue = amount + expectedReturn;
         const netProfit = expectedReturn;
         

@@ -1,18 +1,154 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Transazioni Sistema - Admin{% endblock %}
+{% block title %}Wallet CIP - Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('assets', filename='css/transactions.css') }}">
+<style>
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-card.green {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .metric-card.orange {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .metric-card.purple {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        color: #333;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    
+    .transaction-item {
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        background: #f8fafc;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .transaction-item.deposit {
+        border-left-color: #10b981;
+    }
+    
+    .transaction-item.withdrawal {
+        border-left-color: #ef4444;
+    }
+    
+    .transaction-item.investment {
+        border-left-color: #3b82f6;
+    }
+    
+    .transaction-item.roi {
+        border-left-color: #f59e0b;
+    }
+    
+    .transaction-item.referral {
+        border-left-color: #8b5cf6;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Pagina Transazioni - Vuota -->
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div>
-                <h1 class="admin-heading-1">Transazioni Sistema</h1>
-                <p class="admin-text-small">Pagina in fase di sviluppo</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard Wallet CIP</h1>
+        <p class="mt-2 text-gray-600">Report completi su entrate, uscite e guadagni</p>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <p class="text-red-800">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Statistiche Principali -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Depositi -->
+        <div class="metric-card">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-90">Depositi Totali</p>
+                    <p class="text-2xl font-bold">€{{ "%.2f"|format(deposits_stats.completed_deposit_amount or 0) }}</p>
+                    <p class="text-xs opacity-75">{{ deposits_stats.completed_deposits or 0 }} completati</p>
+                </div>
+                <div class="text-3xl opacity-50">💰</div>
+            </div>
+        </div>
+
+        <!-- Prelievi -->
+        <div class="metric-card green">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-90">Prelievi Totali</p>
+                    <p class="text-2xl font-bold">€{{ "%.2f"|format(withdrawals_stats.completed_withdrawal_amount or 0) }}</p>
+                    <p class="text-xs opacity-75">{{ withdrawals_stats.completed_withdrawals or 0 }} completati</p>
+                </div>
+                <div class="text-3xl opacity-50">💸</div>
+            </div>
+        </div>
+
+        <!-- Guadagni da Vendite -->
+        <div class="metric-card orange">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-90">Guadagni Vendite</p>
+                    <p class="text-2xl font-bold">€{{ "%.2f"|format(sales_stats.total_profits or 0) }}</p>
+                    <p class="text-xs opacity-75">{{ sales_stats.total_sales or 0 }} vendite</p>
+                </div>
+                <div class="text-3xl opacity-50">📈</div>
+            </div>
+        </div>
+
+        <!-- Capitale Totale -->
+        <div class="metric-card purple">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm opacity-90">Capitale Totale</p>
+                    <p class="text-2xl font-bold">€{{ "%.2f"|format(capital_stats.total_capital or 0) }}</p>
+                    <p class="text-xs opacity-75">Tutti i portafogli</p>
+                </div>
+                <div class="text-3xl opacity-50">🏦</div>
             </div>
         </div>
     </div>
+
+
+    <!-- Dettagli Capitale -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg p-6 shadow-sm border">
+            <h4 class="text-sm font-medium text-gray-500 mb-2">Capitale Libero</h4>
+            <p class="text-2xl font-bold text-green-600">€{{ "%.2f"|format(capital_stats.total_free_capital or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg p-6 shadow-sm border">
+            <h4 class="text-sm font-medium text-gray-500 mb-2">Capitale Investito</h4>
+            <p class="text-2xl font-bold text-blue-600">€{{ "%.2f"|format(capital_stats.total_invested_capital or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg p-6 shadow-sm border">
+            <h4 class="text-sm font-medium text-gray-500 mb-2">Bonus Referral</h4>
+            <p class="text-2xl font-bold text-purple-600">€{{ "%.2f"|format(capital_stats.total_referral_bonus or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg p-6 shadow-sm border">
+            <h4 class="text-sm font-medium text-gray-500 mb-2">Profitti Totali</h4>
+            <p class="text-2xl font-bold text-orange-600">€{{ "%.2f"|format(capital_stats.total_profits or 0) }}</p>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

@@ -1,0 +1,200 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Dettaglio Transazione - Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('assets', filename='css/transactions.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Dettaglio Transazione</h1>
+                <p class="mt-2 text-gray-600">ID: #{{ transaction.id if transaction else 'N/A' }}</p>
+            </div>
+            <a href="{{ url_for('admin.transactions_dashboard') }}" 
+               class="action-btn secondary">
+                ← Torna al Wallet CIP
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <p class="text-red-800">{{ error }}</p>
+    </div>
+    {% else %}
+    
+    <!-- Informazioni Transazione -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Dettagli Principali -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Informazioni Transazione</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Tipo</label>
+                        <div class="mt-1">
+                            <span class="transaction-badge {{ transaction.type }}">
+                                {{ transaction.type.upper() }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Importo</label>
+                        <p class="mt-1 text-2xl font-bold text-gray-900">
+                            €{{ "%.2f"|format(transaction.amount) }}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Stato</label>
+                        <p class="mt-1">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ transaction.status.upper() }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Data</label>
+                        <p class="mt-1 text-gray-900">
+                            {{ transaction.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </p>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-medium text-gray-500">Descrizione</label>
+                        <p class="mt-1 text-gray-900">{{ transaction.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informazioni Utente -->
+        <div>
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Utente</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Nome</label>
+                        <p class="mt-1 text-gray-900">
+                            {{ transaction.user_name or (transaction.nome + ' ' + transaction.cognome) }}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">Email</label>
+                        <p class="mt-1 text-gray-900">{{ transaction.user_email }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-500">ID Utente</label>
+                        <p class="mt-1 text-gray-900">#{{ transaction.user_id }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bilanci -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Bilanci</h3>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Prima della transazione:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(transaction.balance_before) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Dopo la transazione:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(transaction.balance_after) }}</span>
+                </div>
+                <div class="flex justify-between border-t pt-3">
+                    <span class="text-gray-900 font-medium">Variazione:</span>
+                    <span class="font-bold {% if transaction.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if transaction.amount > 0 %}+{% endif %}€{{ "%.2f"|format(transaction.amount) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Portfolio Attuale -->
+        {% if user_portfolio %}
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Portfolio Attuale</h3>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Capitale Libero:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(user_portfolio.free_capital) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Capitale Investito:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(user_portfolio.invested_capital) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Bonus Referral:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(user_portfolio.referral_bonus) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Profitti:</span>
+                    <span class="font-medium">€{{ "%.2f"|format(user_portfolio.profits) }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Transazioni Correlate -->
+    {% if related_transactions %}
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Wallet Correlati</h3>
+            <p class="text-sm text-gray-600">Stesso utente, stesso giorno</p>
+        </div>
+        <div class="p-6">
+            <div class="space-y-3">
+                {% for related in related_transactions %}
+                <div class="transaction-item {{ related.type }}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3">
+                                <span class="transaction-badge {{ related.type }}">
+                                    {{ related.type.upper() }}
+                                </span>
+                                <span class="font-medium text-gray-900">
+                                    €{{ "%.2f"|format(related.amount) }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ related.description }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ related.created_at.strftime('%H:%M') }}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('admin.transaction_detail', transaction_id=related.id) }}" 
+                           class="action-btn secondary">
+                            Dettagli
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% endif %}
+</div>
+{% endblock %}

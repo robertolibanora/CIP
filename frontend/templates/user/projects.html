@@ -17,6 +17,10 @@
                     class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors bg-white text-blue-600 shadow-sm">
                 Attivi ({{ active_projects|length }})
             </button>
+            <button onclick="showSection('expired')" id="tab-expired" 
+                    class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors text-gray-600 hover:text-gray-900">
+                Scaduti ({{ expired_projects|length }})
+            </button>
             <button onclick="showSection('completed')" id="tab-completed" 
                     class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors text-gray-600 hover:text-gray-900">
                 Completati ({{ completed_projects|length }})
@@ -79,10 +83,10 @@
                                         <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
                                     </div>
                                     
-                                    <!-- ROI e investimento minimo -->
+                                    <!-- RA e investimento minimo -->
                                     <div class="text-left md:text-right mt-2 md:mt-0">
                                         <div class="text-2xl font-bold text-blue-600 mb-1">{{ "%.1f"|format(project.roi|float) }}%</div>
-                                        <div class="text-sm text-gray-600 mb-3">ROI Atteso</div>
+                                        <div class="text-sm text-gray-600 mb-3">RA Atteso</div>
                                         <div class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.min_investment|float) }}</div>
                                         <div class="text-xs text-gray-600">Investimento Minimo</div>
                                     </div>
@@ -95,7 +99,7 @@
                                         <span>{{ project.completion_percent }}%</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2">
-                                        <div class="bg-blue-600 h-2 rounded-full" style="width: {{ project.completion_percent }}%"></div>
+                                        <div class="bg-blue-600 h-2 rounded-full" data-progress="{{ project.completion_percent }}"></div>
                                     </div>
                                     <div class="flex justify-between text-sm text-gray-600 mt-1">
                                         <span>Raccolto: €{{ "{:,.0f}".format(project.funded_amount|float) }}</span>
@@ -167,6 +171,125 @@
             {% endif %}
         </div>
 
+        <!-- Sezione Progetti Scaduti -->
+        <div id="section-expired" class="section-content hidden">
+            {% if expired_projects %}
+                <div class="space-y-6">
+                    {% for project in expired_projects %}
+                    <div class="bg-white rounded-lg border shadow-sm overflow-hidden opacity-75" data-project-id="{{ project.id }}">
+                        <!-- Header con foto e info principali -->
+                        <div class="flex flex-col md:flex-row">
+                            <!-- Foto immobile -->
+                            <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
+                                {% if project.photo_filename %}
+                                    <img src="/uploads/projects/{{ project.photo_filename }}" 
+                                         alt="Foto {{ project.name }}" 
+                                         class="w-full h-full object-cover" loading="lazy">
+                                {% else %}
+                                    <div class="text-gray-400 text-center p-4">
+                                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        <p class="text-sm">Foto non disponibile</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Info progetto -->
+                            <div class="flex-1 p-6">
+                                <div class="flex flex-col md:flex-row md:items-start md:justify-between mb-4 gap-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                                {{ project.code }}
+                                            </span>
+                                            <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                                Scaduto
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
+                                        {% if project.location %}
+                                        <p class="text-gray-600 mb-3">
+                                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            {{ project.location }}
+                                        </p>
+                                        {% endif %}
+                                        <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
+                                        
+                                        <!-- Data di scadenza -->
+                                        <div class="mt-3 text-red-600 text-sm font-medium">
+                                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Scaduto il {{ project.end_date.strftime('%d/%m/%Y') if project.end_date else 'N/A' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Statistiche progetto -->
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-blue-600">€{{ "{:,.0f}".format(project.total_amount) }}</p>
+                                        <p class="text-gray-600 text-sm">Obiettivo</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-green-600">{{ project.completion_percent }}%</p>
+                                        <p class="text-gray-600 text-sm">Completato</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-purple-600">{{ project.roi }}%</p>
+                                        <p class="text-gray-600 text-sm">RA Atteso</p>
+                                    </div>
+                                    <div class="text-center">
+                                        {% if project.user_invested %}
+                                        <p class="text-2xl font-bold text-orange-600">€{{ "{:,.0f}".format(project.user_investment_amount) }}</p>
+                                        <p class="text-gray-600 text-sm">Il tuo investimento</p>
+                                        {% else %}
+                                        <p class="text-2xl font-bold text-gray-400">€0</p>
+                                        <p class="text-gray-600 text-sm">Non hai investito</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Barra di progresso -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Finanziamento</span>
+                                        <span class="text-sm text-gray-600">€{{ "{:,.0f}".format(project.funded_amount) }} / €{{ "{:,.0f}".format(project.total_amount) }}</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div class="bg-gray-400 h-3 rounded-full transition-all duration-300" data-progress="{{ project.completion_percent }}"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Azioni -->
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <button disabled class="flex-1 bg-gray-300 text-gray-500 px-6 py-3 rounded-lg font-medium cursor-not-allowed">
+                                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Periodo di investimento scaduto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="bg-white p-8 rounded-lg border text-center">
+                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-gray-600 mb-2">Nessun progetto scaduto</p>
+                    <p class="text-gray-500 text-sm">Tutti i progetti sono ancora nel periodo di investimento attivo</p>
+                </div>
+            {% endif %}
+        </div>
+
         <!-- Sezione Progetti Completati -->
         <div id="section-completed" class="section-content hidden">
             {% if completed_projects %}
@@ -215,7 +338,7 @@
                                     
                                     <div class="text-left md:text-right mt-2 md:mt-0">
                                         <div class="text-2xl font-bold text-yellow-600 mb-1">{{ "%.1f"|format(project.roi|float) }}%</div>
-                                        <div class="text-sm text-gray-600 mb-3">ROI Atteso</div>
+                                        <div class="text-sm text-gray-600 mb-3">RA Atteso</div>
                                         <div class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.total_amount|float) }}</div>
                                         <div class="text-xs text-gray-600">Totale Investito</div>
                                     </div>
@@ -441,12 +564,8 @@
             
             <div class="bg-blue-50 p-3 rounded-lg">
                 <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">ROI atteso:</span>
+                    <span class="text-gray-600">RA atteso:</span>
                     <span class="font-medium text-blue-600">8.5%</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">Durata stimata:</span>
-                    <span class="font-medium text-gray-900">12-18 mesi</span>
                 </div>
             </div>
             
@@ -951,6 +1070,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     errorModal.addEventListener('click', function(e) { 
         if (e.target === errorModal) closeErrorModal(); 
+    });
+    
+    // Imposta larghezza barre di progresso
+    document.querySelectorAll('[data-progress]').forEach(function(element) {
+        const progress = element.getAttribute('data-progress');
+        element.style.width = progress + '%';
     });
 });
 </script>

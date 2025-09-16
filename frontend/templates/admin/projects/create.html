@@ -152,22 +152,14 @@
 
                     <div class="admin-grid admin-grid--3">
                         <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">ROI Atteso (%)</label>
+                            <label class="admin-label admin-label--required">RA Atteso (%)</label>
                             <input type="number" name="roi" class="admin-input" required 
                                    min="0.1" max="99.9" step="0.1" placeholder="8.5" id="field-roi">
                             <p class="admin-help-text">Rendimento annuo atteso</p>
                         </div>
                         <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">Durata (mesi)</label>
-                            <input type="number" name="duration" class="admin-input" required 
-                                   min="1" max="120" placeholder="24" id="field-duration">
-                            <p class="admin-help-text">Durata del progetto</p>
-                        </div>
-                        <div class="admin-form-group">
                             <label class="admin-label admin-label--required">Stato Iniziale</label>
                             <select name="status" class="admin-input admin-select" required id="field-status">
-                                <option value="draft">Bozza</option>
-                                <option value="funding">In Finanziamento</option>
                                 <option value="active">Attivo</option>
                             </select>
                         </div>
@@ -189,7 +181,7 @@
                         <h3 class="admin-heading-3 text-blue-800">Anteprima Calcoli</h3>
                         <div class="admin-grid admin-grid--3 mt-3">
                             <div>
-                                <p class="admin-text-caption text-blue-700">ROI Totale</p>
+                                <p class="admin-text-caption text-blue-700">RA Annuale</p>
                                 <p class="admin-text-body font-medium text-blue-900" id="calc-total-roi">-</p>
                             </div>
                             <div>
@@ -361,7 +353,7 @@ class ProjectWizard {
         document.getElementById('field-title').addEventListener('input', this.generateCode.bind(this));
         
         // Financial calculations
-        ['target_amount', 'min_investment', 'roi', 'duration'].forEach(field => {
+        ['target_amount', 'min_investment', 'roi'].forEach(field => {
             document.getElementById(`field-${field}`).addEventListener('input', this.updateCalculations.bind(this));
         });
         
@@ -393,15 +385,12 @@ class ProjectWizard {
         const targetAmount = parseFloat(document.getElementById('field-target_amount').value) || 0;
         const minInvestment = parseFloat(document.getElementById('field-min_investment').value) || 0;
         const roi = parseFloat(document.getElementById('field-roi').value) || 0;
-        const duration = parseInt(document.getElementById('field-duration').value) || 0;
-        
-        if (targetAmount && roi && duration) {
-            // ROI totale (annualizzato per durata)
-            const totalRoi = (roi * duration / 12);
-            document.getElementById('calc-total-roi').textContent = `${totalRoi.toFixed(1)}%`;
+        if (targetAmount && roi) {
+            // RA annuale
+            document.getElementById('calc-total-roi').textContent = `${roi.toFixed(1)}%`;
             
-            // Rendimento per €1000
-            const yield1000 = (1000 * totalRoi / 100);
+            // Rendimento per €1000 (annuale)
+            const yield1000 = (1000 * roi / 100);
             document.getElementById('calc-yield-1000').textContent = `€${yield1000.toFixed(0)}`;
             
             // Numero minimo investitori
@@ -551,7 +540,7 @@ class ProjectWizard {
     getRequiredFieldsForStep(step) {
         const fields = {
             1: ['field-code', 'field-title', 'field-description', 'field-location', 'field-type'],
-            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-duration', 'field-status', 'field-start_date', 'field-end_date'],
+            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-status', 'field-start_date', 'field-end_date'],
             3: [], // No required fields in step 3
             4: []  // No fields in step 4
         };
@@ -719,12 +708,8 @@ class ProjectWizard {
                                 <span class="admin-text-small font-medium">€${parseInt(data.min_investment || 0).toLocaleString()}</span>
                             </div>
                             <div class="admin-flex admin-flex--between">
-                                <span class="admin-text-small text-gray-600">ROI annuo:</span>
+                                <span class="admin-text-small text-gray-600">RA annuo:</span>
                                 <span class="admin-text-small font-bold text-blue-600">${data.roi || 0}%</span>
-                            </div>
-                            <div class="admin-flex admin-flex--between">
-                                <span class="admin-text-small text-gray-600">Durata:</span>
-                                <span class="admin-text-small font-medium">${data.duration || 0} mesi</span>
                             </div>
                         </div>
                         
@@ -733,8 +718,8 @@ class ProjectWizard {
                             <h4 class="admin-text-small font-medium text-gray-700 mb-3">Metriche Calcolate:</h4>
                             <div class="admin-grid admin-grid--3 text-center">
                                 <div class="p-3 bg-blue-50 rounded-lg">
-                                    <p class="admin-text-large font-bold text-blue-600">${this.calculateTotalROI(data)}%</p>
-                                    <p class="admin-text-caption text-blue-500">ROI Totale</p>
+                                    <p class="admin-text-large font-bold text-blue-600">${data.roi || 0}%</p>
+                                    <p class="admin-text-caption text-blue-500">RA Annuale</p>
                                 </div>
                                 <div class="p-3 bg-green-50 rounded-lg">
                                     <p class="admin-text-large font-bold text-green-600">€${this.calculateYield1000(data)}</p>
@@ -859,15 +844,9 @@ class ProjectWizard {
     }
     
     // Preview helper functions
-    calculateTotalROI(data) {
-        const roi = parseFloat(data.roi) || 0;
-        const duration = parseInt(data.duration) || 0;
-        return duration > 0 ? (roi * duration / 12).toFixed(1) : '0.0';
-    }
-    
     calculateYield1000(data) {
-        const totalRoi = this.calculateTotalROI(data);
-        return (1000 * parseFloat(totalRoi) / 100).toFixed(0);
+        const roi = parseFloat(data.roi) || 0;
+        return (1000 * roi / 100).toFixed(0);
     }
     
     calculateMinInvestors(data) {
@@ -976,12 +955,8 @@ class ProjectWizard {
                             <span class="admin-text-caption font-medium">€${parseInt(data.min_investment || 0).toLocaleString()}</span>
                         </div>
                         <div class="admin-flex admin-flex--between">
-                            <span class="admin-text-caption">ROI:</span>
+                            <span class="admin-text-caption">RA:</span>
                             <span class="admin-text-caption font-bold text-green-600">${data.roi || 0}% annuo</span>
-                        </div>
-                        <div class="admin-flex admin-flex--between">
-                            <span class="admin-text-caption">Durata:</span>
-                            <span class="admin-text-caption font-medium">${data.duration || 0} mesi</span>
                         </div>
                     </div>
                     
@@ -1027,10 +1002,7 @@ class ProjectWizard {
             validations.push({ type: 'error', message: 'Investimento minimo deve essere maggiore di 0' });
         }
         if (!data.roi || parseFloat(data.roi) <= 0) {
-            validations.push({ type: 'error', message: 'ROI deve essere maggiore di 0' });
-        }
-        if (!data.duration || parseInt(data.duration) <= 0) {
-            validations.push({ type: 'error', message: 'Durata deve essere maggiore di 0 mesi' });
+            validations.push({ type: 'error', message: 'RA deve essere maggiore di 0' });
         }
         
         // Business logic validation
@@ -1143,8 +1115,7 @@ class ProjectWizard {
         const hasErrors = !data.code || !data.title || !data.description || 
                          !data.target_amount || parseFloat(data.target_amount) <= 0 ||
                          !data.min_investment || parseFloat(data.min_investment) <= 0 ||
-                         !data.roi || parseFloat(data.roi) <= 0 ||
-                         !data.duration || parseInt(data.duration) <= 0;
+                         !data.roi || parseFloat(data.roi) <= 0;
         
         return hasErrors ? 'error' : 'success';
     }

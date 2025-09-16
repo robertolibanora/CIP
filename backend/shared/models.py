@@ -38,7 +38,7 @@ class TransactionType(str, Enum):
     DEPOSIT = "deposit"
     WITHDRAWAL = "withdrawal"
     INVESTMENT = "investment"
-    ROI = "roi"
+    RA = "roi"  # Rendimento Annuo
     REFERRAL = "referral"
 
 class InvestmentStatus(str, Enum):
@@ -48,8 +48,6 @@ class InvestmentStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class ProjectStatus(str, Enum):
-    DRAFT = "draft"
-    FUNDING = "funding"
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
@@ -339,7 +337,6 @@ class Project:
     funded_amount: Decimal
     min_investment: Decimal
     roi: Decimal
-    duration: int
     status: ProjectStatus
     start_date: datetime
     end_date: datetime
@@ -366,7 +363,10 @@ class Project:
     
     def can_invest(self) -> bool:
         """Verifica se è possibile investire nel progetto"""
-        return self.status == ProjectStatus.ACTIVE
+        from datetime import date
+        # Progetto deve essere attivo E non deve essere scaduto
+        return (self.status == ProjectStatus.ACTIVE and 
+                self.end_date >= date.today())
     
     def is_completed(self) -> bool:
         """Verifica se il progetto è completato (non si può più investire)"""

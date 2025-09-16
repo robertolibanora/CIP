@@ -55,11 +55,10 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Stato</label>
                             <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" id="field-status">
-                                <option value="draft">Bozza</option>
                                 <option value="active">Attivo</option>
-                                <option value="funded">Finanziato</option>
                                 <option value="completed">Completato</option>
                                 <option value="cancelled">Annullato</option>
+                                <option value="sold">Venduto</option>
                             </select>
                         </div>
                     </div>
@@ -290,17 +289,13 @@ class ProjectDetailManager {
         // Update status badge
         const statusBadge = document.getElementById('project-status-badge');
         const statusColors = {
-            draft: 'bg-gray-100 text-gray-800',
             active: 'bg-blue-100 text-blue-800',
-            funded: 'bg-green-100 text-green-800',
             completed: 'bg-purple-100 text-purple-800',
             sold: 'bg-green-100 text-green-800',
             cancelled: 'bg-red-100 text-red-800'
         };
         const statusLabels = {
-            draft: 'Bozza',
             active: 'Attivo',
-            funded: 'Finanziato',
             completed: 'Completato',
             sold: 'Venduto',
             cancelled: 'Annullato'
@@ -313,7 +308,7 @@ class ProjectDetailManager {
         document.getElementById('field-code').value = project.code || '';
         document.getElementById('field-title').value = project.name || project.title || '';
         document.getElementById('field-description').value = project.description || '';
-        document.getElementById('field-status').value = project.status || 'draft';
+        document.getElementById('field-status').value = project.status || 'active';
         document.getElementById('field-total_amount').value = project.total_amount || project.target_amount || '';
         document.getElementById('field-start_date').value = project.start_date || '';
         document.getElementById('field-end_date').value = project.end_date || '';
@@ -323,7 +318,7 @@ class ProjectDetailManager {
             code: project.code || '',
             title: project.name || project.title || '',
             description: project.description || '',
-            status: project.status || 'draft',
+            status: project.status || 'active',
             total_amount: project.total_amount || project.target_amount || '',
             start_date: project.start_date || '',
             end_date: project.end_date || ''
@@ -467,7 +462,20 @@ class ProjectDetailManager {
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-medium text-gray-900">€${parseFloat(inv.amount).toLocaleString()}</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" 
+                                   value="${parseFloat(inv.amount)}" 
+                                   class="investment-amount-input w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500" 
+                                   data-investment-id="${inv.id}"
+                                   data-user-id="${inv.user_id}"
+                                   data-original-amount="${parseFloat(inv.amount)}"
+                                   min="0" 
+                                   step="0.01">
+                            <button onclick="updateInvestmentAmount(${inv.id}, ${inv.user_id}, this.previousElementSibling.value, ${parseFloat(inv.amount)})" 
+                                    class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                                💾
+                            </button>
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[inv.status] || 'bg-gray-100 text-gray-800'}">
@@ -555,13 +563,17 @@ class ProjectDetailManager {
         
         try {
             const response = await fetch(`/admin/projects/${this.projectId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
             });
             
             const result = await response.json();
             
-            if (response.ok) {
-                this.showAlert('success', 'Progetto eliminato con successo');
+            if (response.ok && result.deleted) {
+                this.showAlert('success', result.message || 'Progetto eliminato con successo');
                 setTimeout(() => {
                     window.location.href = '/admin/projects';
                 }, 2000);
@@ -738,6 +750,81 @@ function openImagePreview(src, title) {
 function deleteDocument(docId) {
     if (confirm('Sei sicuro di voler eliminare questo documento?')) {
         alert('Funzionalità in sviluppo');
+    }
+}
+
+async function updateInvestmentAmount(investmentId, userId, newAmount, originalAmount) {
+    const newAmountFloat = parseFloat(newAmount);
+    const originalAmountFloat = parseFloat(originalAmount);
+    
+    // Validazione
+    if (isNaN(newAmountFloat) || newAmountFloat < 0) {
+        alert('Inserisci un importo valido maggiore o uguale a 0');
+        return;
+    }
+    
+    if (newAmountFloat === originalAmountFloat) {
+        alert('L\'importo non è cambiato');
+        return;
+    }
+    
+    const button = event.target;
+    const input = button.previousElementSibling;
+    
+    // Mostra loading
+    const originalButtonText = button.innerHTML;
+    button.innerHTML = '⏳';
+    button.disabled = true;
+    input.disabled = true;
+    
+    try {
+        const response = await fetch(`/admin/api/admin/users/${userId}/portfolio/investments/${investmentId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                amount: newAmountFloat
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Successo - aggiorna l'interfaccia
+            input.setAttribute('data-original-amount', newAmountFloat);
+            
+            // Ricarica i dati del progetto per aggiornare la barra di progresso
+            await projectDetailManager.loadProjectData();
+            
+            // Mostra messaggio di successo
+            projectDetailManager.showAlert('success', `Investimento aggiornato: €${originalAmountFloat.toLocaleString()} → €${newAmountFloat.toLocaleString()}`);
+            
+            button.innerHTML = '✅';
+            setTimeout(() => {
+                button.innerHTML = originalButtonText;
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Errore durante l\'aggiornamento');
+        }
+    } catch (error) {
+        console.error('Errore aggiornamento investimento:', error);
+        
+        // Ripristina il valore originale
+        input.value = originalAmountFloat;
+        
+        // Mostra errore
+        projectDetailManager.showAlert('error', `Errore: ${error.message}`);
+        
+        button.innerHTML = '❌';
+        setTimeout(() => {
+            button.innerHTML = originalButtonText;
+        }, 2000);
+    } finally {
+        // Riabilita i controlli
+        button.disabled = false;
+        input.disabled = false;
     }
 }
 

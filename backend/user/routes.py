@@ -155,16 +155,16 @@ def dashboard():
         """, (uid,))
         active_investments_data = cur.fetchall()
         
-        # Statistiche referral
-        cur.execute("SELECT COUNT(*) as count FROM users WHERE referred_by = %s", (uid,))
+        # Statistiche referral - Esclude auto-referral
+        cur.execute("SELECT COUNT(*) as count FROM users WHERE referred_by = %s AND id != %s", (uid, uid))
         referred_users_count = cur.fetchone()['count'] or 0
         
         cur.execute("""
             SELECT COALESCE(SUM(i.amount), 0) as total_invested 
             FROM investments i 
             JOIN users u ON u.id = i.user_id 
-            WHERE u.referred_by = %s AND i.status IN ('active', 'completed')
-        """, (uid,))
+            WHERE u.referred_by = %s AND u.id != %s AND i.status IN ('active', 'completed')
+        """, (uid, uid))
         total_referral_investments = cur.fetchone()['total_invested'] or 0
         
         # Calcola KPI e metriche
@@ -176,7 +176,7 @@ def dashboard():
         total_available = free_capital + referral_bonus + profits
         total_balance = total_available + invested_capital
         
-        # Calcola ROI medio se ci sono investimenti
+        # Calcola RA medio se ci sono investimenti
         avg_roi = 0
         if invested_capital > 0 and profits > 0:
             avg_roi = (profits / invested_capital) * 100
@@ -276,9 +276,9 @@ def new_project():
         # 5. PROGETTI DISPONIBILI
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment
+                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment, p.end_date
             FROM projects p 
-            WHERE p.status = 'active'
+            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
             ORDER BY p.created_at DESC
         """)
         available_projects = cur.fetchall()
@@ -364,9 +364,9 @@ def invest(project_id):
         
         # 5. VERIFICA PROGETTO
         cur.execute("""
-            SELECT id, name, min_investment, total_amount, funded_amount, status
+            SELECT id, name, min_investment, total_amount, funded_amount, status, end_date
             FROM projects 
-            WHERE id = %s AND status = 'active'
+            WHERE id = %s AND status = 'active' AND end_date >= CURRENT_DATE
         """, (project_id,))
         project = cur.fetchone()
         
@@ -484,7 +484,7 @@ def portfolio():
         
         # Aggiungi campi mancanti per compatibilità template
         for row in rows:
-            row['roi'] = 8.5  # ROI fisso per ora
+            row['roi'] = 8.5  # RA fisso per ora
         
         # Ottieni dati utente completi per il form profilo
         cur.execute("""
@@ -690,25 +690,25 @@ def referral():
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Statistiche referral
+        # Statistiche referral - Esclude auto-referral
         cur.execute("""
             SELECT COUNT(*) as total_referrals,
                    COUNT(CASE WHEN u.kyc_status = 'verified' THEN 1 END) as verified_referrals,
                    COUNT(CASE WHEN u.kyc_status != 'verified' THEN 1 END) as pending_referrals
-            FROM users u WHERE u.referred_by = %s
-        """, (uid,))
+            FROM users u WHERE u.referred_by = %s AND u.id != %s
+        """, (uid, uid))
         stats = cur.fetchone()
         
-        # Lista referral
+        # Lista referral - Esclude auto-referral
         cur.execute("""
             SELECT u.id, u.full_name, u.email, u.created_at, u.kyc_status,
                    COALESCE(SUM(i.amount), 0) as total_invested
             FROM users u 
             LEFT JOIN investments i ON u.id = i.user_id AND i.status = 'active'
-            WHERE u.referred_by = %s
+            WHERE u.referred_by = %s AND u.id != %s
             GROUP BY u.id, u.full_name, u.email, u.created_at, u.kyc_status
             ORDER BY u.created_at DESC
-        """, (uid,))
+        """, (uid, uid))
         referrals = cur.fetchall()
         
         # Bonus totali dal portfolio
@@ -895,6 +895,7 @@ def get_referral_data():
                 })
             
             # Trova tutti gli utenti invitati da questo utente
+            # Esclude l'utente stesso per evitare auto-referral
             cur.execute("""
                 SELECT 
                     u.id, u.full_name, u.email, u.created_at,
@@ -911,9 +912,9 @@ def get_referral_data():
                     END as status
                 FROM users u
                 LEFT JOIN user_portfolios up ON up.user_id = u.id
-                WHERE u.referred_by = %s
+                WHERE u.referred_by = %s AND u.id != %s
                 ORDER BY u.created_at DESC
-            """, (user_id,))
+            """, (user_id, user_id))
             invited_users = cur.fetchall()
             
             # Ottieni investimenti per ogni utente invitato

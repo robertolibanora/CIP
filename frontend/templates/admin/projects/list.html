@@ -10,7 +10,7 @@
             <p class="admin-text-small">Gestisci foto, descrizione e raccolta</p>
         </div>
         <div class="mt-4 md:mt-0 flex gap-3">
-            <button id="create-project-btn" class="admin-btn admin-btn--primary" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" onclick="openCreateProjectModal();">
+            <button id="create-project-btn" class="admin-btn admin-btn--primary" data-original-text="Crea Progetto" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;" onclick="openCreateProjectModal();">
                 <span style="margin-right: 8px;">+</span>
                 Crea Progetto
             </button>
@@ -35,9 +35,7 @@
                     <label class="admin-label">Stato Progetto</label>
                     <select id="status-filter" class="admin-input admin-select">
                         <option value="">Tutti gli stati</option>
-                        <option value="draft">Bozza</option>
                         <option value="active">Attivo</option>
-                        <option value="funded">Finanziato</option>
                         <option value="completed">Completato</option>
                         <option value="sold">Venduto</option>
                         <option value="cancelled">Annullato</option>
@@ -923,7 +921,7 @@ function updateProfitPreview() {
                     color: #64748b;
                     font-size: 14px;
                     font-weight: 500;
-                ">ROI per Investitore</p>
+                ">RA per Investitore</p>
                 <p style="
                     margin: 0;
                     font-size: 24px;
@@ -1202,6 +1200,28 @@ async function confirmProjectCancel() {
 // === PROJECT DELETE FUNCTIONS ===
 let currentDeleteProject = null;
 
+async function getProjectData(projectId) {
+    try {
+        const response = await fetch(`/admin/projects/${projectId}?format=json`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Errore nel caricamento dati progetto:', error);
+        return { project: {}, investments: [] };
+    }
+}
+
 async function deleteProject(projectId) {
     console.log('deleteProject chiamata con ID:', projectId);
     currentDeleteProject = projectId;
@@ -1209,7 +1229,7 @@ async function deleteProject(projectId) {
     try {
         // Carica i dettagli del progetto
         console.log('Caricamento dati per eliminazione progetto:', projectId);
-        const response = await fetch(`/admin/projects/${projectId}/delete-data`, {
+        const response = await fetch(`/admin/projects/${projectId}?format=json`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -1244,11 +1264,22 @@ async function deleteProject(projectId) {
 
 function displayDeleteModal(data) {
     const project = data.project;
+    const investmentsCount = data.investments ? data.investments.length : 0;
+    const fundedAmount = project.funded_amount || 0;
     
     // Aggiorna il contenuto del modal
     document.getElementById('delete-project-name').textContent = project.name || 'Progetto senza nome';
     document.getElementById('delete-project-code').textContent = project.code || 'N/A';
-    document.getElementById('delete-project-status').textContent = project.status || 'N/A';
+    
+    const statusElement = document.getElementById('delete-project-status');
+    
+    if (investmentsCount > 0) {
+        // Progetto con investimenti attivi - mostra avviso rimborsi
+        statusElement.innerHTML = `${project.status || 'N/A'} <br><small style="color: #dc2626;">⚠️ ${investmentsCount} investimenti attivi (€${fundedAmount.toLocaleString()})</small>`;
+    } else {
+        // Progetto venduto senza investimenti attivi - mostra solo status
+        statusElement.textContent = project.status || 'N/A';
+    }
 }
 
 async function confirmProjectDelete() {
@@ -1263,15 +1294,12 @@ async function confirmProjectDelete() {
     try {
         console.log('Iniziando eliminazione progetto:', currentDeleteProject);
         
-        const response = await fetch('/api/admin/project-delete', {
-            method: 'POST',
+        const response = await fetch(`/admin/projects/${currentDeleteProject}`, {
+            method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                project_id: currentDeleteProject
-            })
+            credentials: 'same-origin'
         });
         
         console.log('Risposta ricevuta:', response.status, response.statusText);
@@ -1290,12 +1318,12 @@ async function confirmProjectDelete() {
         const result = await response.json();
         console.log('Risultato JSON:', result);
         
-        if (result.success) {
+        if (result.deleted) {
             // Chiudi il modal
             closeModal('delete-project-modal');
             
             // Mostra messaggio di successo
-            alert(result.message);
+            alert(result.message || 'Progetto eliminato con successo');
             
             // Ricarica i progetti
             if (typeof projectsManager !== 'undefined' && projectsManager.loadProjects) {
@@ -1318,12 +1346,18 @@ async function confirmProjectDelete() {
 // === UTILITY FUNCTIONS ===
 function setButtonLoading(button, loading, text = '') {
     if (loading) {
+        // Salva il testo originale se non è già salvato
+        if (!button.getAttribute('data-original-text')) {
+            button.setAttribute('data-original-text', button.innerHTML);
+        }
         button.disabled = true;
         button.innerHTML = text || 'Caricamento...';
         button.style.opacity = '0.7';
     } else {
         button.disabled = false;
-        button.innerHTML = button.getAttribute('data-original-text') || 'Conferma Vendita';
+        // Usa il testo fornito o quello originale salvato
+        const originalText = button.getAttribute('data-original-text');
+        button.innerHTML = text || originalText || button.innerHTML;
         button.style.opacity = '1';
     }
 }
@@ -1444,9 +1478,7 @@ class ProjectsManager {
                 'active': 1,
                 'completed': 2,
                 'sold': 3,
-                'funded': 4,
-                'draft': 5,
-                'cancelled': 6
+                'cancelled': 4
             };
             
             const aStatusOrder = statusOrder[a.status] || 99;
@@ -1499,18 +1531,14 @@ class ProjectsManager {
     
     renderProjectCard(project) {
         const statusColors = {
-            draft: 'gray',
             active: 'blue', 
-            funded: 'green',
             completed: 'purple',
             sold: 'green',
             cancelled: 'red'
         };
         
         const statusLabels = {
-            draft: 'Bozza',
             active: 'Attivo',
-            funded: 'Finanziato', 
             completed: 'Completato',
             sold: 'Venduto',
             cancelled: 'Annullato'
@@ -1584,21 +1612,18 @@ class ProjectsManager {
                     </div>
                     
                     <div class="admin-flex">
-                        ${project.status === 'sold' ? `
-                            <button onclick="deleteProject(${project.id})" 
-                                    class="admin-btn admin-btn--danger admin-btn--sm flex-1 mr-2">
-                                Elimina
-                            </button>
-                        ` : project.status === 'active' ? `
+                        ${project.status === 'active' ? `
                             <button onclick="cancelProject(${project.id})" 
-                                    class="admin-btn admin-btn--danger admin-btn--sm flex-1 mr-2">
-                                Annulla
+                                    class="admin-btn admin-btn--warning admin-btn--sm flex-1 mr-2">
+                                ⚠️ Annulla
                             </button>
-                        ` : `
+                        ` : project.status === 'completed' ? `
                             <button onclick="sellProject(${project.id})" 
                                     class="admin-btn admin-btn--warning admin-btn--sm flex-1 mr-2">
                                 Vendita
                             </button>
+                        ` : `
+                            <div class="flex-1 mr-2"></div>
                         `}
                         <button onclick="editProject(${project.id})" 
                                 class="admin-btn admin-btn--primary admin-btn--sm flex-1">
@@ -1670,9 +1695,7 @@ class ProjectsManager {
     updateStats() {
         const stats = {
             total: this.projects.length,
-            draft: this.projects.filter(p => p.status === 'draft').length,
             active: this.projects.filter(p => p.status === 'active').length,
-            funded: this.projects.filter(p => p.status === 'funded').length,
             completed: this.projects.filter(p => p.status === 'completed').length,
             sold: this.projects.filter(p => p.status === 'sold').length,
             cancelled: this.projects.filter(p => p.status === 'cancelled').length
@@ -1689,20 +1712,12 @@ class ProjectsManager {
                     <span class="admin-badge admin-badge--info">${stats.active}</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="admin-text-small">Finanziati:</span>
-                    <span class="admin-badge admin-badge--success">${stats.funded}</span>
-                </div>
-                <div class="flex justify-between">
                     <span class="admin-text-small">Completati:</span>
                     <span class="admin-badge admin-badge--success">${stats.completed}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="admin-text-small">Venduti:</span>
                     <span class="admin-badge admin-badge--green">${stats.sold}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="admin-text-small">Bozze:</span>
-                    <span class="admin-badge admin-badge--warning">${stats.draft}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="admin-text-small">Cancellati:</span>

@@ -74,7 +74,7 @@ def validate_currency_code(currency_code):
 
 def validate_project_status(status):
     """Valida stato progetto"""
-    valid_statuses = ['draft', 'active', 'funded', 'in_progress', 'completed', 'cancelled']
+    valid_statuses = ['active', 'completed', 'cancelled', 'sold']
     if status not in valid_statuses:
         raise ValidationError(f"Stato non valido. Usa uno di: {', '.join(valid_statuses)}")
     return status

@@ -64,7 +64,7 @@
                             <p class="text-gray-600 text-sm">{{ project.code }}</p>
                         </div>
                         <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                            ROI {{ project.roi }}%
+                            RA {{ project.roi }}%
                         </span>
                     </div>
                     
@@ -88,7 +88,7 @@
                             <span>{{ project.completion_percent }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ project.completion_percent }}%"></div>
+                            <div class="bg-blue-600 h-2 rounded-full" data-progress="{{ project.completion_percent }}"></div>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500 mt-1">
                             <span>€{{ "{:,}".format(project.raised_amount) }} raccolti</span>
@@ -111,11 +111,11 @@
                                    value="{{ project.min_investment }}"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                    placeholder="Inserisci importo"
-                                   onchange="updateInvestmentCalculation({{ project.id }}, {{ project.roi }}, {{ project.duration or 24 }})">
+                                   onchange="updateInvestmentCalculation({{ project.id }}, {{ project.roi }})">
                             <p class="text-xs text-gray-500 mt-1">Minimo: €{{ "{:,}".format(project.min_investment) }}</p>
                         </div>
 
-                        <!-- Step 2: Calcolo ROI preview -->
+                        <!-- Step 2: Calcolo RA preview -->
                         <div class="bg-blue-50 rounded-lg p-4 mb-4">
                             <h4 class="font-medium text-gray-900 mb-2">Anteprima Rendimento</h4>
                             <div class="grid grid-cols-2 gap-4 text-sm">
@@ -124,7 +124,7 @@
                                     <span id="investedAmount_{{ project.id }}" class="font-medium ml-1">€{{ "{:,}".format(project.min_investment) }}</span>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600">ROI Atteso ({{ project.roi }}%):</span>
+                                    <span class="text-gray-600">RA Atteso ({{ project.roi }}%):</span>
                                     <span id="expectedReturn_{{ project.id }}" class="font-medium ml-1 text-green-600">€0</span>
                                 </div>
                                 <div>
@@ -195,13 +195,13 @@
                         </button>
                     </form>
 
-                    <!-- JavaScript per calcoli ROI -->
+                    <!-- JavaScript per calcoli RA -->
                     <script>
-                    function updateInvestmentCalculation(projectId, roi, duration) {
+                    function updateInvestmentCalculation(projectId, roi) {
                         const amount = parseFloat(document.getElementById('amount_' + projectId).value) || 0;
                         
                         if (amount > 0) {
-                            const expectedReturn = (amount * roi / 100) * (duration / 12);
+                            const expectedReturn = (amount * roi / 100);
                             const finalValue = amount + expectedReturn;
                             const netProfit = expectedReturn;
                             
@@ -220,7 +220,7 @@
                     // Inizializza calcoli
                     document.addEventListener('DOMContentLoaded', function() {
                         {% for project in projects %}
-                        updateInvestmentCalculation({{ project.id }}, {{ project.roi }}, {{ project.duration or 24 }});
+                        updateInvestmentCalculation({{ project.id }}, {{ project.roi }});
                         {% endfor %}
                     });
                     </script>
@@ -257,4 +257,14 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Imposta larghezza barre di progresso
+    document.querySelectorAll('[data-progress]').forEach(function(element) {
+        const progress = element.getAttribute('data-progress');
+        element.style.width = progress + '%';
+    });
+});
+</script>
 {% endblock %}

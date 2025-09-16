@@ -31,9 +31,9 @@ def new_project():
         # Progetti disponibili - TABELLA: projects
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code
+                   p.status, p.created_at, p.code, p.end_date
             FROM projects p 
-            WHERE p.status = 'active'
+            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
             ORDER BY p.created_at DESC
         """)
         available_projects = cur.fetchall()

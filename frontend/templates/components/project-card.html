@@ -34,10 +34,10 @@
             {% endif %}
         </div>
         
-        <!-- Badge ROI -->
+        <!-- Badge RA -->
         <div class="absolute top-3 right-3">
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cip-accent text-white">
-                ROI {{ "%.1f"|format(project.roi|float) }}%
+                RA {{ "%.1f"|format(project.roi|float) }}%
             </span>
         </div>
     </div>
@@ -83,7 +83,7 @@
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
                 <div class="bg-cip-primary h-2 rounded-full transition-all duration-300" 
-                     style="width: {{ project.funding_progress }}%"></div>
+                     data-progress="{{ project.funding_progress }}"></div>
             </div>
         </div>
         
@@ -94,8 +94,8 @@
                 <span class="font-medium">€{{ "{:,.0f}".format(project.min_investment|float) }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-600">Durata:</span>
-                <span class="font-medium">{{ project.duration }} mesi</span>
+                <span class="text-gray-600">Scadenza:</span>
+                <span class="font-medium">{{ project.end_date.strftime('%d/%m/%Y') if project.end_date else 'N/A' }}</span>
             </div>
             <div class="flex justify-between">
                 <span class="text-gray-600">Tipo:</span>
@@ -122,6 +122,16 @@
         </div>
     </div>
 </div>
+
+<script>
+// Imposta larghezza barre di progresso per i componenti
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-progress]').forEach(function(element) {
+        const progress = element.getAttribute('data-progress');
+        element.style.width = progress + '%';
+    });
+});
+</script>
 
 <script>
 function openInvestmentModal(projectId) {

@@ -107,7 +107,7 @@
                 <div class="admin-flex admin-flex--between">
                     <div>
                         <h3 class="admin-heading-3 text-purple-800">Profitti Distribuiti</h3>
-                        <p class="admin-text-small text-purple-600">ROI totale pagato</p>
+                        <p class="admin-text-small text-purple-600">RA totale pagato</p>
                     </div>
                     <div class="p-3 bg-purple-100 rounded-lg">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@
                 </div>
                 <div class="mt-4">
                     <p class="admin-text-large font-bold text-purple-800" id="profits-total">€0</p>
-                    <p class="admin-text-caption text-purple-600" id="profits-roi">ROI medio: 0%</p>
+                    <p class="admin-text-caption text-purple-600" id="profits-roi">RA medio: 0%</p>
                 </div>
             </div>
         </div>
@@ -164,12 +164,12 @@
         <div class="admin-card-header">
             <div class="admin-flex admin-flex--between">
                 <div>
-                    <h2 class="admin-heading-2">Transazioni Recenti</h2>
+                    <h2 class="admin-heading-2">Wallet Recenti</h2>
                     <p class="admin-text-small">Ultimi movimenti portfolio</p>
                 </div>
                 <div class="admin-flex">
                     <select id="transaction-filter" class="admin-input admin-select admin-btn--sm mr-2">
-                        <option value="">Tutte le transazioni</option>
+                        <option value="">Tutti i wallet</option>
                         <option value="deposit">Depositi</option>
                         <option value="investment">Investimenti</option>
                         <option value="referral">Bonus referral</option>
@@ -205,8 +205,8 @@
                     <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
-                    <h3 class="admin-heading-3 text-gray-500">Nessuna transazione</h3>
-                    <p class="admin-text-body text-gray-400">Non ci sono transazioni da visualizzare</p>
+                    <h3 class="admin-heading-3 text-gray-500">Nessun wallet</h3>
+                    <p class="admin-text-body text-gray-400">Non ci sono wallet da visualizzare</p>
                 </div>
             </div>
         </div>
@@ -370,7 +370,7 @@ class PortfolioAdminDashboard {
         document.getElementById('profits-total').textContent = 
             `€${(overview.profits_total || 0).toLocaleString()}`;
         document.getElementById('profits-roi').textContent = 
-            `ROI medio: ${(overview.average_roi || 0).toFixed(1)}%`;
+            `RA medio: ${(overview.average_roi || 0).toFixed(1)}%`;
     }
     
     renderCharts() {
