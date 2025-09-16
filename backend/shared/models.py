@@ -75,6 +75,7 @@ class User:
     referral_code: Optional[str]
     referral_link: Optional[str]
     referred_by: Optional[int]
+    is_vip: bool
     created_at: datetime
     
     def is_kyc_verified(self) -> bool:
@@ -84,6 +85,10 @@ class User:
     def can_invest(self) -> bool:
         """Verifica se l'utente può investire"""
         return self.is_kyc_verified() and self.role == UserRole.INVESTOR
+    
+    def is_vip_user(self) -> bool:
+        """Verifica se l'utente è VIP"""
+        return self.is_vip
 
 @dataclass
 class Document:

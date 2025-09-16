@@ -158,6 +158,65 @@
     height: 100px !important;
 }
 
+/* Supporto per modalità scura */
+@media (prefers-color-scheme: dark) {
+    .tabbar {
+        background-color: #1f2937 !important; /* Grigio scuro */
+        border-top-color: #3b82f6 !important;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    .tabbar-item {
+        background-color: #374151 !important; /* Grigio più scuro */
+        border-color: #4b5563 !important;
+        color: #f9fafb !important;
+    }
+    
+    .tabbar-item::before {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2)) !important;
+    }
+    
+    .tabbar-item:hover {
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+        background-color: #4b5563 !important;
+    }
+    
+    .tabbar-item.active {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+        color: white !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5) !important;
+    }
+    
+    .tabbar-item.active:hover {
+        box-shadow: 0 12px 30px rgba(59, 130, 246, 0.7) !important;
+    }
+    
+    /* Icone in modalità scura */
+    .tabbar-item svg {
+        color: #f9fafb !important;
+    }
+    
+    .tabbar-item.active svg {
+        color: white !important;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+    }
+    
+    /* Avatar in modalità scura */
+    .tabbar-item img {
+        border-color: #4b5563 !important;
+    }
+    
+    .tabbar-item:hover img {
+        border-color: rgba(59, 130, 246, 0.5) !important;
+    }
+    
+    .tabbar-item.active img {
+        border-color: white !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5) !important;
+    }
+}
+
 /* Responsive per schermi molto piccoli */
 @media (max-width: 320px) {
     .tabbar {
@@ -172,5 +231,17 @@
     .tabbar-item svg {
         height: 20px !important;
         width: 20px !important;
+    }
+}
+
+/* Responsive per modalità scura su schermi piccoli */
+@media (max-width: 320px) and (prefers-color-scheme: dark) {
+    .tabbar {
+        background-color: #111827 !important; /* Ancora più scuro per schermi piccoli */
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6) !important;
+    }
+    
+    .tabbar-item {
+        background-color: #1f2937 !important;
     }
 }

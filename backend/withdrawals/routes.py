@@ -50,6 +50,10 @@ def ensure_withdrawals_schema():
                 cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN source_section TEXT CHECK (source_section IN ('free_capital','referral_bonus','profits'))")
                 logger.info("Aggiunta colonna 'source_section' a withdrawal_requests")
             
+            if 'network' not in existing_columns:
+                cur.execute("ALTER TABLE withdrawal_requests ADD COLUMN network TEXT DEFAULT 'BEP20'")
+                logger.info("Aggiunta colonna 'network' a withdrawal_requests")
+            
             # Aggiorna i record esistenti se necessario
             cur.execute("""
                 UPDATE withdrawal_requests 
@@ -63,6 +67,63 @@ def ensure_withdrawals_schema():
     except Exception as e:
         logger.error(f"Errore nell'aggiornamento schema withdrawal_requests: {e}")
         raise
+
+@withdrawals_bp.route('/api/rate-limit-status', methods=['GET'])
+@login_required
+def get_withdrawal_rate_limit_status():
+    """Verifica lo stato del rate limit per i prelievi"""
+    uid = session.get("user_id")
+    if not uid:
+        return jsonify({'error': 'Non autorizzato'}), 401
+    
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Cerca l'ultima richiesta di prelievo negli ultimi 5 minuti
+            cur.execute("""
+                SELECT created_at 
+                FROM withdrawal_requests 
+                WHERE user_id = %s 
+                AND created_at > NOW() - INTERVAL '5 minutes'
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """, (uid,))
+            recent_request = cur.fetchone()
+            
+            if recent_request:
+                # Calcola il tempo rimanente
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                last_request_time = recent_request['created_at']
+                if last_request_time.tzinfo is None:
+                    last_request_time = last_request_time.replace(tzinfo=timezone.utc)
+                
+                time_diff = now - last_request_time
+                remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
+                
+                if remaining_seconds > 0:
+                    minutes = remaining_seconds // 60
+                    seconds = remaining_seconds % 60
+                    
+                    return jsonify({
+                        'rate_limited': True,
+                        'remaining_seconds': remaining_seconds,
+                        'message': f'Puoi fare una nuova richiesta di prelievo tra {minutes}m {seconds}s',
+                        'last_request': last_request_time.isoformat()
+                    })
+            
+            return jsonify({
+                'rate_limited': False,
+                'remaining_seconds': 0,
+                'message': 'Puoi fare una nuova richiesta di prelievo'
+            })
+            
+    except Exception as e:
+        logger.warning("[withdrawals] rate limit status check failed: %s", e)
+        return jsonify({
+            'rate_limited': False,
+            'remaining_seconds': 0,
+            'message': 'Puoi fare una nuova richiesta di prelievo'
+        })
 
 @withdrawals_bp.route('/api/requests/new', methods=['POST'])
 @can_withdraw
@@ -78,6 +139,7 @@ def create_withdrawal_request():
         method = data.get('method')  # usdt o bank
         source_section = data.get('source_section')
         wallet_address = data.get('wallet_address', '').strip()
+        network = data.get('network', 'BEP20')  # BEP20, ERC20, TRC20
         bank_details = data.get('bank_details', {})
         
         # Validazioni base
@@ -110,6 +172,36 @@ def create_withdrawal_request():
         ensure_withdrawals_schema()
         
         with get_conn() as conn, conn.cursor() as cur:
+            # Controllo rate limit - verifica se c'è stata una richiesta negli ultimi 5 minuti
+            cur.execute("""
+                SELECT created_at 
+                FROM withdrawal_requests 
+                WHERE user_id = %s 
+                AND created_at > NOW() - INTERVAL '5 minutes'
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """, (uid,))
+            recent_request = cur.fetchone()
+            
+            if recent_request:
+                # Calcola il tempo rimanente
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                last_request_time = recent_request['created_at']
+                if last_request_time.tzinfo is None:
+                    last_request_time = last_request_time.replace(tzinfo=timezone.utc)
+                
+                time_diff = now - last_request_time
+                remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
+                
+                if remaining_seconds > 0:
+                    minutes = remaining_seconds // 60
+                    seconds = remaining_seconds % 60
+                    return jsonify({
+                        'error': 'Rate limit exceeded',
+                        'message': f'Puoi fare una nuova richiesta di prelievo tra {minutes}m {seconds}s',
+                        'remaining_seconds': remaining_seconds
+                    }), 429
             # Verifica disponibilità saldo
             cur.execute("""
                 SELECT free_capital, referral_bonus, profits
@@ -140,10 +232,10 @@ def create_withdrawal_request():
             if method == 'usdt':
                 cur.execute("""
                     INSERT INTO withdrawal_requests 
-                    (user_id, amount, method, source_section, wallet_address, unique_key, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, 'pending')
+                    (user_id, amount, method, source_section, wallet_address, network, unique_key, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
                     RETURNING id, created_at
-                """, (uid, amount, method, source_section, wallet_address, unique_key))
+                """, (uid, amount, method, source_section, wallet_address, network, unique_key))
             else:  # bank
                 cur.execute("""
                     INSERT INTO withdrawal_requests 
@@ -184,7 +276,7 @@ def get_user_withdrawals():
     try:
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT id, amount, method, source_section, wallet_address, bank_details, 
+                SELECT id, amount, method, source_section, wallet_address, network, bank_details, 
                        unique_key, status, admin_notes, created_at, approved_at
                 FROM withdrawal_requests 
                 WHERE user_id = %s
@@ -210,6 +302,7 @@ def get_user_withdrawals():
                 # Aggiungi dettagli specifici per metodo
                 if w['method'] == 'usdt':
                     withdrawal_data['wallet_address'] = w['wallet_address']
+                    withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
                     # bank_details è già un dizionario Python (psycopg converte JSONB automaticamente)
                     withdrawal_data['bank_details'] = w['bank_details']
@@ -234,7 +327,7 @@ def admin_get_pending_withdrawals():
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, wr.method,
-                       wr.source_section, wr.wallet_address, wr.bank_details, wr.unique_key,
+                       wr.source_section, wr.wallet_address, wr.network, wr.bank_details, wr.unique_key,
                        wr.status, wr.created_at, wr.admin_notes,
                        EXTRACT(EPOCH FROM (NOW() - wr.created_at))/3600 as hours_pending
                 FROM withdrawal_requests wr
@@ -265,6 +358,7 @@ def admin_get_pending_withdrawals():
                 # Aggiungi dettagli specifici per metodo
                 if w['method'] == 'usdt':
                     withdrawal_data['wallet_address'] = w['wallet_address']
+                    withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
                     # bank_details è già un dizionario Python (psycopg converte JSONB automaticamente)
                     withdrawal_data['bank_details'] = w['bank_details']

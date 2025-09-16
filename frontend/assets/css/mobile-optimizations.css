@@ -28,6 +28,14 @@
   align-items: center;
 }
 
+/* Supporto modalità scura per tabbar originale */
+@media (prefers-color-scheme: dark) {
+  .tabbar {
+    @apply bg-gray-800/95 border-gray-600;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
 @media (min-width: 768px) {
   .tabbar {
     display: none;
@@ -121,4 +129,72 @@
 
 .safe-area-right {
   padding-right: env(safe-area-inset-right);
+}
+
+/* ===== DEPOSIT SUCCESS MODAL MOBILE OPTIMIZATION ===== */
+#deposit-success-modal {
+  /* Assicura che il modal copra tutto lo schermo */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+}
+
+#deposit-success-modal-content {
+  /* Ottimizza per mobile */
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Scroll personalizzato per mobile */
+#deposit-success-modal .flex-1 {
+  /* Scrollbar personalizzata per mobile */
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #3b82f6 #f1f5f9 !important;
+}
+
+#deposit-success-modal .flex-1::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+#deposit-success-modal .flex-1::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 3px !important;
+}
+
+#deposit-success-modal .flex-1::-webkit-scrollbar-thumb {
+  background: #3b82f6 !important;
+  border-radius: 3px !important;
+}
+
+#deposit-success-modal .flex-1::-webkit-scrollbar-thumb:hover {
+  background: #2563eb !important;
+}
+
+/* Responsive per schermi molto piccoli */
+@media (max-height: 600px) {
+  #deposit-success-modal-content {
+    max-height: 95vh !important;
+    margin: 1rem !important;
+  }
+  
+  #deposit-success-modal .flex-1 {
+    max-height: 60vh !important;
+  }
+}
+
+/* Miglioramenti per landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  #deposit-success-modal-content {
+    max-height: 98vh !important;
+    margin: 0.5rem !important;
+  }
+  
+  #deposit-success-modal .flex-1 {
+    max-height: 70vh !important;
+  }
 }

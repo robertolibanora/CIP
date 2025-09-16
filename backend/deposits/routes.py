@@ -174,7 +174,7 @@ def get_rate_limit_status():
                 SELECT created_at 
                 FROM deposit_requests 
                 WHERE user_id = %s 
-                AND created_at > NOW() - INTERVAL '10 minutes'
+                AND created_at > NOW() - INTERVAL '5 minutes'
                 ORDER BY created_at DESC 
                 LIMIT 1
             """, (uid,))
@@ -189,7 +189,7 @@ def get_rate_limit_status():
                     last_request_time = last_request_time.replace(tzinfo=timezone.utc)
                 
                 time_diff = now - last_request_time
-                remaining_seconds = 600 - int(time_diff.total_seconds())  # 10 minuti = 600 secondi
+                remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
                 
                 if remaining_seconds > 0:
                     minutes = remaining_seconds // 60
@@ -274,7 +274,7 @@ def create_deposit_request():
                 SELECT created_at 
                 FROM deposit_requests 
                 WHERE user_id = %s 
-                AND created_at > NOW() - INTERVAL '10 minutes'
+                AND created_at > NOW() - INTERVAL '5 minutes'
                 ORDER BY created_at DESC 
                 LIMIT 1
             """, (uid,))
@@ -289,7 +289,7 @@ def create_deposit_request():
                     last_request_time = last_request_time.replace(tzinfo=timezone.utc)
                 
                 time_diff = now - last_request_time
-                remaining_seconds = 600 - int(time_diff.total_seconds())  # 10 minuti = 600 secondi
+                remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
                 
                 if remaining_seconds > 0:
                     minutes = remaining_seconds // 60

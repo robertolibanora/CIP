@@ -40,6 +40,7 @@
               <th style="text-align:left; padding:14px;">Username Telegram</th>
               <th style="text-align:left; padding:14px;">Investitore</th>
               <th style="text-align:left; padding:14px;">KYC</th>
+              <th style="text-align:center; padding:14px;">VIP</th>
               <th style="text-align:right; padding:14px;">Azioni</th>
             </tr>
           </thead>
@@ -75,6 +76,10 @@
         <div>
           <label>Telegram</label>
           <input id="detail-telegram" type="text" style="width:100%; padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+        </div>
+        <div style="grid-column:1/-1; display:flex; align-items:center; gap:12px; margin-top:8px;">
+          <input id="detail-vip" type="checkbox" style="width:18px; height:18px;">
+          <label for="detail-vip" style="margin:0; font-weight:600; color:#0f766e;">👑 Utente VIP</label>
         </div>
         <div style="grid-column:1/-1; display:flex; justify-content:space-between; gap:8px; margin-top:8px;">
           <button type="button" id="delete-user" class="btn-theme btn-small" style="background:#b91c1c">Elimina</button>
@@ -131,6 +136,7 @@
   const dEmail = document.getElementById('detail-email');
   const dPhone = document.getElementById('detail-phone');
   const dTelegram = document.getElementById('detail-telegram');
+  const dVip = document.getElementById('detail-vip');
   const saveBtn = document.getElementById('save-user');
   const deleteBtn = document.getElementById('delete-user');
 
@@ -168,12 +174,18 @@
       else if(u.kyc_status === 'pending') kycBadge = '<span class="chip chip-yellow">Pending</span>';
       else if(u.kyc_status === 'rejected') kycBadge = '<span class="chip chip-red">Rejected</span>';
       else if(u.kyc_status === 'unverified') kycBadge = '<span class="chip chip-blue">Unverified</span>';
+      
+      const vipBadge = u.is_vip 
+        ? '<span class="chip" style="background:#fef3c7; color:#92400e; font-weight:700;">👑 VIP</span>'
+        : '<span class="chip chip-gray">—</span>';
+        
       tr.innerHTML = `
         <td style="padding:14px; text-align:center;"><input type="checkbox" class="row-sel" data-id="${u.id}"></td>
         <td style="padding:14px;">${u.full_name || ''}</td>
         <td style="padding:14px;">${u.telegram_username || ''}</td>
         <td style="padding:14px;">${investorBadge}</td>
         <td style="padding:14px;">${kycBadge}</td>
+        <td style="padding:14px; text-align:center;">${vipBadge}</td>
         <td style="padding:14px; text-align:right; display:flex; gap:8px; justify-content:flex-end;">
           <button data-id="${u.id}" class="btn-theme btn-small btn-portfolio">Portafoglio</button>
           <button data-id="${u.id}" class="btn-theme btn-small btn-details">Dettagli</button>
@@ -192,6 +204,7 @@
     dEmail.value = u.email || '';
     dPhone.value = u.phone || '';
     dTelegram.value = u.telegram || '';
+    dVip.checked = u.is_vip || false;
     openModal();
   }
 
@@ -203,6 +216,7 @@
       email: dEmail.value,
       phone: dPhone.value,
       telegram: dTelegram.value,
+      is_vip: dVip.checked,
     };
     const res = await fetch(`/admin/api/admin/users/${id}`, {
       method: 'PATCH',

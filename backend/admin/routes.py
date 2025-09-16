@@ -151,14 +151,40 @@ def projects_new():
         # Gestisce sia form data che JSON
         if request.is_json:
             data = request.json or {}
+            logger.info(f"Received JSON data: {data}")
         else:
             data = request.form.to_dict()
+            logger.info(f"Received form data: {data}")
+            logger.info(f"Received files: {list(request.files.keys())}")
         
-        # Nessun campo obbligatorio - validazione solo per valori numerici se forniti
+        # Validazione di base dei campi numerici
+        try:
+            if 'target_amount' in data and data['target_amount']:
+                float(data['target_amount'])
+            if 'min_investment' in data and data['min_investment']:
+                float(data['min_investment'])
+            if 'roi' in data and data['roi']:
+                float(data['roi'])
+        except (ValueError, TypeError) as ve:
+            return jsonify({
+                "success": False,
+                "error": f"Valore numerico non valido: {str(ve)}",
+                "message": f"Valore numerico non valido: {str(ve)}"
+            }), 400
         
-        # Gestione file upload (solo se non  JSON)
-        photo = request.files.get('photo') if not request.is_json else None
-        documents = request.files.get('documents') if not request.is_json else None
+        # Valori di default per campi obbligatori (genera code_value una sola volta)
+        code_value = data.get('code') or f'PRJ{int(time.time())}'
+        
+        # Gestione file upload
+        photo = request.files.get('photo') or request.files.get('main_image')
+        documents = request.files.get('documents')
+        
+        # Debug: Log dei file ricevuti
+        logger.info(f"File ricevuti: {list(request.files.keys())}")
+        if photo:
+            logger.info(f"Photo file: {photo.filename}, Content-Type: {photo.content_type}")
+        else:
+            logger.warning("Nessun file photo trovato!")
         
         # Salva i file (in uploads/projects)
         photo_filename = None
@@ -166,18 +192,59 @@ def projects_new():
         
         try:
             if photo and photo.filename:
-                ext = os.path.splitext(photo.filename)[1].lower() or '.jpg'
-                code_value = data.get('code') or f'PRJ{int(time.time())}'
-                photo_filename = secure_filename(f"{code_value}_photo_{int(time.time())}{ext}")
-                photo_path = os.path.join(get_upload_folder(), 'projects', photo_filename)
+                # Validazione formato file
+                allowed_extensions = {'.jpg', '.jpeg', '.png'}
+                ext = os.path.splitext(photo.filename)[1].lower()
+                if ext not in allowed_extensions:
+                    return jsonify({
+                        "success": False,
+                        "error": "Formato immagine non supportato. Usa JPG o PNG",
+                        "message": "Formato immagine non supportato. Usa JPG o PNG"
+                    }), 400
+                
+                # Validazione dimensione file (max 5MB)
+                photo.seek(0, os.SEEK_END)
+                file_size = photo.tell()
+                photo.seek(0)
+                if file_size > 5 * 1024 * 1024:  # 5MB
+                    return jsonify({
+                        "success": False,
+                        "error": "File troppo grande. Massimo 5MB",
+                        "message": "File troppo grande. Massimo 5MB"
+                    }), 400
+                
+                # Genera nome file sicuro
+                photo_filename = secure_filename(f"{code_value}_{int(time.time())}{ext}")
+                
+                # Usa la cartella uploads/projects nella root del progetto
+                projects_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
+                photo_path = os.path.join(projects_dir, photo_filename)
                 os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+                
+                # Salva il file
                 photo.save(photo_path)
+                logger.info(f"Immagine salvata con successo: {photo_path}")
+                
+                # Verifica che il file sia stato effettivamente salvato
+                if not os.path.exists(photo_path):
+                    logger.error(f"File non trovato dopo il salvataggio: {photo_path}")
+                    return jsonify({
+                        "success": False,
+                        "error": "Errore nel salvataggio dell'immagine",
+                        "message": "Errore nel salvataggio dell'immagine"
+                    }), 500
             
-            # Documenti non pi richiesti
+            # Documenti non più richiesti
         
         except Exception as e:
             logger.error(f"Errore nel salvataggio dei file: {e}")
-            # Non bloccare la creazione del progetto se il file non si salva
+            import traceback
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return jsonify({
+                "success": False,
+                "error": f"Errore nel salvataggio dell'immagine: {str(e)}",
+                "message": f"Errore nel salvataggio dell'immagine: {str(e)}"
+            }), 500
         
         # Mappa address -> location (compatibilit schema) con valori di default
         location_value = data.get('address') or data.get('location') or 'Indirizzo non specificato'
@@ -186,9 +253,6 @@ def projects_new():
         # Campi opzionali schema esteso con valori di default
         roi_value = float(data.get('roi', 8.0))
         project_type = data.get('type', 'residential')
-        
-        # Valori di default per campi obbligatori
-        code_value = data.get('code') or f'PRJ{int(time.time())}'
         name_value = data.get('title') or data.get('name') or 'Progetto senza nome'
         description_value = data.get('description') or 'Descrizione non fornita'
         total_amount_value = float(data.get('target_amount', 100000))
@@ -199,6 +263,7 @@ def projects_new():
         end_date_value = data.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
         
         # Inserisci nel database (schema con location, image_url, senza documents)
+        logger.info(f"Salvando progetto nel database - image_url: {photo_filename}")
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
@@ -212,11 +277,13 @@ def projects_new():
                 (
                     code_value, name_value, description_value, status_value,
                     total_amount_value, start_date_value, end_date_value,
-                    location_value, min_investment_value, photo_filename,
+                    location_value, min_investment_value, 
+                    photo_filename if photo_filename else None,
                     roi_value, project_type, 0.0, 365
                 )
             )
             pid = cur.fetchone()['id']
+            logger.info(f"Progetto creato con ID: {pid}, image_url: {photo_filename}")
             
             conn.commit()
         
@@ -229,6 +296,7 @@ def projects_new():
         logger.error(f"Traceback completo: {error_details}")
         return jsonify({
             "success": False,
+            "error": f"Errore interno del server: {str(e)}",
             "message": f"Errore interno del server: {str(e)}"
         }), 500
 
@@ -507,6 +575,56 @@ def projects_delete(pid):
             
     except Exception as e:
         return jsonify({"error": f"Errore durante l'eliminazione: {str(e)}"}), 500
+
+@admin_bp.post("/projects/<int:pid>/image")
+@admin_required
+def project_upload_image(pid):
+    """Upload dell'immagine principale del progetto"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({"error": "Nessuna immagine selezionata"}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({"error": "Nessuna immagine selezionata"}), 400
+        
+        # Verifica tipo file
+        allowed_extensions = {'png', 'jpg', 'jpeg'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({"error": "Formato non supportato. Usa JPG o PNG"}), 400
+        
+        # Verifica dimensione file (max 5MB)
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        if file_size > 5 * 1024 * 1024:  # 5MB
+            return jsonify({"error": "File troppo grande. Massimo 5MB"}), 400
+        
+        # Genera nome file sicuro
+        ext = os.path.splitext(file.filename)[1].lower() or '.jpg'
+        timestamp = int(time.time())
+        filename = secure_filename(f"project_{pid}_image_{timestamp}{ext}")
+        
+        # Salva file
+        projects_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
+        os.makedirs(projects_dir, exist_ok=True)
+        file_path = os.path.join(projects_dir, filename)
+        file.save(file_path)
+        
+        # Aggiorna database
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE projects SET image_url = %s WHERE id = %s",
+                (filename, pid)
+            )
+            conn.commit()
+        
+        logger.info(f"Immagine aggiornata per progetto {pid}: {filename}")
+        return jsonify({"success": True, "filename": filename})
+        
+    except Exception as e:
+        logger.error(f"Errore nell'upload dell'immagine: {e}")
+        return jsonify({"error": f"Errore interno del server: {str(e)}"}), 500
 
 @admin_bp.post("/projects/<int:pid>/upload")
 @admin_required
@@ -1656,6 +1774,7 @@ def api_admin_users_list():
                 u.nome_telegram,
                 u.kyc_status,
                 u.created_at,
+                u.is_vip,
                 COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) +
                 COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) AS portfolio_total
             FROM users u
@@ -1684,6 +1803,7 @@ def api_admin_users_list():
             'kyc_status': r.get('kyc_status'),
             'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
             'portfolio_total': portfolio_total,
+            'is_vip': r.get('is_vip', False),
         })
 
     return jsonify({
@@ -1711,7 +1831,8 @@ def api_admin_user_detail(user_id: int):
                 u.role,
                 u.kyc_status,
                 u.created_at,
-                u.address
+                u.address,
+                u.is_vip
             FROM users u
             WHERE u.id = %s
             """,
@@ -1732,7 +1853,8 @@ def api_admin_user_detail(user_id: int):
         'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
         'kyc_status': u['kyc_status'],
         'created_at': u['created_at'].isoformat() if u['created_at'] else None,
-        'address': u['address']
+        'address': u['address'],
+        'is_vip': u['is_vip']
     })
 
 
@@ -1742,7 +1864,7 @@ def api_admin_user_update(user_id: int):
     """Aggiorna dati utente. Solo admin."""
     data = request.get_json() or {}
 
-    allowed_fields = ['name', 'nome', 'cognome', 'email', 'phone', 'telegram', 'investor_status', 'kyc_status', 'address']
+    allowed_fields = ['name', 'nome', 'cognome', 'email', 'phone', 'telegram', 'investor_status', 'kyc_status', 'address', 'is_vip']
     updates = {k: v for k, v in data.items() if k in allowed_fields}
 
     if not updates:
@@ -1799,6 +1921,9 @@ def api_admin_user_update(user_id: int):
         if 'address' in updates:
             set_clauses.append('address = %s')
             params.append(updates['address'])
+        if 'is_vip' in updates:
+            set_clauses.append('is_vip = %s')
+            params.append(bool(updates['is_vip']))
 
         if not set_clauses:
             return jsonify({'error': 'Nessun campo valido da aggiornare'}), 400

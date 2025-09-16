@@ -52,7 +52,14 @@
 <div class="min-h-screen bg-white">
     <!-- Header -->
     <div class="px-6 py-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Il Mio Portfolio</h1>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            Il Mio Portfolio
+            {% if user.get('is_vip') %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 shadow-lg">
+                    👑 Utente VIP
+                </span>
+            {% endif %}
+        </h1>
         <p class="text-gray-600">Gestisci i tuoi investimenti immobiliari e capitali</p>
     </div>
 
@@ -380,7 +387,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Rete USDT</label>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <label class="relative">
-                                    <input type="radio" name="network" value="trc20" class="sr-only peer" required>
+                                    <input type="radio" name="network" value="TRC20" class="sr-only peer" required>
                                     <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -393,7 +400,7 @@
                                     </div>
                                 </label>
                                 <label class="relative">
-                                    <input type="radio" name="network" value="bsc" class="sr-only peer" required>
+                                    <input type="radio" name="network" value="BEP20" class="sr-only peer" required>
                                     <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -406,7 +413,7 @@
                                     </div>
                                 </label>
                                 <label class="relative">
-                                    <input type="radio" name="network" value="erc20" class="sr-only peer" required>
+                                    <input type="radio" name="network" value="ERC20" class="sr-only peer" required>
                                     <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -537,8 +544,12 @@
                         
                         <div class="pt-4">
                             <button type="submit" 
+                                    id="withdrawal-submit-btn"
                                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-                                Richiedi Prelievo
+                                <span id="withdrawal-btn-text">Richiedi Prelievo</span>
+                                <span id="withdrawal-countdown" class="hidden">
+                                    Riprova tra <span id="withdrawal-countdown-timer">0:00</span>
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -660,34 +671,34 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <h3 class="text-xl font-semibold text-cip-neutral-800 mb-2">Attendere prima del prossimo deposito</h3>
-                <p class="text-sm text-cip-neutral-600">Per non intasare il sistema, la prossima richiesta potrà essere effettuata tra:</p>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Attendere prima del prossimo deposito</h3>
+                <p class="text-sm font-medium text-gray-700">Per non intasare il sistema, la prossima richiesta potrà essere effettuata tra:</p>
             </div>
             
             <!-- Contenuto principale -->
             <div class="p-6 text-center">
                 <!-- Timer principale -->
                 <div class="mb-6">
-                    <div id="rate-limit-timer" class="text-4xl font-bold text-cip-bg mb-2">
+                    <div id="rate-limit-timer" class="text-4xl font-bold text-blue-600 mb-2">
                         10:00
                     </div>
-                    <p class="text-sm text-cip-neutral-500">minuti e secondi</p>
+                    <p class="text-sm font-medium text-gray-600">minuti e secondi</p>
                 </div>
                 
                 <!-- Barra di progresso -->
-                <div class="w-full bg-cip-neutral-200 rounded-full h-2 mb-4">
-                    <div id="rate-limit-progress" class="bg-gradient-to-r from-cip-bg to-cip-bg-light h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div id="rate-limit-progress" class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
                 
                 <!-- Messaggio informativo -->
-                <div class="bg-cip-neutral-50 border border-cip-neutral-200 rounded-cip p-4 mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                     <div class="flex items-start">
-                        <svg class="w-5 h-5 text-cip-bg mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <div class="text-left">
-                            <p class="text-sm font-medium text-cip-neutral-800 mb-1">Perché questo limite?</p>
-                            <p class="text-xs text-cip-neutral-600">Questo sistema previene spam e garantisce un'elaborazione più veloce delle richieste di deposito per tutti gli utenti.</p>
+                            <p class="text-sm font-bold text-gray-900 mb-1">Perché questo limite?</p>
+                            <p class="text-sm text-gray-700">Questo sistema previene spam e garantisce un'elaborazione più veloce delle richieste di deposito per tutti gli utenti.</p>
                         </div>
                     </div>
                 </div>
@@ -696,6 +707,63 @@
             <!-- Footer -->
             <div class="p-6 pt-0">
                 <button id="rate-limit-close" class="btn-mobile btn-mobile-primary w-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Ho Capito
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Rate Limiting Prelievi -->
+<div id="withdrawal-rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 transition-all duration-300">
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="withdrawal-rate-limit-modal-content">
+            <!-- Header con icona -->
+            <div class="p-6 border-b border-cip-primary-darker text-center">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Attendere prima del prossimo prelievo</h3>
+                <p class="text-sm font-medium text-gray-700">Per non intasare il sistema, la prossima richiesta potrà essere effettuata tra:</p>
+            </div>
+            
+            <!-- Contenuto principale -->
+            <div class="p-6 text-center">
+                <!-- Timer principale -->
+                <div class="mb-6">
+                    <div id="withdrawal-rate-limit-timer" class="text-4xl font-bold text-blue-600 mb-2">
+                        10:00
+                    </div>
+                    <p class="text-sm font-medium text-gray-600">minuti e secondi</p>
+                </div>
+                
+                <!-- Barra di progresso -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div id="withdrawal-rate-limit-progress" class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                
+                <!-- Messaggio informativo -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-left">
+                            <p class="text-sm font-bold text-gray-900 mb-1">Perché questo limite?</p>
+                            <p class="text-sm text-gray-700">Questo sistema previene spam e garantisce un'elaborazione più veloce delle richieste di prelievo per tutti gli utenti.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-6 pt-0">
+                <button id="withdrawal-rate-limit-close" class="btn-mobile btn-mobile-primary w-full">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
@@ -742,9 +810,10 @@
 
 <!-- Popup di successo deposito - Design CIP -->
 <div id="deposit-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
-  <div class="relative top-20 mx-auto p-6 w-full max-w-lg">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0" id="deposit-success-modal-content">
-      <div class="p-6 text-center">
+  <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto" id="deposit-success-modal-content">
+      <!-- Header fisso -->
+      <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
         <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-50 to-green-100 mb-4 shadow-cip">
           <svg class="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,31 +822,34 @@
         </div>
         
         <!-- Titolo -->
-        <h3 class="text-xl font-semibold text-cip-neutral-800 mb-3">Deposito Creato con Successo!</h3>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Deposito Creato con Successo!</h3>
         
-        <!-- Messaggio -->
-        <div class="mb-6">
-          <p class="text-cip-neutral-600 leading-relaxed mb-4">
-            La tua richiesta di deposito è stata inviata e sarà processata a breve.
-          </p>
-          
-          <!-- Dettagli deposito -->
-          <div id="deposit-success-details" class="mt-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-cip text-left shadow-cip">
-            <!-- I dettagli verranno inseriti qui dinamicamente -->
-          </div>
-          
-          <!-- Prossimi passi -->
-          <div class="mt-4 p-4 bg-gradient-to-br from-cip-primary to-cip-primary-light border border-cip-primary-darker rounded-cip text-left">
-            <p class="text-sm font-semibold text-cip-neutral-800 mb-2">📋 Prossimi passi:</p>
-            <ul class="text-sm text-cip-neutral-600 space-y-1">
-              <li>• Segui le istruzioni di pagamento sopra</li>
-              <li>• Il deposito verrà confermato entro 24-48 ore</li>
-              <li>• Riceverai una notifica via email</li>
-            </ul>
-          </div>
+        <!-- Messaggio breve -->
+        <p class="text-gray-700 text-sm font-medium">
+          La tua richiesta di deposito è stata inviata e sarà processata a breve.
+        </p>
+      </div>
+      
+      <!-- Contenuto scrollabile -->
+      <div class="flex-1 overflow-y-auto max-h-96 p-6">
+        <!-- Dettagli deposito -->
+        <div id="deposit-success-details" class="mb-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg text-left shadow-md">
+          <!-- I dettagli verranno inseriti qui dinamicamente -->
         </div>
         
-        <!-- Pulsante -->
+        <!-- Prossimi passi -->
+        <div class="p-4 bg-gradient-to-br from-blue-600 to-blue-700 border-2 border-blue-800 rounded-lg text-left shadow-lg">
+          <p class="text-sm font-bold text-white mb-3">📋 Prossimi passi:</p>
+          <ul class="text-sm text-blue-100 space-y-2 font-medium">
+            <li>• Segui le istruzioni di pagamento sopra</li>
+            <li>• Il deposito verrà confermato entro 24-48 ore</li>
+            <li>• Riceverai una notifica via email</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Footer fisso -->
+      <div class="p-6 pt-4 border-t border-cip-primary-darker">
         <button id="close-deposit-success" class="btn-mobile btn-mobile-primary w-full">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -791,9 +863,10 @@
 
 <!-- Popup di successo prelievo - Design CIP -->
 <div id="withdrawal-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
-  <div class="relative top-20 mx-auto p-6 w-full max-w-lg">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0" id="withdrawal-success-modal-content">
-      <div class="p-6 text-center">
+  <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto" id="withdrawal-success-modal-content">
+      <!-- Header fisso -->
+      <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
         <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-50 to-green-100 mb-4 shadow-cip">
           <svg class="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -802,36 +875,39 @@
         </div>
         
         <!-- Titolo -->
-        <h3 class="text-xl font-semibold text-cip-neutral-800 mb-3">Richiesta prelievo creata con successo!</h3>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Prelievo Creato con Successo!</h3>
         
-        <!-- Messaggio -->
-        <div class="mb-6">
-          <p class="text-cip-neutral-600 leading-relaxed mb-4">
-            La tua richiesta di prelievo è stata inviata e sarà processata a breve.
-          </p>
-          
-          <!-- Dettagli prelievo -->
-          <div id="withdrawal-success-details" class="mt-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-cip text-left shadow-cip">
-            <!-- I dettagli verranno inseriti qui dinamicamente -->
-          </div>
-          
-          <!-- Prossimi passi -->
-          <div class="mt-4 p-4 bg-gradient-to-br from-cip-primary to-cip-primary-light border border-cip-primary-darker rounded-cip text-left">
-            <p class="text-sm font-semibold text-cip-neutral-800 mb-2">📋 Prossimi passi:</p>
-            <ul class="text-sm text-cip-neutral-600 space-y-1">
-              <li>• La richiesta sarà esaminata dall'amministratore</li>
-              <li>• Riceverai una notifica via email</li>
-              <li>• Il prelievo verrà processato entro 24-48 ore</li>
-            </ul>
-          </div>
+        <!-- Messaggio breve -->
+        <p class="text-gray-700 text-sm font-medium">
+          La tua richiesta di prelievo è stata inviata e sarà processata a breve.
+        </p>
+      </div>
+      
+      <!-- Contenuto scrollabile -->
+      <div class="flex-1 overflow-y-auto max-h-96 p-6">
+        <!-- Dettagli prelievo -->
+        <div id="withdrawal-success-details" class="mb-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg text-left shadow-md">
+          <!-- I dettagli verranno inseriti qui dinamicamente -->
         </div>
         
-        <!-- Pulsante -->
+        <!-- Prossimi passi -->
+        <div class="p-4 bg-gradient-to-br from-blue-600 to-blue-700 border-2 border-blue-800 rounded-lg text-left shadow-lg">
+          <p class="text-sm font-bold text-white mb-3">📋 Prossimi passi:</p>
+          <ul class="text-sm text-blue-100 space-y-2 font-medium">
+            <li>• La richiesta sarà esaminata dall'amministratore</li>
+            <li>• Riceverai una notifica via email</li>
+            <li>• Il prelievo verrà processato entro 24-48 ore</li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Footer fisso -->
+      <div class="p-6 pt-4 border-t border-cip-primary-darker">
         <button id="close-withdrawal-success" class="btn-mobile btn-mobile-primary w-full">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
           </svg>
-          Perfetto!
+          Perfetto, Ho Capito
         </button>
       </div>
             </div>
@@ -879,6 +955,13 @@ function showSection(sectionName) {
     document.getElementById(`tab-${sectionName}`).classList.add('bg-white', 'text-blue-600', 'shadow-sm');
     
     // Carica dati sezione se necessario
+    if (sectionName === 'withdrawals') {
+        // Verifica rate limit quando si entra nella sezione prelievi
+        checkWithdrawalRateLimit().then(updateWithdrawalRateLimitUI);
+        // Carica storico prelievi
+        loadWithdrawals();
+    }
+    
     if (sectionName === 'movements' && !window.movementsLoaded) {
         loadMovements();
     } else if (sectionName === 'profits' && !window.profitsLoaded) {
@@ -1009,6 +1092,12 @@ let depositRateLimited = false;
 let rateLimitModalTimer = null;
 let currentCountdownSeconds = 0;
 
+// Sistema di rate limiting per prelievi
+let withdrawalCountdownTimer = null;
+let withdrawalRateLimited = false;
+let withdrawalRateLimitModalTimer = null;
+let currentWithdrawalCountdownSeconds = 0;
+
 
 // Funzione per mostrare il modal di rate limiting
 function showRateLimitModal(remainingSeconds) {
@@ -1079,6 +1168,75 @@ function closeRateLimitModal() {
     }
 }
 
+// Funzione per mostrare il modal di rate limiting per prelievi
+function showWithdrawalRateLimitModal(remainingSeconds) {
+    const modal = document.getElementById('withdrawal-rate-limit-modal');
+    const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
+    const timerElement = document.getElementById('withdrawal-rate-limit-timer');
+    const progressElement = document.getElementById('withdrawal-rate-limit-progress');
+    
+    if (!modal || !modalContent || !timerElement || !progressElement) {
+        console.error('Elementi del modal prelievi non trovati');
+        return;
+    }
+    
+    // Mostra il modal con animazione
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modalContent.style.transform = 'scale(1)';
+        modalContent.style.opacity = '1';
+    }, 10);
+    
+    // Avvia il timer del modal
+    let currentSeconds = remainingSeconds;
+    const totalSeconds = remainingSeconds;
+    
+    function updateModalTimer() {
+        const minutes = Math.floor(currentSeconds / 60);
+        const seconds = currentSeconds % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Aggiorna la barra di progresso
+        const progress = ((totalSeconds - currentSeconds) / totalSeconds) * 100;
+        progressElement.style.width = `${progress}%`;
+        
+        if (currentSeconds <= 0) {
+            // Timer finito, chiudi il modal
+            clearInterval(withdrawalRateLimitModalTimer);
+            withdrawalRateLimitModalTimer = null;
+            closeWithdrawalRateLimitModal();
+        } else {
+            currentSeconds--;
+        }
+    }
+    
+    // Avvia il timer del modal
+    updateModalTimer();
+    withdrawalRateLimitModalTimer = setInterval(updateModalTimer, 1000);
+}
+
+// Funzione per chiudere il modal di rate limiting per prelievi
+function closeWithdrawalRateLimitModal() {
+    const modal = document.getElementById('withdrawal-rate-limit-modal');
+    const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
+    
+    if (!modal || !modalContent) return;
+    
+    // Chiudi il modal con animazione
+    modalContent.style.transform = 'scale(0.95)';
+    modalContent.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+    
+    // Pulisci il timer del modal
+    if (withdrawalRateLimitModalTimer) {
+        clearInterval(withdrawalRateLimitModalTimer);
+        withdrawalRateLimitModalTimer = null;
+    }
+}
+
 // Funzione per avviare il countdown
 function startDepositCountdown(remainingSeconds) {
     const btn = document.getElementById('deposit-submit-btn');
@@ -1136,6 +1294,63 @@ function startDepositCountdown(remainingSeconds) {
     depositCountdownTimer = setInterval(updateTimer, 1000);
 }
 
+// Funzione per avviare il countdown dei prelievi
+function startWithdrawalCountdown(remainingSeconds) {
+    const btn = document.getElementById('withdrawal-submit-btn');
+    const btnText = document.getElementById('withdrawal-btn-text');
+    const countdownSpan = document.getElementById('withdrawal-countdown');
+    const timerSpan = document.getElementById('withdrawal-countdown-timer');
+    
+    if (!btn || !btnText || !countdownSpan || !timerSpan) {
+        console.error('Elementi del pulsante prelievi non trovati');
+        return;
+    }
+    
+    // NON disabilitare il pulsante - deve rimanere cliccabile
+    withdrawalRateLimited = true;
+    currentWithdrawalCountdownSeconds = remainingSeconds;
+    
+    // Mostra countdown ma mantieni il pulsante cliccabile
+    btnText.classList.add('hidden');
+    countdownSpan.classList.remove('hidden');
+    
+    // Cambia lo stile del pulsante per indicare che è in countdown ma cliccabile
+    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+    btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    
+    // NON mostrare il modal automaticamente - solo al click del pulsante
+    
+    // Funzione per aggiornare il timer
+    function updateTimer() {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        timerSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Aggiorna i secondi rimanenti globali
+        currentWithdrawalCountdownSeconds = remainingSeconds;
+        
+        if (remainingSeconds <= 0) {
+            // Countdown finito, ripristina il pulsante normale
+            clearInterval(withdrawalCountdownTimer);
+            withdrawalCountdownTimer = null;
+            withdrawalRateLimited = false;
+            currentWithdrawalCountdownSeconds = 0;
+            
+            // Ripristina il testo e lo stile del pulsante
+            btnText.classList.remove('hidden');
+            countdownSpan.classList.add('hidden');
+            btn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        } else {
+            remainingSeconds--;
+        }
+    }
+    
+    // Avvia il timer
+    updateTimer();
+    withdrawalCountdownTimer = setInterval(updateTimer, 1000);
+}
+
 // Funzione per controllare lo stato del rate limiting
 async function checkDepositRateLimit() {
     try {
@@ -1162,6 +1377,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBtn = document.getElementById('rate-limit-close');
     if (closeBtn) {
         closeBtn.addEventListener('click', closeRateLimitModal);
+    }
+    
+    // Event listener per il pulsante di chiusura del modal rate limiting prelievi
+    const withdrawalCloseBtn = document.getElementById('withdrawal-rate-limit-close');
+    if (withdrawalCloseBtn) {
+        withdrawalCloseBtn.addEventListener('click', closeWithdrawalRateLimitModal);
     }
     
     // Chiudi modal cliccando fuori
@@ -1217,8 +1438,8 @@ if (depositForm) {
       const j = await r.json();
       
       if (r.ok) {
-        // Deposito riuscito, avvia countdown di 10 minuti
-        startDepositCountdown(600); // 10 minuti = 600 secondi
+        // Deposito riuscito, avvia countdown di 5 minuti
+        startDepositCountdown(300); // 5 minuti = 300 secondi
         // Mostra popup di successo
         showDepositSuccessModal(j.deposit_request, method);
         
@@ -1632,29 +1853,29 @@ function showDepositSuccessModal(depositRequest, method) {
                         network === 'ERC20' ? 'Ethereum (ERC20)' : 
                         network === 'TRC20' ? 'Tron (TRC20)' : network;
     detailsHtml = `
-      <div class="space-y-2">
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Metodo:</span>
-          <span class="text-sm text-gray-900">USDT (${networkLabel})</span>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Metodo:</span>
+          <span class="text-sm font-bold text-blue-700">USDT (${networkLabel})</span>
         </div>
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Importo:</span>
-          <span class="text-sm text-gray-900 font-semibold">€${depositRequest.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</span>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Importo:</span>
+          <span class="text-lg font-bold text-green-700">€${depositRequest.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</span>
         </div>
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Codice:</span>
-          <span class="text-sm text-gray-900 font-mono">${depositRequest.unique_key}</span>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Codice:</span>
+          <span class="text-sm font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">${depositRequest.unique_key}</span>
         </div>
-        <div class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-          <div class="flex items-center justify-between">
+        <div class="mt-4 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-lg">
+          <div class="flex items-start justify-between">
             <div class="flex-1">
-              <p class="text-xs text-yellow-800 mb-1">
-                <strong>Wallet (${network}):</strong>
+              <p class="text-sm font-bold text-amber-800 mb-2">
+                💰 Wallet (${network}):
               </p>
-              <code class="font-mono text-xs text-yellow-900 break-all">${wallet}</code>
+              <code class="font-mono text-sm text-amber-900 break-all bg-amber-100 px-2 py-1 rounded block">${wallet}</code>
             </div>
-            <button onclick="copyToClipboard('${wallet}')" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="copyToClipboard('${wallet}')" class="ml-3 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-md">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
               </svg>
               Copia
@@ -1665,29 +1886,29 @@ function showDepositSuccessModal(depositRequest, method) {
     `;
   } else {
     detailsHtml = `
-      <div class="space-y-2">
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Metodo:</span>
-          <span class="text-sm text-gray-900">Bonifico</span>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Metodo:</span>
+          <span class="text-sm font-bold text-blue-700">Bonifico Bancario</span>
         </div>
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Importo:</span>
-          <span class="text-sm text-gray-900 font-semibold">€${depositRequest.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</span>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Importo:</span>
+          <span class="text-lg font-bold text-green-700">€${depositRequest.amount.toLocaleString('it-IT',{minimumFractionDigits:2})}</span>
         </div>
-        <div class="flex justify-between">
-          <span class="text-sm font-medium text-gray-700">Codice:</span>
-          <span class="text-sm text-gray-900 font-mono">${depositRequest.unique_key}</span>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Codice:</span>
+          <span class="text-sm font-mono font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded">${depositRequest.unique_key}</span>
         </div>
-        <div class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
-          <div class="flex items-center justify-between">
+        <div class="mt-4 p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-lg">
+          <div class="flex items-start justify-between">
             <div class="flex-1">
-              <p class="text-xs text-yellow-800 mb-1">
-                <strong>IBAN:</strong>
+              <p class="text-sm font-bold text-emerald-800 mb-2">
+                🏦 IBAN:
               </p>
-              <code class="font-mono text-xs text-yellow-900">${depositRequest.iban}</code>
+              <code class="font-mono text-sm text-emerald-900 break-all bg-emerald-100 px-2 py-1 rounded block">${depositRequest.iban}</code>
             </div>
-            <button onclick="copyToClipboard('${depositRequest.iban}')" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="copyToClipboard('${depositRequest.iban}')" class="ml-3 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-md">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
               </svg>
               Copia
@@ -1714,89 +1935,93 @@ function showDepositSuccessModal(depositRequest, method) {
 // Funzione per mostrare popup di successo prelievo - Design CIP
 function showWithdrawalSuccessModal(withdrawalData) {
   const modal = document.getElementById('withdrawal-success-modal');
-  const modalContent = document.getElementById('withdrawal-success-modal-content');
   const detailsContainer = document.getElementById('withdrawal-success-details');
   
-  if (detailsContainer && withdrawalData) {
-    let detailsHtml = '';
-    
-    if (withdrawalData.method === 'usdt') {
-      detailsHtml = `
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Metodo:</span>
-            <span class="text-sm text-cip-neutral-600">USDT</span>
+  // Genera i dettagli del prelievo
+  let detailsHtml = '';
+  if (withdrawalData.method === 'usdt') {
+    const network = withdrawalData.network || 'BEP20';
+    const networkLabel = network === 'BEP20' ? 'BSC (BEP20)' : 
+                        network === 'ERC20' ? 'Ethereum (ERC20)' : 
+                        network === 'TRC20' ? 'Tron (TRC20)' : network;
+    detailsHtml = `
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Metodo:</span>
+          <span class="text-sm font-bold text-blue-700">USDT (${networkLabel})</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Importo:</span>
+          <span class="text-sm font-bold text-green-700">$${withdrawalData.amount}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Sezione:</span>
+          <span class="text-sm font-bold text-blue-700">${withdrawalData.source_section === 'free_capital' ? 'Capitale Libero' : withdrawalData.source_section === 'profits' ? 'Profitti' : 'Bonus Referral'}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Chiave:</span>
+          <span class="text-sm font-mono text-gray-600">${withdrawalData.unique_key}</span>
+        </div>
+        <div class="mt-4 p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-lg shadow-md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <p class="text-xs font-bold text-yellow-800 mb-2">
+                💳 Wallet ${networkLabel}:
+              </p>
+              <code class="font-mono text-xs text-yellow-900 break-all leading-relaxed">${withdrawalData.wallet_address}</code>
+            </div>
+            <button onclick="copyToClipboard('${withdrawalData.wallet_address}')" class="btn-mobile btn-mobile-primary text-xs px-3 py-2 flex-shrink-0">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copia
+            </button>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Importo:</span>
-            <span class="text-sm font-semibold text-cip-bg">$${withdrawalData.amount}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Sezione:</span>
-            <span class="text-sm text-cip-neutral-600">${withdrawalData.source_section === 'free_capital' ? 'Capitale Libero' : withdrawalData.source_section === 'profits' ? 'Profitti' : 'Bonus Referral'}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Chiave:</span>
-            <span class="text-sm font-mono text-cip-neutral-600">${withdrawalData.unique_key}</span>
-          </div>
-          <div class="mt-4 p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-cip shadow-cip">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex-1">
-                <p class="text-xs font-semibold text-yellow-800 mb-2">
-                  💳 Wallet BEP20:
-                </p>
-                <code class="font-mono text-xs text-yellow-900 break-all leading-relaxed">${withdrawalData.wallet_address}</code>
-              </div>
-              <button onclick="copyToClipboard('${withdrawalData.wallet_address}')" class="btn-mobile btn-mobile-primary text-xs px-3 py-2 flex-shrink-0">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-                Copia
-              </button>
+        </div>
+      </div>
+    `;
+  } else {
+    detailsHtml = `
+      <div class="space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Metodo:</span>
+          <span class="text-sm font-bold text-blue-700">Bonifico Bancario</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Importo:</span>
+          <span class="text-sm font-bold text-green-700">€${withdrawalData.amount}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Sezione:</span>
+          <span class="text-sm font-bold text-blue-700">${withdrawalData.source_section === 'free_capital' ? 'Capitale Libero' : withdrawalData.source_section === 'profits' ? 'Profitti' : 'Bonus Referral'}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-sm font-semibold text-gray-800">Chiave:</span>
+          <span class="text-sm font-mono text-gray-600">${withdrawalData.unique_key}</span>
+        </div>
+        <div class="mt-4 p-3 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg shadow-md">
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-blue-800">IBAN:</span>
+              <span class="text-xs font-mono text-blue-900">${withdrawalData.bank_details?.iban || 'N/A'}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-blue-800">Intestatario:</span>
+              <span class="text-xs text-blue-900">${withdrawalData.bank_details?.account_holder || 'N/A'}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-blue-800">Banca:</span>
+              <span class="text-xs text-blue-900">${withdrawalData.bank_details?.bank_name || 'N/A'}</span>
             </div>
           </div>
         </div>
-      `;
-    } else {
-      detailsHtml = `
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Metodo:</span>
-            <span class="text-sm text-cip-neutral-600">Bonifico</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Importo:</span>
-            <span class="text-sm font-semibold text-cip-bg">$${withdrawalData.amount}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Sezione:</span>
-            <span class="text-sm text-cip-neutral-600">${withdrawalData.source_section === 'free_capital' ? 'Capitale Libero' : withdrawalData.source_section === 'profits' ? 'Profitti' : 'Bonus Referral'}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-cip-neutral-700">Chiave:</span>
-            <span class="text-sm font-mono text-cip-neutral-600">${withdrawalData.unique_key}</span>
-          </div>
-          <div class="mt-4 p-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-cip shadow-cip">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex-1">
-                <p class="text-xs font-semibold text-blue-800 mb-2">
-                  🏦 Dati Bancari:
-                </p>
-                <div class="space-y-1">
-                  <p class="text-xs text-blue-900"><strong>IBAN:</strong> ${withdrawalData.bank_details?.iban || 'N/A'}</p>
-                  <p class="text-xs text-blue-900"><strong>Intestatario:</strong> ${withdrawalData.bank_details?.account_holder || 'N/A'}</p>
-                  <p class="text-xs text-blue-900"><strong>Banca:</strong> ${withdrawalData.bank_details?.bank_name || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
-    detailsContainer.innerHTML = detailsHtml;
+      </div>
+    `;
   }
   
+  detailsContainer.innerHTML = detailsHtml;
+  
+  const modalContent = document.getElementById('withdrawal-success-modal-content');
   if (modal && modalContent) {
     modal.classList.remove('hidden');
     // Animazione di entrata
@@ -1866,11 +2091,14 @@ async function loadWithdrawals() {
         window.withdrawalsLoaded = true;
     } catch (error) {
         console.error('Errore caricamento prelievi:', error);
-        document.getElementById('withdrawals-list').innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <p>Errore durante il caricamento dei prelievi</p>
-            </div>
-        `;
+        const withdrawalsList = document.getElementById('withdrawals-list');
+        if (withdrawalsList) {
+            withdrawalsList.innerHTML = `
+                <div class="text-center py-8 text-red-600">
+                    <p>Errore durante il caricamento dei prelievi</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -1953,8 +2181,80 @@ function updateWalletPlaceholder(network, walletInput, walletHint) {
     }
 }
 
-// Gestione form prelievo
-document.addEventListener('DOMContentLoaded', function() {
+
+    // Funzioni per modal di errore - Design CIP
+    function showErrorModal(message) {
+      const modal = document.getElementById('error-modal');
+      const modalContent = document.getElementById('error-modal-content');
+      const messageElement = document.getElementById('error-message');
+      
+      if (messageElement) {
+        messageElement.textContent = message;
+      }
+      
+      if (modal && modalContent) {
+        modal.classList.remove('hidden');
+        // Animazione di entrata
+        setTimeout(() => {
+          modalContent.style.transform = 'scale(1)';
+          modalContent.style.opacity = '1';
+        }, 100);
+      } else {
+        alert('Errore: ' + message);
+      }
+    }
+
+    function hideErrorModal() {
+      const modal = document.getElementById('error-modal');
+      const modalContent = document.getElementById('error-modal-content');
+      
+      if (modal && modalContent) {
+        // Animazione di uscita
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        setTimeout(() => {
+          modal.classList.add('hidden');
+        }, 300);
+      }
+    }
+
+
+// Funzione per verificare rate limit prelievi
+async function checkWithdrawalRateLimit() {
+    try {
+        const response = await fetch('/withdrawals/api/rate-limit-status');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Errore verifica rate limit prelievi:', error);
+        return { rate_limited: false, remaining_seconds: 0 };
+    }
+}
+
+// Funzione per aggiornare UI rate limit prelievi
+function updateWithdrawalRateLimitUI(rateLimitData) {
+    if (rateLimitData.rate_limited) {
+        // Avvia countdown
+        startWithdrawalCountdown(rateLimitData.remaining_seconds);
+    } else {
+        // Ripristina pulsante normale
+        const btn = document.getElementById('withdrawal-submit-btn');
+        const btnText = document.getElementById('withdrawal-btn-text');
+        const countdownSpan = document.getElementById('withdrawal-countdown');
+        
+        if (btn && btnText && countdownSpan) {
+            btn.disabled = false;
+            btnText.classList.remove('hidden');
+            countdownSpan.classList.add('hidden');
+            btn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
+    }
+}
+
+
+// Funzione per inizializzare il form prelievo
+function initializeWithdrawalForm() {
     // Event listeners per cambio metodo
     const methodRadios = document.querySelectorAll('input[name="method"]');
     methodRadios.forEach(radio => {
@@ -1987,11 +2287,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form prelievo
     const withdrawalForm = document.getElementById('withdrawal-form');
-    if (withdrawalForm) {
-        withdrawalForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
     
-      const formData = new FormData(this);
+    if (withdrawalForm) {
+        // Verifica rate limit al caricamento
+        checkWithdrawalRateLimit().then(updateWithdrawalRateLimitUI);
+        
+        // Event listener per il pulsante prelievo - mostra modal se rate limited
+        const withdrawalBtn = document.getElementById('withdrawal-submit-btn');
+        if (withdrawalBtn) {
+            withdrawalBtn.addEventListener('click', function(e) {
+                if (withdrawalRateLimited && currentWithdrawalCountdownSeconds > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showWithdrawalRateLimitModal(currentWithdrawalCountdownSeconds);
+                }
+            });
+        }
+        
+        withdrawalForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
             const method = formData.get('method');
             const amount = parseFloat(formData.get('amount'));
             const sourceSection = formData.get('source_section');
@@ -2020,7 +2336,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Prepara dati
-      const data = {
+            const data = {
                 amount: amount,
                 method: method,
                 source_section: sourceSection,
@@ -2036,9 +2352,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.wallet_address = walletAddress;
             } else if (method === 'bank') {
                 const bankDetails = {
-            iban: formData.get('iban'),
-            account_holder: formData.get('account_holder'),
-            bank_name: formData.get('bank_name')
+                    iban: formData.get('iban'),
+                    account_holder: formData.get('account_holder'),
+                    bank_name: formData.get('bank_name')
                 };
                 
                 if (!bankDetails.iban || !bankDetails.account_holder) {
@@ -2050,67 +2366,39 @@ document.addEventListener('DOMContentLoaded', function() {
             
             try {
                 const response = await fetch('/withdrawals/api/requests/new', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(data)
-          });
-        
-          const result = await response.json();
-        
-        if (response.ok) {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Prelievo riuscito, avvia countdown di 5 minuti
+                    startWithdrawalCountdown(300); // 5 minuti = 300 secondi
                     // Mostra popup di successo
                     showWithdrawalSuccessModal(result.withdrawal_request);
-            this.reset();
-            // Ricarica lista prelievi
-            loadWithdrawals();
-            // Ricarica dati portfolio
-            loadPortfolioData();
-          } else {
-                    showErrorModal('Errore: ' + result.error);
-          }
-      } catch (error) {
+                    this.reset();
+                    // Ricarica lista prelievi
+                    loadWithdrawals();
+                    // Ricarica dati portfolio
+                    loadPortfolioData();
+                } else {
+                    if (response.status === 429) {
+                        // Rate limit exceeded - aggiorna UI
+                        updateWithdrawalRateLimitUI(result);
+                    } else {
+                        showErrorModal('Errore: ' + result.error);
+                    }
+                }
+            } catch (error) {
                 showErrorModal('Errore durante la creazione della richiesta prelievo');
-      }
-  });
+            }
+        });
+    }
 }
-});
-
-    // Funzioni per modal di errore - Design CIP
-    function showErrorModal(message) {
-      const modal = document.getElementById('error-modal');
-      const modalContent = document.getElementById('error-modal-content');
-      const messageElement = document.getElementById('error-message');
-      
-      if (messageElement) {
-        messageElement.textContent = message;
-      }
-      
-      if (modal && modalContent) {
-        modal.classList.remove('hidden');
-        // Animazione di entrata
-        setTimeout(() => {
-          modalContent.style.transform = 'scale(1)';
-          modalContent.style.opacity = '1';
-        }, 100);
-      }
-    }
-
-    function hideErrorModal() {
-      const modal = document.getElementById('error-modal');
-      const modalContent = document.getElementById('error-modal-content');
-      
-      if (modal && modalContent) {
-        // Animazione di uscita
-        modalContent.style.transform = 'scale(0.95)';
-        modalContent.style.opacity = '0';
-        setTimeout(() => {
-          modal.classList.add('hidden');
-        }, 300);
-      }
-    }
-
 
 // Inizializzazione pagina
 document.addEventListener('DOMContentLoaded', function() {
@@ -2121,6 +2409,9 @@ document.addEventListener('DOMContentLoaded', function() {
     showSection('overview');
     // Precarica lo storico depositi in background
     loadDeposits();
+    
+    // Inizializza form prelievo
+    initializeWithdrawalForm();
     
     // Event listeners per il popup di successo deposito
     const successModal = document.getElementById('deposit-success-modal');
@@ -2460,21 +2751,6 @@ function showSuccessModal(message) {
     }
 }
 
-function showErrorModal(message) {
-    const modal = document.getElementById('errorModal');
-    const messageElement = document.getElementById('errorMessage');
-    if (modal && messageElement) {
-        messageElement.textContent = message;
-        modal.classList.remove('hidden');
-        
-        // Auto-chiudi dopo 5 secondi
-        setTimeout(() => {
-            modal.classList.add('hidden');
-        }, 5000);
-    } else {
-        alert(`Errore: ${message}`);
-    }
-}
 
 function closeSuccessModal() {
     const modal = document.getElementById('successModal');

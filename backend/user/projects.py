@@ -107,7 +107,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url, p.sale_price, p.sale_date,
+                   p.image_url,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
@@ -119,7 +119,7 @@ def projects():
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
             WHERE p.status = 'sold'
-            ORDER BY p.sale_date DESC
+            ORDER BY p.created_at DESC
         """, (uid,))
         
         sold_projects = cur.fetchall()
@@ -149,12 +149,10 @@ def projects():
                 project['gallery_count'] = 1 if project.get('image_url') else 0
                 
                 # Calcola informazioni profitto per progetti venduti
-                if project['status'] == 'sold' and project.get('sale_price'):
-                    project['profit_amount'] = project['sale_price'] - project['total_amount']
-                    if project['total_amount'] > 0:
-                        project['profit_percentage'] = (project['profit_amount'] / project['total_amount']) * 100
-                    else:
-                        project['profit_percentage'] = 0
+                if project['status'] == 'sold':
+                    # Per ora non abbiamo sale_price nel database, quindi impostiamo valori di default
+                    project['profit_amount'] = 0
+                    project['profit_percentage'] = 0
                 else:
                     project['profit_amount'] = 0
                     project['profit_percentage'] = 0

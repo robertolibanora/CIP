@@ -113,7 +113,7 @@ def dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -490,7 +490,7 @@ def portfolio():
         # Ottieni dati utente completi per il form profilo
         cur.execute("""
             SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
-                   address, currency_code, referral_code, created_at, kyc_status
+                   address, currency_code, referral_code, created_at, kyc_status, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()

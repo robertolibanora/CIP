@@ -53,7 +53,7 @@
                         <div id="step-3-circle" class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                             <span class="text-gray-500 text-sm font-medium">3</span>
                         </div>
-                        <span class="ml-2 admin-text-small text-gray-500">Documenti e Media</span>
+                        <span class="ml-2 admin-text-small text-gray-500">Immagine Progetto</span>
                     </div>
                     <div id="step-3-line" class="flex-1 h-1 bg-gray-200 mx-4"></div>
                     
@@ -201,81 +201,64 @@
         <!-- STEP 3: Documenti e Media -->
         <div id="step-3" class="wizard-step hidden">
             <div class="admin-card-header">
-                <h2 class="admin-heading-2">Step 3: Documenti e Media</h2>
-                <p class="admin-text-small">Carica immagini e documenti del progetto</p>
+                <h2 class="admin-heading-2">Step 3: Immagine Progetto</h2>
+                <p class="admin-text-small">Aggiungi l'immagine principale del progetto</p>
             </div>
             <div class="admin-card-body">
                 <div class="space-y-6">
-                    <!-- Immagine Principale -->
+                    <!-- Sezione Cambia Immagine -->
                     <div class="admin-form-group">
-                        <label class="admin-label">Immagine Principale</label>
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="main-image-dropzone">
-                            <div class="text-center" id="main-image-placeholder">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                <div class="mt-4">
-                                    <label for="main-image" class="cursor-pointer">
-                                        <span class="admin-btn admin-btn--primary admin-btn--sm">Seleziona Immagine</span>
-                                        <input id="main-image" type="file" class="sr-only" accept="image/*">
-                    </label>
+                        <label class="admin-label admin-label--required">Foto Progetto</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8" id="image-upload-area">
+                            <div class="text-center" id="image-placeholder">
+                                <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
                                 </div>
-                                <p class="admin-help-text mt-2">PNG, JPG fino a 10MB</p>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Cambia Immagine</h3>
+                                <p class="text-gray-500 mb-4">Carica un'immagine rappresentativa del progetto</p>
+                                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                                    <label for="project-image" class="cursor-pointer">
+                                        <span class="admin-btn admin-btn--primary">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                            Carica File
+                                        </span>
+                                        <input id="project-image" name="photo" type="file" class="sr-only" accept="image/jpeg,image/jpg,image/png">
+                                    </label>
+                                </div>
+                                <p class="mt-3 text-sm text-gray-500">Formato JPG/PNG, max 5MB</p>
                             </div>
-                            <div id="main-image-preview" class="hidden">
-                                <img id="main-image-img" class="max-h-48 mx-auto rounded-lg" alt="Anteprima">
-                                <div class="mt-2 text-center">
-                                    <button type="button" onclick="removeMainImage()" class="admin-btn admin-btn--error admin-btn--sm">
-                                        Rimuovi
+                            
+                            <!-- Anteprima Immagine -->
+                            <div id="image-preview" class="hidden">
+                                <div class="relative">
+                                    <img id="image-preview-img" class="w-full h-64 object-cover rounded-lg">
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <div class="text-center text-white">
+                                            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                            </svg>
+                                            <p class="text-sm">Clicca per cambiare</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <p class="text-sm text-gray-600 mb-2">Immagine selezionata</p>
+                                    <button type="button" onclick="removeProjectImage()" class="admin-btn admin-btn--secondary admin-btn--sm">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        Rimuovi Immagine
                                     </button>
-                </div>
-                </div>
-            </div>
-        </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="admin-help-text">L'immagine verrà mostrata nella lista progetti e nei dettagli</p>
+                    </div>
 
-                    <!-- Galleria Immagini -->
-                    <div class="admin-form-group">
-                        <label class="admin-label">Galleria Immagini (opzionale)</label>
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="gallery-dropzone">
-                            <div class="text-center">
-                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                                </svg>
-                                <div class="mt-2">
-                                    <label for="gallery-images" class="cursor-pointer">
-                                        <span class="admin-btn admin-btn--secondary admin-btn--sm">Aggiungi Immagini</span>
-                                        <input id="gallery-images" type="file" class="sr-only" accept="image/*" multiple>
-                    </label>
-                                </div>
-                                <p class="admin-help-text">Trascina o seleziona più immagini</p>
-                            </div>
-                        </div>
-                        <div id="gallery-preview" class="hidden mt-4">
-                            <div class="admin-grid admin-grid--4" id="gallery-grid"></div>
-                        </div>
-                </div>
-                
-                    <!-- Documenti PDF -->
-                    <div class="admin-form-group">
-                        <label class="admin-label">Documenti Progetto (opzionale)</label>
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6" id="docs-dropzone">
-                            <div class="text-center">
-                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <div class="mt-2">
-                                    <label for="project-docs" class="cursor-pointer">
-                                        <span class="admin-btn admin-btn--secondary admin-btn--sm">Aggiungi PDF</span>
-                                        <input id="project-docs" type="file" class="sr-only" accept=".pdf" multiple>
-                    </label>
-                                </div>
-                                <p class="admin-help-text">Documenti PDF del progetto</p>
-                            </div>
-                        </div>
-                        <div id="docs-preview" class="hidden mt-4">
-                            <div class="space-y-2" id="docs-list"></div>
-                        </div>
-                </div>
                 </div>
             </div>
         </div>
@@ -333,9 +316,7 @@ class ProjectWizard {
         this.totalSteps = 4;
         this.projectData = {};
         this.uploadedFiles = {
-            mainImage: null,
-            gallery: [],
-            documents: []
+            mainImage: null
         };
         
         this.init();
@@ -402,104 +383,37 @@ class ProjectWizard {
     }
     
     setupFileUploads() {
-        // Main image upload
-        document.getElementById('main-image').addEventListener('change', (e) => {
-            this.handleMainImageUpload(e.target.files[0]);
-        });
-        
-        // Gallery images upload
-        document.getElementById('gallery-images').addEventListener('change', (e) => {
-            this.handleGalleryUpload(Array.from(e.target.files));
-        });
-        
-        // Documents upload
-        document.getElementById('project-docs').addEventListener('change', (e) => {
-            this.handleDocumentsUpload(Array.from(e.target.files));
+        // Project image upload
+        document.getElementById('project-image').addEventListener('change', (e) => {
+            this.handleProjectImageUpload(e.target.files[0]);
         });
     }
     
-    handleMainImageUpload(file) {
+    handleProjectImageUpload(file) {
         if (!file) return;
         
-        if (file.size > 10 * 1024 * 1024) {
-            this.showAlert('error', 'File troppo grande. Massimo 10MB');
+        if (file.size > 5 * 1024 * 1024) {
+            this.showAlert('error', 'File troppo grande. Massimo 5MB');
+            return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            this.showAlert('error', 'Seleziona solo file immagine (JPG/PNG)');
             return;
         }
         
         const reader = new FileReader();
         reader.onload = (e) => {
-            document.getElementById('main-image-placeholder').classList.add('hidden');
-            document.getElementById('main-image-preview').classList.remove('hidden');
-            document.getElementById('main-image-img').src = e.target.result;
+            document.getElementById('image-placeholder').classList.add('hidden');
+            document.getElementById('image-preview').classList.remove('hidden');
+            document.getElementById('image-preview-img').src = e.target.result;
             this.uploadedFiles.mainImage = file;
         };
         reader.readAsDataURL(file);
     }
     
-    handleGalleryUpload(files) {
-        files.forEach(file => {
-            if (file.size <= 10 * 1024 * 1024) {
-                this.uploadedFiles.gallery.push(file);
-                this.addGalleryPreview(file);
-            }
-        });
-        
-        if (this.uploadedFiles.gallery.length > 0) {
-            document.getElementById('gallery-preview').classList.remove('hidden');
-        }
-    }
     
-    addGalleryPreview(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const grid = document.getElementById('gallery-grid');
-            const div = document.createElement('div');
-            div.className = 'relative';
-            div.innerHTML = `
-                <img src="${e.target.result}" class="w-full h-24 object-cover rounded-lg">
-                <button type="button" onclick="removeGalleryImage(this)" 
-                        class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                    ×
-                </button>
-            `;
-            grid.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-    }
     
-    handleDocumentsUpload(files) {
-        files.forEach(file => {
-            if (file.type === 'application/pdf' && file.size <= 10 * 1024 * 1024) {
-                this.uploadedFiles.documents.push(file);
-                this.addDocumentPreview(file);
-            }
-        });
-        
-        if (this.uploadedFiles.documents.length > 0) {
-            document.getElementById('docs-preview').classList.remove('hidden');
-        }
-    }
-    
-    addDocumentPreview(file) {
-        const list = document.getElementById('docs-list');
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg';
-        div.innerHTML = `
-            <div class="flex items-center">
-                <svg class="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <div>
-                    <p class="admin-text-body">${file.name}</p>
-                    <p class="admin-text-caption">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                </div>
-            </div>
-            <button type="button" onclick="removeDocument(this)" class="admin-btn admin-btn--error admin-btn--sm">
-                Rimuovi
-            </button>
-        `;
-        list.appendChild(div);
-    }
     
     validateStep(step) {
         let isValid = true;
@@ -738,8 +652,6 @@ class ProjectWizard {
             <!-- Media Preview -->
             ${this.renderMediaPreview()}
             
-            <!-- Documents Preview -->
-            ${this.renderDocumentsPreview()}
             
             <!-- Project Card Preview -->
             <div class="admin-card mb-6">
@@ -771,52 +683,74 @@ class ProjectWizard {
         setButtonLoading(submitBtn, true, 'Creando...');
         
         try {
-            // Prepare form data
-            const formData = new FormData(document.getElementById('wizard-form'));
+            // Prepare form data - raccogli tutti i campi del form
+            const formElement = document.getElementById('wizard-form');
+            if (!formElement) {
+                console.error('Form wizard-form not found!');
+                this.showAlert('error', 'Errore interno: form non trovato');
+                return;
+            }
+            
+            const formData = new FormData(formElement);
+            
+            // Debug: Log form data
+            console.log('Form data collected:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
             
             // Add files
             if (this.uploadedFiles.mainImage) {
                 formData.append('main_image', this.uploadedFiles.mainImage);
+                console.log('Main image added:', this.uploadedFiles.mainImage.name);
             }
             
-            this.uploadedFiles.gallery.forEach((file, index) => {
-                formData.append(`gallery_${index}`, file);
-            });
             
-            this.uploadedFiles.documents.forEach((file, index) => {
-                formData.append(`document_${index}`, file);
-            });
+            // Validazione di base
+            const title = formData.get('title');
+            const description = formData.get('description');
             
-            // Convert to JSON (excluding files for basic project creation)
-            const projectData = {};
-            for (let [key, value] of formData.entries()) {
-                if (!key.startsWith('gallery_') && !key.startsWith('document_') && key !== 'main_image') {
-                    projectData[key] = value;
-                }
+            if (!title || !description) {
+                this.showAlert('error', 'Titolo e descrizione sono obbligatori');
+                return;
             }
+            
+            console.log('Sending request to /admin/projects/new...');
+            console.log('Form data entries:', Array.from(formData.entries()));
             
             const response = await fetch('/admin/projects/new', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(projectData)
+                body: formData  // Invia come form-data per supportare i file
             });
             
-            const result = await response.json();
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            // Gestione più robusta della risposta
+            let result;
+            try {
+                result = await response.json();
+                console.log('Response data:', result);
+            } catch (jsonError) {
+                console.error('Errore nel parsing JSON:', jsonError);
+                this.showAlert('error', 'Errore di connessione: risposta non valida dal server');
+                return;
+            }
             
             if (response.ok) {
-                this.showAlert('success', `Progetto "${projectData.title}" creato con successo!`);
-                
-                // TODO: Upload files to the created project
+                this.showAlert('success', `Progetto "${title}" creato con successo!`);
                 
                 setTimeout(() => {
                     window.location.href = '/admin/projects';
                 }, 2000);
             } else {
-                this.showAlert('error', result.error || 'Errore nella creazione del progetto');
+                // Gestione errori migliorata - supporta sia 'error' che 'message'
+                const errorMessage = result.error || result.message || 'Errore nella creazione del progetto';
+                this.showAlert('error', errorMessage);
             }
         } catch (error) {
-            console.error('Errore:', error);
-            this.showAlert('error', 'Errore di connessione');
+            console.error('Errore di connessione:', error);
+            this.showAlert('error', 'Errore di connessione: ' + (error.message || 'Errore sconosciuto'));
         } finally {
             setButtonLoading(submitBtn, false);
         }
@@ -856,70 +790,27 @@ class ProjectWizard {
     }
     
     renderMediaPreview() {
-        if (!this.uploadedFiles.mainImage && this.uploadedFiles.gallery.length === 0) {
+        if (!this.uploadedFiles.mainImage) {
             return '';
         }
         
         return `
             <div class="admin-card mb-6">
                 <div class="admin-card-header">
-                    <h3 class="admin-heading-3">Media Caricati</h3>
+                    <h3 class="admin-heading-3">Immagine Progetto</h3>
                 </div>
                 <div class="admin-card-body">
-                    ${this.uploadedFiles.mainImage ? `
-                        <div class="mb-4">
-                            <h4 class="admin-text-small font-medium mb-2">Immagine Principale:</h4>
-                            <div class="w-32 h-32 rounded-lg overflow-hidden">
-                                <img src="${this.uploadedFiles.mainImage.preview}" alt="Immagine principale" class="w-full h-full object-cover">
-                            </div>
+                    <div class="mb-4">
+                        <h4 class="admin-text-small font-medium mb-2">Immagine Principale:</h4>
+                        <div class="w-32 h-32 rounded-lg overflow-hidden">
+                            <img src="${this.uploadedFiles.mainImage.preview}" alt="Immagine principale" class="w-full h-full object-cover">
                         </div>
-                    ` : ''}
-                    
-                    ${this.uploadedFiles.gallery.length > 0 ? `
-                        <div>
-                            <h4 class="admin-text-small font-medium mb-2">Galleria (${this.uploadedFiles.gallery.length} immagini):</h4>
-                            <div class="admin-grid admin-grid--6">
-                                ${this.uploadedFiles.gallery.map(img => `
-                                    <div class="w-16 h-16 rounded overflow-hidden">
-                                        <img src="${img.preview}" alt="Galleria" class="w-full h-full object-cover">
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-    }
-    
-    renderDocumentsPreview() {
-        if (this.uploadedFiles.documents.length === 0) {
-            return '';
-        }
-        
-        return `
-            <div class="admin-card mb-6">
-                <div class="admin-card-header">
-                    <h3 class="admin-heading-3">Documenti Caricati</h3>
-                </div>
-                <div class="admin-card-body">
-                    <div class="space-y-2">
-                        ${this.uploadedFiles.documents.map(doc => `
-                            <div class="admin-flex admin-flex--between p-3 bg-gray-50 rounded-lg">
-                                <div class="admin-flex admin-flex--center">
-                                    <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    <span class="admin-text-small font-medium">${doc.name}</span>
-                                </div>
-                                <span class="admin-text-caption text-gray-500">${this.formatFileSize(doc.size)}</span>
-                            </div>
-                        `).join('')}
                     </div>
                 </div>
             </div>
         `;
     }
+    
     
     renderProjectCardPreview(data) {
         return `
@@ -1017,14 +908,6 @@ class ProjectWizard {
         // Media validation
         if (!this.uploadedFiles.mainImage) {
             validations.push({ type: 'warning', message: 'Nessuna immagine principale caricata' });
-        }
-        
-        if (this.uploadedFiles.gallery.length === 0) {
-            validations.push({ type: 'info', message: 'Nessuna immagine galleria caricata' });
-        }
-        
-        if (this.uploadedFiles.documents.length === 0) {
-            validations.push({ type: 'info', message: 'Nessun documento PDF caricato' });
         }
         
         // Generate summary HTML
@@ -1168,32 +1051,13 @@ function submitProject() {
     projectWizard.submitProject();
 }
 
-function removeMainImage() {
-    document.getElementById('main-image-placeholder').classList.remove('hidden');
-    document.getElementById('main-image-preview').classList.add('hidden');
-    document.getElementById('main-image').value = '';
+function removeProjectImage() {
+    document.getElementById('image-placeholder').classList.remove('hidden');
+    document.getElementById('image-preview').classList.add('hidden');
+    document.getElementById('project-image').value = '';
     projectWizard.uploadedFiles.mainImage = null;
 }
 
-function removeGalleryImage(button) {
-    const index = Array.from(button.parentElement.parentElement.children).indexOf(button.parentElement);
-    projectWizard.uploadedFiles.gallery.splice(index, 1);
-    button.parentElement.remove();
-    
-    if (projectWizard.uploadedFiles.gallery.length === 0) {
-        document.getElementById('gallery-preview').classList.add('hidden');
-    }
-}
-
-function removeDocument(button) {
-    const index = Array.from(button.parentElement.parentElement.children).indexOf(button.parentElement);
-    projectWizard.uploadedFiles.documents.splice(index, 1);
-    button.parentElement.remove();
-    
-    if (projectWizard.uploadedFiles.documents.length === 0) {
-        document.getElementById('docs-preview').classList.add('hidden');
-    }
-}
 
 // Initialize wizard
 document.addEventListener('DOMContentLoaded', function() {

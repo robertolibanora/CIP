@@ -118,30 +118,36 @@
         </div>
     </div>
 
-    <!-- Documents and Images -->
+    <!-- Cambia Immagine -->
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200">
             <div class="flex justify-between items-center">
-                <h2 class="text-lg font-semibold text-gray-900">Documenti e Immagini</h2>
-                <button onclick="openUploadModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                <h2 class="text-lg font-semibold text-gray-900">Cambia Immagine</h2>
+                <button onclick="openImageUploadModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
                     <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    Carica File
+                    Cambia Immagine
                 </button>
             </div>
         </div>
         <div class="p-6">
-            <div id="documents-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Documents will be loaded here -->
-            </div>
-            
-            <div id="documents-empty" class="hidden text-center py-8">
-                <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-500">Nessun documento</h3>
-                <p class="text-sm text-gray-400">Carica immagini JPG/PNG o documenti PDF</p>
+            <!-- Current Image Display -->
+            <div id="current-image-container" class="mb-6">
+                <div class="text-center">
+                    <div id="current-image" class="inline-block relative">
+                        <!-- Current image will be loaded here -->
+                    </div>
+                    <div id="no-image-message" class="hidden">
+                        <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-500 mb-2">Nessuna immagine</h3>
+                        <p class="text-sm text-gray-400">Clicca "Cambia Immagine" per aggiungere una foto al progetto</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -181,49 +187,44 @@
     </div>
 </div>
 
-<!-- Upload Modal -->
-<div id="upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+<!-- Image Upload Modal -->
+<div id="image-upload-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Carica File</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <h3 class="text-lg font-medium text-gray-900">Cambia Immagine Progetto</h3>
+                <button onclick="closeImageModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
             
-            <form id="upload-form" class="space-y-4">
+            <form id="image-upload-form" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Titolo (opzionale)</label>
-                    <input type="text" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nome descrittivo del file">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">File <span class="text-red-500">*</span></label>
-                    <input type="file" name="file" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".jpg,.jpeg,.png,.pdf" required id="file-input">
-                    <p class="text-xs text-gray-500 mt-1">Formati supportati: JPG, PNG, PDF (max 10MB)</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Seleziona Immagine <span class="text-red-500">*</span></label>
+                    <input type="file" name="image" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" accept=".jpg,.jpeg,.png" required id="image-input">
+                    <p class="text-xs text-gray-500 mt-1">Formati supportati: JPG, PNG (max 5MB)</p>
                 </div>
                 
                 <!-- Preview -->
-                <div id="file-preview" class="hidden">
+                <div id="image-preview" class="hidden">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Anteprima</label>
                     <div class="border border-gray-200 rounded-lg p-4">
-                        <div id="preview-content"></div>
+                        <img id="preview-img" class="w-full h-32 object-cover rounded-lg" alt="Anteprima immagine">
                     </div>
                 </div>
             </form>
             
             <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                <button type="button" onclick="closeImageModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                     Annulla
                 </button>
-                <button type="button" onclick="submitUpload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="upload-btn">
+                <button type="button" onclick="submitImageUpload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="image-upload-btn">
                     <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    Carica File
+                    Cambia Immagine
                 </button>
             </div>
         </div>
@@ -264,7 +265,7 @@ class ProjectDetailManager {
             
             this.renderProject();
             this.renderStats();
-            this.renderDocuments();
+            this.renderCurrentImage();
             this.renderInvestors();
             
         } catch (error) {
@@ -367,21 +368,40 @@ class ProjectDetailManager {
         `;
     }
     
-    renderDocuments() {
-        const documents = this.projectData.documents || [];
-        const grid = document.getElementById('documents-grid');
-        const empty = document.getElementById('documents-empty');
+    renderCurrentImage() {
+        const imageUrl = this.projectData.image_url;
+        const currentImageContainer = document.getElementById('current-image');
+        const noImageMessage = document.getElementById('no-image-message');
         
-        if (documents.length === 0) {
-            grid.classList.add('hidden');
-            empty.classList.remove('hidden');
-            return;
+        if (imageUrl) {
+            // Show current image
+            noImageMessage.classList.add('hidden');
+            currentImageContainer.classList.remove('hidden');
+            
+            currentImageContainer.innerHTML = `
+                <div class="relative">
+                    <img src="/uploads/projects/${imageUrl}" alt="Immagine progetto" class="w-64 h-48 object-cover rounded-lg shadow-md">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
+                        <div class="opacity-0 hover:opacity-100 transition-opacity text-center text-white">
+                            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <p class="text-sm">Clicca per ingrandire</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add click to enlarge
+            currentImageContainer.querySelector('img').addEventListener('click', () => {
+                window.open(`/uploads/projects/${imageUrl}`, '_blank');
+            });
+        } else {
+            // Show no image message
+            currentImageContainer.classList.add('hidden');
+            noImageMessage.classList.remove('hidden');
         }
-        
-        empty.classList.add('hidden');
-        grid.classList.remove('hidden');
-        
-        grid.innerHTML = documents.map(doc => this.renderDocumentCard(doc)).join('');
     }
     
     renderDocumentCard(doc) {
@@ -667,6 +687,45 @@ class ProjectDetailManager {
         }
     }
     
+    async uploadImage() {
+        const form = document.getElementById('image-upload-form');
+        const formData = new FormData(form);
+        
+        if (!formData.get('image')) {
+            this.showAlert('error', 'Seleziona un\'immagine da caricare');
+            return;
+        }
+        
+        const uploadBtn = document.getElementById('image-upload-btn');
+        this.setButtonLoading(uploadBtn, true, 'Caricando...');
+        
+        try {
+            const response = await fetch(`/admin/projects/${this.projectId}/image`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                this.showAlert('success', 'Immagine aggiornata con successo');
+                closeImageModal();
+                form.reset();
+                document.getElementById('image-preview').classList.add('hidden');
+                
+                // Refresh project data
+                await this.loadProjectData();
+            } else {
+                this.showAlert('error', result.error || 'Errore nel caricamento dell\'immagine');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            this.setButtonLoading(uploadBtn, false);
+        }
+    }
+    
     setButtonLoading(button, loading, text) {
         if (loading) {
             button.disabled = true;
@@ -731,16 +790,35 @@ function deleteProject() {
     projectDetailManager.deleteProject();
 }
 
-function openUploadModal() {
-    document.getElementById('upload-modal').classList.remove('hidden');
+function openImageUploadModal() {
+    document.getElementById('image-upload-modal').classList.remove('hidden');
+    
+    // Setup image preview
+    const imageInput = document.getElementById('image-input');
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview-img').src = e.target.result;
+                document.getElementById('image-preview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            document.getElementById('image-preview').classList.add('hidden');
+        }
+    });
 }
 
-function closeModal() {
-    document.getElementById('upload-modal').classList.add('hidden');
+function closeImageModal() {
+    document.getElementById('image-upload-modal').classList.add('hidden');
+    // Reset form
+    document.getElementById('image-upload-form').reset();
+    document.getElementById('image-preview').classList.add('hidden');
 }
 
-function submitUpload() {
-    projectDetailManager.uploadFile();
+function submitImageUpload() {
+    projectDetailManager.uploadImage();
 }
 
 function openImagePreview(src, title) {
