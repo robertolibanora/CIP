@@ -1,0 +1,305 @@
+<!-- Notification Badge Component -->
+<!-- Bollino rosso per notifiche admin -->
+
+<div id="notification-badge" class="relative inline-block">
+    <!-- Icona campanella -->
+    <button id="notification-bell" 
+            class="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-colors duration-200">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        
+        <!-- Bollino rosso con contatore -->
+        <span id="notification-count" 
+              class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold hidden">
+            0
+        </span>
+    </button>
+    
+    <!-- Dropdown notifiche -->
+    <div id="notification-dropdown" 
+         class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Notifiche</h3>
+                <div class="flex gap-2">
+                    <button id="mark-all-read" 
+                            class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                        Segna tutte come lette
+                    </button>
+                    <button id="clear-all-notifications" 
+                            class="text-sm text-red-600 hover:text-red-800 font-medium">
+                        Pulisci notifiche
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista notifiche -->
+        <div id="notification-list" class="max-h-96 overflow-y-auto">
+            <div id="notification-loading" class="p-4 text-center text-gray-500">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-2">Caricamento notifiche...</p>
+            </div>
+            
+            <div id="notification-empty" class="hidden p-4 text-center text-gray-500">
+                <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <p>Nessuna notifica</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="p-3 border-t border-gray-200 bg-gray-50">
+            <a href="#" id="view-all-notifications" 
+               class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                Visualizza tutte le notifiche
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Sistema notifiche admin
+class AdminNotifications {
+    constructor() {
+        this.bell = document.getElementById('notification-bell');
+        this.dropdown = document.getElementById('notification-dropdown');
+        this.count = document.getElementById('notification-count');
+        this.list = document.getElementById('notification-list');
+        this.loading = document.getElementById('notification-loading');
+        this.empty = document.getElementById('notification-empty');
+        this.markAllRead = document.getElementById('mark-all-read');
+        this.clearAllNotifications = document.getElementById('clear-all-notifications');
+        
+        this.init();
+    }
+    
+    init() {
+        // Event listeners
+        this.bell.addEventListener('click', () => this.toggleDropdown());
+        this.markAllRead.addEventListener('click', () => this.markAllAsRead());
+        this.clearAllNotifications.addEventListener('click', () => this.clearAllNotificationsConfirm());
+        
+        // Chiudi dropdown cliccando fuori
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#notification-badge')) {
+                this.closeDropdown();
+            }
+        });
+        
+        // Carica notifiche iniziali
+        this.loadNotifications();
+        
+        // Polling per aggiornamenti (ogni 30 secondi)
+        setInterval(() => this.loadNotifications(), 30000);
+    }
+    
+    async loadNotifications() {
+        try {
+            const response = await fetch('/admin/api/notifications/unread-count');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateBadge(data.unread_count);
+            }
+        } catch (error) {
+            console.error('Errore caricamento notifiche:', error);
+        }
+    }
+    
+    async loadNotificationList() {
+        this.loading.classList.remove('hidden');
+        this.empty.classList.add('hidden');
+        
+        try {
+            const response = await fetch('/admin/api/notifications/?limit=10');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderNotifications(data.notifications);
+            }
+        } catch (error) {
+            console.error('Errore caricamento lista notifiche:', error);
+            this.showError('Errore caricamento notifiche');
+        } finally {
+            this.loading.classList.add('hidden');
+        }
+    }
+    
+    renderNotifications(notifications) {
+        if (notifications.length === 0) {
+            this.empty.classList.remove('hidden');
+            return;
+        }
+        
+        this.list.innerHTML = notifications.map(notification => `
+            <div class="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${notification.is_read ? 'bg-gray-50' : 'bg-white'}"
+                 onclick="adminNotifications.markAsRead(${notification.id})">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        ${this.getNotificationIcon(notification.type)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                ${notification.title}
+                            </p>
+                            ${!notification.is_read ? '<div class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>' : ''}
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">
+                            ${notification.message}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            ${this.formatDate(notification.created_at)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    getNotificationIcon(type) {
+        const icons = {
+            'kyc': '<svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            'deposit': '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>',
+            'withdrawal': '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4m16 0l-4-4m4 4l-4 4"/></svg>'
+        };
+        return icons[type] || '<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+    }
+    
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) { // Meno di 1 minuto
+            return 'Ora';
+        } else if (diff < 3600000) { // Meno di 1 ora
+            const minutes = Math.floor(diff / 60000);
+            return `${minutes}m fa`;
+        } else if (diff < 86400000) { // Meno di 1 giorno
+            const hours = Math.floor(diff / 3600000);
+            return `${hours}h fa`;
+        } else {
+            return date.toLocaleDateString('it-IT');
+        }
+    }
+    
+    updateBadge(count) {
+        if (count > 0) {
+            this.count.textContent = count > 99 ? '99+' : count;
+            this.count.classList.remove('hidden');
+        } else {
+            this.count.classList.add('hidden');
+        }
+    }
+    
+    toggleDropdown() {
+        if (this.dropdown.classList.contains('hidden')) {
+            this.openDropdown();
+        } else {
+            this.closeDropdown();
+        }
+    }
+    
+    openDropdown() {
+        this.dropdown.classList.remove('hidden');
+        this.loadNotificationList();
+    }
+    
+    closeDropdown() {
+        this.dropdown.classList.add('hidden');
+    }
+    
+    async markAsRead(notificationId) {
+        try {
+            const response = await fetch(`/admin/api/notifications/${notificationId}/read`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Ricarica le notifiche
+                this.loadNotifications();
+                this.loadNotificationList();
+            }
+        } catch (error) {
+            console.error('Errore marcatura notifica come letta:', error);
+        }
+    }
+    
+    async markAllAsRead() {
+        try {
+            const response = await fetch('/admin/api/notifications/mark-all-read', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                this.loadNotifications();
+                this.loadNotificationList();
+            }
+        } catch (error) {
+            console.error('Errore marcatura tutte le notifiche come lette:', error);
+        }
+    }
+    
+    clearAllNotificationsConfirm() {
+        if (confirm('Sei sicuro di voler eliminare tutte le notifiche? Questa azione non può essere annullata.')) {
+            this.clearAllNotifications();
+        }
+    }
+    
+    async clearAllNotifications() {
+        try {
+            const response = await fetch('/admin/api/notifications/clear-all', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                this.loadNotifications();
+                this.loadNotificationList();
+                this.showSuccess('Tutte le notifiche sono state eliminate');
+            } else {
+                this.showError('Errore nell\'eliminazione delle notifiche');
+            }
+        } catch (error) {
+            console.error('Errore eliminazione notifiche:', error);
+            this.showError('Errore nell\'eliminazione delle notifiche');
+        }
+    }
+    
+    showError(message) {
+        this.list.innerHTML = `
+            <div class="p-4 text-center text-red-600">
+                <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+    
+    showSuccess(message) {
+        // Mostra messaggio di successo temporaneo
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+        successDiv.textContent = message;
+        document.body.appendChild(successDiv);
+        
+        // Rimuovi dopo 3 secondi
+        setTimeout(() => {
+            if (successDiv.parentElement) {
+                successDiv.remove();
+            }
+        }, 3000);
+    }
+}
+
+// Inizializza il sistema notifiche quando il DOM è pronto
+document.addEventListener('DOMContentLoaded', () => {
+    window.adminNotifications = new AdminNotifications();
+});
+</script>

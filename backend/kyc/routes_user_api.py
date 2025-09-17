@@ -6,6 +6,7 @@ from backend.auth.decorators import login_required
 from backend.models.kyc import KYCRequest, KYCStatus
 from backend.kyc.utils import save_kyc_file
 from backend.shared.database import get_connection
+from backend.shared.notifications import create_kyc_notification
 from datetime import datetime
 
 kyc_user_api = Blueprint("kyc_user_api", __name__, url_prefix="/kyc/api")
@@ -126,6 +127,17 @@ def kyc_upload():
                         (user_id,))
 
             conn.commit()
+            
+            # 4) Crea notifica per admin
+            try:
+                # Recupera nome utente per la notifica
+                cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (user_id,))
+                user_data = cur.fetchone()
+                if user_data:
+                    user_name = f"{user_data['nome']} {user_data['cognome']}"
+                    create_kyc_notification(user_id, user_name)
+            except Exception as e:
+                current_app.logger.error(f"Errore creazione notifica KYC: {e}")
 
         current_app.logger.info(f"KYC request created: ID={req.id} e documenti registrati per user={user_id}")
 

@@ -9,6 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from flask import Blueprint, request, jsonify, session, render_template
 from backend.shared.database import get_connection as get_conn
+from backend.shared.notifications import create_withdrawal_notification
 from backend.auth.decorators import login_required, admin_required, can_withdraw
 from backend.shared.validators import ValidationError
 import logging
@@ -246,6 +247,17 @@ def create_withdrawal_request():
             
             new_request = cur.fetchone()
             conn.commit()
+            
+            # Crea notifica per admin
+            try:
+                # Recupera nome utente per la notifica
+                cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
+                user_data = cur.fetchone()
+                if user_data:
+                    user_name = f"{user_data['nome']} {user_data['cognome']}"
+                    create_withdrawal_notification(uid, user_name, float(amount))
+            except Exception as e:
+                logger.error(f"Errore creazione notifica prelievo: {e}")
         
         return jsonify({
             'success': True,

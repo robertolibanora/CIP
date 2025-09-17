@@ -30,7 +30,7 @@ class CIPApp {
     this.setupBackgroundSync();
     
     // Mostra eventuale popup KYC richiesto dopo redirect
-    this.showKYCWarningIfFlag();
+    await this.showKYCWarningIfFlag();
 
     console.log('✅ CIP Immobiliare PWA inizializzato');
   }
@@ -408,8 +408,11 @@ class CIPApp {
       // Solo se siamo in una pagina user (presenza user-layout)
       if (!document.body.classList.contains('user-layout')) return;
 
+      // Controlla se è un link che richiede verifica KYC
+      if (!this.isRestrictedUserHref(href)) return;
+
       const isUnverified = await this.isUserUnverified();
-      if (isUnverified && this.isRestrictedUserHref(href)) {
+      if (isUnverified) {
         e.preventDefault();
         // imposta flag per mostrare popup sulla home o profilo
         try { sessionStorage.setItem('SHOW_KYC_WARNING', '1'); } catch (_) {}
@@ -486,18 +489,24 @@ CIPApp.prototype.showKYCWarning = function () {
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) hide(); });
 };
 
-CIPApp.prototype.showKYCWarningIfFlag = function () {
+CIPApp.prototype.showKYCWarningIfFlag = async function () {
   try {
     const flag = sessionStorage.getItem('SHOW_KYC_WARNING');
     if (flag === '1') {
       sessionStorage.removeItem('SHOW_KYC_WARNING');
-      this.showKYCWarning();
+      
+      // Controlla se l'utente è già verificato prima di mostrare il popup
+      const isUnverified = await this.isUserUnverified();
+      if (isUnverified) {
+        this.showKYCWarning();
+      }
     }
   } catch (_) {}
 };
 
 CIPApp.prototype.isRestrictedUserHref = function (href) {
   // definisci sezioni che richiedono verifica
-  const restricted = ['/user/portfolio', '/user/projects', '/user/search', '/user/deposits', '/user/withdrawals'];
+  const restricted = ['/user/portfolio', '/user/projects', '/user_projects/projects', '/user/referral', '/user/search', '/user/deposits', '/user/withdrawals'];
   return restricted.some(path => href.startsWith(path));
 };
+// Cache buster Wed Sep 17 15:47:19 CEST 2025

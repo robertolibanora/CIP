@@ -298,6 +298,7 @@ def new_project():
     
     return render_template("user/new_project.html", 
                          user_id=uid,
+                         user={'kyc_status': 'verified'},  # Se arriva qui, KYC è verificato
                          projects=available_projects,
                          portfolio=portfolio,
                          total_available=total_available,
@@ -722,6 +723,7 @@ def referral():
     
     return render_template("user/referral.html", 
                          user_id=uid,
+                         user={'kyc_status': 'verified'},  # Se arriva qui, KYC è verificato
                          stats=stats,
                          referrals=referrals,
                          total_bonus=bonus['total_bonus'] if bonus else 0,

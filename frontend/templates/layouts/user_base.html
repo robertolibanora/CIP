@@ -118,7 +118,8 @@
     </main>
     
 
-    <!-- KYC Warning Modal -->
+    <!-- KYC Warning Modal - Solo per utenti NON verificati -->
+    {% if user['kyc_status'] != 'verified' %}
     <div id="kyc-warning-backdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
         <div class="bg-white rounded-2xl shadow-xl max-w-md w-11/12 p-6">
             <div class="flex items-start">
@@ -140,12 +141,13 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Bottom Navigation Menu -->
     {% include 'partials/bottom_nav.html' %}
 
     <!-- JavaScript User -->
-    <script src="{{ url_for('assets', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('assets', filename='js/app.js') }}?v={{ range(1000, 9999) | random }}"></script>
     
     {% block extra_js %}{% endblock %}
 </body>

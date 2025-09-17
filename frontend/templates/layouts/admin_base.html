@@ -115,11 +115,14 @@
                 <!-- Titolo "Azioni Rapide" -->
                 <h1 style="font-size: 1.5rem; font-weight: bold; color: #111827; margin: 0;">Azioni Rapide</h1>
                 
-                <!-- Spacer per spingere logout a destra -->
+                <!-- Spacer per spingere elementi a destra -->
                 <div style="flex: 1;"></div>
                 
+                <!-- Bollino notifiche -->
+                {% include "admin/components/notification_badge.html" %}
+                
                 <!-- Pulsante logout a destra -->
-                <a href="{{ url_for('auth.logout') }}" style="color: #6b7280; padding: 8px; border-radius: 6px; text-decoration: none;" onmouseover="this.style.color='#374151'; this.style.backgroundColor='#f3f4f6';" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent';">
+                <a href="{{ url_for('auth.logout') }}" style="color: #6b7280; padding: 8px; border-radius: 6px; text-decoration: none; margin-left: 8px;" onmouseover="this.style.color='#374151'; this.style.backgroundColor='#f3f4f6';" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent';">
                     <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                     </svg>

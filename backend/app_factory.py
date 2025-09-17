@@ -4,7 +4,7 @@ Configura i percorsi per template e file assets
 Task 2.2: Configurazione sicura sessioni
 """
 
-from flask import Flask, url_for
+from flask import Flask, url_for, request
 from werkzeug.routing import BuildError
 import logging
 import os
@@ -86,6 +86,15 @@ def create_app():
     if os.environ.get('TESTING') == '1':
         app.config['TESTING'] = True
     
+    # Cache headers per forzare reload JavaScript
+    @app.after_request
+    def after_request(response):
+        if request.endpoint == 'assets' and request.path.endswith('.js'):
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        return response
+    
     # Configurazione percorsi (valori iniziali, poi sovrascritti dalla config)
     app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
     
@@ -138,6 +147,14 @@ def create_app():
         app.logger.info("Blueprint KYC registrati con successo")
     except Exception as e:
         app.logger.warning(f"Impossibile registrare blueprint KYC: {e}")
+    
+    # Registra blueprint Notifiche Admin
+    try:
+        from backend.admin.notifications_api import notifications_api
+        app.register_blueprint(notifications_api)
+        app.logger.info("Blueprint Notifiche Admin registrato con successo")
+    except Exception as e:
+        app.logger.warning(f"Impossibile registrare blueprint Notifiche Admin: {e}")
     
     # Registra blueprint Portfolio (API deposito/bonifico/cronologie)
     try:

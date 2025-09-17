@@ -5,7 +5,7 @@ Compartimento stagno per i progetti disponibili per investimento
 
 from flask import Blueprint, session, render_template, request, redirect, url_for, jsonify, flash
 from backend.shared.database import get_connection
-from backend.auth.decorators import can_invest
+from backend.auth.decorators import can_invest, kyc_verified
 
 # Blueprint isolato per Projects
 projects_bp = Blueprint("user_projects", __name__)
@@ -21,6 +21,7 @@ def require_login():
         return redirect(url_for('auth.login'))
 
 @projects_bp.get("/projects")
+@kyc_verified
 def projects():
     """
     Lista progetti divisi in 3 sezioni: Attivi, Completati, Venduti
@@ -167,6 +168,7 @@ def projects():
     
     return render_template("user/projects.html", 
                          user_id=uid,
+                         user={'kyc_status': 'verified' if is_kyc_verified else 'pending'},
                          active_projects=active_projects,
                          expired_projects=expired_projects,
                          completed_projects=completed_projects,

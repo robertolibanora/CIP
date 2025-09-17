@@ -10,6 +10,7 @@ import logging
 from decimal import Decimal
 from flask import Blueprint, request, session, jsonify, render_template
 from backend.shared.database import get_connection
+from backend.shared.notifications import create_deposit_notification
 import psycopg
 from psycopg import errors as pg_errors
 from backend.shared.models import TransactionStatus
@@ -110,6 +111,7 @@ def ensure_deposits_schema(cur):
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_pending_allowed
+from backend.shared.notifications import create_deposit_notification
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
@@ -398,6 +400,17 @@ def create_deposit_request():
                 return jsonify({'error': 'Errore generazione chiavi, riprovare tra poco'}), 500
             conn.commit()
             logger.info("[deposits] created deposit_request id=%s amount=%s user=%s", new_request['id'] if new_request else None, amount, uid)
+            
+            # Crea notifica per admin
+            try:
+                # Recupera nome utente per la notifica
+                cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
+                user_data = cur.fetchone()
+                if user_data:
+                    user_name = f"{user_data['nome']} {user_data['cognome']}"
+                    create_deposit_notification(uid, user_name)
+            except Exception as e:
+                logger.error(f"Errore creazione notifica deposito: {e}")
     except Exception as e:
         logger.exception("[deposits] create failed: %s", e)
         # Risposta dettagliata in dev per debug rapido

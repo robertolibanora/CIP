@@ -9,7 +9,7 @@ from flask import Blueprint
 from .dashboard import dashboard_bp
 from .portfolio import portfolio_bp
 from .projects import projects_bp
-from .referral import referral_bp
+# referral_bp rimosso - conflitto con route in routes.py
 from .profile import profile_bp
 from .new_project import new_project_bp
 
@@ -21,7 +21,7 @@ user_blueprints = [
     dashboard_bp,
     portfolio_bp,
     projects_bp,
-    referral_bp,
+    # referral_bp rimosso - conflitto con route in routes.py
     profile_bp,
     new_project_bp
 ]
@@ -32,7 +32,7 @@ __all__ = [
     'dashboard_bp',
     'portfolio_bp', 
     'projects_bp',
-    'referral_bp',
+    # 'referral_bp',  # Rimosso - conflitto con route in routes.py
     'profile_bp',
     'new_project_bp'
 ]
