@@ -170,9 +170,8 @@
 </div>
 
 <!-- Withdrawal Details Modal -->
-<div id="withdrawal-details-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay" onclick="closeWithdrawalModal()"></div>
-    <div class="admin-modal-content">
+<div id="withdrawal-details-modal" class="admin-modal hidden" onclick="closeWithdrawalModal()">
+    <div class="admin-modal-content" onclick="event.stopPropagation()">
         <div class="admin-modal-header">
             <h3 class="admin-heading-3">Dettagli Prelievo</h3>
             <button onclick="closeWithdrawalModal()" class="admin-modal-close">
@@ -490,9 +489,17 @@ async function refreshWithdrawals() {
 async function viewWithdrawalDetails(withdrawalId) {
     try {
         console.log('viewWithdrawalDetails chiamata con ID:', withdrawalId);
-        console.log('currentWithdrawals:', currentWithdrawals);
         showLoading();
-        const withdrawal = currentWithdrawals.find(w => w.id === withdrawalId);
+        
+        // Fai una chiamata API per ottenere i dettagli completi del prelievo
+        const response = await fetch(`/withdrawals/api/admin/pending`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const withdrawal = data.withdrawals.find(w => w.id === withdrawalId);
+        
         console.log('withdrawal trovato:', withdrawal);
         if (withdrawal) {
             showWithdrawalDetailsModal(withdrawal);
@@ -522,6 +529,8 @@ function showWithdrawalDetailsModal(withdrawal) {
         console.error('Content withdrawal-details-content non trovato');
         return;
     }
+    
+    // Il modal usa le classi CSS predefinite per il posizionamento
     
     // Dettagli specifici per metodo
     let methodDetails = '';
@@ -655,7 +664,8 @@ function showWithdrawalDetailsModal(withdrawal) {
 
 // Close withdrawal modal
 function closeWithdrawalModal() {
-    document.getElementById('withdrawal-details-modal').classList.add('hidden');
+    const modal = document.getElementById('withdrawal-details-modal');
+    modal.classList.add('hidden');
 }
 
 // Copy to clipboard function
@@ -747,6 +757,38 @@ async function refreshWithdrawals() {
     await loadPendingWithdrawals();
     await loadMetrics();
     showNotification('Dati aggiornati', 'success');
+}
+
+// Utility functions
+function showLoading() {
+    const modal = document.getElementById('loading-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideLoading() {
+    const modal = document.getElementById('loading-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function showError(message) {
+    const alert = document.getElementById('error-alert');
+    if (alert) {
+        const messageEl = alert.querySelector('.admin-alert-message');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+        alert.classList.remove('hidden');
+        setTimeout(() => {
+            alert.classList.add('hidden');
+        }, 5000);
+    } else {
+        console.error('Error:', message);
+        alert('Errore: ' + message);
+    }
 }
 
 </script>

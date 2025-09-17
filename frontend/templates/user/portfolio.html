@@ -123,8 +123,9 @@
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-1">Profitti</h3>
                 <p class="text-3xl font-bold text-orange-600" id="profits">€{{ "%.2f"|format(portfolio.profits|float) }}</p>
-                <p class="text-sm text-orange-600 mt-1">Accumulati</p>
+                <p class="text-sm text-orange-600 mt-1">Dalla vendita immobili</p>
             </div>
+
         </div>
 
         <!-- Totale Portafoglio -->
@@ -176,11 +177,6 @@
                     class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
                     id="tab-movements">
                 Movimenti
-            </button>
-            <button onclick="showSection('profits')" 
-                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
-                    id="tab-profits">
-                Profitti
             </button>
         </div>
     </div>
@@ -594,41 +590,6 @@
             </div>
         </div>
 
-        <!-- Sezione Profitti -->
-        <div id="section-profits" class="section-content hidden">
-            <div class="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Storico Profitti</h2>
-                <p class="text-sm text-gray-600 mb-6">Registro di tutti i movimenti passati nella sezione profitti del tuo portafoglio</p>
-                
-                <!-- Riepilogo Profitti -->
-                <div id="profits-summary" class="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600" id="current-balance">€0.00</div>
-                            <div class="text-sm text-green-700">Saldo Attuale</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600" id="total-entries">€0.00</div>
-                            <div class="text-sm text-green-700">Totale Entrate</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-red-600" id="total-exits">€0.00</div>
-                            <div class="text-sm text-red-700">Totale Uscite</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-2xl font-bold text-blue-600" id="net-profit">€0.00</div>
-                            <div class="text-sm text-blue-700">Profitto Netto</div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <!-- Lista Movimenti -->
-                <div id="profits-movements-list" class="space-y-4">
-                    <!-- Contenuto caricato dinamicamente -->
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Sezione Dati Personali e Preferenze rimossa su richiesta -->
@@ -964,8 +925,6 @@ function showSection(sectionName) {
     
     if (sectionName === 'movements' && !window.movementsLoaded) {
         loadMovements();
-    } else if (sectionName === 'profits' && !window.profitsLoaded) {
-        loadProfits();
     } else if (sectionName === 'deposits') {
         if (!window.depositsLoaded) {
             loadDeposits();
@@ -1589,129 +1548,8 @@ async function loadMovements() {
     }
 }
 
-// Carica movimenti profitti
-async function loadProfits() {
-    try {
-        const response = await fetch('/api/portfolio/profits');
-        const data = await response.json();
-        
-        // Aggiorna riepilogo
-        updateProfitsSummary(data);
-        
-        // Carica movimenti
-        loadProfitsMovements(data.movements);
-        
-        window.profitsLoaded = true;
-    } catch (error) {
-        console.error('Errore caricamento profitti:', error);
-        document.getElementById('profits-movements-list').innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <p>Errore durante il caricamento dei movimenti profitti</p>
-            </div>
-        `;
-    }
-}
 
-// Aggiorna riepilogo profitti
-function updateProfitsSummary(data) {
-    document.getElementById('current-balance').textContent = `€${data.current_balance.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-    document.getElementById('total-entries').textContent = `€${data.summary.total_entries.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-    document.getElementById('total-exits').textContent = `€${data.summary.total_exits.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-    document.getElementById('net-profit').textContent = `€${data.summary.net_profit.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-}
 
-// Carica movimenti profitti
-function loadProfitsMovements(movements) {
-    const container = document.getElementById('profits-movements-list');
-    
-    if (movements && movements.length > 0) {
-        container.innerHTML = movements.map(movement => {
-            const isEntry = movement.type === 'roi';
-            const isExit = movement.description.toLowerCase().includes('withdrawal') || movement.description.toLowerCase().includes('prelievo');
-            
-            return `
-                <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center
-                                    ${isEntry ? 'bg-green-100' : isExit ? 'bg-red-100' : 'bg-gray-100'}">
-                                    <svg class="w-5 h-5 ${isEntry ? 'text-green-600' : isExit ? 'text-red-600' : 'text-gray-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        ${isEntry ? 
-                                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>' :
-                                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>'
-                                        }
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900">${movement.description}</h3>
-                                    <p class="text-sm text-gray-500">ID: #${movement.id}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold ${isEntry ? 'text-green-600' : isExit ? 'text-red-600' : 'text-gray-600'}">
-                                ${isEntry ? '+' : isExit ? '-' : ''}€${movement.amount.toLocaleString('it-IT', {minimumFractionDigits: 2})}
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                ${isEntry ? 'Entrata' : isExit ? 'Uscita' : 'Movimento'}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Saldo Prima</p>
-                            <p class="font-semibold text-gray-900">€${movement.balance_before.toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Saldo Dopo</p>
-                            <p class="font-semibold text-gray-900">€${movement.balance_after.toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500 uppercase tracking-wide">Data</p>
-                            <p class="font-semibold text-gray-900">${new Date(movement.created_at).toLocaleDateString('it-IT')} ${new Date(movement.created_at).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium
-                                ${movement.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                  movement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                  'bg-gray-100 text-gray-800'}">
-                                ${movement.status === 'completed' ? 'Completato' : 
-                                  movement.status === 'pending' ? 'In Attesa' : movement.status}
-                            </span>
-                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                ${movement.type.toUpperCase()}
-                            </span>
-                        </div>
-                        <div class="text-sm text-gray-500">
-                            ${new Date(movement.created_at).toLocaleDateString('it-IT', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } else {
-        container.innerHTML = `
-            <div class="text-center py-12">
-                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun movimento profitti</h3>
-                <p class="text-gray-600">I movimenti della sezione profitti appariranno qui quando disponibili.</p>
-            </div>
-        `;
-    }
-}
 
 
     

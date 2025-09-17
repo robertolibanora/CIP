@@ -121,7 +121,7 @@ from backend.auth.decorators import login_required, kyc_pending_allowed
 @deposits_bp.route('/api/requests', methods=['GET'])
 @login_required
 def get_deposit_requests():
-    """Ottiene le richieste di ricarica dell'utente"""
+    """Ottiene le richieste di deposito dell'utente"""
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
@@ -218,7 +218,7 @@ def get_rate_limit_status():
 @deposits_bp.route('/api/requests/<int:request_id>', methods=['GET'])
 @login_required
 def get_deposit_request_detail(request_id):
-    """Ottiene i dettagli di una richiesta di ricarica specifica"""
+    """Ottiene i dettagli di una richiesta di deposito specifica"""
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
@@ -254,7 +254,7 @@ def get_deposit_request_detail(request_id):
 @deposits_bp.route('/api/requests/new', methods=['POST'])
 @kyc_pending_allowed
 def create_deposit_request():
-    """Crea una nuova richiesta di ricarica"""
+    """Crea una nuova richiesta di deposito"""
     uid = session.get("user_id")
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -431,13 +431,13 @@ def create_deposit_request():
     return jsonify({
         'success': True,
         'deposit_request': response_data,
-        'message': 'Richiesta di ricarica creata con successo'
+        'message': 'Richiesta di deposito creata con successo'
     })
 
 @deposits_bp.route('/api/requests/<int:request_id>/cancel', methods=['POST'])
 @login_required
 def cancel_deposit_request(request_id):
-    """Annulla una richiesta di ricarica (solo se pending)"""
+    """Annulla una richiesta di deposito (solo se pending)"""
     uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
@@ -531,7 +531,7 @@ from backend.auth.decorators import admin_required
 @deposits_bp.route('/api/admin/pending', methods=['GET'])
 @admin_required
 def admin_get_pending_deposits():
-    """Admin ottiene tutte le richieste di ricarica in attesa"""
+    """Admin ottiene tutte le richieste di deposito in attesa"""
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -652,7 +652,7 @@ def admin_get_deposits_history():
 @deposits_bp.route('/api/admin/approve/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_approve_deposit(request_id):
-    """Admin approva una richiesta di ricarica"""
+    """Admin approva una richiesta di deposito"""
     try:
         data = request.get_json() or {}
         admin_notes = data.get('admin_notes', '')
@@ -690,13 +690,13 @@ def admin_approve_deposit(request_id):
                     %s, 'deposit', %s, 
                     (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
                     (SELECT free_capital + referral_bonus + profits FROM user_portfolios WHERE user_id = %s),
-                    'Ricarica approvata', %s, 'deposit_request', 'completed'
+                    'Deposito approvato', %s, 'deposit_request', 'completed'
                 FROM user_portfolios WHERE user_id = %s
             """, (request_detail['user_id'], request_detail['amount'], 
                   request_detail['user_id'], request_detail['user_id'],
                   request_id, request_detail['user_id']))
             conn.commit()
-        return jsonify({'success': True, 'message': 'Ricarica approvata con successo'})
+        return jsonify({'success': True, 'message': 'Deposito approvato con successo'})
     except Exception as e:
         logger.exception("[deposits] admin approve failed: %s", e)
         return jsonify({'error': 'approve_failed', 'debug': str(e)}), 500
@@ -704,7 +704,7 @@ def admin_approve_deposit(request_id):
 @deposits_bp.route('/api/admin/reject/<int:request_id>', methods=['POST'])
 @admin_required
 def admin_reject_deposit(request_id):
-    """Admin rifiuta una richiesta di ricarica"""
+    """Admin rifiuta una richiesta di deposito"""
     try:
         data = request.get_json() or {}
         admin_notes = data.get('admin_notes', '')
@@ -728,7 +728,7 @@ def admin_reject_deposit(request_id):
                 WHERE id = %s
             """, (admin_notes, request_id))
             conn.commit()
-        return jsonify({'success': True, 'message': 'Ricarica rifiutata'})
+        return jsonify({'success': True, 'message': 'Deposito rifiutato'})
     except Exception as e:
         logger.exception("[deposits] admin reject failed: %s", e)
         return jsonify({'error': 'reject_failed', 'debug': str(e)}), 500
