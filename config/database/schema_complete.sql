@@ -73,10 +73,10 @@ CREATE TABLE IF NOT EXISTS user_portfolios (
     -- 1. Capitale Libero - Soldi non investiti, sempre prelevabili
     free_capital        NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
-    -- 2. Capitale Investito - Bloccato fino alla vendita dell'immobile
+    -- 2. Capitale Investito - bloccato fino alla vendita dell'immobile
     invested_capital    NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
-    -- 3. Bonus - 1% referral, sempre disponibili per prelievo/investimento
+    -- 3. Bonus - 3% referral, sempre disponibili per prelievo/investimento
     referral_bonus      NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
     -- 4. Profitti - Rendimenti accumulati, prelevabili o reinvestibili
@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS profit_distributions (
     investment_id       INT NOT NULL REFERENCES investments(id) ON DELETE CASCADE,
     original_investment NUMERIC(15,2) NOT NULL,
     profit_share        NUMERIC(15,2) NOT NULL DEFAULT 0.00,
-    referral_bonus      NUMERIC(15,2) NOT NULL DEFAULT 0.00, -- 1% del profitto per chi ha invitato
+    referral_bonus      NUMERIC(15,2) NOT NULL DEFAULT 0.00, -- 3% del profitto per chi ha invitato
     total_payout        NUMERIC(15,2) NOT NULL,
     status              TEXT NOT NULL CHECK (status IN ('pending','completed','failed','cancelled')) DEFAULT 'pending',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -293,7 +293,7 @@ CREATE TABLE IF NOT EXISTS referral_commissions (
     investment_id       INT NOT NULL REFERENCES investments(id) ON DELETE CASCADE,
     project_id          INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     investment_amount   NUMERIC(15,2) NOT NULL,
-    commission_amount   NUMERIC(15,2) NOT NULL, -- 1% dell'investimento
+    commission_amount   NUMERIC(15,2) NOT NULL, -- 3% dell'investimento
     status              TEXT NOT NULL CHECK (status IN ('pending','paid','cancelled')) DEFAULT 'pending',
     payout_date         TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -476,11 +476,11 @@ SELECT
 -- FUNZIONI UTILITY
 -- ============================================================================
 
--- Funzione per calcolare commissione referral (1%)
+-- Funzione per calcolare commissione referral (3%)
 CREATE OR REPLACE FUNCTION calculate_referral_commission(investment_amount NUMERIC)
 RETURNS NUMERIC AS $$
 BEGIN
-    RETURN investment_amount * 0.01; -- 1%
+    RETURN investment_amount * 0.03; -- 3%
 END;
 $$ LANGUAGE plpgsql;
 
@@ -569,5 +569,5 @@ COMMENT ON TABLE profit_distributions IS 'Distribuzione profitti e bonus referra
 COMMENT ON TABLE documents IS 'Documenti KYC e altri file utente';
 COMMENT ON TABLE projects IS 'Progetti immobiliari investibili';
 COMMENT ON TABLE investments IS 'Investimenti utenti nei progetti';
-COMMENT ON TABLE referrals IS 'Sistema referral con commissioni 1%';
+COMMENT ON TABLE referrals IS 'Sistema referral con commissioni 3%';
 COMMENT ON TABLE notifications IS 'Sistema notifiche utente e broadcast';

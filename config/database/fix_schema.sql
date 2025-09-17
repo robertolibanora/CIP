@@ -80,10 +80,10 @@ CREATE TABLE IF NOT EXISTS user_portfolios (
     -- 1. Capitale Libero - Soldi non investiti, sempre prelevabili
     free_capital        NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
-    -- 2. Capitale Investito - Bloccato fino alla vendita dell'immobile
+    -- 2. Capitale Investito - bloccato fino alla vendita dell'immobile
     invested_capital    NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
-    -- 3. Bonus - 1% referral, sempre disponibili per prelievo/investimento
+    -- 3. Bonus - 3% referral, sempre disponibili per prelievo/investimento
     referral_bonus      NUMERIC(15,2) NOT NULL DEFAULT 0.00,
     
     -- 4. Profitti - Rendimenti accumulati, prelevabili o reinvestibili
@@ -339,7 +339,7 @@ JOIN users u ON up.user_id = u.id;
 CREATE OR REPLACE FUNCTION calculate_referral_commission(investment_amount NUMERIC)
 RETURNS NUMERIC AS $$
 BEGIN
-    RETURN investment_amount * 0.01;
+    RETURN investment_amount * 0.03;
 END;
 $$ LANGUAGE plpgsql;
 

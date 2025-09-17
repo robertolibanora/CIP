@@ -35,6 +35,7 @@
               id="referral_link"
               class="flex-1 input-field bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il codice referral"
+              value="{{ form_data.referral_link if form_data else (referral_code_from_url or '') }}"
             />
           </div>
           <p id="referral_info" class="text-sm mt-1 text-gray-600 hidden"></p>
@@ -55,6 +56,7 @@
               required
               class="input-field bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il tuo nome"
+              value="{{ form_data.nome if form_data else '' }}"
             />
             <p id="error-nome" class="text-red-500 text-xs mt-1 hidden"></p>
           </div>
@@ -70,6 +72,7 @@
               required
               class="input-field bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il tuo cognome"
+              value="{{ form_data.cognome if form_data else '' }}"
             />
             <p id="error-cognome" class="text-red-500 text-xs mt-1 hidden"></p>
           </div>
@@ -93,6 +96,7 @@
               required
               class="input-field input-with-left-icon bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il tuo nome telegram"
+              value="{{ form_data.nome_telegram if form_data else '' }}"
             />
           </div>
           <p class="text-xs text-gray-500 mt-1 flex items-center">
@@ -122,6 +126,7 @@
               required
               class="input-field input-with-left-icon bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Es. +39 123 456 7890"
+              value="{{ form_data.telefono if form_data else '' }}"
             />
           </div>
           <p id="error-telefono" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -145,6 +150,7 @@
               required
               class="input-field input-with-left-icon bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci la tua email"
+              value="{{ form_data.email if form_data else '' }}"
             />
           </div>
           <p id="error-email" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -446,9 +452,18 @@ function scheduleReferralValidation() {
 referralInput.addEventListener('input', scheduleReferralValidation);
 referralInput.addEventListener('blur', () => validateReferral(referralInput.value.trim()));
 
-// Se il campo è precompilato (URL con codice), valida subito
+// Se il campo è precompilato (URL con codice o dati del form), valida subito
 if (referralInput.value.trim()) {
   validateReferral(referralInput.value.trim());
+}
+
+// Gestisci anche il caso in cui l'utente arriva con un parametro URL
+// ma il campo non è ancora stato precompilato dal server
+const urlParams = new URLSearchParams(window.location.search);
+const refFromUrl = urlParams.get('ref');
+if (refFromUrl && !referralInput.value.trim()) {
+  referralInput.value = refFromUrl;
+  validateReferral(refFromUrl);
 }
 </script>
 

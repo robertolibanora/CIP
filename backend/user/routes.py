@@ -264,7 +264,7 @@ def new_project():
                 'name': 'Bonus Referral',
                 'key': 'referral_bonus',
                 'amount': portfolio['referral_bonus'],
-                'description': '1% referral, sempre disponibili per investimento'
+                'description': '3% referral, sempre disponibili per investimento (5% se sei un utente VIP)'
             })
         if portfolio['profits'] > 0:
             available_sections.append({

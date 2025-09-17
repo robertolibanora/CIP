@@ -125,10 +125,10 @@ class UserPortfolio:
     # 1. Capitale Libero - Soldi non investiti, sempre prelevabili
     free_capital: Decimal
     
-    # 2. Capitale Investito - Bloccato fino alla vendita dell'immobile
+    # 2. Capitale Investito - bloccato fino alla vendita dell'immobile
     invested_capital: Decimal
     
-    # 3. Bonus - 1% referral, sempre disponibili per prelievo/investimento
+    # 3. Bonus - 3% referral, sempre disponibili per prelievo/investimento (5% se sei un utente VIP)
     referral_bonus: Decimal
     
     # 4. Profitti - Rendimenti accumulati, prelevabili o reinvestibili
@@ -286,7 +286,7 @@ class ProfitDistribution:
     investment_id: int
     original_investment: Decimal
     profit_share: Decimal
-    referral_bonus: Decimal  # 1% del profitto per chi ha invitato
+    referral_bonus: Decimal  # 3% del profitto per chi ha invitato (5% se sei un utente VIP)
     total_payout: Decimal
     status: TransactionStatus
     created_at: datetime

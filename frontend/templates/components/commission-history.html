@@ -96,7 +96,7 @@
                             Investimento
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Commissione (1%)
+                            Commissione (3% / 5% se VIP)
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Stato
@@ -134,7 +134,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-bold text-green-600">€{{ "{:,.2f}".format(commission.amount|float) }}</div>
-                            <div class="text-xs text-gray-500">1% di €{{ "{:,.2f}".format(commission.investment_amount|float) }}</div>
+                            <div class="text-xs text-gray-500">3% di €{{ "{:,.2f}".format(commission.investment_amount|float) }} (5% se sei un utente VIP)</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if commission.status == 'paid' %}
@@ -206,7 +206,7 @@
                 </svg>
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna commissione ancora guadagnata</h3>
-            <p class="text-gray-500 mb-6">Inizia a condividere il tuo link referral per guadagnare commissioni del 1%!</p>
+            <p class="text-gray-500 mb-6">Inizia a condividere il tuo link referral per guadagnare commissioni del 3% (5% se sei un utente VIP)!</p>
             <a href="{{ url_for('user.referral') }}" class="btn-accent">
                 Vai alla Dashboard Referral
             </a>

@@ -64,8 +64,17 @@ Implementare un sistema VIP per distinguere utenti speciali con privilegi e indi
 - Il badge "👑 Utente VIP" apparirà automaticamente nella dashboard e portfolio
 - Gli utenti VIP sono chiaramente identificabili nelle liste admin
 
-## 🔮 Prossimi Passi (Privilegi VIP)
-Il sistema è pronto per l'implementazione di privilegi speciali per utenti VIP:
+## 🎯 Privilegi VIP Implementati
+Il sistema include ora privilegi speciali per utenti VIP:
+
+### Bonus Referral Potenziati
+- **Utenti normali**: 3% sui profitti dei referral (era 1%)
+- **Utenti VIP**: 5% sui profitti dei referral (se sei un utente VIP)
+- **Logica**: Implementata in `backend/profits/routes.py`
+- **Calcolo**: Automatico durante la distribuzione dei profitti
+
+## 🔮 Prossimi Passi (Altri Privilegi VIP)
+Il sistema è pronto per l'implementazione di ulteriori privilegi speciali per utenti VIP:
 - Investimenti prioritari
 - Tassi di rendimento migliori
 - Accesso anticipato a nuovi progetti

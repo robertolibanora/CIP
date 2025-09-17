@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS referral_commissions (
     investment_id INTEGER NOT NULL REFERENCES investments(id) ON DELETE CASCADE,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     investment_amount DECIMAL(15,2) NOT NULL,
-    commission_amount DECIMAL(15,2) NOT NULL, -- 1% dell'investimento
+    commission_amount DECIMAL(15,2) NOT NULL, -- 3% dell'investimento
     status VARCHAR(20) DEFAULT 'pending', -- pending, paid, cancelled
     payout_date TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -244,11 +244,11 @@ JOIN investments i ON rc.investment_id = i.id;
 -- FUNZIONI UTILITY
 -- =====================================================
 
--- Funzione per calcolare commissione referral (1%)
+-- Funzione per calcolare commissione referral (3%)
 CREATE OR REPLACE FUNCTION calculate_referral_commission(investment_amount DECIMAL)
 RETURNS DECIMAL AS $$
 BEGIN
-    RETURN investment_amount * 0.01; -- 1%
+    RETURN investment_amount * 0.03; -- 3%
 END;
 $$ LANGUAGE plpgsql;
 

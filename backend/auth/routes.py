@@ -103,44 +103,92 @@ def login():
 @guest_only
 def register():
     """Registrazione nuovo utente"""
+    # Gestisci parametro referral dall'URL
+    referral_code_from_url = request.args.get('ref', '').strip()
+    
     if request.method == "POST":
         nome = request.form.get("nome")
         cognome = request.form.get("cognome")
         nome_telegram = request.form.get("nome_telegram")
         telefono = request.form.get("telefono")
         email = request.form.get("email")
-        referral_link = request.form.get("referral_link")
+        referral_link = request.form.get("referral_link") or referral_code_from_url
         password = request.form.get("password")
 
         # Validazione
         if not all([nome, cognome, nome_telegram, telefono, email, password]):
             flash("Tutti i campi obbligatori sono richiesti", "error")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", 
+                                 referral_code_from_url=referral_code_from_url,
+                                 form_data={
+                                     'nome': nome,
+                                     'cognome': cognome,
+                                     'nome_telegram': nome_telegram,
+                                     'telefono': telefono,
+                                     'email': email,
+                                     'referral_link': referral_link
+                                 })
 
         try:
             validate_email(email)
         except ValidationError as e:
             flash(str(e), "error")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", 
+                                 referral_code_from_url=referral_code_from_url,
+                                 form_data={
+                                     'nome': nome,
+                                     'cognome': cognome,
+                                     'nome_telegram': nome_telegram,
+                                     'telefono': telefono,
+                                     'email': '',  # Svuota solo l'email
+                                     'referral_link': referral_link
+                                 })
 
         try:
             validate_password(password)
         except ValidationError as e:
             flash(str(e), "error")
-            return render_template("auth/register.html")
+            return render_template("auth/register.html", 
+                                 referral_code_from_url=referral_code_from_url,
+                                 form_data={
+                                     'nome': nome,
+                                     'cognome': cognome,
+                                     'nome_telegram': nome_telegram,
+                                     'telefono': telefono,
+                                     'email': '',  # Svuota solo l'email
+                                     'referral_link': referral_link
+                                 })
 
         with get_conn() as conn, conn.cursor() as cur:
             # Verifica email duplicata
             cur.execute("SELECT id FROM users WHERE email = %s", (email,))
             if cur.fetchone():
                 flash("Email già registrata", "error")
-                return render_template("auth/register.html")
+                return render_template("auth/register.html", 
+                                     referral_code_from_url=referral_code_from_url,
+                                     form_data={
+                                         'nome': nome,
+                                         'cognome': cognome,
+                                         'nome_telegram': nome_telegram,
+                                         'telefono': telefono,
+                                         'email': '',  # Svuota solo l'email
+                                         'referral_link': referral_link
+                                     })
 
             # Verifica nome telegram duplicato
             cur.execute("SELECT id FROM users WHERE nome_telegram = %s", (nome_telegram,))
             if cur.fetchone():
                 flash("Nome Telegram già registrato", "error")
-                return render_template("auth/register.html")
+                return render_template("auth/register.html", 
+                                     referral_code_from_url=referral_code_from_url,
+                                     form_data={
+                                         'nome': nome,
+                                         'cognome': cognome,
+                                         'nome_telegram': '',  # Svuota solo il telegram
+                                         'telefono': telefono,
+                                         'email': email,
+                                         'referral_link': referral_link
+                                     })
 
             # Trova utente referral
             referred_by = None
@@ -152,7 +200,16 @@ def register():
                     referred_by = row["id"]
                 else:
                     flash("Codice referral non valido", "error")
-                    return render_template("auth/register.html")
+                    return render_template("auth/register.html", 
+                                         referral_code_from_url=referral_code_from_url,
+                                         form_data={
+                                             'nome': nome,
+                                             'cognome': cognome,
+                                             'nome_telegram': nome_telegram,
+                                             'telefono': telefono,
+                                             'email': email,
+                                             'referral_link': ''  # Svuota solo il referral
+                                         })
             else:
                 # Nessun referral inserito: assegna al primo utente 'investor' (non admin)
                 cur.execute(
@@ -228,7 +285,7 @@ def register():
             flash("Registrazione completata! Ora puoi fare login.", "success")
             return redirect(url_for("auth.login"))
 
-    return render_template("auth/register.html")
+    return render_template("auth/register.html", referral_code_from_url=referral_code_from_url)
 
 
 @auth_bp.route("/logout")

@@ -25,7 +25,7 @@ def admin_create_project_sale():
     Vendita progetto con distribuzione fondi secondo la logica richiesta:
     - Vendita in profitto: denaro investito torna in capitale libero + profitti in sezione profitti
     - Vendita in perdita: tutto il denaro rimasto va in capitale libero
-    - 1% dei profitti di TUTTI gli utenti invitati va come bonus referral
+    - 3% dei profitti di TUTTI gli utenti invitati va come bonus referral (5% per utenti VIP)
     """
     
     try:
@@ -115,7 +115,15 @@ def admin_create_project_sale():
                         
                         # Se questo investitore è stato invitato, calcola il bonus per chi lo ha invitato
                         if investment['referred_by']:
-                            referral_bonus = profit_share * Decimal('0.01')  # 1% del profitto dell'invitato
+                            # Controlla se il referrer è VIP per il bonus del 5%
+                            cur.execute("SELECT is_vip FROM users WHERE id = %s", (investment['referred_by'],))
+                            referrer_data = cur.fetchone()
+                            is_vip = referrer_data['is_vip'] if referrer_data else False
+                            
+                            # Bonus base 3% per tutti, 5% per VIP
+                            bonus_rate = Decimal('0.05') if is_vip else Decimal('0.03')
+                            referral_bonus = profit_share * bonus_rate
+                            
                             if investment['referred_by'] not in referral_bonuses:
                                 referral_bonuses[investment['referred_by']] = Decimal('0')
                             referral_bonuses[investment['referred_by']] += referral_bonus
@@ -129,7 +137,14 @@ def admin_create_project_sale():
                         # Calcola bonus referral da dedurre (se questo utente è stato invitato)
                         referral_bonus_to_deduct = Decimal('0')
                         if investment['referred_by']:
-                            referral_bonus_to_deduct = profit_share * Decimal('0.01')  # 1% del profitto
+                            # Controlla se il referrer è VIP per il bonus del 5%
+                            cur.execute("SELECT is_vip FROM users WHERE id = %s", (investment['referred_by'],))
+                            referrer_data = cur.fetchone()
+                            is_vip = referrer_data['is_vip'] if referrer_data else False
+                            
+                            # Bonus base 3% per tutti, 5% per VIP
+                            bonus_rate = Decimal('0.05') if is_vip else Decimal('0.03')
+                            referral_bonus_to_deduct = profit_share * bonus_rate
                         
                         # Calcola profitto finale DEDUCENDO il bonus referral
                         final_profit = profit_share - referral_bonus_to_deduct

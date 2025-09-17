@@ -26,12 +26,12 @@
                 <div class="bg-white rounded-lg p-4 text-center">
                     <p class="text-sm text-gray-600">Capitale Investito</p>
                     <p class="text-lg font-bold text-blue-600">€{{ "{:,.2f}".format(portfolio.invested_capital or 0) }}</p>
-                    <p class="text-xs text-gray-500">Bloccato fino vendita</p>
+                    <p class="text-xs text-gray-500">bloccato fino alla vendita</p>
                 </div>
                 <div class="bg-white rounded-lg p-4 text-center">
                     <p class="text-sm text-gray-600">Bonus Referral</p>
                     <p class="text-lg font-bold text-purple-600">€{{ "{:,.2f}".format(portfolio.referral_bonus or 0) }}</p>
-                    <p class="text-xs text-gray-500">1% referral disponibile</p>
+                    <p class="text-xs text-gray-500">3% referral disponibile (5% se sei un utente VIP)</p>
                 </div>
                 <div class="bg-white rounded-lg p-4 text-center">
                     <p class="text-sm text-gray-600">Profitti</p>
