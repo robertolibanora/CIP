@@ -1,0 +1,68 @@
+[Unit]
+Description=CIP Immobiliare Flask Application
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=exec
+User=cipapp
+Group=cipapp
+WorkingDirectory=/var/www/cip_immobiliare
+Environment=PATH=/var/www/cip_immobiliare/.venv/bin
+Environment=FLASK_ENV=production
+Environment=FLASK_DEBUG=0
+Environment=HOST=127.0.0.1
+Environment=PORT=8090
+Environment=DATABASE_URL=postgresql://cipuser:cip_secure_password_2024@localhost:5432/cip_immobiliare_prod
+Environment=SECRET_KEY=Uscendo-da-casa22-ei4cUl0-sul-p3zz3nt3
+Environment=SESSION_COOKIE_SECURE=true
+Environment=SESSION_COOKIE_HTTPONLY=true
+Environment=LOG_LEVEL=INFO
+Environment=LOG_FILE=/var/log/cip_immobiliare/app.log
+Environment=MAX_CONTENT_LENGTH=16777216
+Environment=UPLOAD_FOLDER=/var/www/cip_immobiliare/instance/uploads/kyc
+Environment=ADMIN_EMAIL=admin@cipimmobiliare.it
+Environment=ADMIN_PASSWORD=your-secure-admin-password
+Environment=ADMIN_NOME=Admin
+Environment=ADMIN_COGNOME=CIP
+Environment=ADMIN_TELEGRAM=admin_cip
+Environment=ADMIN_TELEFONO=+39000000000
+
+ExecStart=/var/www/cip_immobiliare/.venv/bin/gunicorn \
+    --bind 127.0.0.1:8090 \
+    --workers 4 \
+    --worker-class sync \
+    --worker-connections 1000 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --timeout 120 \
+    --keep-alive 2 \
+    --preload \
+    --access-logfile /var/log/cip_immobiliare/access.log \
+    --error-logfile /var/log/cip_immobiliare/error.log \
+    --log-level info \
+    --capture-output \
+    main:app
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=always
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/cip_immobiliare
+ReadWritePaths=/var/log/cip_immobiliare
+ReadWritePaths=/var/www/cip_immobiliare/instance/uploads
+ReadWritePaths=/var/www/cip_immobiliare/uploads
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
