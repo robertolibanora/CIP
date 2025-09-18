@@ -3,7 +3,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from .paths import UPLOADS_DIR, TEMPLATES_DIR, ASSETS_DIR, ENV_FILE
 
-# Carica variabili ambiente dal file config/env.local
+# Carica variabili ambiente dal file di configurazione appropriato
 load_dotenv(ENV_FILE)
 
 # Percorsi base

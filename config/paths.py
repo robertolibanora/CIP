@@ -18,4 +18,14 @@ BACKEND_DIR = os.path.join(BASE_DIR, "backend")
 
 # Percorsi configurazione
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
-ENV_FILE = os.path.join(CONFIG_DIR, "env.local")
+
+# Selezione dinamica del file di configurazione
+def get_env_file():
+    """Seleziona il file di configurazione basato sull'ambiente"""
+    flask_env = os.environ.get('FLASK_ENV', 'local')
+    if flask_env == 'production':
+        return os.path.join(CONFIG_DIR, "env.production")
+    else:
+        return os.path.join(CONFIG_DIR, "env.local")
+
+ENV_FILE = get_env_file()

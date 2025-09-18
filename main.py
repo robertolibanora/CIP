@@ -8,8 +8,9 @@ import os
 from dotenv import load_dotenv
 from flask import redirect, url_for, send_from_directory
 
-# Carica configurazione
-load_dotenv("config/env.local")
+# Carica configurazione dinamica
+from config.paths import ENV_FILE
+load_dotenv(ENV_FILE)
 
 # Importa configurazione
 from config.config import config
