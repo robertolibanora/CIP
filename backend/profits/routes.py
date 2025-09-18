@@ -392,8 +392,7 @@ def admin_cancel_project():
                         
                         cur.execute("""
                             UPDATE user_portfolios 
-                            SET free_capital = %s, invested_capital = %s,
-                                updated_at = NOW()
+                            SET free_capital = %s, invested_capital = %s
                             WHERE user_id = %s
                         """, (new_free_capital, new_invested_capital, user_id))
                         
@@ -402,16 +401,14 @@ def admin_cancel_project():
                 # 4. Aggiorna lo stato del progetto a 'cancelled'
                 cur.execute("""
                     UPDATE projects 
-                    SET status = 'cancelled', 
-                        updated_at = NOW()
+                    SET status = 'cancelled'
                     WHERE id = %s
                 """, (project_id,))
                 
                 # 5. Marca tutti gli investimenti come cancellati
                 cur.execute("""
                     UPDATE investments 
-                    SET status = 'cancelled', 
-                        completion_date = NOW()
+                    SET status = 'cancelled'
                     WHERE project_id = %s AND status = 'active'
                 """, (project_id,))
                 

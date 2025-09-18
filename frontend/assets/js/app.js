@@ -29,8 +29,6 @@ class CIPApp {
     // Setup background sync
     this.setupBackgroundSync();
     
-    // Mostra eventuale popup KYC richiesto dopo redirect
-    await this.showKYCWarningIfFlag();
 
     console.log('✅ CIP Immobiliare PWA inizializzato');
   }
@@ -396,30 +394,6 @@ class CIPApp {
       }
     });
 
-    // Intercetta click su link per utenti non verificati
-    document.addEventListener('click', async (e) => {
-      const a = e.target.closest('a');
-      if (!a) return;
-      // Limita al sotto-sito user
-      const href = a.getAttribute('href') || '';
-      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-      // Escludi la pagina KYC stessa per permetterne l'accesso
-      if (href.includes('/user/kyc')) return;
-      // Solo se siamo in una pagina user (presenza user-layout)
-      if (!document.body.classList.contains('user-layout')) return;
-
-      // Controlla se è un link che richiede verifica KYC
-      if (!this.isRestrictedUserHref(href)) return;
-
-      const isUnverified = await this.isUserUnverified();
-      if (isUnverified) {
-        e.preventDefault();
-        // imposta flag per mostrare popup sulla home o profilo
-        try { sessionStorage.setItem('SHOW_KYC_WARNING', '1'); } catch (_) {}
-        // redirect alla home utente (dashboard). In alternativa profilo.
-        window.location.href = '/user/dashboard';
-      }
-    });
   }
   
   showUpdateNotification() {
@@ -463,50 +437,4 @@ if (document.readyState === 'loading') {
 console.log('🚀 CIP Immobiliare PWA JavaScript caricato');
 
 // =====================================================
-// KYC ENFORCEMENT HELPERS
-// =====================================================
-
-CIPApp.prototype.isUserUnverified = async function () {
-  try {
-    const resp = await fetch('/kyc/api/status', { credentials: 'same-origin' });
-    if (!resp.ok) return false;
-    const data = await resp.json();
-    const status = (data.kyc_status || 'unverified').toLowerCase();
-    return status !== 'verified';
-  } catch (e) {
-    return false;
-  }
-};
-
-CIPApp.prototype.showKYCWarning = function () {
-  const backdrop = document.getElementById('kyc-warning-backdrop');
-  const closeBtn = document.getElementById('kyc-warning-close');
-  if (!backdrop) return;
-  backdrop.classList.remove('hidden');
-  backdrop.classList.add('flex');
-  const hide = () => { backdrop.classList.add('hidden'); backdrop.classList.remove('flex'); };
-  if (closeBtn) closeBtn.onclick = hide;
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) hide(); });
-};
-
-CIPApp.prototype.showKYCWarningIfFlag = async function () {
-  try {
-    const flag = sessionStorage.getItem('SHOW_KYC_WARNING');
-    if (flag === '1') {
-      sessionStorage.removeItem('SHOW_KYC_WARNING');
-      
-      // Controlla se l'utente è già verificato prima di mostrare il popup
-      const isUnverified = await this.isUserUnverified();
-      if (isUnverified) {
-        this.showKYCWarning();
-      }
-    }
-  } catch (_) {}
-};
-
-CIPApp.prototype.isRestrictedUserHref = function (href) {
-  // definisci sezioni che richiedono verifica
-  const restricted = ['/user/portfolio', '/user/projects', '/user_projects/projects', '/user/referral', '/user/search', '/user/deposits', '/user/withdrawals'];
-  return restricted.some(path => href.startsWith(path));
-};
 // Cache buster Wed Sep 17 15:47:19 CEST 2025

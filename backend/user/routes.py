@@ -277,9 +277,9 @@ def new_project():
         # 5. PROGETTI DISPONIBILI
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment, p.end_date
+                   p.status, p.created_at, p.code, p.address, p.min_investment
             FROM projects p 
-            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
+            WHERE p.status = 'active'
             ORDER BY p.created_at DESC
         """)
         available_projects = cur.fetchall()
@@ -292,13 +292,27 @@ def new_project():
                 project['completion_percent'] = 0
             
             # Campi di fallback se non presenti
-            project['location'] = project.get('location', 'N/A')
+            project['location'] = project.get('address', 'N/A')
             project['roi'] = project.get('roi', 8.5)
             project['min_investment'] = project.get('min_investment', 1000)
     
+    # Ottieni dati utente completi
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        # Calcola nome da mostrare per saluto
+        full_name_value = ((user.get("full_name") if user else "") or "").strip()
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+    
     return render_template("user/new_project.html", 
+                         user=user,
+                         greet_name=greet_name,
                          user_id=uid,
-                         user={'kyc_status': 'verified'},  # Se arriva qui, KYC è verificato
                          projects=available_projects,
                          portfolio=portfolio,
                          total_available=total_available,
@@ -366,9 +380,9 @@ def invest(project_id):
         
         # 5. VERIFICA PROGETTO
         cur.execute("""
-            SELECT id, name, min_investment, total_amount, funded_amount, status, end_date
+            SELECT id, name, min_investment, total_amount, funded_amount, status
             FROM projects 
-            WHERE id = %s AND status = 'active' AND end_date >= CURRENT_DATE
+            WHERE id = %s AND status = 'active'
         """, (project_id,))
         project = cur.fetchone()
         
@@ -656,7 +670,25 @@ def portfolio_detail(investment_id):
 def kyc_page():
     """Pagina dedicata per upload documenti KYC dell'utente"""
     uid = session.get("user_id")
-    return render_template("user/kyc.html", user_id=uid, current_page="kyc")
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni dati utente completi
+        cur.execute("""
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        # Calcola nome da mostrare per saluto
+        full_name_value = ((user.get("full_name") if user else "") or "").strip()
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+    
+    return render_template("user/kyc.html", 
+                         user=user,
+                         greet_name=greet_name,
+                         user_id=uid, 
+                         current_page="kyc")
 
 @user_bp.get("/uploads/projects/<filename>")
 @login_required
@@ -721,9 +753,23 @@ def referral():
         """, (uid,))
         bonus = cur.fetchone()
     
+    # Ottieni dati utente completi
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        # Calcola nome da mostrare per saluto
+        full_name_value = ((user.get("full_name") if user else "") or "").strip()
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+    
     return render_template("user/referral.html", 
+                         user=user,
+                         greet_name=greet_name,
                          user_id=uid,
-                         user={'kyc_status': 'verified'},  # Se arriva qui, KYC è verificato
                          stats=stats,
                          referrals=referrals,
                          total_bonus=bonus['total_bonus'] if bonus else 0,

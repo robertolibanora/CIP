@@ -4,6 +4,7 @@ import os
 from backend.shared.validators import validate_email, validate_password, ValidationError
 from backend.auth.middleware import create_secure_session, destroy_session
 from backend.utils.http import is_api_request
+from werkzeug.security import check_password_hash
 import hashlib
 
 auth_bp = Blueprint("auth", __name__)
@@ -60,11 +61,10 @@ def login():
             (email,),
         )
         user = cur.fetchone()
-        if user:
-            user = dict(user)  # Converte Row in dict per SQLite
+        # PostgreSQL restituisce già dict con row_factory
 
         # Verifica password con hash
-        if user and user["password_hash"] == hash_password(password):
+        if user and check_password_hash(user["password_hash"], password):
             # Crea sessione sicura
             print(f"LOGIN: Creazione sessione per {user['email']}")
             create_secure_session(user)
@@ -294,6 +294,18 @@ def logout():
     if 'user_id' in session:
         user_id = session.get('user_id')
         user_name = session.get('user_name', 'Utente')
+        user_role = session.get('user_role', 'investor')
+        
+        # Se è un admin, elimina tutte le notifiche prima del logout
+        if user_role == 'admin':
+            try:
+                from backend.shared.database import get_connection
+                with get_connection() as conn, conn.cursor() as cur:
+                    cur.execute("DELETE FROM admin_notifications")
+                    conn.commit()
+                    print(f"Notifiche eliminate per logout admin {user_id}")
+            except Exception as e:
+                print(f"Errore eliminazione notifiche al logout: {e}")
         
         # Distrugge sessione in modo sicuro
         destroy_session()

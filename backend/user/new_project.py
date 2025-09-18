@@ -32,9 +32,9 @@ def new_project():
         # Progetti disponibili - TABELLA: projects
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.end_date
+                   p.status, p.created_at, p.code
             FROM projects p 
-            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
+            WHERE p.status = 'active'
             ORDER BY p.created_at DESC
         """)
         available_projects = cur.fetchall()
@@ -50,7 +50,22 @@ def new_project():
             project['roi'] = 8.5
             project['min_investment'] = 1000
     
+    with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni dati utente completi
+        cur.execute("""
+            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        # Calcola nome da mostrare per saluto
+        full_name_value = ((user.get("full_name") if user else "") or "").strip()
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+    
     return render_template("user/new_project.html", 
+                         user=user,
+                         greet_name=greet_name,
                          user_id=uid,
                          projects=available_projects,
                          current_page="new_project")

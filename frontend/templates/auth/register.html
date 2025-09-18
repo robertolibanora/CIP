@@ -184,13 +184,10 @@
       type="button"
       class="right-icon"
       onclick="togglePassword()"
+      title="Mostra/Nascondi password"
+      style="display: none;"
     >
-      <svg id="eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
+      <i id="eye-icon" class="fas fa-eye h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"></i>
     </button>
   </div>
   <p id="error-password" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -218,13 +215,10 @@
               type="button"
               class="right-icon"
               onclick="toggleConfirmPassword()"
+              title="Mostra/Nascondi password"
+              style="display: none;"
             >
-              <svg id="confirm-eye-icon" class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              <i id="confirm-eye-icon" class="fas fa-eye h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors duration-200"></i>
             </button>
           </div>
           <p id="error-confirm_password" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -310,21 +304,46 @@
 </div>
 
 <script>
+// Mostra le icone toggle solo quando FontAwesome è caricato
+document.addEventListener('DOMContentLoaded', function() {
+  const eyeButtons = document.querySelectorAll('.right-icon');
+  
+  eyeButtons.forEach(eyeButton => {
+    if (eyeButton) {
+      // Verifica se FontAwesome è caricato
+      const testIcon = document.createElement('i');
+      testIcon.className = 'fas fa-eye';
+      testIcon.style.display = 'none';
+      document.body.appendChild(testIcon);
+      
+      // Controlla se l'icona è renderizzata correttamente
+      const computedStyle = window.getComputedStyle(testIcon, ':before');
+      if (computedStyle.content !== 'none') {
+        eyeButton.style.display = 'block';
+      } else {
+        // Fallback: mostra dopo 1 secondo
+        setTimeout(() => {
+          eyeButton.style.display = 'block';
+        }, 1000);
+      }
+      
+      document.body.removeChild(testIcon);
+    }
+  });
+});
+
 function togglePassword() {
   const passwordInput = document.getElementById('password');
   const eyeIcon = document.getElementById('eye-icon');
   
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
-    eyeIcon.innerHTML = `
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-    `;
+    eyeIcon.classList.remove('fa-eye');
+    eyeIcon.classList.add('fa-eye-slash');
   } else {
     passwordInput.type = 'password';
-    eyeIcon.innerHTML = `
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    `;
+    eyeIcon.classList.remove('fa-eye-slash');
+    eyeIcon.classList.add('fa-eye');
   }
 }
 
@@ -334,15 +353,12 @@ function toggleConfirmPassword() {
   
   if (confirmPasswordInput.type === 'password') {
     confirmPasswordInput.type = 'text';
-    confirmEyeIcon.innerHTML = `
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-    `;
+    confirmEyeIcon.classList.remove('fa-eye');
+    confirmEyeIcon.classList.add('fa-eye-slash');
   } else {
     confirmPasswordInput.type = 'password';
-    confirmEyeIcon.innerHTML = `
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542-7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    `;
+    confirmEyeIcon.classList.remove('fa-eye-slash');
+    confirmEyeIcon.classList.add('fa-eye');
   }
 }
 

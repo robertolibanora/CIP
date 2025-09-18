@@ -28,10 +28,6 @@
                             class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                         Segna tutte come lette
                     </button>
-                    <button id="clear-all-notifications" 
-                            class="text-sm text-red-600 hover:text-red-800 font-medium">
-                        Pulisci notifiche
-                    </button>
                 </div>
             </div>
         </div>
@@ -73,7 +69,6 @@ class AdminNotifications {
         this.loading = document.getElementById('notification-loading');
         this.empty = document.getElementById('notification-empty');
         this.markAllRead = document.getElementById('mark-all-read');
-        this.clearAllNotifications = document.getElementById('clear-all-notifications');
         
         this.init();
     }
@@ -82,7 +77,6 @@ class AdminNotifications {
         // Event listeners
         this.bell.addEventListener('click', () => this.toggleDropdown());
         this.markAllRead.addEventListener('click', () => this.markAllAsRead());
-        this.clearAllNotifications.addEventListener('click', () => this.clearAllNotificationsConfirm());
         
         // Chiudi dropdown cliccando fuori
         document.addEventListener('click', (e) => {
@@ -246,30 +240,6 @@ class AdminNotifications {
         }
     }
     
-    clearAllNotificationsConfirm() {
-        if (confirm('Sei sicuro di voler eliminare tutte le notifiche? Questa azione non può essere annullata.')) {
-            this.clearAllNotifications();
-        }
-    }
-    
-    async clearAllNotifications() {
-        try {
-            const response = await fetch('/admin/api/notifications/clear-all', {
-                method: 'POST'
-            });
-            
-            if (response.ok) {
-                this.loadNotifications();
-                this.loadNotificationList();
-                this.showSuccess('Tutte le notifiche sono state eliminate');
-            } else {
-                this.showError('Errore nell\'eliminazione delle notifiche');
-            }
-        } catch (error) {
-            console.error('Errore eliminazione notifiche:', error);
-            this.showError('Errore nell\'eliminazione delle notifiche');
-        }
-    }
     
     showError(message) {
         this.list.innerHTML = `

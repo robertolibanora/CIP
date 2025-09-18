@@ -148,6 +148,14 @@ def create_app():
     except Exception as e:
         app.logger.warning(f"Impossibile registrare blueprint KYC: {e}")
     
+    # Registra blueprint Admin principale
+    try:
+        from backend.admin.routes import admin_bp
+        app.register_blueprint(admin_bp, url_prefix='/admin')
+        app.logger.info("Blueprint Admin principale registrato con successo")
+    except Exception as e:
+        app.logger.warning(f"Impossibile registrare blueprint Admin principale: {e}")
+    
     # Registra blueprint Notifiche Admin
     try:
         from backend.admin.notifications_api import notifications_api

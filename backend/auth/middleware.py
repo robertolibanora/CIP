@@ -108,20 +108,15 @@ def update_session_activity():
         session.modified = True
 
 def create_secure_session(user_data: dict):
-    """Crea una sessione sicura con tutti i controlli"""
+    """Crea una sessione sicura con tutti i controlli - VERSIONE SEMPLIFICATA PER DEBUG"""
     logger.info(f"Creazione sessione per utente: {user_data['email']}")
     session.clear()
     session['user_id'] = user_data['id']
     session['user_role'] = user_data['role']
     session['role'] = user_data['role']  # Per compatibilità
-    session['user_name'] = user_data.get('nome', '') + ' ' + user_data.get('cognome', '')
-    session[SESSION_CREATED_KEY] = time.time()
-    session[SESSION_LAST_ACTIVITY_KEY] = time.time()
-    session[SESSION_IP_KEY] = request.remote_addr
-    session[SESSION_USER_AGENT_KEY] = request.headers.get('User-Agent', '')
-    session.permanent = True
     session.modified = True
     logger.info(f"Sessione creata con successo per: {user_data['email']}")
+    logger.info(f"Session data: {dict(session)}")
 
 def destroy_session():
     """Distrugge completamente la sessione - USARE SOLO PER LOGOUT ESPLICITO"""

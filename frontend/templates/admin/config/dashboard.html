@@ -48,6 +48,12 @@
                 <input type="text" id="bic-swift" class="admin-input" placeholder="BCITITMM" maxlength="11">
                 <p class="admin-help-text">Codice BIC/SWIFT della banca</p>
             </div>
+            
+            <div class="admin-form-group admin-form-group--full">
+                <label class="admin-label">Causale Bonifico</label>
+                <input type="text" id="payment-reference" class="admin-input" placeholder="Es. Deposito CIP - {NOME_UTENTE}" maxlength="100">
+                <p class="admin-help-text">Causale che apparirà nei bonifici degli utenti. Usa {NOME_UTENTE} per inserire automaticamente il nome dell'utente</p>
+            </div>
         </div>
         
         <div class="mt-6 pt-4 border-t border-gray-200">
@@ -97,12 +103,32 @@
             </div>
         </div>
 
-        <!-- Configurazione Telegram -->
-        <div class="admin-card mb-6">
-            <div class="admin-card-header">
-                <h2 class="admin-heading-2">Configurazione Telegram</h2>
-                <p class="admin-text-small">Gestione link gruppo Telegram per utenti</p>
+<!-- Cambio Password Admin -->
+<div class="admin-card mb-6">
+    <div class="admin-card-header">
+        <h2 class="admin-heading-2">Sicurezza Admin</h2>
+        <p class="admin-text-small">Gestione password di accesso amministratore</p>
+    </div>
+    <div class="admin-card-body">
+        <div class="admin-flex admin-flex--between admin-flex--align-center">
+            <div>
+                <h3 class="admin-heading-3">Password Amministratore</h3>
+                <p class="admin-text-small">Cambia la password di accesso al pannello amministratore</p>
             </div>
+            <a href="{{ url_for('admin.change_admin_password') }}" class="admin-btn admin-btn--primary">
+                <i class="fas fa-key mr-2"></i>
+                Cambia Password
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Configurazione Telegram -->
+<div class="admin-card mb-6">
+    <div class="admin-card-header">
+        <h2 class="admin-heading-2">Configurazione Telegram</h2>
+        <p class="admin-text-small">Gestione link gruppo Telegram per utenti</p>
+    </div>
             <div class="admin-card-body">
                 <div class="admin-form-group">
                     <label class="admin-label">Link Gruppo Telegram</label>
@@ -155,6 +181,7 @@ class ConfigManager {
             document.getElementById('account-holder').value = this.config.bank_config.account_holder || '';
             document.getElementById('iban').value = this.config.bank_config.iban || '';
             document.getElementById('bic-swift').value = this.config.bank_config.bic_swift || '';
+            document.getElementById('payment-reference').value = this.config.bank_config.payment_reference || '';
         }
         
         // Configurazione wallet
@@ -184,7 +211,8 @@ class ConfigManager {
             bank_name: document.getElementById('bank-name').value || '',
             account_holder: document.getElementById('account-holder').value || '',
             iban: document.getElementById('iban').value.replace(/\s/g, '') || '',
-            bic_swift: document.getElementById('bic-swift').value || ''
+            bic_swift: document.getElementById('bic-swift').value || '',
+            payment_reference: document.getElementById('payment-reference').value || ''
         };
         
         await this.saveConfig('/admin/config/bank', data, 'Configurazione bonifici');

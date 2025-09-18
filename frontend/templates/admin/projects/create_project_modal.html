@@ -116,13 +116,6 @@
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
                     </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Data Fine *</label>
-                        <input type="date" name="end_date" required
-                               style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
-                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
-                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
-                    </div>
                 </div>
                 
                 <!-- Upload Foto -->
@@ -165,7 +158,6 @@ function openCreateProjectModal() {
     const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
     
     document.querySelector('input[name="start_date"]').value = today.toISOString().split('T')[0];
-    document.querySelector('input[name="end_date"]').value = nextYear.toISOString().split('T')[0];
     
     openModal('create-project-modal');
 }
@@ -196,7 +188,7 @@ async function submitCreateProject() {
     const formData = new FormData(form);
     
             // Validazione campi obbligatori
-            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'start_date', 'end_date'];
+            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'start_date'];
     
     for (const field of requiredFields) {
         if (!formData.get(field) || formData.get(field).trim() === '') {
@@ -226,14 +218,6 @@ async function submitCreateProject() {
         return;
     }
     
-    // Validazione date
-    const startDate = new Date(formData.get('start_date'));
-    const endDate = new Date(formData.get('end_date'));
-    
-    if (startDate >= endDate) {
-        alert('La data di fine deve essere successiva alla data di inizio');
-        return;
-    }
     
     // Validazione file (opzionale)
     const photo = formData.get('photo');

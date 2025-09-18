@@ -344,7 +344,6 @@ class Project:
     roi: Decimal
     status: ProjectStatus
     start_date: datetime
-    end_date: datetime
     image_url: Optional[str]
     documents: Optional[dict]
     gallery: Optional[dict]
@@ -369,9 +368,8 @@ class Project:
     def can_invest(self) -> bool:
         """Verifica se è possibile investire nel progetto"""
         from datetime import date
-        # Progetto deve essere attivo E non deve essere scaduto
-        return (self.status == ProjectStatus.ACTIVE and 
-                self.end_date >= date.today())
+        # Progetto deve essere attivo
+        return self.status == ProjectStatus.ACTIVE
     
     def is_completed(self) -> bool:
         """Verifica se il progetto è completato (non si può più investire)"""

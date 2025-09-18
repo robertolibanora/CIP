@@ -316,7 +316,7 @@ def get_user_withdrawals():
                     withdrawal_data['wallet_address'] = w['wallet_address']
                     withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # Per SQLite, bank_details è una stringa JSON che deve essere parsata
+                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
                     try:
                         import json
                         withdrawal_data['bank_details'] = json.loads(w['bank_details'])
@@ -345,7 +345,7 @@ def admin_get_pending_withdrawals():
                 SELECT wr.id, wr.user_id, 
                        COALESCE(NULLIF(u.full_name, ''), u.nome || ' ' || u.cognome) as full_name,
                        u.email, wr.amount, wr.method,
-                       wr.source_section, wr.wallet_address, wr.network, wr.bank_details, wr.unique_key,
+                       wr.source_section, wr.wallet_address, wr.network, wr.unique_key,
                        wr.status, wr.created_at, wr.admin_notes
                 FROM withdrawal_requests wr
                 JOIN users u ON u.id = wr.user_id
@@ -377,7 +377,7 @@ def admin_get_pending_withdrawals():
                     withdrawal_data['wallet_address'] = w['wallet_address']
                     withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # Per SQLite, bank_details è una stringa JSON che deve essere parsata
+                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
                     try:
                         import json
                         withdrawal_data['bank_details'] = json.loads(w['bank_details'])
@@ -468,9 +468,9 @@ def admin_approve_withdrawal(request_id):
             # Aggiorna stato prelievo
             cur.execute("""
                 UPDATE withdrawal_requests 
-                SET status = 'completed', approved_at = NOW(), approved_by = %s
+                SET status = 'approved', updated_at = NOW()
                 WHERE id = %s
-            """, (admin_user_id, request_id))
+            """, (request_id,))
             
             # Rimuovi importo dal portfolio utente
             source_section = withdrawal['source_section']
@@ -678,7 +678,7 @@ def admin_get_withdrawals_history():
                 if w['method'] == 'usdt':
                     withdrawal_data['wallet_address'] = w['wallet_address']
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # Per SQLite, bank_details è una stringa JSON che deve essere parsata
+                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
                     try:
                         import json
                         withdrawal_data['bank_details'] = json.loads(w['bank_details'])

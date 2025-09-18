@@ -47,7 +47,7 @@ def health():
     return {"status": "ok"}, 200
 
 # Registra blueprints principali
-app.register_blueprint(admin_bp, url_prefix='/admin')
+# admin_bp è già registrato in app_factory.py
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')
 

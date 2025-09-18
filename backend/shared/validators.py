@@ -141,13 +141,6 @@ def sanitize_string(text, max_length=255):
     
     return text
 
-def validate_date_range(start_date, end_date):
-    """Valida intervallo date"""
-    if start_date and end_date:
-        if start_date >= end_date:
-            raise ValidationError("Data inizio deve essere precedente alla data fine")
-    
-    return start_date, end_date
 
 def validate_withdrawal_amount(amount):
     """Valida importo prelievo (minimo 50 dollari)"""

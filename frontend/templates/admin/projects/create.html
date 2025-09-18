@@ -170,10 +170,6 @@
                             <label class="admin-label admin-label--required">Data Inizio</label>
                             <input type="date" name="start_date" class="admin-input" required id="field-start_date">
                         </div>
-                        <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">Data Fine</label>
-                            <input type="date" name="end_date" class="admin-input" required id="field-end_date">
-                        </div>
                 </div>
                 
                     <!-- Preview Calcoli -->
@@ -359,7 +355,6 @@ class ProjectWizard {
         const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
         
         document.getElementById('field-start_date').value = today.toISOString().split('T')[0];
-        document.getElementById('field-end_date').value = nextYear.toISOString().split('T')[0];
     }
     
     updateCalculations() {
@@ -454,7 +449,7 @@ class ProjectWizard {
     getRequiredFieldsForStep(step) {
         const fields = {
             1: ['field-code', 'field-title', 'field-description', 'field-location', 'field-type'],
-            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-status', 'field-start_date', 'field-end_date'],
+            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-status', 'field-start_date'],
             3: [], // No required fields in step 3
             4: []  // No fields in step 4
         };
@@ -590,10 +585,6 @@ class ProjectWizard {
                             <div class="admin-flex admin-flex--between">
                                 <span class="admin-text-small text-gray-600">Data inizio:</span>
                                 <span class="admin-text-small font-medium">${data.start_date || 'Non specificata'}</span>
-                            </div>
-                            <div class="admin-flex admin-flex--between">
-                                <span class="admin-text-small text-gray-600">Data fine:</span>
-                                <span class="admin-text-small font-medium">${data.end_date || 'Non specificata'}</span>
                             </div>
                         </div>
                         

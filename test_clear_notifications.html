@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pulisci Notifiche</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        .notification-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 3px;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Sistema Notifiche Admin</h1>
+        
+        <div class="test-section">
+            <h3>📊 Stato Attuale</h3>
+            <button onclick="checkNotifications()">Controlla Notifiche</button>
+            <div id="notifications-status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🗑️ Test Pulisci Notifiche</h3>
+            <button onclick="clearAllNotifications()" class="danger">Pulisci Tutte le Notifiche</button>
+            <div id="clear-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 Lista Notifiche</h3>
+            <button onclick="loadNotifications()">Carica Notifiche</button>
+            <div id="notifications-list"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log Test</h3>
+            <button onclick="clearLog()">Pulisci Log</button>
+            <div id="test-log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let logDiv = document.getElementById('test-log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        async function checkNotifications() {
+            try {
+                log('🔍 Controllo notifiche non lette...');
+                const response = await fetch('/admin/api/notifications/unread-count');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const statusDiv = document.getElementById('notifications-status');
+                    statusDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Connessione API OK<br>
+                            📊 Notifiche non lette: ${data.unread_count}
+                        </div>
+                    `;
+                    log(`✅ Notifiche non lette: ${data.unread_count}`);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('notifications-status');
+                statusDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Errore: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+            }
+        }
+        
+        async function loadNotifications() {
+            try {
+                log('📋 Caricamento lista notifiche...');
+                const response = await fetch('/admin/api/notifications/?limit=10');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const listDiv = document.getElementById('notifications-list');
+                    if (data.notifications.length === 0) {
+                        listDiv.innerHTML = '<div class="success">✅ Nessuna notifica presente</div>';
+                    } else {
+                        listDiv.innerHTML = data.notifications.map(notif => `
+                            <div class="notification-item">
+                                <strong>ID:</strong> ${notif.id}<br>
+                                <strong>Tipo:</strong> ${notif.type}<br>
+                                <strong>Titolo:</strong> ${notif.title}<br>
+                                <strong>Messaggio:</strong> ${notif.message}<br>
+                                <strong>Letta:</strong> ${notif.is_read ? 'Sì' : 'No'}<br>
+                                <strong>Data:</strong> ${new Date(notif.created_at).toLocaleString()}
+                            </div>
+                        `).join('');
+                    }
+                    log(`✅ Caricate ${data.notifications.length} notifiche`);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                const listDiv = document.getElementById('notifications-list');
+                listDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Errore: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+            }
+        }
+        
+        async function clearAllNotifications() {
+            try {
+                if (!confirm('Sei sicuro di voler eliminare TUTTE le notifiche? Questa azione non può essere annullata.')) {
+                    log('❌ Operazione annullata dall\'utente');
+                    return;
+                }
+                
+                log('🗑️ Invio richiesta di cancellazione...');
+                const response = await fetch('/admin/api/notifications/clear-all', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const resultDiv = document.getElementById('clear-result');
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ ${data.message}
+                        </div>
+                    `;
+                    log(`✅ ${data.message}`);
+                    
+                    // Ricarica le notifiche per verificare
+                    setTimeout(() => {
+                        checkNotifications();
+                        loadNotifications();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                const resultDiv = document.getElementById('clear-result');
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Errore: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+            }
+        }
+        
+        // Carica le notifiche all'avvio
+        window.onload = function() {
+            log('🚀 Test avviato');
+            checkNotifications();
+            loadNotifications();
+        };
+    </script>
+</body>
+</html>

@@ -50,7 +50,7 @@ admin_bp = Blueprint("admin", __name__)
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import admin_required
-from backend.auth.routes import hash_password
+from werkzeug.security import check_password_hash
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione admin
@@ -107,8 +107,8 @@ def projects_list():
             
             # Aggiungi photo_filename per compatibilit con template
             for row in rows:
-                if row.get('image_url'):
-                    row['photo_filename'] = row['image_url'].split('/')[-1]
+                if row.get('photo_filename'):
+                    row['photo_filename'] = row['photo_filename']
                 else:
                     row['photo_filename'] = None
                     
@@ -258,9 +258,8 @@ def projects_new():
         total_amount_value = float(data.get('target_amount', 100000))
         min_investment_value = float(data.get('min_investment', 1000))
         
-        # Date obbligatorie - usa date di default se non fornite
+        # Data di inizio - usa data di default se non fornita
         start_date_value = data.get('start_date') or date.today().isoformat()
-        end_date_value = data.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
         
         # Inserisci nel database (schema con location, image_url, senza documents)
         logger.info(f"Salvando progetto nel database - image_url: {photo_filename}")
@@ -268,15 +267,15 @@ def projects_new():
             cur.execute(
                 """
                 INSERT INTO projects (
-                    code, name, description, status, total_amount, start_date, end_date,
+                    code, name, description, status, total_amount, start_date,
                     location, min_investment, image_url, roi, type, funded_amount, duration
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
                 """,
                 (
                     code_value, name_value, description_value, status_value,
-                    total_amount_value, start_date_value, end_date_value,
+                    total_amount_value, start_date_value,
                     location_value, min_investment_value, 
                     photo_filename if photo_filename else None,
                     roi_value, project_type, 0.0, 365
@@ -415,7 +414,7 @@ def project_detail(pid):
             
             # Investimenti collegati
             cur.execute("""
-                SELECT i.id, i.amount, i.status, i.created_at, i.investment_date,
+                SELECT i.id, i.amount, i.status, i.created_at, i.activated_at,
                        u.id as user_id, u.full_name, u.email, u.kyc_status
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
@@ -495,9 +494,6 @@ def projects_edit(pid):
             update_fields.append("start_date = %s")
             params.append(data['start_date'])
         
-        if 'end_date' in data and data['end_date']:
-            update_fields.append("end_date = %s")
-            params.append(data['end_date'])
         
         if not update_fields:
             if request.headers.get('Content-Type') == 'application/json':
@@ -517,6 +513,78 @@ def projects_edit(pid):
         return jsonify({"updated": True, "message": "Progetto aggiornato con successo"})
     else:
         return redirect(url_for('admin.projects_detail', pid=pid))
+
+@admin_bp.post("/projects/<int:pid>/cancel")
+@admin_required
+def projects_cancel(pid):
+    """Annulla un progetto e rimborsa gli investitori"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che il progetto esista e sia attivo
+            cur.execute("""
+                SELECT id, name, funded_amount, status 
+                FROM projects 
+                WHERE id = %s AND status = 'active'
+            """, (pid,))
+            project = cur.fetchone()
+            
+            if not project:
+                return jsonify({"error": "Progetto non trovato o non attivo"}), 404
+            
+            # Ottieni tutti gli investimenti attivi per questo progetto
+            cur.execute("""
+                SELECT i.id, i.user_id, i.amount, u.email
+                FROM investments i
+                JOIN users u ON u.id = i.user_id
+                WHERE i.project_id = %s AND i.status = 'active'
+            """, (pid,))
+            investments = cur.fetchall()
+            
+            # Rimborsa tutti gli investimenti attivi
+            for investment in investments:
+                user_id = investment['user_id']
+                amount = investment['amount']
+                
+                # Aggiorna il portfolio dell'utente: rimuovi da invested_capital e aggiungi a free_capital
+                cur.execute("""
+                    UPDATE user_portfolios 
+                    SET invested_capital = invested_capital - %s,
+                        free_capital = free_capital + %s
+                    WHERE user_id = %s
+                """, (amount, amount, user_id))
+                
+                # Se il portfolio non esiste, crealo
+                if cur.rowcount == 0:
+                    cur.execute("""
+                        INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                        VALUES (%s, %s, 0, 0, 0)
+                    """, (user_id, amount))
+                
+                # Aggiorna lo status dell'investimento a cancelled
+                cur.execute("""
+                    UPDATE investments 
+                    SET status = 'cancelled'
+                    WHERE id = %s
+                """, (investment['id'],))
+            
+            # Aggiorna lo status del progetto a cancelled (rimuovi updated_at che non esiste)
+            cur.execute("""
+                UPDATE projects 
+                SET status = 'cancelled'
+                WHERE id = %s
+            """, (pid,))
+            
+            conn.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Progetto annullato con successo. Rimborsati {len(investments)} investimenti per un totale di €{project['funded_amount']:,.2f}",
+                "refunded_investments": len(investments),
+                "total_refunded": float(project['funded_amount'])
+            })
+            
+    except Exception as e:
+        return jsonify({"error": f"Errore durante l'annullamento: {str(e)}"}), 500
 
 @admin_bp.delete("/projects/<int:pid>")
 @admin_required
@@ -952,7 +1020,6 @@ def projects_export():
                 project.get('roi', ''),
                 project.get('status', ''),
                 project.get('start_date', ''),
-                project.get('end_date', ''),
                 project.get('created_at', '')
             ])
         
@@ -2270,7 +2337,7 @@ def api_admin_delete_user(user_id: int):
         admin_row = cur.fetchone()
         if not admin_row or admin_row.get('role') != 'admin':
             return jsonify({'error': 'Permesso negato'}), 403
-        if admin_row.get('password_hash') != hash_password(admin_password):
+        if not check_password_hash(admin_row.get('password_hash'), admin_password):
             return jsonify({'error': 'Password admin non corretta'}), 401
 
         # Non consentire eliminazione di un amministratore
@@ -2975,7 +3042,7 @@ def config_data():
     with get_conn() as conn, conn.cursor() as cur:
         # Configurazione bonifici
         cur.execute("""
-            SELECT bank_name, account_holder, iban, bic_swift, created_at, updated_at
+            SELECT bank_name, account_holder, iban, bic_swift, payment_reference, created_at, updated_at
             FROM bank_configurations 
             WHERE is_active = true 
             ORDER BY created_at DESC 
@@ -2997,7 +3064,7 @@ def config_data():
         cur.execute("""
             SELECT config_key, config_value, config_type 
             FROM system_configurations 
-            WHERE is_active = 1
+            WHERE is_active = true
         """)
         system_configs = cur.fetchall()
         
@@ -3041,13 +3108,14 @@ def config_bank_save():
             # Inserisci nuova configurazione
             cur.execute("""
                 INSERT INTO bank_configurations 
-                (bank_name, account_holder, iban, bic_swift, created_by)
-                VALUES (%s, %s, %s, %s, %s)
+                (bank_name, account_holder, iban, bic_swift, payment_reference, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 data.get('bank_name', ''),
                 data.get('account_holder', ''),
                 data.get('iban', ''),
                 data.get('bic_swift', ''),
+                data.get('payment_reference', 'Deposito CIP - {NOME_UTENTE}'),
                 session.get('user_id')
             ))
             
@@ -4077,9 +4145,8 @@ def create_project():
         location = request.form.get('location', '').strip() or 'Indirizzo non specificato'
         project_type = request.form.get('type', 'residential')
         roi = request.form.get('roi', type=float) or 8.0
-        # Date obbligatorie - usa date di default se non fornite
+        # Data di inizio - usa data di default se non fornita
         start_date = request.form.get('start_date') or date.today().isoformat()
-        end_date = request.form.get('end_date') or (date.today() + timedelta(days=365)).isoformat()
         
         # Nessun campo obbligatorio - validazione solo per valori numerici se forniti
         
@@ -4126,11 +4193,11 @@ def create_project():
             # Inserisci progetto nel database
             cur.execute("""
                 INSERT INTO projects (code, name, description, total_amount, min_investment, 
-                                   location, type, roi, start_date, end_date, image_url, status, funded_amount, duration)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                   location, type, roi, start_date, image_url, status, funded_amount, duration)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (code, name, description, total_amount, min_investment, 
-                  location, project_type, roi, start_date, end_date, image_url, 'active', 0.0, 365))
+                  location, project_type, roi, start_date, image_url, 'active', 0.0, 365))
             
             project_id = cur.fetchone()['id']
             
@@ -4319,4 +4386,86 @@ def transaction_detail(transaction_id):
         logger.error(f"Errore nel caricamento dettaglio transazione: {e}")
         return render_template('admin/transactions/detail.html',
                              error="Errore nel caricamento dei dati")
+
+
+# =====================================================
+# CAMBIO PASSWORD ADMIN
+# =====================================================
+
+@admin_bp.route("/change-password", methods=["GET", "POST"])
+@admin_required
+def change_admin_password():
+    """Pagina per cambiare la password admin"""
+    if request.method == "POST":
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validazioni
+        if not all([old_password, new_password, confirm_password]):
+            return jsonify({
+                "success": False,
+                "error": "Tutti i campi sono obbligatori"
+            }), 400
+        
+        if new_password != confirm_password:
+            return jsonify({
+                "success": False,
+                "error": "Le password nuove non coincidono"
+            }), 400
+        
+        if len(new_password) < 8:
+            return jsonify({
+                "success": False,
+                "error": "La nuova password deve essere di almeno 8 caratteri"
+            }), 400
+        
+        try:
+            admin_user_id = session.get('user_id')
+            
+            with get_conn() as conn, conn.cursor() as cur:
+                # Verifica password attuale
+                cur.execute("""
+                    SELECT password_hash FROM users 
+                    WHERE id = %s AND role = 'admin'
+                """, (admin_user_id,))
+                user = cur.fetchone()
+                
+                if not user:
+                    return jsonify({
+                        "success": False,
+                        "error": "Utente admin non trovato"
+                    }), 404
+                
+                if not check_password_hash(user['password_hash'], old_password):
+                    return jsonify({
+                        "success": False,
+                        "error": "Password attuale non corretta"
+                    }), 400
+                
+                # Aggiorna password (usa pbkdf2 invece di scrypt per compatibilità)
+                new_password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+                cur.execute("""
+                    UPDATE users 
+                    SET password_hash = %s, updated_at = NOW()
+                    WHERE id = %s
+                """, (new_password_hash, admin_user_id))
+                
+                conn.commit()
+                
+                return jsonify({
+                    "success": True,
+                    "message": "Password aggiornata con successo"
+                })
+                
+        except Exception as e:
+            logger.error(f"Errore cambio password admin: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Errore interno del server"
+            }), 500
+    
+    # GET - Mostra form
+    return render_template('admin/config/change_password.html',
+                         current_page="config")
 

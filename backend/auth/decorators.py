@@ -257,11 +257,16 @@ def can_withdraw(f: Callable) -> Callable:
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_authenticated():
+            # Per richieste API restituisci JSON, non redirect HTML
+            if is_api_request():
+                return jsonify({'error': 'unauthorized'}), 401
             flash("Accesso richiesto per visualizzare questa pagina", "warning")
             return redirect(url_for('auth.login'))
         
         user = get_current_user()
         if not user:
+            if is_api_request():
+                return jsonify({'error': 'unauthorized'}), 401
             flash("Sessione utente non valida", "error")
             return redirect(url_for('auth.login'))
         
@@ -271,6 +276,12 @@ def can_withdraw(f: Callable) -> Callable:
         
         # Utenti normali devono avere KYC verificato
         if user.get('kyc_status') != KYCStatus.VERIFIED.value:
+            if is_api_request():
+                return jsonify({
+                    'error': 'kyc_required',
+                    'message': 'Verifica KYC richiesta per prelevare',
+                    'kyc_status': user.get('kyc_status')
+                }), 403
             flash("Verifica KYC richiesta per prelevare", "warning")
             return redirect(url_for('user.profile'))
         

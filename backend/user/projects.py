@@ -42,8 +42,8 @@ def projects():
         # 2. PROGETTI ATTIVI (dove si può investire)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url, p.end_date,
+                   p.status, p.created_at, p.code, p.address, p.min_investment,
+                   p.photo_filename,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -54,7 +54,7 @@ def projects():
                 WHERE user_id = %s AND status = 'active'
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
-            WHERE p.status = 'active' AND p.end_date >= CURRENT_DATE
+            WHERE p.status = 'active'
             ORDER BY 
                 CASE WHEN user_investments.total_amount IS NOT NULL THEN 0 ELSE 1 END,
                 p.created_at DESC
@@ -65,8 +65,8 @@ def projects():
         # 2.5. PROGETTI SCADUTI (non si può più investire perché scaduti)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url, p.end_date,
+                   p.status, p.created_at, p.code, p.address, p.min_investment,
+                   p.photo_filename,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -77,8 +77,8 @@ def projects():
                 WHERE user_id = %s AND status = 'active'
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
-            WHERE p.status = 'active' AND p.end_date < CURRENT_DATE
-            ORDER BY p.end_date DESC
+            WHERE p.status = 'completed'
+            ORDER BY p.created_at DESC
         """, (uid,))
         
         expired_projects = cur.fetchall()
@@ -86,8 +86,8 @@ def projects():
         # 3. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url,
+                   p.status, p.created_at, p.code, p.address, p.min_investment,
+                   p.photo_filename,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -107,8 +107,8 @@ def projects():
         # 4. PROGETTI VENDUTI (con informazioni sui profitti)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.location, p.roi, p.min_investment,
-                   p.image_url,
+                   p.status, p.created_at, p.code, p.address, p.min_investment,
+                   p.photo_filename,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
@@ -135,19 +135,19 @@ def projects():
                     project['completion_percent'] = 0
                 
                 # Aggiungi campi mancanti per compatibilità template
-                project['location'] = project.get('location') or 'N/A'
+                project['location'] = project.get('address') or 'N/A'
                 project['roi'] = project.get('roi') or 8.5
                 project['min_investment'] = project.get('min_investment') or 1000
                 project['description'] = project.get('description') or 'Nessuna descrizione disponibile'
                 
                 # GESTIONE IMMAGINI - Struttura per galleria
-                project['has_images'] = bool(project.get('image_url'))
+                project['has_images'] = bool(project.get('photo_filename'))
                 # Estrai solo il nome del file dal percorso completo
-                if project.get('image_url'):
-                    project['photo_filename'] = project['image_url'].split('/')[-1]
+                if project.get('photo_filename'):
+                    project['photo_filename'] = project['photo_filename']
                 else:
                     project['photo_filename'] = None
-                project['gallery_count'] = 1 if project.get('image_url') else 0
+                project['gallery_count'] = 1 if project.get('photo_filename') else 0
                 
                 # Calcola informazioni profitto per progetti venduti
                 if project['status'] == 'sold':
@@ -201,9 +201,9 @@ def invest_in_project():
         with get_conn() as conn, conn.cursor() as cur:
             # 1. Verifica che il progetto esista e sia attivo
             cur.execute("""
-                SELECT id, name, total_amount, funded_amount, min_investment, end_date
+                SELECT id, name, total_amount, funded_amount, min_investment
                 FROM projects 
-                WHERE id = %s AND status = 'active' AND end_date >= CURRENT_DATE
+                WHERE id = %s AND status = 'active'
             """, (project_id,))
             project = cur.fetchone()
             

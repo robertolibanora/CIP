@@ -27,10 +27,32 @@ def generate_unique_key(length=6):
     characters = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))
 
-def generate_payment_reference(length=12):
-    """Genera una chiave randomica per causale bonifico"""
-    characters = string.ascii_uppercase + string.digits
-    return ''.join(secrets.choice(characters) for _ in range(length))
+def generate_payment_reference(user_name=None, length=12):
+    """Genera una causale bonifico usando il template configurato dall'admin"""
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT payment_reference 
+            FROM bank_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        config = cur.fetchone()
+        
+        if config and config['payment_reference']:
+            template = config['payment_reference']
+            # Sostituisci {NOME_UTENTE} con il nome dell'utente se fornito
+            if user_name and '{NOME_UTENTE}' in template:
+                return template.replace('{NOME_UTENTE}', user_name)
+            elif '{NOME_UTENTE}' in template:
+                # Se non c'è il nome utente, usa un placeholder
+                return template.replace('{NOME_UTENTE}', 'UTENTE')
+            else:
+                return template
+        else:
+            # Fallback: genera una chiave randomica
+            characters = string.ascii_uppercase + string.digits
+            return ''.join(secrets.choice(characters) for _ in range(length))
 
 def ensure_deposits_schema(cur):
     """Crea tabelle minime necessarie se mancanti (solo per ambienti dev)."""
@@ -374,6 +396,11 @@ def create_deposit_request():
             else:
                 receiver_field_value = wallet_config['wallet_address']
 
+            # Ottieni nome utente per la causale
+            cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
+            user_info = cur.fetchone()
+            user_name = f"{user_info.get('nome', '')} {user_info.get('cognome', '')}".strip() if user_info else None
+            
             # Prova inserimento con retry per evitare collisioni univoche
             attempts = 0
             new_request = None
@@ -381,7 +408,7 @@ def create_deposit_request():
             while attempts < 5 and not new_request:
                 attempts += 1
                 unique_key = generate_unique_key()
-                payment_reference = generate_payment_reference()
+                payment_reference = generate_payment_reference(user_name)
                 try:
                     cur.execute("""
                         INSERT INTO deposit_requests 

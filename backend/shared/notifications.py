@@ -3,6 +3,7 @@ Sistema notifiche admin per KYC, depositi e prelievi
 """
 from typing import Dict, Any, Optional
 from datetime import datetime
+import json
 from backend.shared.database import get_connection
 
 
@@ -32,7 +33,7 @@ def create_admin_notification(
                 INSERT INTO admin_notifications (type, user_id, title, message, metadata)
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
-            """, (notification_type, user_id, title, message, metadata))
+            """, (notification_type, user_id, title, message, json.dumps(metadata) if metadata else None))
             
             notification_id = cur.fetchone()['id']
             conn.commit()
@@ -63,7 +64,7 @@ def get_admin_notifications(limit: int = 50, unread_only: bool = False) -> list:
                        n.created_at, n.read_at, n.metadata,
                        u.nome, u.cognome, u.email
                 FROM admin_notifications n
-                JOIN users u ON n.user_id = u.id
+                LEFT JOIN users u ON n.user_id = u.id
                 {where_clause}
                 ORDER BY n.created_at DESC
                 LIMIT %s

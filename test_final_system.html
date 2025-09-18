@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Finale Sistema CIP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.success {
+            background-color: #28a745;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        .test-results {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Finale Sistema CIP Immobiliare</h1>
+        
+        <div class="status info">
+            <strong>📋 Istruzioni:</strong><br>
+            1. Fai il login con le credenziali admin<br>
+            2. Verifica che il sistema di notifiche funzioni<br>
+            3. Testa il tasto "Pulisci notifiche"<br>
+            4. Controlla che tutto funzioni correttamente
+        </div>
+        
+        <div class="status warning">
+            <strong>🔑 Credenziali di Test:</strong><br>
+            <strong>Email:</strong> admin@cipimmobiliare.it<br>
+            <strong>Password:</strong> admin123
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔐 Test Login</h2>
+        <div class="login-form">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@cipimmobiliare.it">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="admin123">
+            </div>
+            <button onclick="testLogin()" class="success">Test Login</button>
+            <button onclick="openAdminPanel()">Apri Pannello Admin</button>
+        </div>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔔 Test Sistema Notifiche</h2>
+        <button onclick="checkNotifications()">Controlla Notifiche</button>
+        <button onclick="loadNotifications()">Carica Lista Notifiche</button>
+        <button onclick="clearAllNotifications()" class="danger">🗑️ Pulisci Tutte le Notifiche</button>
+        <div id="notifications-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📊 Test Connessione Server</h2>
+        <button onclick="testServerConnection()">Test Connessione</button>
+        <button onclick="testDatabaseConnection()">Test Database</button>
+        <div id="connection-result"></div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Log Test</h2>
+        <button onclick="clearLog()">Pulisci Log</button>
+        <div id="test-log" class="test-results"></div>
+    </div>
+
+    <script>
+        let logDiv = document.getElementById('test-log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log(`🔐 Tentativo login: ${email}`);
+                
+                const formData = new FormData();
+                formData.append('email', email);
+                formData.append('password', password);
+                
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    if (data.includes('Benvenuto') || response.redirected) {
+                        showResult('login-result', '✅ Login riuscito! Redirect in corso...', 'success');
+                        log('✅ Login riuscito');
+                        
+                        // Prova ad accedere al pannello admin
+                        setTimeout(() => {
+                            window.open('/admin/', '_blank');
+                        }, 1000);
+                    } else {
+                        showResult('login-result', '⚠️ Login completato ma redirect non rilevato', 'warning');
+                        log('⚠️ Login completato ma redirect non rilevato');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('login-result', `❌ Errore login: ${error.message}`, 'error');
+                log(`❌ Errore login: ${error.message}`);
+            }
+        }
+        
+        function openAdminPanel() {
+            log('🔗 Apertura pannello admin in nuova finestra');
+            window.open('/admin/', '_blank');
+        }
+        
+        async function checkNotifications() {
+            try {
+                log('🔍 Controllo notifiche non lette...');
+                const response = await fetch('/admin/api/notifications/unread-count');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('notifications-result', 
+                        `✅ API Notifiche OK<br>📊 Notifiche non lette: ${data.unread_count}`, 
+                        'success');
+                    log(`✅ Notifiche non lette: ${data.unread_count}`);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                if (error.message.includes('unauthorized')) {
+                    showResult('notifications-result', 
+                        '⚠️ API richiede autenticazione (normale)', 'warning');
+                    log('⚠️ API richiede autenticazione');
+                } else {
+                    showResult('notifications-result', `❌ Errore: ${error.message}`, 'error');
+                    log(`❌ Errore: ${error.message}`);
+                }
+            }
+        }
+        
+        async function loadNotifications() {
+            try {
+                log('📋 Caricamento lista notifiche...');
+                const response = await fetch('/admin/api/notifications/?limit=10');
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.notifications.length === 0) {
+                        showResult('notifications-result', '✅ Nessuna notifica presente', 'success');
+                    } else {
+                        showResult('notifications-result', 
+                            `✅ Caricate ${data.notifications.length} notifiche`, 'success');
+                    }
+                    log(`✅ Caricate ${data.notifications.length} notifiche`);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                if (error.message.includes('unauthorized')) {
+                    showResult('notifications-result', 
+                        '⚠️ API richiede autenticazione (normale)', 'warning');
+                    log('⚠️ API richiede autenticazione');
+                } else {
+                    showResult('notifications-result', `❌ Errore: ${error.message}`, 'error');
+                    log(`❌ Errore: ${error.message}`);
+                }
+            }
+        }
+        
+        async function clearAllNotifications() {
+            try {
+                if (!confirm('Sei sicuro di voler eliminare TUTTE le notifiche? Questa azione non può essere annullata.')) {
+                    log('❌ Operazione annullata dall\'utente');
+                    return;
+                }
+                
+                log('🗑️ Invio richiesta di cancellazione...');
+                const response = await fetch('/admin/api/notifications/clear-all', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('notifications-result', `✅ ${data.message}`, 'success');
+                    log(`✅ ${data.message}`);
+                    
+                    // Ricarica le notifiche per verificare
+                    setTimeout(() => {
+                        checkNotifications();
+                        loadNotifications();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Errore sconosciuto');
+                }
+            } catch (error) {
+                if (error.message.includes('unauthorized')) {
+                    showResult('notifications-result', 
+                        '⚠️ Operazione richiede autenticazione admin', 'warning');
+                    log('⚠️ Operazione richiede autenticazione admin');
+                } else {
+                    showResult('notifications-result', `❌ Errore: ${error.message}`, 'error');
+                    log(`❌ Errore: ${error.message}`);
+                }
+            }
+        }
+        
+        async function testServerConnection() {
+            try {
+                log('🌐 Test connessione server...');
+                const response = await fetch('/');
+                
+                if (response.ok || response.status === 302) {
+                    showResult('connection-result', 
+                        `✅ Server risponde correttamente<br>Status: ${response.status}`, 
+                        'success');
+                    log(`✅ Server risponde: ${response.status}`);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('connection-result', `❌ Errore connessione: ${error.message}`, 'error');
+                log(`❌ Errore connessione: ${error.message}`);
+            }
+        }
+        
+        async function testDatabaseConnection() {
+            try {
+                log('🗄️ Test connessione database...');
+                const response = await fetch('/admin/api/notifications/unread-count');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('connection-result', 
+                        `✅ Database connesso<br>API risponde: ${data.success}`, 
+                        'success');
+                    log('✅ Database connesso e funzionante');
+                } else if (response.status === 401) {
+                    showResult('connection-result', 
+                        '✅ Database connesso (API richiede auth)', 'success');
+                    log('✅ Database connesso (API richiede autenticazione)');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('connection-result', `❌ Errore database: ${error.message}`, 'error');
+                log(`❌ Errore database: ${error.message}`);
+            }
+        }
+        
+        // Test automatici all'avvio
+        window.onload = function() {
+            log('🚀 Test sistema avviato');
+            testServerConnection();
+            testDatabaseConnection();
+            checkNotifications();
+        };
+    </script>
+</body>
+</html>

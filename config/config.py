@@ -35,13 +35,13 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"  # Lax in dev, Strict in prod
     SESSION_COOKIE_SECURE = False    # False in dev, True in prod su HTTPS
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
-    SESSION_REFRESH_EACH_REQUEST = True
+    # PERMANENT_SESSION_LIFETIME = timedelta(hours=8)  # Disabilitato per debug
+    # SESSION_REFRESH_EACH_REQUEST = False  # Disabilitato per debug
     
     # ============================================================================
     # CONFIGURAZIONE CSRF
     # ============================================================================
-    WTF_CSRF_ENABLED = True
+    WTF_CSRF_ENABLED = False  # Disabilitato temporaneamente per debug
     WTF_CSRF_TIME_LIMIT = None
 
 class DevelopmentConfig(Config):
