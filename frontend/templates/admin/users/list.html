@@ -91,6 +91,27 @@
           <input id="detail-vip" type="checkbox" style="width:18px; height:18px;">
           <label for="detail-vip" style="margin:0; font-weight:600; color:#0f766e;">👑 Utente VIP</label>
         </div>
+        
+        <!-- Sezione Password Smarrita -->
+        <div style="grid-column:1/-1; margin-top:16px; padding:16px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <svg style="width:20px; height:20px; color:#dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <h4 style="margin:0; font-size:16px; font-weight:600; color:#dc2626;">Password Smarrita</h4>
+          </div>
+          <p style="margin:0 0 12px 0; font-size:14px; color:#7f1d1d;">Genera una nuova password temporanea per questo utente. L'utente dovrà cambiarla al prossimo accesso.</p>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" id="reset-password-btn" class="btn-theme btn-small" style="background:#dc2626; color:white;">
+              <svg style="width:16px; height:16px; margin-right:6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+              </svg>
+              Genera Nuova Password
+            </button>
+            <span id="password-status" style="font-size:12px; color:#7f1d1d;"></span>
+          </div>
+        </div>
+        
         <div style="grid-column:1/-1; display:flex; justify-content:space-between; gap:8px; margin-top:8px;">
           <button type="button" id="delete-user" class="btn-theme btn-small" style="background:#b91c1c">Elimina</button>
           <div>
@@ -278,6 +299,42 @@
       alert(err.error || 'Errore eliminazione');
     }
   });
+
+  // Event listener per reset password
+  document.getElementById('reset-password-btn').addEventListener('click', async ()=>{
+    const id = dId.value;
+    const adminPwd = prompt('Inserisci la password dell\'admin per confermare il reset della password');
+    if(adminPwd === null || adminPwd === '') return;
+    
+    const statusEl = document.getElementById('password-status');
+    statusEl.textContent = 'Generazione in corso...';
+    statusEl.style.color = '#7f1d1d';
+    
+    try {
+      const res = await fetch(`/admin/api/admin/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_password: adminPwd })
+      });
+      
+      if(res.ok){
+        const result = await res.json();
+        statusEl.textContent = `Password generata: ${result.new_password}`;
+        statusEl.style.color = '#059669';
+        showToast('Password generata con successo');
+      } else {
+        const result = await res.json();
+        statusEl.textContent = result.error || 'Errore nella generazione';
+        statusEl.style.color = '#dc2626';
+        showToast(result.error || 'Errore nella generazione della password');
+      }
+    } catch (error) {
+      statusEl.textContent = 'Errore di connessione';
+      statusEl.style.color = '#dc2626';
+      showToast('Errore di connessione');
+    }
+  });
+
   // Pulsante Salva Saldi rimosso definitivamente
 
   // Save a single investment row

@@ -866,11 +866,17 @@ def profile_update():
     
     return jsonify({'success': True, 'message': 'Profilo aggiornato con successo'})
 
-@user_bp.post("/profile/change-password")
+@user_bp.route("/profile/change-password", methods=["GET", "POST"])
 @login_required
 def change_password():
     """Cambio password utente"""
     uid = session.get("user_id")
+    
+    # Se è una richiesta GET, mostra la pagina
+    if request.method == "GET":
+        return render_template("user/change_password.html")
+    
+    # Se è una richiesta POST, processa il cambio password
     data = request.get_json()
     
     # Validazione dati
@@ -905,11 +911,11 @@ def change_password():
         if row['password_hash'] == hash_password(new_password):
             return jsonify({'success': False, 'error': 'La nuova password deve essere diversa da quella attuale'}), 400
         
-        # Aggiorna password
+        # Aggiorna password e resetta il flag password_reset_required
         new_hash = hash_password(new_password)
         cur.execute("""
             UPDATE users 
-            SET password_hash = %s, updated_at = NOW()
+            SET password_hash = %s, password_reset_required = false, updated_at = NOW()
             WHERE id = %s
         """, (new_hash, uid))
         conn.commit()

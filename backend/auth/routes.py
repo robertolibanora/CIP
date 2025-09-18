@@ -21,6 +21,34 @@ def hash_password(password: str) -> str:
 
 from backend.auth.decorators import guest_only
 
+@auth_bp.route("/api/admin-telegram-link")
+def get_admin_telegram_link():
+    """Ottieni il link Telegram dell'admin per password dimenticata"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT config_value 
+                FROM system_configurations 
+                WHERE config_key = 'admin_telegram_link' AND is_active = true
+                LIMIT 1
+            """)
+            config = cur.fetchone()
+            
+            if config and config['config_value']:
+                return jsonify({
+                    'telegram_link': config['config_value']
+                })
+            else:
+                # Fallback se non configurato
+                return jsonify({
+                    'telegram_link': 'https://t.me/cip_admin'
+                })
+    except Exception as e:
+        # Fallback in caso di errore
+        return jsonify({
+            'telegram_link': 'https://t.me/cip_admin'
+        })
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @guest_only
 def login():
@@ -54,7 +82,7 @@ def login():
         # Cerca utente per email
         cur.execute(
             """
-            SELECT id, email, nome, cognome, password_hash, role
+            SELECT id, email, nome, cognome, password_hash, role, password_reset_required
             FROM users WHERE email = %s
             """,
             (email,),
@@ -67,6 +95,29 @@ def login():
             # Crea sessione sicura
             print(f"LOGIN: Creazione sessione per {user['email']}")
             create_secure_session(user)
+
+            # Controlla se l'utente deve cambiare la password
+            if user.get("password_reset_required"):
+                # Se è richiesta API, restituisce JSON con flag password_reset_required
+                if is_api_request():
+                    return jsonify({
+                        "ok": True,
+                        "user": {
+                            "id": user["id"],
+                            "email": user["email"],
+                            "nome": user["nome"],
+                            "cognome": user["cognome"],
+                            "role": user["role"]
+                        },
+                        "password_reset_required": True
+                    }), 200
+
+                # Altrimenti, redirect HTML con messaggio
+                flash("La tua password è stata resettata dall'amministratore. Devi cambiarla per continuare.", "warning")
+                if user["role"] == "admin":
+                    return redirect(url_for("admin.change_password"))
+                else:
+                    return redirect(url_for("user.change_password"))
 
             # Se è richiesta API, restituisce JSON
             if is_api_request():
@@ -81,7 +132,7 @@ def login():
                     }
                 }), 200
 
-            # Altrimenti, redirect HTML
+            # Altrimenti, redirect HTML normale
             flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
             if user["role"] == "admin":
                 return redirect(url_for("admin.admin_dashboard"))

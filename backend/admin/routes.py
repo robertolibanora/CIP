@@ -2392,6 +2392,74 @@ def api_admin_delete_user(user_id: int):
     return jsonify({'success': True, 'message': 'Utente eliminato'})
 
 
+@admin_bp.post("/api/admin/users/<int:user_id>/reset-password")
+@admin_required
+def api_admin_reset_user_password(user_id: int):
+    """Genera una nuova password temporanea per un utente previa verifica password admin."""
+    data = request.get_json() or {}
+    admin_password = data.get('admin_password')
+    if not admin_password:
+        return jsonify({'error': 'Password admin richiesta'}), 400
+
+    admin_id = session.get('user_id')
+    if not admin_id:
+        return jsonify({'error': 'Non autenticato'}), 401
+
+    with get_conn() as conn, conn.cursor() as cur:
+        ensure_admin_actions_table(cur)
+        
+        # Verifica password admin
+        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+        admin_row = cur.fetchone()
+        if not admin_row or admin_row.get('role') != 'admin':
+            return jsonify({'error': 'Permesso negato'}), 403
+        
+        # Verifica password usando SHA-256 (come nel sistema di login)
+        import hashlib
+        if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
+            return jsonify({'error': 'Password admin non corretta'}), 401
+
+        # Verifica che l'utente esista
+        cur.execute("SELECT id, email, role FROM users WHERE id = %s", (user_id,))
+        target_user = cur.fetchone()
+        if not target_user:
+            return jsonify({'error': 'Utente non trovato'}), 404
+        
+        # Non consentire reset password di un amministratore
+        if target_user.get('role') == 'admin':
+            return jsonify({'error': 'Non è possibile resettare la password di un amministratore'}), 400
+
+        # Genera nuova password temporanea (8 caratteri alfanumerici)
+        import secrets
+        import string
+        new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+        
+        # Hash della nuova password con SHA-256
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        
+        # Aggiorna la password nel database e marca come password temporanea
+        cur.execute("""
+            UPDATE users 
+            SET password_hash = %s, updated_at = NOW(), password_reset_required = true
+            WHERE id = %s
+        """, (new_password_hash, user_id))
+        
+        # Log dell'azione admin
+        cur.execute(
+            """
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'password_reset', 'user', %s, %s)
+            """,
+            (admin_id, user_id, f'Password resettata per utente {target_user.get("email")}')
+        )
+
+    return jsonify({
+        'success': True, 
+        'message': 'Password generata con successo',
+        'new_password': new_password
+    })
+
+
 @admin_bp.get("/api/admin/users/<int:user_id>/history")
 @admin_required
 def api_admin_user_history(user_id: int):

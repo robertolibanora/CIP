@@ -9,7 +9,7 @@ from backend.shared.database import get_connection
 # Blueprint isolato per Profile
 profile_bp = Blueprint("profile", __name__)
 
-def get_conn():
+def get_connection():
     from backend.shared.database import get_connection
     return get_connection()
 
@@ -28,7 +28,7 @@ def profile():
     """
     uid = session.get("user_id")
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_connection() as conn, conn.cursor() as cur:
         # Dati utente completi - TABELLA: users
         cur.execute("""
             SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
@@ -101,7 +101,7 @@ def profile_update():
     update_fields.append('updated_at = NOW()')
     update_values.append(uid)
     
-    with get_conn() as conn, conn.cursor() as cur:
+    with get_connection() as conn, conn.cursor() as cur:
         # Aggiorna profilo - TABELLA: users
         query = f"""
             UPDATE users 
@@ -121,13 +121,49 @@ def change_password():
     TABELLE: users (aggiornamento password)
     """
     uid = session.get("user_id")
+    if not uid:
+        return jsonify({'success': False, 'error': 'Non autenticato'}), 401
+    
     data = request.get_json()
     
     # Validazione dati
     if not data or not data.get('current_password') or not data.get('new_password'):
         return jsonify({'success': False, 'error': 'Password mancanti'}), 400
     
-    # TODO: Implementare verifica password corrente e hash nuova password
-    # Per ora restituiamo successo simulato
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    
+    # Validazione lunghezza password
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'error': 'La nuova password deve essere di almeno 6 caratteri'}), 400
+    
+    with get_connection() as conn, conn.cursor() as cur:
+        # Verifica password corrente
+        cur.execute("SELECT password_hash, password_reset_required FROM users WHERE id = %s", (uid,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({'success': False, 'error': 'Utente non trovato'}), 404
+        
+        # Verifica password corrente usando SHA-256
+        import hashlib
+        if user['password_hash'] != hashlib.sha256(current_password.encode()).hexdigest():
+            return jsonify({'success': False, 'error': 'Password corrente non corretta'}), 400
+        
+        # Hash della nuova password
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        
+        # Aggiorna password e resetta il flag password_reset_required
+        cur.execute("""
+            UPDATE users 
+            SET password_hash = %s, password_reset_required = false, updated_at = NOW()
+            WHERE id = %s
+        """, (new_password_hash, uid))
+        
+        # Log dell'azione
+        cur.execute("""
+            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+            VALUES (%s, 'password_change', 'user', %s, 'Password cambiata dall''utente')
+        """, (uid, uid))
     
     return jsonify({'success': True, 'message': 'Password cambiata con successo'})
