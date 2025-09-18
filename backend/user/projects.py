@@ -43,7 +43,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
-                   p.photo_filename,
+                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -62,32 +62,11 @@ def projects():
         
         active_projects = cur.fetchall()
         
-        # 2.5. PROGETTI SCADUTI (non si può più investire perché scaduti)
+        # 2. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
-                   p.photo_filename,
-                   CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
-                   COALESCE(user_investments.total_amount, 0) as user_investment_amount,
-                   CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
-            FROM projects p 
-            LEFT JOIN (
-                SELECT project_id, SUM(amount) as total_amount
-                FROM investments 
-                WHERE user_id = %s AND status = 'active'
-                GROUP BY project_id
-            ) user_investments ON p.id = user_investments.project_id
-            WHERE p.status = 'completed'
-            ORDER BY p.created_at DESC
-        """, (uid,))
-        
-        expired_projects = cur.fetchall()
-        
-        # 3. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
-        cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
-                   p.status, p.created_at, p.code, p.address, p.min_investment,
-                   p.photo_filename,
+                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -104,11 +83,11 @@ def projects():
         
         completed_projects = cur.fetchall()
         
-        # 4. PROGETTI VENDUTI (con informazioni sui profitti)
+        # 3. PROGETTI VENDUTI (con informazioni sui profitti)
         cur.execute("""
             SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
-                   p.photo_filename,
+                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
@@ -141,36 +120,46 @@ def projects():
                 project['description'] = project.get('description') or 'Nessuna descrizione disponibile'
                 
                 # GESTIONE IMMAGINI - Struttura per galleria
-                project['has_images'] = bool(project.get('photo_filename'))
+                project['has_images'] = bool(project.get('image_url'))
                 # Estrai solo il nome del file dal percorso completo
-                if project.get('photo_filename'):
-                    project['photo_filename'] = project['photo_filename']
+                if project.get('image_url'):
+                    project['image_url'] = project['image_url']
                 else:
-                    project['photo_filename'] = None
-                project['gallery_count'] = 1 if project.get('photo_filename') else 0
+                    project['image_url'] = None
+                project['gallery_count'] = 1 if project.get('image_url') else 0
                 
                 # Calcola informazioni profitto per progetti venduti
                 if project['status'] == 'sold':
-                    # Per ora non abbiamo sale_price nel database, quindi impostiamo valori di default
-                    project['profit_amount'] = 0
-                    project['profit_percentage'] = 0
+                    # Usa i valori dal database se disponibili, altrimenti default
+                    project['sale_price'] = project.get('sale_price') or 0
+                    project['sale_date'] = project.get('sale_date') or None
+                    project['profit_percentage'] = project.get('profit_percentage') or 0
+                    
+                    # Calcola il profitto reale per l'utente
+                    if project.get('user_investment_amount', 0) > 0 and project.get('profit_percentage', 0) > 0:
+                        # Calcola il profitto basato sull'investimento dell'utente
+                        user_investment = float(project.get('user_investment_amount', 0))
+                        profit_percentage = float(project.get('profit_percentage', 0))
+                        project['profit_amount'] = round(user_investment * (profit_percentage / 100), 2)
+                    else:
+                        project['profit_amount'] = 0
                 else:
+                    project['sale_price'] = None
+                    project['sale_date'] = None
                     project['profit_amount'] = 0
                     project['profit_percentage'] = 0
             
             return projects_list
         
-        # Processa tutte le liste
-        active_projects = process_projects(active_projects)
-        expired_projects = process_projects(expired_projects)
-        completed_projects = process_projects(completed_projects)
-        sold_projects = process_projects(sold_projects)
+        # Processa tutte le liste e assicurati che non siano None
+        active_projects = process_projects(active_projects) if active_projects else []
+        completed_projects = process_projects(completed_projects) if completed_projects else []
+        sold_projects = process_projects(sold_projects) if sold_projects else []
     
     return render_template("user/projects.html", 
                          user_id=uid,
                          user={'kyc_status': 'verified' if is_kyc_verified else 'pending'},
                          active_projects=active_projects,
-                         expired_projects=expired_projects,
                          completed_projects=completed_projects,
                          sold_projects=sold_projects,
                          is_kyc_verified=is_kyc_verified,

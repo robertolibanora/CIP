@@ -4,7 +4,6 @@ import os
 from backend.shared.validators import validate_email, validate_password, ValidationError
 from backend.auth.middleware import create_secure_session, destroy_session
 from backend.utils.http import is_api_request
-from werkzeug.security import check_password_hash
 import hashlib
 
 auth_bp = Blueprint("auth", __name__)
@@ -63,8 +62,8 @@ def login():
         user = cur.fetchone()
         # PostgreSQL restituisce già dict con row_factory
 
-        # Verifica password con hash
-        if user and check_password_hash(user["password_hash"], password):
+        # Verifica password con hash SHA-256
+        if user and user["password_hash"] == hashlib.sha256(password.encode()).hexdigest():
             # Crea sessione sicura
             print(f"LOGIN: Creazione sessione per {user['email']}")
             create_secure_session(user)

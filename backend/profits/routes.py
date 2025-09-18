@@ -18,6 +18,17 @@ def get_conn():
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import login_required, kyc_verified, admin_required
 
+# ============================================================================
+# FUNZIONI HELPER
+# ============================================================================
+
+def get_first_code_user_id():
+    """
+    Restituisce l'ID di Mark Trapella (primo codice) che riceve i bonus
+    quando non ci sono referrer o quando i referrer non sono VIP
+    """
+    return 3  # ID di Mark Trapella nel database
+
 @profits_bp.route('/admin/project-sale', methods=['POST'])
 @admin_required
 def admin_create_project_sale():
@@ -25,7 +36,10 @@ def admin_create_project_sale():
     Vendita progetto con distribuzione fondi secondo la logica richiesta:
     - Vendita in profitto: denaro investito torna in capitale libero + profitti in sezione profitti
     - Vendita in perdita: tutto il denaro rimasto va in capitale libero
-    - 3% dei profitti di TUTTI gli utenti invitati va come bonus referral (5% per utenti VIP)
+    - NUOVO SISTEMA VIP: Sempre 5% viene sottratto dai profitti
+      * Se referrer è VIP: riceve il 5% completo
+      * Se referrer è normale: riceve 3%, Mark Trapella riceve 2%
+      * Se nessun referrer: Mark Trapella riceve il 5% completo
     """
     
     try:
@@ -107,26 +121,43 @@ def admin_create_project_sale():
                 referral_bonuses = {}  # Dizionario per accumulare i bonus referral
                 
                 if total_profit >= 0:  # Vendita in profitto
-                    # PRIMA FASE: Calcola tutti i bonus referral
+                    # PRIMA FASE: Calcola tutti i bonus referral secondo la nuova logica
+                    # Sempre 5% viene sottratto, distribuito tra referrer e Mark Trapella
+                    mark_trapella_id = get_first_code_user_id()
+                    mark_trapella_bonus = Decimal('0')
+                    
                     for investment in investments:
                         user_id = investment['user_id']
                         invested_amount = Decimal(str(investment['amount']))
                         profit_share = (invested_amount / total_invested) * total_profit
                         
-                        # Se questo investitore è stato invitato, calcola il bonus per chi lo ha invitato
+                        # Sempre sottrai il 5% dai profitti
+                        total_referral_deduction = profit_share * Decimal('0.05')
+                        
                         if investment['referred_by']:
-                            # Controlla se il referrer è VIP per il bonus del 5%
+                            # Controlla se il referrer è VIP
                             cur.execute("SELECT is_vip FROM users WHERE id = %s", (investment['referred_by'],))
                             referrer_data = cur.fetchone()
                             is_vip = referrer_data['is_vip'] if referrer_data else False
                             
-                            # Bonus base 3% per tutti, 5% per VIP
-                            bonus_rate = Decimal('0.05') if is_vip else Decimal('0.03')
-                            referral_bonus = profit_share * bonus_rate
-                            
-                            if investment['referred_by'] not in referral_bonuses:
-                                referral_bonuses[investment['referred_by']] = Decimal('0')
-                            referral_bonuses[investment['referred_by']] += referral_bonus
+                            if is_vip:
+                                # VIP riceve il 5% completo
+                                referrer_bonus = total_referral_deduction
+                                if investment['referred_by'] not in referral_bonuses:
+                                    referral_bonuses[investment['referred_by']] = Decimal('0')
+                                referral_bonuses[investment['referred_by']] += referrer_bonus
+                            else:
+                                # Referrer normale riceve 3%, Mark Trapella riceve 2%
+                                referrer_bonus = profit_share * Decimal('0.03')
+                                mark_bonus = profit_share * Decimal('0.02')
+                                
+                                if investment['referred_by'] not in referral_bonuses:
+                                    referral_bonuses[investment['referred_by']] = Decimal('0')
+                                referral_bonuses[investment['referred_by']] += referrer_bonus
+                                mark_trapella_bonus += mark_bonus
+                        else:
+                            # Nessun referrer: Mark Trapella riceve il 5% completo
+                            mark_trapella_bonus += total_referral_deduction
                     
                     # SECONDA FASE: Distribuisci profitti e bonus
                     for investment in investments:
@@ -134,19 +165,10 @@ def admin_create_project_sale():
                         invested_amount = Decimal(str(investment['amount']))
                         profit_share = (invested_amount / total_invested) * total_profit
                         
-                        # Calcola bonus referral da dedurre (se questo utente è stato invitato)
-                        referral_bonus_to_deduct = Decimal('0')
-                        if investment['referred_by']:
-                            # Controlla se il referrer è VIP per il bonus del 5%
-                            cur.execute("SELECT is_vip FROM users WHERE id = %s", (investment['referred_by'],))
-                            referrer_data = cur.fetchone()
-                            is_vip = referrer_data['is_vip'] if referrer_data else False
-                            
-                            # Bonus base 3% per tutti, 5% per VIP
-                            bonus_rate = Decimal('0.05') if is_vip else Decimal('0.03')
-                            referral_bonus_to_deduct = profit_share * bonus_rate
+                        # Sempre deduci il 5% dai profitti (nuova logica)
+                        referral_bonus_to_deduct = profit_share * Decimal('0.05')
                         
-                        # Calcola profitto finale DEDUCENDO il bonus referral
+                        # Calcola profitto finale DEDUCENDO sempre il 5%
                         final_profit = profit_share - referral_bonus_to_deduct
                         
                         # Ottieni portfolio attuale
@@ -262,7 +284,32 @@ def admin_create_project_sale():
                                 VALUES (%s, 0, 0, 0, %s)
                             """, (referrer_id, bonus_amount))
                 
-                # 6. Aggiorna lo stato del progetto
+                # 6. Distribuisci bonus a Mark Trapella (primo codice)
+                if total_profit >= 0 and mark_trapella_bonus > 0:
+                    # Ottieni portfolio di Mark Trapella
+                    cur.execute("""
+                        SELECT referral_bonus
+                        FROM user_portfolios 
+                        WHERE user_id = %s
+                    """, (mark_trapella_id,))
+                    mark_portfolio = cur.fetchone()
+                    
+                    if mark_portfolio:
+                        new_referral_bonus = Decimal(str(mark_portfolio['referral_bonus'])) + mark_trapella_bonus
+                        cur.execute("""
+                            UPDATE user_portfolios 
+                            SET referral_bonus = %s,
+                                updated_at = NOW()
+                            WHERE user_id = %s
+                        """, (new_referral_bonus, mark_trapella_id))
+                    else:
+                        # Crea portfolio se non esiste
+                        cur.execute("""
+                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                            VALUES (%s, 0, 0, 0, %s)
+                        """, (mark_trapella_id, mark_trapella_bonus))
+                
+                # 7. Aggiorna lo stato del progetto
                 profit_percentage = ((sale_price - float(total_invested)) / float(total_invested)) * 100 if total_invested > 0 else 0
                 cur.execute("""
                     UPDATE projects 
@@ -275,7 +322,7 @@ def admin_create_project_sale():
                     WHERE id = %s
                 """, (sale_price, sale_date, profit_percentage, session.get('user_id'), project_id))
                 
-                # 7. Marca tutti gli investimenti come completati
+                # 8. Marca tutti gli investimenti come completati
                 cur.execute("""
                     UPDATE investments 
                     SET status = 'completed', 

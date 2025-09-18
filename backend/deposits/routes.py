@@ -28,7 +28,7 @@ def generate_unique_key(length=6):
     return ''.join(secrets.choice(characters) for _ in range(length))
 
 def generate_payment_reference(user_name=None, length=12):
-    """Genera una causale bonifico usando il template configurato dall'admin"""
+    """Genera una causale bonifico unica usando il template configurato dall'admin"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT payment_reference 
@@ -41,14 +41,20 @@ def generate_payment_reference(user_name=None, length=12):
         
         if config and config['payment_reference']:
             template = config['payment_reference']
+            # Genera sempre una chiave unica
+            unique_key = generate_unique_key(8)
+            
             # Sostituisci {NOME_UTENTE} con il nome dell'utente se fornito
             if user_name and '{NOME_UTENTE}' in template:
-                return template.replace('{NOME_UTENTE}', user_name)
+                base_reference = template.replace('{NOME_UTENTE}', user_name)
             elif '{NOME_UTENTE}' in template:
                 # Se non c'è il nome utente, usa un placeholder
-                return template.replace('{NOME_UTENTE}', 'UTENTE')
+                base_reference = template.replace('{NOME_UTENTE}', 'UTENTE')
             else:
-                return template
+                base_reference = template
+            
+            # Aggiungi la chiave unica alla fine
+            return f"{base_reference} {unique_key}"
         else:
             # Fallback: genera una chiave randomica
             characters = string.ascii_uppercase + string.digits

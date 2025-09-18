@@ -186,6 +186,27 @@ def create_app():
     # Deposits blueprint è registrato in main.py insieme agli altri moduli API
     # per evitare doppie registrazioni durante i test/factory usage.
     
+    # Route globale per servire le immagini dei progetti
+    @app.route('/uploads/projects/<filename>')
+    def serve_project_images(filename):
+        """Serve le immagini dei progetti globalmente"""
+        from flask import send_from_directory, abort, make_response
+        import os
+        
+        # Percorso alla cartella uploads/projects
+        projects_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads', 'projects')
+        
+        if not os.path.exists(os.path.join(projects_folder, filename)):
+            abort(404)
+        
+        response = make_response(send_from_directory(projects_folder, filename))
+        
+        # Aggiungi header di cache per migliorare le performance
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache per 1 ora
+        response.headers['ETag'] = f'"{filename}"'
+        
+        return response
+    
     # Crea utente admin automaticamente se non esiste
     try:
         create_admin_user()

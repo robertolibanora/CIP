@@ -6,7 +6,7 @@ import json
 from datetime import datetime, date, timedelta
 from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -50,7 +50,6 @@ admin_bp = Blueprint("admin", __name__)
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import admin_required
-from werkzeug.security import check_password_hash
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione admin
@@ -2337,7 +2336,9 @@ def api_admin_delete_user(user_id: int):
         admin_row = cur.fetchone()
         if not admin_row or admin_row.get('role') != 'admin':
             return jsonify({'error': 'Permesso negato'}), 403
-        if not check_password_hash(admin_row.get('password_hash'), admin_password):
+        # Verifica password usando SHA-256 (come nel sistema di login)
+        import hashlib
+        if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
             return jsonify({'error': 'Password admin non corretta'}), 401
 
         # Non consentire eliminazione di un amministratore
@@ -4437,14 +4438,16 @@ def change_admin_password():
                         "error": "Utente admin non trovato"
                     }), 404
                 
-                if not check_password_hash(user['password_hash'], old_password):
+                # Verifica password attuale usando SHA-256
+                import hashlib
+                if user['password_hash'] != hashlib.sha256(old_password.encode()).hexdigest():
                     return jsonify({
                         "success": False,
                         "error": "Password attuale non corretta"
                     }), 400
                 
-                # Aggiorna password (usa pbkdf2 invece di scrypt per compatibilità)
-                new_password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+                # Aggiorna password usando SHA-256 (come nel sistema di login)
+                new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
                 cur.execute("""
                     UPDATE users 
                     SET password_hash = %s, updated_at = NOW()
