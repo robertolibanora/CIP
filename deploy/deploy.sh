@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Script principale di deploy per CIP Immobiliare su DigitalOcean
+# Script principale di deploy per CIP Immobiliare su Hostinger
 # Esegui questo script sul server dopo aver clonato il repository
 
 set -e
 
-echo "🚀 Deploy CIP Immobiliare su DigitalOcean"
-echo "=========================================="
+echo "🚀 Deploy CIP Immobiliare su Hostinger"
+echo "======================================"
 
 # Verifica che sia eseguito come root
 if [ "$EUID" -ne 0 ]; then
@@ -16,20 +16,20 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Verifica che il repository sia clonato
-if [ ! -f "/var/www/cip_immobiliare/main.py" ]; then
-    echo "❌ Repository non trovato in /var/www/cip_immobiliare"
+if [ ! -f "/var/www/CIP/main.py" ]; then
+    echo "❌ Repository non trovato in /var/www/CIP"
     echo "Clona prima il repository:"
-    echo "git clone <your-repo-url> /var/www/cip_immobiliare"
+    echo "git clone <your-repo-url> /var/www/CIP"
     exit 1
 fi
 
 # 1. Configurazione server base
 echo "📋 FASE 1: Configurazione server base..."
-bash /var/www/cip_immobiliare/deploy/setup_server.sh
+bash /var/www/CIP/deploy/setup_server.sh
 
 # 2. Clona e configura applicazione
 echo "📋 FASE 2: Configurazione applicazione..."
-cd /var/www/cip_immobiliare
+cd /var/www/CIP
 
 # Crea ambiente virtuale
 echo "🐍 Creazione ambiente virtuale Python..."
@@ -42,11 +42,11 @@ sudo -u cipapp .venv/bin/pip install -r requirements.txt
 
 # 3. Configurazione database
 echo "📋 FASE 3: Configurazione database..."
-bash /var/www/cip_immobiliare/deploy/setup_database.sh
+bash /var/www/CIP/deploy/setup_database.sh
 
 # 4. Configurazione Nginx
 echo "📋 FASE 4: Configurazione Nginx..."
-cp /var/www/cip_immobiliare/deploy/nginx_cip_immobiliare.conf /etc/nginx/sites-available/cip_immobiliare
+cp /var/www/CIP/deploy/nginx_cip_immobiliare.conf /etc/nginx/sites-available/cip_immobiliare
 ln -sf /etc/nginx/sites-available/cip_immobiliare /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
@@ -59,7 +59,7 @@ fi
 
 # 5. Configurazione servizio systemd
 echo "📋 FASE 5: Configurazione servizio systemd..."
-cp /var/www/cip_immobiliare/deploy/cip-immobiliare.service /etc/systemd/system/
+cp /var/www/CIP/deploy/cip-immobiliare.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable cip-immobiliare
 
@@ -69,14 +69,14 @@ echo "Vuoi configurare SSL con Let's Encrypt? (y/n)"
 read -p "Risposta: " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    bash /var/www/cip_immobiliare/deploy/setup_ssl.sh
+    bash /var/www/CIP/deploy/setup_ssl.sh
 else
     echo "⚠️ SSL non configurato. Configura manualmente quando necessario."
 fi
 
 # 7. Hardening sicurezza
 echo "📋 FASE 7: Hardening sicurezza..."
-bash /var/www/cip_immobiliare/deploy/security_hardening.sh
+bash /var/www/CIP/deploy/security_hardening.sh
 
 # 8. Avvio servizi
 echo "📋 FASE 8: Avvio servizi..."

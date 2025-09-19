@@ -147,7 +147,7 @@ EOF
 
 # 4. Configurazione logrotate
 echo "📝 Configurazione logrotate..."
-cat > /etc/logrotate.d/cip-immobiliare << EOF
+cat > /etc/logrotate.d/CIP << EOF
 /var/log/cip_immobiliare/*.log {
     daily
     missingok
@@ -157,7 +157,7 @@ cat > /etc/logrotate.d/cip-immobiliare << EOF
     notifempty
     create 644 cipapp cipapp
     postrotate
-        systemctl reload cip-immobiliare
+        systemctl reload CIP
     endscript
 }
 EOF

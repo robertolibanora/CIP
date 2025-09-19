@@ -39,7 +39,7 @@ systemctl is-active --quiet nginx
 print_result $? "Nginx attivo"
 
 # CIP Immobiliare
-systemctl is-active --quiet cip-immobiliare
+systemctl is-active --quiet CIP
 print_result $? "CIP Immobiliare attivo"
 
 # 2. Verifica porte
@@ -194,7 +194,7 @@ echo "===================="
 ERRORS=0
 
 # Verifica servizi critici
-if ! systemctl is-active --quiet cip-immobiliare; then
+if ! systemctl is-active --quiet CIP; then
     ((ERRORS++))
 fi
 
@@ -233,16 +233,16 @@ else
     echo -e "${RED}⚠️ Risolvi gli errori prima di andare in produzione${NC}"
     echo ""
     echo "🔧 Per risolvere i problemi:"
-    echo "1. Controlla i log: journalctl -u cip-immobiliare -f"
+    echo "1. Controlla i log: journalctl -u CIP -f"
     echo "2. Verifica la configurazione: nginx -t"
-    echo "3. Riavvia i servizi: systemctl restart cip-immobiliare nginx"
+    echo "3. Riavvia i servizi: systemctl restart CIP nginx"
     echo "4. Controlla i permessi dei file"
 fi
 
 echo ""
 echo "📋 Comandi utili:"
-echo "   - Stato servizi: systemctl status cip-immobiliare nginx postgresql"
-echo "   - Log applicazione: journalctl -u cip-immobiliare -f"
+echo "   - Stato servizi: systemctl status CIP nginx postgresql"
+echo "   - Log applicazione: journalctl -u CIP -f"
 echo "   - Log Nginx: tail -f /var/log/nginx/cip_immobiliare_error.log"
-echo "   - Riavvia app: systemctl restart cip-immobiliare"
+echo "   - Riavvia app: systemctl restart CIP"
 echo "   - Test configurazione: nginx -t"

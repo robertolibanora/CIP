@@ -1,5 +1,5 @@
 // Service Worker per CIP Immobiliare PWA
-const CACHE_NAME = 'cip-immobiliare-v1.0.1';
+const CACHE_NAME = 'CIP-v1.0.1';
 const STATIC_CACHE = 'cip-static-v1.0.1';
 const DYNAMIC_CACHE = 'cip-dynamic-v1.0.1';
 

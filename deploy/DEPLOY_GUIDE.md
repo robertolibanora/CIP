@@ -29,7 +29,7 @@ Internet → Nginx (80/443) → Gunicorn (8090) → Flask App → PostgreSQL (54
      - 50GB SSD
    - **Region**: Scegli la più vicina (es. Amsterdam per l'Europa)
    - **Authentication**: SSH Key (raccomandato)
-   - **Hostname**: `cip-immobiliare-prod`
+   - **Hostname**: `CIP-prod`
    - **Tags**: `production`, `web-app`
 
 ### 1.2 Accesso Iniziale
@@ -45,9 +45,9 @@ ssh root@YOUR_SERVER_IP
 ```bash
 # Sul server
 cd /var/www
-git clone https://github.com/your-username/cip-immobiliare.git
+git clone https://github.com/your-username/CIP.git
 # oppure se hai un repository privato:
-# git clone https://username:token@github.com/your-username/cip-immobiliare.git
+# git clone https://username:token@github.com/your-username/CIP.git
 ```
 
 ### 2.2 Verifica Struttura
@@ -81,14 +81,14 @@ Lo script eseguirà automaticamente:
 
 ```bash
 # Controlla stato servizi
-systemctl status cip-immobiliare
+systemctl status CIP
 systemctl status nginx
 
 # Test applicazione
 curl http://localhost/health
 
 # Controlla log
-journalctl -u cip-immobiliare -f
+journalctl -u CIP -f
 ```
 
 ## 🌐 FASE 4: Configurazione DNS
@@ -163,7 +163,7 @@ sudo ufw allow from YOUR_IP to any port 22
 
 ```bash
 # Log applicazione
-journalctl -u cip-immobiliare -f
+journalctl -u CIP -f
 
 # Log Nginx
 tail -f /var/log/nginx/cip_immobiliare_error.log
@@ -189,7 +189,7 @@ sudo -u postgres pg_dump cip_immobiliare_prod > backup_$(date +%Y%m%d).sql
 sudo apt update && sudo apt upgrade -y
 
 # Riavvia servizi se necessario
-sudo systemctl restart cip-immobiliare
+sudo systemctl restart CIP
 sudo systemctl restart nginx
 ```
 
@@ -199,19 +199,19 @@ sudo systemctl restart nginx
 
 ```bash
 # Stato servizio
-sudo systemctl status cip-immobiliare
+sudo systemctl status CIP
 
 # Riavvia applicazione
-sudo systemctl restart cip-immobiliare
+sudo systemctl restart CIP
 
 # Stop applicazione
-sudo systemctl stop cip-immobiliare
+sudo systemctl stop CIP
 
 # Start applicazione
-sudo systemctl start cip-immobiliare
+sudo systemctl start CIP
 
 # Log in tempo reale
-sudo journalctl -u cip-immobiliare -f
+sudo journalctl -u CIP -f
 ```
 
 ### Gestione Nginx
@@ -249,10 +249,10 @@ sudo -u postgres psql cip_immobiliare_prod < backup.sql
 
 ```bash
 # Controlla log
-sudo journalctl -u cip-immobiliare -n 50
+sudo journalctl -u CIP -n 50
 
 # Verifica configurazione
-sudo systemctl status cip-immobiliare
+sudo systemctl status CIP
 
 # Test manuale
 cd /var/www/cip_immobiliare
@@ -312,7 +312,7 @@ maintenance_work_mem = 64MB
 ### 3. Ottimizzazione Gunicorn
 
 ```bash
-# Modifica /etc/systemd/system/cip-immobiliare.service
+# Modifica /etc/systemd/system/CIP.service
 --workers 4
 --worker-class sync
 --worker-connections 1000
