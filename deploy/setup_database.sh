@@ -1,61 +1,94 @@
 #!/bin/bash
 
 # Script di configurazione database per CIP Immobiliare
-# Esegui come utente cipapp: bash setup_database.sh
+# Esegui come root: bash setup_database.sh
 
 set -e
 
 echo "🗄️ Configurazione database CIP Immobiliare..."
 
+# Configura i permessi del database per l'utente cipapp
+echo "🔐 Configurazione permessi database..."
+sudo -u postgres psql -c "GRANT ALL ON SCHEMA public TO cipapp;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cipapp;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cipapp;"
+sudo -u postgres psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cipapp;"
+sudo -u postgres psql -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cipapp;"
+
+# Riavvia PostgreSQL per applicare i permessi
+systemctl restart postgresql
+sleep 2
+
 # Attiva ambiente virtuale
-source /var/www/cip_immobiliare/.venv/bin/activate
+source /var/www/CIP/.venv/bin/activate
 
 # Vai nella directory dell'applicazione
-cd /var/www/cip_immobiliare
+cd /var/www/CIP
 
 # Crea le tabelle del database
 echo "📋 Creazione tabelle database..."
-python -c "
+sudo -u cipapp python -c "
 import os
 import sys
-sys.path.append('/var/www/cip_immobiliare')
+sys.path.append('/var/www/CIP')
 
 # Imposta variabili ambiente
 os.environ['FLASK_ENV'] = 'production'
-os.environ['DATABASE_URL'] = 'postgresql://cipuser:cip_secure_password_2024@localhost:5432/cip_immobiliare_prod'
-
-from backend.shared.database import get_connection
-from config.database import create_tables
+os.environ['DATABASE_URL'] = 'postgresql://cipapp:cipapp_password@localhost:5432/cip_immobiliare_prod'
 
 try:
-    # Crea connessione
-    conn = get_connection()
+    import psycopg
+    
+    # Connessione al database
+    conn = psycopg.connect(os.environ['DATABASE_URL'])
     cursor = conn.cursor()
     
-    # Esegui script di creazione tabelle
-    with open('config/database/schema_complete.sql', 'r') as f:
-        schema_sql = f.read()
+    # Crea tabelle base se non esistono
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            nome VARCHAR(100),
+            cognome VARCHAR(100),
+            telefono VARCHAR(20),
+            telegram VARCHAR(50),
+            ruolo VARCHAR(50) DEFAULT 'user',
+            is_verified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
     
-    cursor.execute(schema_sql)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS projects (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2),
+            status VARCHAR(50) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS kyc_requests (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            category VARCHAR(100) NOT NULL,
+            status VARCHAR(50) DEFAULT 'pending',
+            document_path VARCHAR(500),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    ''')
+    
     conn.commit()
-    
     print('✅ Tabelle create con successo')
     
-    # Inserisci dati iniziali
-    print('📊 Inserimento dati iniziali...')
-    
-    # Inserisci categorie KYC
-    with open('config/database/insert_kyc_categories.sql', 'r') as f:
-        kyc_categories = f.read()
-    
-    cursor.execute(kyc_categories)
-    conn.commit()
-    
-    print('✅ Categorie KYC inserite')
-    
-    # Crea utente admin
+    # Crea utente admin se non esiste
     print('👤 Creazione utente admin...')
-    from backend.shared.models import User
     from werkzeug.security import generate_password_hash
     
     admin_password = os.environ.get('ADMIN_PASSWORD', 'your-secure-admin-password')
@@ -74,10 +107,10 @@ try:
         ''', (
             admin_email,
             generate_password_hash(admin_password),
-            os.environ.get('ADMIN_NOME', 'Admin'),
-            os.environ.get('ADMIN_COGNOME', 'CIP'),
-            os.environ.get('ADMIN_TELEFONO', '+39000000000'),
-            os.environ.get('ADMIN_TELEGRAM', 'admin_cip'),
+            'Admin',
+            'CIP',
+            '+39000000000',
+            'admin_cip',
             'admin',
             True
         ))
@@ -94,17 +127,16 @@ except Exception as e:
 
 # Verifica connessione database
 echo "🔍 Verifica connessione database..."
-python -c "
+sudo -u cipapp python -c "
 import os
 import sys
-sys.path.append('/var/www/cip_immobiliare')
+sys.path.append('/var/www/CIP')
 os.environ['FLASK_ENV'] = 'production'
-os.environ['DATABASE_URL'] = 'postgresql://cipuser:cip_secure_password_2024@localhost:5432/cip_immobiliare_prod'
-
-from backend.shared.database import get_connection
+os.environ['DATABASE_URL'] = 'postgresql://cipapp:cipapp_password@localhost:5432/cip_immobiliare_prod'
 
 try:
-    conn = get_connection()
+    import psycopg
+    conn = psycopg.connect(os.environ['DATABASE_URL'])
     cursor = conn.cursor()
     cursor.execute('SELECT COUNT(*) FROM users')
     user_count = cursor.fetchone()[0]
