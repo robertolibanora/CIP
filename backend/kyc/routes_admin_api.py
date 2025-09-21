@@ -26,7 +26,7 @@ def admin_get_kyc_requests():
                 FROM users u
                 LEFT JOIN documents d ON u.id = d.user_id 
                 LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
-                WHERE u.role = 'investor'
+                WHERE u.ruolo = 'investor'
                 GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.kyc_status, u.created_at
                 ORDER BY u.created_at DESC
             """)

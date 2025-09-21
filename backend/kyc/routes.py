@@ -275,7 +275,7 @@ def admin_get_kyc_requests_old():
             LEFT JOIN documents d ON u.id = d.user_id 
             LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
             LEFT JOIN user_portfolios p ON u.id = p.user_id
-            WHERE u.role = 'investor'
+            WHERE u.ruolo = 'investor'
             GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.created_at, u.kyc_status, p.id
             ORDER BY u.created_at DESC
         """)

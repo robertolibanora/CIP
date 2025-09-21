@@ -1182,7 +1182,7 @@ def get_kyc_requests():
             LEFT JOIN documents d ON d.user_id = u.id
             LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
             LEFT JOIN user_portfolios up ON up.user_id = u.id
-            WHERE u.role = 'investor'
+            WHERE u.ruolo = 'investor'
             GROUP BY u.id, u.nome, u.email, u.telefono, u.address, 
                      u.kyc_status, u.created_at, u.kyc_notes, up.id,
                      up.free_capital, up.invested_capital, up.referral_bonus, up.profits
@@ -1210,7 +1210,7 @@ def kyc_approve(user_id):
             UPDATE users 
             SET kyc_status = 'verified', 
                 kyc_notes = %s
-            WHERE id = %s AND role = 'investor'
+            WHERE id = %s AND ruolo = 'investor'
         """, (notes, user_id))
         
         if cur.rowcount == 0:
@@ -1239,7 +1239,7 @@ def kyc_reject(user_id):
             UPDATE users 
             SET kyc_status = 'rejected',
                 kyc_notes = %s
-            WHERE id = %s AND role = 'investor'
+            WHERE id = %s AND ruolo = 'investor'
         """, (notes, user_id))
         
         if cur.rowcount == 0:
@@ -1274,7 +1274,7 @@ def kyc_bulk_action():
                 UPDATE users 
                 SET kyc_status = 'verified',
                     kyc_notes = 'Approvazione multipla'
-                WHERE id = ANY(%s) AND role = 'investor'
+                WHERE id = ANY(%s) AND ruolo = 'investor'
             """, (request_ids,))
             
         elif action == 'reject':
@@ -1283,7 +1283,7 @@ def kyc_bulk_action():
                 UPDATE users 
                 SET kyc_status = 'rejected',
                     kyc_notes = %s
-                WHERE id = ANY(%s) AND role = 'investor'
+                WHERE id = ANY(%s) AND ruolo = 'investor'
             """, (notes, request_ids))
             
         elif action == 'pending':
@@ -1291,7 +1291,7 @@ def kyc_bulk_action():
                 UPDATE users 
                 SET kyc_status = 'pending',
                     kyc_notes = 'Rimesso in attesa'
-                WHERE id = ANY(%s) AND role = 'investor'
+                WHERE id = ANY(%s) AND ruolo = 'investor'
             """, (request_ids,))
         
         elif action == 'export':
@@ -1300,7 +1300,7 @@ def kyc_bulk_action():
             cur.execute(f"""
                 SELECT id, nome, email, telefono, kyc_status, created_at
                 FROM users 
-                WHERE id IN ({placeholders}) AND role = 'investor'
+                WHERE id IN ({placeholders}) AND ruolo = 'investor'
                 ORDER BY created_at DESC
             """, request_ids)
             
@@ -1333,7 +1333,7 @@ def kyc_export():
     
     with get_conn() as conn, conn.cursor() as cur:
         # Build query with filters
-        where_conditions = ["u.role = 'investor'"]
+        where_conditions = ["u.ruolo = 'investor'"]
         params = []
         
         if status:
@@ -1491,7 +1491,7 @@ def get_users_list():
             params.append(kyc_status)
         
         if role:
-            where_conditions.append("u.role = %s")
+            where_conditions.append("u.ruolo = %s")
             params.append(role)
         
         if search:
@@ -1536,7 +1536,7 @@ def get_users_list():
         query = f"""
             SELECT 
                 u.id, u.nome, u.email, u.telefono, u.address,
-                u.kyc_status, u.role, u.created_at,
+                u.kyc_status, u.ruolo, u.created_at,
                 up.free_capital + up.invested_capital + up.referral_bonus + up.profits as portfolio_balance,
                 COALESCE(inv_stats.investments_count, 0) as investments_count,
                 COALESCE(inv_stats.investment_volume, 0) as investment_volume,
@@ -1637,14 +1637,14 @@ def toggle_user_status(user_id):
     """Attiva/Sospendi utente"""
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni stato attuale
-        cur.execute("SELECT kyc_status, role FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT kyc_status, ruolo FROM users WHERE id = %s", (user_id,))
         user = cur.fetchone()
         
         if not user:
             return jsonify({"error": "Utente non trovato"}), 404
         
         # Non permettere di sospendere admin
-        if user['role'] == 'admin':
+        if user['ruolo'] == 'admin':
             return jsonify({"error": "Non  possibile sospendere un amministratore"}), 400
         
         new_status = 'verified' if user['kyc_status'] == 'rejected' else 'rejected'
@@ -1689,7 +1689,7 @@ def users_bulk_action():
                 UPDATE users 
                 SET kyc_status = 'verified',
                     kyc_notes = 'Approvazione multipla'
-                WHERE id = ANY(%s) AND role != 'admin'
+                WHERE id = ANY(%s) AND ruolo != 'admin'
             """, (user_ids,))
             
         elif action == 'reject_kyc':
@@ -1698,14 +1698,14 @@ def users_bulk_action():
                 UPDATE users 
                 SET kyc_status = 'rejected',
                     kyc_notes = %s
-                WHERE id = ANY(%s) AND role != 'admin'
+                WHERE id = ANY(%s) AND ruolo != 'admin'
             """, (notes, user_ids))
             
         elif action == 'suspend':
             cur.execute("""
                 UPDATE users 
                 SET kyc_status = 'rejected'
-                WHERE id = ANY(%s) AND role != 'admin'
+                WHERE id = ANY(%s) AND ruolo != 'admin'
             """, (user_ids,))
             
         elif action == 'activate':
@@ -1776,7 +1776,7 @@ def users_export():
                 user.get('telefono', ''),
                 user.get('address', ''),
                 user.get('kyc_status', ''),
-                user.get('role', ''),
+                user.get('ruolo', ''),
                 user.get('portfolio_balance', 0),
                 user.get('investments_count', 0),
                 user.get('created_at', '')
@@ -1827,7 +1827,7 @@ def api_admin_user_detail(user_id: int):
                 u.nome,
                 u.cognome,
                 u.nome_telegram,
-                u.role,
+                u.ruolo,
                 u.kyc_status,
                 u.created_at,
                 u.address,
@@ -1849,7 +1849,7 @@ def api_admin_user_detail(user_id: int):
         'email': u['email'],
         'phone': u['telefono'],
         'telegram': u['nome_telegram'],
-        'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
+        'investor_status': 'investor' if u['ruolo'] == 'investor' else 'admin',
         'kyc_status': u['kyc_status'],
         'created_at': u['created_at'].isoformat() if u['created_at'] else None,
         'address': u['address'],
@@ -1915,7 +1915,7 @@ def api_admin_user_update(user_id: int):
             set_clauses.append('kyc_status = %s')
             params.append(updates['kyc_status'])
         if role_value is not None:
-            set_clauses.append('role = %s')
+            set_clauses.append('ruolo = %s')
             params.append(role_value)
         if 'address' in updates:
             set_clauses.append('address = %s')
@@ -2265,9 +2265,9 @@ def api_admin_delete_user(user_id: int):
     with get_conn() as conn, conn.cursor() as cur:
         ensure_admin_actions_table(cur)
         # Verifica password admin
-        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+        cur.execute("SELECT password_hash, ruolo FROM users WHERE id = %s", (admin_id,))
         admin_row = cur.fetchone()
-        if not admin_row or admin_row.get('role') != 'admin':
+        if not admin_row or admin_row.get('ruolo') != 'admin':
             return jsonify({'error': 'Permesso negato'}), 403
         # Verifica password usando SHA-256 (come nel sistema di login)
         import hashlib
@@ -2275,11 +2275,11 @@ def api_admin_delete_user(user_id: int):
             return jsonify({'error': 'Password admin non corretta'}), 401
 
         # Non consentire eliminazione di un amministratore
-        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT ruolo FROM users WHERE id = %s", (user_id,))
         target = cur.fetchone()
         if not target:
             return jsonify({'error': 'Utente non trovato'}), 404
-        if target.get('role') == 'admin':
+        if target.get('ruolo') == 'admin':
             return jsonify({'error': 'Non  possibile eliminare un amministratore'}), 400
 
         # Prima di eliminare: fai "slittare" tutti gli invitati diretti al referrer del target
@@ -2342,9 +2342,9 @@ def api_admin_reset_user_password(user_id: int):
         ensure_admin_actions_table(cur)
         
         # Verifica password admin
-        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+        cur.execute("SELECT password_hash, ruolo FROM users WHERE id = %s", (admin_id,))
         admin_row = cur.fetchone()
-        if not admin_row or admin_row.get('role') != 'admin':
+        if not admin_row or admin_row.get('ruolo') != 'admin':
             return jsonify({'error': 'Permesso negato'}), 403
         
         # Verifica password usando SHA-256 (come nel sistema di login)
@@ -2353,13 +2353,13 @@ def api_admin_reset_user_password(user_id: int):
             return jsonify({'error': 'Password admin non corretta'}), 401
 
         # Verifica che l'utente esista
-        cur.execute("SELECT id, email, role FROM users WHERE id = %s", (user_id,))
+        cur.execute("SELECT id, email, ruolo FROM users WHERE id = %s", (user_id,))
         target_user = cur.fetchone()
         if not target_user:
             return jsonify({'error': 'Utente non trovato'}), 404
         
         # Non consentire reset password di un amministratore
-        if target_user.get('role') == 'admin':
+        if target_user.get('ruolo') == 'admin':
             return jsonify({'error': 'Non è possibile resettare la password di un amministratore'}), 400
 
         # Genera nuova password temporanea (8 caratteri alfanumerici)
@@ -3307,7 +3307,7 @@ def users_list():
     if q:
         where = "WHERE email ILIKE %s OR nome ILIKE %s"
         params = [f"%{q}%", f"%{q}%"]
-    sql = f"SELECT id, email, nome, role, kyc_status, currency_code FROM users {where} ORDER BY id"
+    sql = f"SELECT id, email, nome, ruolo, kyc_status, currency_code FROM users {where} ORDER BY id"
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
         rows = cur.fetchall()
@@ -3318,7 +3318,7 @@ def users_list():
 def user_detail_legacy(uid):
     """Dettaglio utente legacy - mantenuto per compatibilit"""
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id,email,nome,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
+        cur.execute("SELECT id,email,nome,phone,address,ruolo,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
         cur.execute("""
             SELECT i.id, p.name, i.amount, i.status, i.created_at
@@ -4481,7 +4481,7 @@ def change_admin_password():
                 # Verifica password attuale
                 cur.execute("""
                     SELECT password_hash FROM users 
-                    WHERE id = %s AND role = 'admin'
+                    WHERE id = %s AND ruolo = 'admin'
                 """, (admin_user_id,))
                 user = cur.fetchone()
                 
