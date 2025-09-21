@@ -111,8 +111,8 @@ def index():
     from flask import session
     
     # Reindirizzamento basato su ruolo se utente già autenticato
-    if 'user_id' in session and 'role' in session:
-        if session.get('role') == 'admin':
+    if 'user_id' in session and 'user_role' in session:
+        if session.get('user_role') == 'admin':
             return redirect(url_for("admin.admin_dashboard"))
         else:
             return redirect(url_for("user.dashboard"))
