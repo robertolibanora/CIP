@@ -48,9 +48,9 @@ def create_admin_user():
                 
                 cur.execute("""
                     INSERT INTO users (
-                        email, password_hash, nome, cognome, nome_telegram, telefono,
-                        ruolo, referral_code, kyc_status, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        email, password_hash, nome, cognome, telegram, telefono,
+                        ruolo, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     RETURNING id, email
                 """, (
                     admin_email,
@@ -59,9 +59,7 @@ def create_admin_user():
                     admin_cognome,
                     admin_telegram,
                     admin_telefono,
-                    'admin',
-                    'ADMIN001',
-                    'verified'
+                    'admin'
                 ))
                 
                 new_admin = cur.fetchone()
