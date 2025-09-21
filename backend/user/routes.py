@@ -70,6 +70,27 @@ def get_nome_telegram_config():
 # 1. DASHBOARD - Vista generale del portfolio e statistiche
 # =====================================================
 
+@user_bp.get("/dashboard-debug")
+@login_required
+def dashboard_debug():
+    """Dashboard debug semplificata"""
+    try:
+        uid = session.get("user_id")
+        if not uid:
+            return "Errore: user_id non trovato", 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT id, email, nome FROM users WHERE id = %s", (uid,))
+            user_data = cur.fetchone()
+            
+            if not user_data:
+                return "Errore: utente non trovato", 404
+            
+            return f"Dashboard debug funziona! Utente: {user_data['nome']} (ID: {user_data['id']})"
+    
+    except Exception as e:
+        return f"Errore dashboard debug: {str(e)}", 500
+
 @user_bp.get("/dashboard")
 @login_required
 def dashboard():
