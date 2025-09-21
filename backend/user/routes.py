@@ -45,22 +45,22 @@ def get_deposit_config():
             'wallet_config': wallet_config
         })
 
-@user_bp.get("/api/telegram-config")
+@user_bp.get("/api/nome_telegram-config")
 @login_required
-def get_telegram_config():
+def get_nome_telegram_config():
     """Ottieni configurazione Telegram per l'utente"""
     with get_conn() as conn, conn.cursor() as cur:
         # Configurazione Telegram
         cur.execute("""
             SELECT config_value
             FROM system_configurations 
-            WHERE config_key = 'telegram_link' AND is_active = true
+            WHERE config_key = 'nome_telegram_link' AND is_active = true
             LIMIT 1
         """)
-        telegram_config = cur.fetchone()
+        nome_telegram_config = cur.fetchone()
         
         return jsonify({
-            'telegram_link': telegram_config['config_value'] if telegram_config else None
+            'nome_telegram_link': nome_telegram_config['config_value'] if nome_telegram_config else None
         })
 
 # Rimuove il before_request globale e usa decoratori specifici
@@ -113,7 +113,7 @@ def dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT id, email, nome, ruolo, cognome, is_verified
+            SELECT id, email, nome, role, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -299,7 +299,7 @@ def new_project():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, nome, ruolo, cognome, is_verified
+            SELECT id, email, nome, role, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
@@ -476,7 +476,7 @@ def portfolio():
     uid = session.get("user_id")
     if os.environ.get("TESTING") == "1":
         rows = []
-        user_data = {"nome": "Test", "cognome": "User", "telefono": "", "telegram": "", "address": "", "currency_code": "EUR"}
+        user_data = {"nome": "Test", "cognome": "User", "telefono": "", "nome_telegram": "", "address": "", "currency_code": "EUR"}
         return render_template("user/portfolio.html", user_id=uid, user=user_data, tab="attivi", investments=rows, current_page="portfolio")
     tab = request.args.get("tab", "attivi")
     statuses = ('active',) if tab == 'attivi' else ('completed','cancelled','rejected')
@@ -504,7 +504,7 @@ def portfolio():
         
         # Ottieni dati utente completi per il form profilo
         cur.execute("""
-            SELECT id, nome, email, nome, cognome, telefono, telegram, 
+            SELECT id, nome, email, nome, cognome, telefono, nome_telegram, 
                    address, currency_code, referral_code, created_at, kyc_status, is_vip
             FROM users WHERE id = %s
         """, (uid,))
@@ -674,7 +674,7 @@ def kyc_page():
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni dati utente completi
         cur.execute("""
-            SELECT id, email, nome, ruolo, cognome, is_verified
+            SELECT id, email, nome, role, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
@@ -698,8 +698,8 @@ def serve_project_file_user(filename):
     import os
     
     # Permetti accesso sia a user che admin
-    user_ruolo = session.get('ruolo')
-    if user_ruolo not in ['user', 'admin']:
+    user_role = session.get('role')
+    if user_role not in ['user', 'admin']:
         abort(403)
     
     # Usa la cartella uploads/projects nella root del progetto
@@ -756,7 +756,7 @@ def referral():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, nome, ruolo, cognome, is_verified
+            SELECT id, email, nome, role, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
@@ -791,7 +791,7 @@ def profile():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, nome, email, referral_code, created_at,
-                   nome, cognome, telefono, telegram, address, currency_code,
+                   nome, cognome, telefono, nome_telegram, address, currency_code,
                    kyc_status
             FROM users WHERE id = %s
         """, (uid,))
@@ -820,7 +820,7 @@ def profile_update():
             return jsonify({'success': False, 'error': f'Campo {field} obbligatorio'}), 400
     
     # Campi opzionali
-    telegram = data.get('telegram', '')
+    nome_telegram = data.get('nome_telegram', '')
     address = data.get('address', '')
     currency_code = data.get('currency_code', 'USD')
     nome = data.get('nome', '')
@@ -835,10 +835,10 @@ def profile_update():
         # Aggiorna tutti i campi del profilo
         cur.execute("""
             UPDATE users 
-            SET nome = %s, cognome = %s, telefono = %s, telegram = %s, 
+            SET nome = %s, cognome = %s, telefono = %s, nome_telegram = %s, 
                 address = %s, currency_code = %s, updated_at = NOW()
             WHERE id = %s
-        """, (data['nome'], data['cognome'], data['telefono'], telegram, 
+        """, (data['nome'], data['cognome'], data['telefono'], nome_telegram, 
               address, currency_code, uid))
         
         # Se forniti, aggiorna anche nome ed email
