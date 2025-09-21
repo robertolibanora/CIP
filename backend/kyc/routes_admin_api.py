@@ -36,7 +36,7 @@ def admin_get_kyc_requests():
         for r in rows:
             result.append({
                 "id": r["user_id"],
-                "full_name": f"{r['nome']} {r['cognome']}",
+                "nome": f"{r['nome']} {r['cognome']}",
                 "email": r["email"],
                 "telefono": r.get("telefono"),
                 "kyc_status": r["kyc_status"],
@@ -78,7 +78,7 @@ def admin_get_kyc_request_detail(user_id: int):
 
         return jsonify({
             "id": user_id,
-            "full_name": f"{user['nome']} {user['cognome']}",
+            "nome": f"{user['nome']} {user['cognome']}",
             "email": user["email"],
             "telefono": user.get("telefono"),
             "kyc_status": user["kyc_status"],

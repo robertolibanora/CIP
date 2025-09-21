@@ -76,10 +76,10 @@ def dashboard():
     """Dashboard principale con overview portfolio e statistiche"""
     uid = session.get("user_id")
     if os.environ.get("TESTING") == "1":
-        user_data = {"full_name": "Test User", "kyc_status": "verified", "referral_code": "TESTREF"}
+        user_data = {"nome": "Test User", "kyc_status": "verified", "referral_code": "TESTREF"}
         # Calcola nome da mostrare
-        full_name_value = (user_data.get("full_name") or "").strip()
-        greet_name = full_name_value.split()[0] if full_name_value else "Utente"
+        nome_value = (user_data.get("nome") or "").strip()
+        greet_name = nome_value.split()[0] if nome_value else "Utente"
         free_capital = 1000
         invested_capital = 5000
         referral_bonus = 50
@@ -113,14 +113,14 @@ def dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
         # Calcola nome da mostrare
-        full_name_value = ((user_data.get("full_name") if user_data else "") or "").strip()
         nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
-        greet_name = full_name_value.split()[0] if full_name_value else (nome_value if nome_value else "Utente")
+        nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
+        greet_name = nome_value.split()[0] if nome_value else (nome_value if nome_value else "Utente")
         
         # Portfolio overview - 4 sezioni distinte
         cur.execute("""
@@ -299,15 +299,15 @@ def new_project():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
         
         # Calcola nome da mostrare per saluto
-        full_name_value = ((user.get("full_name") if user else "") or "").strip()
         nome_value = ((user.get("nome") if user else "") or "").strip()
-        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = nome_value.split()[0] if nome_value else (nome_value.split()[0] if nome_value else "Utente")
     
     return render_template("user/new_project.html", 
                          user=user,
@@ -476,7 +476,7 @@ def portfolio():
     uid = session.get("user_id")
     if os.environ.get("TESTING") == "1":
         rows = []
-        user_data = {"nome": "Test", "cognome": "User", "telefono": "", "nome_telegram": "", "address": "", "currency_code": "EUR"}
+        user_data = {"nome": "Test", "cognome": "User", "telefono": "", "telegram": "", "address": "", "currency_code": "EUR"}
         return render_template("user/portfolio.html", user_id=uid, user=user_data, tab="attivi", investments=rows, current_page="portfolio")
     tab = request.args.get("tab", "attivi")
     statuses = ('active',) if tab == 'attivi' else ('completed','cancelled','rejected')
@@ -504,7 +504,7 @@ def portfolio():
         
         # Ottieni dati utente completi per il form profilo
         cur.execute("""
-            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+            SELECT id, nome, email, nome, cognome, telefono, telegram, 
                    address, currency_code, referral_code, created_at, kyc_status, is_vip
             FROM users WHERE id = %s
         """, (uid,))
@@ -674,15 +674,15 @@ def kyc_page():
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni dati utente completi
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
         
         # Calcola nome da mostrare per saluto
-        full_name_value = ((user.get("full_name") if user else "") or "").strip()
         nome_value = ((user.get("nome") if user else "") or "").strip()
-        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = nome_value.split()[0] if nome_value else (nome_value.split()[0] if nome_value else "Utente")
     
     return render_template("user/kyc.html", 
                          user=user,
@@ -735,12 +735,12 @@ def referral():
         
         # Lista referral - Esclude auto-referral
         cur.execute("""
-            SELECT u.id, u.full_name, u.email, u.created_at, u.kyc_status,
+            SELECT u.id, u.nome, u.email, u.created_at, u.kyc_status,
                    COALESCE(SUM(i.amount), 0) as total_invested
             FROM users u 
             LEFT JOIN investments i ON u.id = i.user_id AND i.status = 'active'
             WHERE u.referred_by = %s AND u.id != %s
-            GROUP BY u.id, u.full_name, u.email, u.created_at, u.kyc_status
+            GROUP BY u.id, u.nome, u.email, u.created_at, u.kyc_status
             ORDER BY u.created_at DESC
         """, (uid, uid))
         referrals = cur.fetchall()
@@ -756,15 +756,15 @@ def referral():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, full_name, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
         
         # Calcola nome da mostrare per saluto
-        full_name_value = ((user.get("full_name") if user else "") or "").strip()
         nome_value = ((user.get("nome") if user else "") or "").strip()
-        greet_name = full_name_value.split()[0] if full_name_value else (nome_value.split()[0] if nome_value else "Utente")
+        nome_value = ((user.get("nome") if user else "") or "").strip()
+        greet_name = nome_value.split()[0] if nome_value else (nome_value.split()[0] if nome_value else "Utente")
     
     return render_template("user/referral.html", 
                          user=user,
@@ -785,13 +785,13 @@ def profile():
     """Gestione profilo utente"""
     uid = session.get("user_id")
     if os.environ.get("TESTING") == "1":
-        user_data = {"id": uid, "full_name": "Test User", "email": "test@example.com", "referral_code": "TESTREF", "created_at": None}
+        user_data = {"id": uid, "nome": "Test User", "email": "test@example.com", "referral_code": "TESTREF", "created_at": None}
         return render_template("user/profile.html", user_id=uid, user=user_data, current_page="profile")
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, full_name, email, referral_code, created_at,
-                   nome, cognome, telefono, nome_telegram, address, currency_code,
+            SELECT id, nome, email, referral_code, created_at,
+                   nome, cognome, telefono, telegram, address, currency_code,
                    kyc_status
             FROM users WHERE id = %s
         """, (uid,))
@@ -820,10 +820,10 @@ def profile_update():
             return jsonify({'success': False, 'error': f'Campo {field} obbligatorio'}), 400
     
     # Campi opzionali
-    nome_telegram = data.get('nome_telegram', '')
+    telegram = data.get('telegram', '')
     address = data.get('address', '')
     currency_code = data.get('currency_code', 'USD')
-    full_name = data.get('full_name', '')
+    nome = data.get('nome', '')
     email = data.get('email', '')
     
     # Validazione valuta
@@ -835,20 +835,20 @@ def profile_update():
         # Aggiorna tutti i campi del profilo
         cur.execute("""
             UPDATE users 
-            SET nome = %s, cognome = %s, telefono = %s, nome_telegram = %s, 
+            SET nome = %s, cognome = %s, telefono = %s, telegram = %s, 
                 address = %s, currency_code = %s, updated_at = NOW()
             WHERE id = %s
-        """, (data['nome'], data['cognome'], data['telefono'], nome_telegram, 
+        """, (data['nome'], data['cognome'], data['telefono'], telegram, 
               address, currency_code, uid))
         
-        # Se forniti, aggiorna anche full_name ed email
-        if full_name or email:
+        # Se forniti, aggiorna anche nome ed email
+        if nome or email:
             update_fields = []
             update_values = []
             
-            if full_name:
-                update_fields.append("full_name = %s")
-                update_values.append(full_name)
+            if nome:
+                update_fields.append("nome = %s")
+                update_values.append(nome)
             
             if email:
                 update_fields.append("email = %s")
@@ -953,7 +953,7 @@ def get_referral_data():
             # Esclude l'utente stesso per evitare auto-referral
             cur.execute("""
                 SELECT 
-                    u.id, u.full_name, u.email, u.created_at,
+                    u.id, u.nome, u.email, u.created_at,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
                     COALESCE(up.invested_capital, 0) as total_invested,
@@ -1052,7 +1052,7 @@ def get_referrer_info():
         cur.execute(
             """
             SELECT id,
-                   COALESCE(NULLIF(TRIM(CONCAT_WS(' ', nome, cognome)), ''), full_name) AS full_name,
+                   COALESCE(NULLIF(TRIM(CONCAT_WS(' ', nome, cognome)), ''), nome) AS nome,
                    email, created_at
             FROM users WHERE id = %s
             """,

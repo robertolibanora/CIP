@@ -583,7 +583,7 @@ def admin_get_pending_deposits():
         cur.execute("""
             SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
                    dr.created_at, dr.admin_notes,
-                   u.id as user_id, u.full_name, u.email, u.kyc_status,
+                   u.id as user_id, u.nome, u.email, u.kyc_status,
                    ic.bank_name, ic.account_holder
             FROM deposit_requests dr
             JOIN users u ON dr.user_id = u.id
@@ -613,9 +613,9 @@ def admin_get_deposits_history():
         base_query = """
             SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
                    dr.status, dr.created_at, dr.approved_at, dr.admin_notes,
-                   u.id as user_id, u.full_name, u.email, u.kyc_status,
+                   u.id as user_id, u.nome, u.email, u.kyc_status,
                    ic.bank_name, ic.account_holder,
-                   admin_user.full_name as approved_by_name
+                   admin_user.nome as approved_by_name
             FROM deposit_requests dr
             JOIN users u ON dr.user_id = u.id
             LEFT JOIN iban_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
@@ -631,7 +631,7 @@ def admin_get_deposits_history():
             params.append(status_filter)
         
         if search:
-            where_conditions.append("(u.email ILIKE %s OR u.full_name ILIKE %s OR dr.unique_key ILIKE %s)")
+            where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR dr.unique_key ILIKE %s)")
             search_param = f"%{search}%"
             params.extend([search_param, search_param, search_param])
         

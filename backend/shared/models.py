@@ -63,10 +63,10 @@ class User:
     id: Optional[int]
     email: str
     password_hash: str
-    full_name: str
+    nome: str
     nome: str
     cognome: str
-    nome_telegram: str
+    telegram: str
     telefono: str
     address: Optional[str]
     role: UserRole

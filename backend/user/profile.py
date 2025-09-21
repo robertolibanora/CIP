@@ -31,7 +31,7 @@ def profile():
     with get_connection() as conn, conn.cursor() as cur:
         # Dati utente completi - TABELLA: users
         cur.execute("""
-            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+            SELECT id, nome, email, nome, cognome, telefono, telegram, 
                    address, currency_code, referral_code, created_at
             FROM users WHERE id = %s
         """, (uid,))
@@ -61,9 +61,9 @@ def profile_update():
     update_values = []
     
     # Campi del form profile.html
-    if 'full_name' in data and data['full_name']:
-        update_fields.append('full_name = %s')
-        update_values.append(data['full_name'])
+    if 'nome' in data and data['nome']:
+        update_fields.append('nome = %s')
+        update_values.append(data['nome'])
     
     if 'email' in data and data['email']:
         update_fields.append('email = %s')
@@ -82,9 +82,9 @@ def profile_update():
         update_fields.append('telefono = %s')
         update_values.append(data['telefono'])
     
-    if 'nome_telegram' in data:
-        update_fields.append('nome_telegram = %s')
-        update_values.append(data['nome_telegram'])
+    if 'telegram' in data:
+        update_fields.append('telegram = %s')
+        update_values.append(data['telegram'])
     
     if 'address' in data:
         update_fields.append('address = %s')

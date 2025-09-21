@@ -31,7 +31,7 @@ def referral():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente per codice referral - TABELLA: users
         cur.execute("""
-            SELECT id, full_name, email, referral_code, created_at
+            SELECT id, nome, email, referral_code, created_at
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -56,12 +56,12 @@ def referral():
         # Lista referral - TABELLE: users + investments
         # Esclude l'utente stesso per evitare auto-referral
         cur.execute("""
-            SELECT u.id, u.full_name, u.email, u.created_at, u.kyc_status,
+            SELECT u.id, u.nome, u.email, u.created_at, u.kyc_status,
                    COALESCE(SUM(i.amount), 0) as total_invested
             FROM users u 
             LEFT JOIN investments i ON u.id = i.user_id AND i.status = 'active'
             WHERE u.referred_by = %s AND u.id != %s
-            GROUP BY u.id, u.full_name, u.email, u.created_at, u.kyc_status
+            GROUP BY u.id, u.nome, u.email, u.created_at, u.kyc_status
             ORDER BY u.created_at DESC
         """, (uid, uid))
         referrals = cur.fetchall()

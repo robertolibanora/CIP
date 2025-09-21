@@ -343,7 +343,7 @@ def admin_get_pending_withdrawals():
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT wr.id, wr.user_id, 
-                       COALESCE(NULLIF(u.full_name, ''), u.nome || ' ' || u.cognome) as full_name,
+                       COALESCE(NULLIF(u.nome, ''), u.nome || ' ' || u.cognome) as nome,
                        u.email, wr.amount, wr.method,
                        wr.source_section, wr.wallet_address, wr.network, wr.unique_key,
                        wr.status, wr.created_at, wr.admin_notes
@@ -360,7 +360,7 @@ def admin_get_pending_withdrawals():
                 withdrawal_data = {
                     'id': w['id'],
                     'user_id': w['user_id'],
-                    'full_name': w['full_name'],
+                    'nome': w['nome'],
                     'email': w['email'],
                     'amount': float(w['amount']),
                     'method': w['method'],
@@ -400,7 +400,7 @@ def admin_get_withdrawal_details(withdrawal_id):
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT wr.id, wr.user_id, 
-                       COALESCE(NULLIF(u.full_name, ''), u.nome || ' ' || u.cognome) as full_name,
+                       COALESCE(NULLIF(u.nome, ''), u.nome || ' ' || u.cognome) as nome,
                        u.email, wr.amount, wr.method,
                        wr.source_section, wr.wallet_address, wr.network, wr.bank_details, wr.unique_key,
                        wr.status, wr.created_at, wr.admin_notes
@@ -417,7 +417,7 @@ def admin_get_withdrawal_details(withdrawal_id):
             withdrawal_data = {
                 'id': withdrawal['id'],
                 'user_id': withdrawal['user_id'],
-                'full_name': withdrawal['full_name'],
+                'nome': withdrawal['nome'],
                 'email': withdrawal['email'],
                 'amount': float(withdrawal['amount']),
                 'method': withdrawal['method'],
@@ -623,17 +623,17 @@ def admin_get_withdrawals_history():
                 params.append(status_filter)
             
             if search_query:
-                where_conditions.append("(u.full_name ILIKE %s OR u.email ILIKE %s)")
+                where_conditions.append("(u.nome ILIKE %s OR u.email ILIKE %s)")
                 params.extend([f'%{search_query}%', f'%{search_query}%'])
             
             where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
             
             # Query principale
             query = f"""
-                SELECT wr.id, wr.user_id, u.full_name, u.email, wr.amount, wr.method,
+                SELECT wr.id, wr.user_id, u.nome, u.email, wr.amount, wr.method,
                        wr.source_section, wr.wallet_address, wr.bank_details, wr.unique_key,
                        wr.status, wr.created_at, wr.approved_at, wr.admin_notes,
-                       admin_user.full_name as approved_by_name
+                       admin_user.nome as approved_by_name
                 FROM withdrawal_requests wr
                 JOIN users u ON u.id = wr.user_id
                 LEFT JOIN users admin_user ON admin_user.id = wr.approved_by
@@ -661,7 +661,7 @@ def admin_get_withdrawals_history():
                 withdrawal_data = {
                     'id': w['id'],
                     'user_id': w['user_id'],
-                    'full_name': w['full_name'],
+                    'nome': w['nome'],
                     'email': w['email'],
                     'amount': float(w['amount']),
                     'method': w['method'],

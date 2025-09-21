@@ -25,17 +25,13 @@
       <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off" novalidate>
         <!-- Referral code -->
         <div class="space-y-2">
-          <label for="referral_link" class="block text-sm font-semibold text-gray-700">
             Codice Referral (opzionale)
           </label>
           <div class="flex items-center space-x-2">
             <input
               type="text"
-              name="referral_link"
-              id="referral_link"
               class="flex-1 input-field bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il codice referral"
-              value="{{ form_data.referral_link if form_data else (referral_code_from_url or '') }}"
             />
           </div>
           <p id="referral_info" class="text-sm mt-1 text-gray-600 hidden"></p>
@@ -80,7 +76,7 @@
 
         <!-- Telegram Username -->
         <div class="space-y-2">
-          <label for="nome_telegram" class="block text-sm font-semibold text-gray-700">
+          <label for="telegram" class="block text-sm font-semibold text-gray-700">
             Nome Telegram *
           </label>
           <div class="input-field-container">
@@ -91,12 +87,12 @@
             </div>
             <input
               type="text"
-              name="nome_telegram"
-              id="nome_telegram"
+              name="telegram"
+              id="telegram"
               required
               class="input-field input-with-left-icon bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il tuo nome telegram"
-              value="{{ form_data.nome_telegram if form_data else '' }}"
+              value="{{ form_data.telegram if form_data else '' }}"
             />
           </div>
           <p class="text-xs text-gray-500 mt-1 flex items-center">
@@ -105,7 +101,7 @@
             </svg>
             Esempio: @mariorossi98
           </p>
-          <p id="error-nome_telegram" class="text-red-500 text-xs mt-1 hidden"></p>
+          <p id="error-telegram" class="text-red-500 text-xs mt-1 hidden"></p>
         </div>
 
         <!-- Phone -->
@@ -375,7 +371,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
   });
   
   // Validate required fields
-  const requiredFields = ['nome', 'cognome', 'nome_telegram', 'telefono', 'email', 'password', 'confirm_password'];
+  const requiredFields = ['nome', 'cognome', 'telegram', 'telefono', 'email', 'password', 'confirm_password'];
   requiredFields.forEach(field => {
     const input = document.getElementById(field);
     const errorEl = document.getElementById(`error-${field}`);
@@ -430,7 +426,6 @@ setTimeout(function() {
 
 <script>
 // Verifica referral via API automaticamente con debounce
-const referralInput = document.getElementById('referral_link');
 const referralInfo = document.getElementById('referral_info');
 let referralDebounce;
 

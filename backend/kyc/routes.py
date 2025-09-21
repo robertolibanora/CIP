@@ -267,7 +267,7 @@ def admin_get_kyc_requests_old():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT DISTINCT u.id, 
-                   CONCAT(u.nome, ' ', u.cognome) as full_name,
+                   CONCAT(u.nome, ' ', u.cognome) as nome,
                    u.email, u.telefono, u.created_at, u.kyc_status,
                    COUNT(d.id) as documents_count,
                    CASE WHEN p.id IS NOT NULL THEN true ELSE false END as has_portfolio
@@ -291,7 +291,7 @@ def admin_get_kyc_request_detail_old(user_id):
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni informazioni utente
         cur.execute("""
-            SELECT id, CONCAT(nome, ' ', cognome) as full_name, 
+            SELECT id, CONCAT(nome, ' ', cognome) as nome, 
                    email, telefono, created_at, kyc_status
             FROM users WHERE id = %s
         """, (user_id,))

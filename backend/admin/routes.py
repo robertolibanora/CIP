@@ -414,7 +414,7 @@ def project_detail(pid):
             # Investimenti collegati
             cur.execute("""
                 SELECT i.id, i.amount, i.status, i.created_at, i.activated_at,
-                       u.id as user_id, u.full_name, u.email, u.kyc_status
+                       u.id as user_id, u.nome, u.email, u.kyc_status
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
                 WHERE i.project_id = %s
@@ -802,7 +802,7 @@ def get_portfolio_overview():
         
         # Transazioni recenti
         cur.execute("""
-            SELECT pt.*, u.full_name as user_name, u.email as user_email
+            SELECT pt.*, u.nome as user_name, u.email as user_email
             FROM portfolio_transactions pt
             JOIN users u ON u.id = pt.user_id
             ORDER BY pt.created_at DESC
@@ -813,13 +813,13 @@ def get_portfolio_overview():
         # Top utenti per portfolio
         cur.execute("""
             SELECT 
-                u.id, u.full_name as name, u.email,
+                u.id, u.nome as name, u.email,
                 (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) as total_balance,
                 COUNT(i.id) as active_investments
             FROM users u
             JOIN user_portfolios up ON up.user_id = u.id
             LEFT JOIN investments i ON i.user_id = u.id AND i.status = 'active'
-            GROUP BY u.id, u.full_name, u.email, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
+            GROUP BY u.id, u.nome, u.email, up.free_capital, up.invested_capital, up.referral_bonus, up.profits
             ORDER BY total_balance DESC
             LIMIT 10
         """)
@@ -1087,7 +1087,7 @@ def kyc_request_detail(user_id):
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente
         cur.execute("""
-            SELECT id, full_name, email, telefono, address, kyc_status, 
+            SELECT id, nome, email, telefono, address, kyc_status, 
                    created_at, kyc_notes
             FROM users WHERE id = %s
         """, (user_id,))
@@ -1161,7 +1161,7 @@ def get_kyc_requests():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT 
-                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.id, u.nome, u.email, u.telefono, u.address,
                 u.kyc_status, u.created_at, u.kyc_notes,
                 COUNT(d.id) as documents_count,
                 CASE WHEN up.id IS NOT NULL AND 
@@ -1172,7 +1172,7 @@ def get_kyc_requests():
             LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
             LEFT JOIN user_portfolios up ON up.user_id = u.id
             WHERE u.role = 'investor'
-            GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
+            GROUP BY u.id, u.nome, u.email, u.telefono, u.address, 
                      u.kyc_status, u.created_at, u.kyc_notes, up.id,
                      up.free_capital, up.invested_capital, up.referral_bonus, up.profits
             ORDER BY 
@@ -1287,7 +1287,7 @@ def kyc_bulk_action():
             # Per l'export, restituiamo i dati invece di modificarli
             placeholders = ','.join(['%s'] * len(request_ids))
             cur.execute(f"""
-                SELECT id, full_name, email, telefono, kyc_status, created_at
+                SELECT id, nome, email, telefono, kyc_status, created_at
                 FROM users 
                 WHERE id IN ({placeholders}) AND role = 'investor'
                 ORDER BY created_at DESC
@@ -1331,7 +1331,7 @@ def kyc_export():
         
         if search:
             where_conditions.append("""
-                (u.full_name ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
+                (u.nome ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
             """)
             search_param = f"%{search}%"
             params.extend([search_param, search_param, search_param])
@@ -1340,14 +1340,14 @@ def kyc_export():
         
         cur.execute(f"""
             SELECT 
-                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.id, u.nome, u.email, u.telefono, u.address,
                 u.kyc_status, u.created_at, u.kyc_notes,
                 COUNT(d.id) as documents_count
             FROM users u
             LEFT JOIN documents d ON d.user_id = u.id
             LEFT JOIN doc_categories dc ON dc.id = d.category_id AND dc.is_kyc = true
             WHERE {where_clause}
-            GROUP BY u.id, u.full_name, u.email, u.telefono, u.address, 
+            GROUP BY u.id, u.nome, u.email, u.telefono, u.address, 
                      u.kyc_status, u.created_at, u.kyc_notes
             ORDER BY u.created_at DESC
         """, params)
@@ -1372,7 +1372,7 @@ def kyc_export():
         for user in kyc_requests:
             writer.writerow([
                 user.get('id', ''),
-                user.get('full_name', ''),
+                user.get('nome', ''),
                 user.get('email', ''),
                 user.get('telefono', ''),
                 user.get('address', ''),
@@ -1485,7 +1485,7 @@ def get_users_list():
         
         if search:
             where_conditions.append("""
-                (u.full_name ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
+                (u.nome ILIKE %s OR u.email ILIKE %s OR u.telefono ILIKE %s)
             """)
             search_param = f"%{search}%"
             params.extend([search_param, search_param, search_param])
@@ -1507,8 +1507,8 @@ def get_users_list():
         order_mapping = {
             'created_at_desc': 'u.created_at DESC',
             'created_at_asc': 'u.created_at ASC',
-            'name_asc': 'u.full_name ASC',
-            'name_desc': 'u.full_name DESC',
+            'name_asc': 'u.nome ASC',
+            'name_desc': 'u.nome DESC',
             'kyc_status': """
                 CASE u.kyc_status 
                     WHEN 'verified' THEN 1 
@@ -1524,7 +1524,7 @@ def get_users_list():
         # Main query
         query = f"""
             SELECT 
-                u.id, u.full_name, u.email, u.telefono, u.address,
+                u.id, u.nome, u.email, u.telefono, u.address,
                 u.kyc_status, u.role, u.created_at,
                 up.free_capital + up.invested_capital + up.referral_bonus + up.profits as portfolio_balance,
                 COALESCE(inv_stats.investments_count, 0) as investments_count,
@@ -1708,7 +1708,7 @@ def users_bulk_action():
             # Per l'export, restituiamo i dati invece di modificarli
             placeholders = ','.join(['%s'] * len(user_ids))
             cur.execute(f"""
-                SELECT id, full_name, email, telefono, kyc_status, created_at
+                SELECT id, nome, email, telefono, kyc_status, created_at
                 FROM users 
                 WHERE id IN ({placeholders})
                 ORDER BY created_at DESC
@@ -1760,7 +1760,7 @@ def users_export():
         for user in users:
             writer.writerow([
                 user.get('id', ''),
-                user.get('full_name', ''),
+                user.get('nome', ''),
                 user.get('email', ''),
                 user.get('telefono', ''),
                 user.get('address', ''),
@@ -1819,7 +1819,7 @@ def api_admin_users_list():
                 params.append(kyc_param)
 
         if search:
-            where_conditions.append("(u.email ILIKE %s OR u.full_name ILIKE %s OR u.nome_telegram ILIKE %s)")
+            where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR u.telegram ILIKE %s)")
             like = f"%{search}%"
             params.extend([like, like, like])
 
@@ -1837,7 +1837,7 @@ def api_admin_users_list():
             SELECT 
                 u.id,
                 u.nome || ' ' || u.cognome AS nome_completo,
-                u.nome_telegram,
+                u.telegram,
                 u.kyc_status,
                 u.created_at,
                 u.is_vip,
@@ -1863,8 +1863,8 @@ def api_admin_users_list():
             continue
         items.append({
             'id': r['id'],
-            'full_name': r.get('nome_completo') or '',
-            'telegram_username': r.get('nome_telegram') or '',
+            'nome': r.get('nome_completo') or '',
+            'telegram_username': r.get('telegram') or '',
             'investor_status': 'si' if is_investor else 'no',
             'kyc_status': r.get('kyc_status'),
             'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
@@ -1893,7 +1893,7 @@ def api_admin_user_detail(user_id: int):
                 u.telefono,
                 u.nome,
                 u.cognome,
-                u.nome_telegram,
+                u.telegram,
                 u.role,
                 u.kyc_status,
                 u.created_at,
@@ -1915,7 +1915,7 @@ def api_admin_user_detail(user_id: int):
         'cognome': u['cognome'],
         'email': u['email'],
         'phone': u['telefono'],
-        'telegram': u['nome_telegram'],
+        'telegram': u['telegram'],
         'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
         'kyc_status': u['kyc_status'],
         'created_at': u['created_at'].isoformat() if u['created_at'] else None,
@@ -1976,7 +1976,7 @@ def api_admin_user_update(user_id: int):
             set_clauses.append('telefono = %s')
             params.append(updates['phone'])
         if 'telegram' in updates:
-            set_clauses.append('nome_telegram = %s')
+            set_clauses.append('telegram = %s')
             params.append(updates['telegram'])
         if 'kyc_status' in updates:
             set_clauses.append('kyc_status = %s')
@@ -3361,9 +3361,9 @@ def users_list():
     where = ""
     params = []
     if q:
-        where = "WHERE email ILIKE %s OR full_name ILIKE %s"
+        where = "WHERE email ILIKE %s OR nome ILIKE %s"
         params = [f"%{q}%", f"%{q}%"]
-    sql = f"SELECT id, email, full_name, role, kyc_status, currency_code FROM users {where} ORDER BY id"
+    sql = f"SELECT id, email, nome, role, kyc_status, currency_code FROM users {where} ORDER BY id"
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(sql, params)
         rows = cur.fetchall()
@@ -3374,7 +3374,7 @@ def users_list():
 def user_detail_legacy(uid):
     """Dettaglio utente legacy - mantenuto per compatibilit"""
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id,email,full_name,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
+        cur.execute("SELECT id,email,nome,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
         cur.execute("""
             SELECT i.id, p.name, i.amount, i.status, i.created_at
@@ -3438,7 +3438,7 @@ def investments_list():
     if project_id: q.append("i.project_id=%s"); params.append(project_id)
     where = ("WHERE "+" AND ".join(q)) if q else ""
     sql = f"""
-        SELECT i.id, u.full_name, p.name, i.amount, i.status, i.created_at
+        SELECT i.id, u.nome, p.name, i.amount, i.status, i.created_at
         FROM investments i
         JOIN users u ON u.id=i.user_id
         JOIN projects p ON p.id=i.project_id
@@ -3455,7 +3455,7 @@ def investments_list():
 def investment_detail(iid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.*, u.full_name, p.name AS project_title
+            SELECT i.*, u.nome, p.name AS project_title
             FROM investments i
             JOIN users u ON u.id=i.user_id
             JOIN projects p ON p.id=i.project_id
@@ -3494,7 +3494,7 @@ def investment_add_yield(iid):
 def requests_queue():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT r.id, u.full_name, p.name AS project, r.amount, r.state, r.created_at
+            SELECT r.id, u.nome, p.name AS project, r.amount, r.state, r.created_at
             FROM investment_requests r
             JOIN users u ON u.id=r.user_id
             JOIN projects p ON p.id=r.project_id
@@ -3873,8 +3873,8 @@ def get_referral_users():
                     u.id,
                     COALESCE(
                         NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
-                        u.full_name
-                    ) AS full_name,
+                        u.nome
+                    ) AS nome,
                     u.email, u.created_at, u.referral_code,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
@@ -3914,8 +3914,8 @@ def get_user_referral_details(user_id):
                     u.id,
                     COALESCE(
                         NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
-                        u.full_name
-                    ) AS full_name,
+                        u.nome
+                    ) AS nome,
                     u.email, u.created_at, u.referral_code,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
@@ -3937,8 +3937,8 @@ def get_user_referral_details(user_id):
                     u2.id,
                     COALESCE(
                         NULLIF(TRIM(CONCAT_WS(' ', u2.nome, u2.cognome)), ''),
-                        u2.full_name
-                    ) AS full_name,
+                        u2.nome
+                    ) AS nome,
                     u2.email, u2.created_at,
                     COALESCE(up2.free_capital, 0) + COALESCE(up2.invested_capital, 0) + 
                     COALESCE(up2.referral_bonus, 0) + COALESCE(up2.profits, 0) as total_balance,
@@ -4230,12 +4230,12 @@ def kyc_requests_enhanced():
     """Lista documenti KYC da approvare - versione enhanced"""
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT u.id, u.full_name, u.email, u.kyc_status, u.created_at,
+            SELECT u.id, u.nome, u.email, u.kyc_status, u.created_at,
                    COUNT(d.id) as documents_count
             FROM users u
             LEFT JOIN documents d ON d.user_id = u.id AND d.category_id = 1
             WHERE u.kyc_status IN ('pending', 'unverified')
-            GROUP BY u.id, u.full_name, u.email, u.kyc_status, u.created_at
+            GROUP BY u.id, u.nome, u.email, u.kyc_status, u.created_at
             ORDER BY u.created_at ASC
         """)
         requests = cur.fetchall()
@@ -4445,7 +4445,7 @@ def transaction_detail(transaction_id):
                 SELECT 
                     pt.*,
                     u.email as user_email,
-                    u.full_name as user_name,
+                    u.nome as user_name,
                     u.nome,
                     u.cognome
                 FROM portfolio_transactions pt

@@ -46,7 +46,7 @@ def portfolio():
         
         # Dati utente completi per il form profilo - TABELLA: users
         cur.execute("""
-            SELECT id, full_name, email, nome, cognome, telefono, nome_telegram, 
+            SELECT id, nome, email, nome, cognome, telefono, telegram, 
                    address, currency_code, referral_code, created_at
             FROM users WHERE id = %s
         """, (uid,))

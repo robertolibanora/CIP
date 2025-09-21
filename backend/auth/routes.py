@@ -132,30 +132,27 @@ def login():
 @guest_only
 def register():
     """Registrazione nuovo utente"""
-    # Gestisci parametro referral dall'URL
-    referral_code_from_url = request.args.get('ref', '').strip()
+    # Logica referral non implementata
     
     if request.method == "POST":
         nome = request.form.get("nome")
         cognome = request.form.get("cognome")
-        nome_telegram = request.form.get("nome_telegram")
+        telegram = request.form.get("telegram")
         telefono = request.form.get("telefono")
         email = request.form.get("email")
-        referral_link = request.form.get("referral_link") or referral_code_from_url
+        # referral_link = request.form.get("referral_link") or referral_code_from_url  # Non implementato
         password = request.form.get("password")
 
         # Validazione
-        if not all([nome, cognome, nome_telegram, telefono, email, password]):
+        if not all([nome, cognome, telegram, telefono, email, password]):
             flash("Tutti i campi obbligatori sono richiesti", "error")
             return render_template("auth/register.html", 
-                                 referral_code_from_url=referral_code_from_url,
                                  form_data={
                                      'nome': nome,
                                      'cognome': cognome,
-                                     'nome_telegram': nome_telegram,
+                                     'telegram': telegram,
                                      'telefono': telefono,
-                                     'email': email,
-                                     'referral_link': referral_link
+                                     'email': email
                                  })
 
         try:
@@ -163,14 +160,12 @@ def register():
         except ValidationError as e:
             flash(str(e), "error")
             return render_template("auth/register.html", 
-                                 referral_code_from_url=referral_code_from_url,
                                  form_data={
                                      'nome': nome,
                                      'cognome': cognome,
-                                     'nome_telegram': nome_telegram,
+                                     'telegram': telegram,
                                      'telefono': telefono,
                                      'email': '',  # Svuota solo l'email
-                                     'referral_link': referral_link
                                  })
 
         try:
@@ -178,14 +173,12 @@ def register():
         except ValidationError as e:
             flash(str(e), "error")
             return render_template("auth/register.html", 
-                                 referral_code_from_url=referral_code_from_url,
                                  form_data={
                                      'nome': nome,
                                      'cognome': cognome,
-                                     'nome_telegram': nome_telegram,
+                                     'telegram': telegram,
                                      'telefono': telefono,
                                      'email': '',  # Svuota solo l'email
-                                     'referral_link': referral_link
                                  })
 
         with get_conn() as conn, conn.cursor() as cur:
@@ -194,127 +187,59 @@ def register():
             if cur.fetchone():
                 flash("Email già registrata", "error")
                 return render_template("auth/register.html", 
-                                     referral_code_from_url=referral_code_from_url,
                                      form_data={
                                          'nome': nome,
                                          'cognome': cognome,
-                                         'nome_telegram': nome_telegram,
+                                         'telegram': telegram,
                                          'telefono': telefono,
                                          'email': '',  # Svuota solo l'email
-                                         'referral_link': referral_link
                                      })
 
             # Verifica nome telegram duplicato
-            cur.execute("SELECT id FROM users WHERE nome_telegram = %s", (nome_telegram,))
+            cur.execute("SELECT id FROM users WHERE telegram = %s", (telegram,))
             if cur.fetchone():
                 flash("Nome Telegram già registrato", "error")
                 return render_template("auth/register.html", 
-                                     referral_code_from_url=referral_code_from_url,
                                      form_data={
                                          'nome': nome,
                                          'cognome': cognome,
-                                         'nome_telegram': '',  # Svuota solo il telegram
+                                         'telegram': '',  # Svuota solo il telegram
                                          'telefono': telefono,
                                          'email': email,
-                                         'referral_link': referral_link
                                      })
 
-            # Trova utente referral
-            referred_by = None
-            if referral_link:
-                # Se l'utente ha inserito un codice, validalo
-                cur.execute("SELECT id FROM users WHERE referral_code = %s", (referral_link,))
-                row = cur.fetchone()
-                if row:
-                    referred_by = row["id"]
-                else:
-                    flash("Codice referral non valido", "error")
-                    return render_template("auth/register.html", 
-                                         referral_code_from_url=referral_code_from_url,
-                                         form_data={
-                                             'nome': nome,
-                                             'cognome': cognome,
-                                             'nome_telegram': nome_telegram,
-                                             'telefono': telefono,
-                                             'email': email,
-                                             'referral_link': ''  # Svuota solo il referral
-                                         })
-            else:
-                # Nessun referral inserito: assegna al primo utente 'investor' (non admin)
-                cur.execute(
-                    """
-                    SELECT id FROM users 
-                    WHERE ruolo = 'investor' 
-                    AND referral_code IS NOT NULL 
-                    ORDER BY created_at ASC 
-                    LIMIT 1
-                    """
-                )
-                first_investor_row = cur.fetchone()
-                if first_investor_row:
-                    referred_by = first_investor_row["id"]
-                else:
-                    # Fallback: se non ci sono utenti investor, usa il primo utente disponibile (escluso admin)
-                    cur.execute(
-                        """
-                        SELECT id FROM users 
-                        WHERE ruolo != 'admin' 
-                        AND referral_code IS NOT NULL 
-                        ORDER BY created_at ASC 
-                        LIMIT 1
-                        """
-                    )
-                    fallback_row = cur.fetchone()
-                    if fallback_row:
-                        referred_by = fallback_row["id"]
+            # Logica referral non implementata
 
-            # Genera codice referral unico
+            # Genera codice referral unico (non implementato)
             import uuid
-
-            new_referral_code = str(uuid.uuid4())[:8].upper()
 
             # Inserisci nuovo utente con hash password
             cur.execute(
                 """
-                INSERT INTO users (nome, cognome, nome_telegram, telefono, email, password_hash, referral_code, referral_link, referred_by, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO users (nome, cognome, telegram, telefono, email, password_hash, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
                 """,
                 (
                     nome,
                     cognome,
-                    nome_telegram,
+                    telegram,
                     telefono,
                     email,
                     hash_password(password),
-                    new_referral_code,
-                    referral_link,
-                    referred_by,
                 ),
             )
 
             new_user_id = cur.fetchone()["id"]
 
-            # Se c'è referral, crea bonus (se la tabella esiste)
-            if referred_by:
-                cur.execute("SELECT to_regclass('public.referral_bonuses') AS tbl_exists")
-                tbl = cur.fetchone()
-                tbl_exists = tbl and (tbl.get('tbl_exists') is not None if isinstance(tbl, dict) else tbl[0] is not None)
-                if tbl_exists:
-                    cur.execute(
-                        """
-                        INSERT INTO referral_bonuses (receiver_user_id, source_user_id, amount, month_ref, level, status, created_at)
-                        VALUES (%s, %s, %s, DATE_TRUNC('month', NOW())::date, %s, 'accrued', NOW())
-                        """,
-                        (referred_by, new_user_id, 50, 1),
-                    )
+            # Logica referral non implementata
 
             conn.commit()
 
             flash("Registrazione completata! Ora puoi fare login.", "success")
             return redirect(url_for("auth.login"))
 
-    return render_template("auth/register.html", referral_code_from_url=referral_code_from_url)
+    return render_template("auth/register.html")
 
 
 @auth_bp.route("/logout")
