@@ -82,7 +82,7 @@ def login():
         # Cerca utente per email
         cur.execute(
             """
-            SELECT id, email, nome, cognome, password_hash, ruolo, password_reset_required
+            SELECT id, email, nome, cognome, password_hash, ruolo
             FROM users WHERE email = %s
             """,
             (email,),
@@ -96,28 +96,7 @@ def login():
             print(f"LOGIN: Creazione sessione per {user['email']}")
             create_secure_session(user)
 
-            # Controlla se l'utente deve cambiare la password
-            if user.get("password_reset_required"):
-                # Se è richiesta API, restituisce JSON con flag password_reset_required
-                if is_api_request():
-                    return jsonify({
-                        "ok": True,
-                        "user": {
-                            "id": user["id"],
-                            "email": user["email"],
-                            "nome": user["nome"],
-                            "cognome": user["cognome"],
-                            "role": user["ruolo"]
-                        },
-                        "password_reset_required": True
-                    }), 200
-
-                # Altrimenti, redirect HTML con messaggio
-                flash("La tua password è stata resettata dall'amministratore. Devi cambiarla per continuare.", "warning")
-                if user["ruolo"] == "admin":
-                    return redirect(url_for("admin.change_password"))
-                else:
-                    return redirect(url_for("user.change_password"))
+            # Login completato con successo
 
             # Se è richiesta API, restituisce JSON
             if is_api_request():
