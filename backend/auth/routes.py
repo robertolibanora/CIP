@@ -82,7 +82,7 @@ def login():
         # Cerca utente per email
         cur.execute(
             """
-            SELECT id, email, nome, cognome, password_hash, role, password_reset_required
+            SELECT id, email, nome, cognome, password_hash, ruolo, password_reset_required
             FROM users WHERE email = %s
             """,
             (email,),
@@ -107,14 +107,14 @@ def login():
                             "email": user["email"],
                             "nome": user["nome"],
                             "cognome": user["cognome"],
-                            "role": user["role"]
+                            "role": user["ruolo"]
                         },
                         "password_reset_required": True
                     }), 200
 
                 # Altrimenti, redirect HTML con messaggio
                 flash("La tua password è stata resettata dall'amministratore. Devi cambiarla per continuare.", "warning")
-                if user["role"] == "admin":
+                if user["ruolo"] == "admin":
                     return redirect(url_for("admin.change_password"))
                 else:
                     return redirect(url_for("user.change_password"))
@@ -128,13 +128,13 @@ def login():
                         "email": user["email"],
                         "nome": user["nome"],
                         "cognome": user["cognome"],
-                        "role": user["role"]
+                        "role": user["ruolo"]
                     }
                 }), 200
 
             # Altrimenti, redirect HTML normale
             flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
-            if user["role"] == "admin":
+            if user["ruolo"] == "admin":
                 return redirect(url_for("admin.admin_dashboard"))
             else:
                 return redirect(url_for("user.dashboard"))
@@ -265,7 +265,7 @@ def register():
                 cur.execute(
                     """
                     SELECT id FROM users 
-                    WHERE role = 'investor' 
+                    WHERE ruolo = 'investor' 
                     AND referral_code IS NOT NULL 
                     ORDER BY created_at ASC 
                     LIMIT 1
@@ -279,7 +279,7 @@ def register():
                     cur.execute(
                         """
                         SELECT id FROM users 
-                        WHERE role != 'admin' 
+                        WHERE ruolo != 'admin' 
                         AND referral_code IS NOT NULL 
                         ORDER BY created_at ASC 
                         LIMIT 1

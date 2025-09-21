@@ -85,7 +85,7 @@ def role_required(required_role: Union[UserRole, str]) -> Callable:
                 flash("Sessione utente non valida", "error")
                 return redirect(url_for('auth.login'))
             
-            user_role = user.get('role')
+            user_role = user.get('ruolo')
             required_role_str = required_role.value if hasattr(required_role, 'value') else required_role
             
             if user_role != required_role_str:
@@ -123,7 +123,7 @@ def any_role_required(allowed_roles: List[Union[UserRole, str]]) -> Callable:
                 flash("Sessione utente non valida", "error")
                 return redirect(url_for('auth.login'))
             
-            user_role = user.get('role')
+            user_role = user.get('ruolo')
             allowed_roles_str = [
                 role.value if hasattr(role, 'value') else role 
                 for role in allowed_roles
@@ -156,7 +156,7 @@ def kyc_verified(f: Callable) -> Callable:
             return redirect(url_for('auth.login'))
         
         # Admin può sempre accedere
-        if user.get('role') == UserRole.ADMIN.value:
+        if user.get('ruolo') == UserRole.ADMIN.value:
             return f(*args, **kwargs)
         
         # Utenti normali devono avere KYC verificato
@@ -195,7 +195,7 @@ def kyc_pending_allowed(f: Callable) -> Callable:
             return redirect(url_for('auth.login'))
         
         # Admin può sempre accedere
-        if user.get('role') == UserRole.ADMIN.value:
+        if user.get('ruolo') == UserRole.ADMIN.value:
             return f(*args, **kwargs)
         
         # Utenti normali devono avere KYC almeno in attesa
@@ -231,7 +231,7 @@ def can_invest(f: Callable) -> Callable:
             return redirect(url_for('auth.login'))
         
         # Admin può sempre investire
-        if user.get('role') == UserRole.ADMIN.value:
+        if user.get('ruolo') == UserRole.ADMIN.value:
             return f(*args, **kwargs)
         
         # Utenti normali devono avere KYC verificato
@@ -271,7 +271,7 @@ def can_withdraw(f: Callable) -> Callable:
             return redirect(url_for('auth.login'))
         
         # Admin può sempre prelevare
-        if user.get('role') == UserRole.ADMIN.value:
+        if user.get('ruolo') == UserRole.ADMIN.value:
             return f(*args, **kwargs)
         
         # Utenti normali devono avere KYC verificato
