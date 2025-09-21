@@ -1798,7 +1798,7 @@ def users_export():
 # API Admin: Users Management (search, filters, detail, update)
 # =====================================================
 
-@admin_bp.get("/api/admin/users")
+@admin_bp.get("/api/users")
 def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin."""
     try:
