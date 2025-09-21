@@ -12,6 +12,15 @@ from flask import redirect, url_for, send_from_directory
 from config.paths import ENV_FILE
 load_dotenv(ENV_FILE)
 
+# Carica anche le variabili d'ambiente esplicitamente per debug
+import os
+if not os.environ.get('DATABASE_URL'):
+    os.environ['DATABASE_URL'] = 'postgresql://localhost/cip_immobiliare'
+if not os.environ.get('SECRET_KEY'):
+    os.environ['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+if not os.environ.get('FLASK_DEBUG'):
+    os.environ['FLASK_DEBUG'] = '1'
+
 # Importa configurazione
 from config.config import config
 

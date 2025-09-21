@@ -55,8 +55,19 @@ from backend.auth.decorators import admin_required
 # per ogni route che richiede autorizzazione admin
 
 @admin_bp.get("/")
-@admin_required
 def admin_dashboard():
+    # Controllo manuale se l'utente è admin
+    from flask import session
+    if 'user_id' not in session:
+        from flask import redirect, url_for
+        return redirect(url_for('auth.login'))
+    
+    from backend.auth.middleware import is_admin
+    if not is_admin():
+        from flask import redirect, url_for, flash
+        flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
+        return redirect(url_for('user.dashboard'))
+    
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT * FROM v_admin_metrics")
         m = cur.fetchone()
@@ -1788,11 +1799,18 @@ def users_export():
 # =====================================================
 
 @admin_bp.get("/api/admin/users")
-@admin_required
 def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin.
     Supporta query: search, role, kyc, page, page_size.
     """
+    # Controllo manuale se l'utente è admin
+    from flask import session
+    if 'user_id' not in session:
+        return jsonify({"error": "unauthorized"}), 401
+    
+    from backend.auth.middleware import get_current_user, is_admin
+    if not is_admin():
+        return jsonify({"error": "forbidden"}), 403
     # Normalizza parametri
     search = request.args.get('search')
     role_param = request.args.get('role')  # expected: 'investor' or 'non-investor'
@@ -1819,7 +1837,7 @@ def api_admin_users_list():
                 params.append(kyc_param)
 
         if search:
-            where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR u.telegram ILIKE %s)")
+            where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR u.nome_telegram ILIKE %s)")
             like = f"%{search}%"
             params.extend([like, like, like])
 
@@ -1837,7 +1855,7 @@ def api_admin_users_list():
             SELECT 
                 u.id,
                 u.nome || ' ' || u.cognome AS nome_completo,
-                u.telegram,
+                u.nome_telegram,
                 u.kyc_status,
                 u.created_at,
                 u.is_vip,
@@ -1864,7 +1882,7 @@ def api_admin_users_list():
         items.append({
             'id': r['id'],
             'nome': r.get('nome_completo') or '',
-            'telegram_username': r.get('telegram') or '',
+            'telegram_username': r.get('nome_telegram') or '',
             'investor_status': 'si' if is_investor else 'no',
             'kyc_status': r.get('kyc_status'),
             'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
@@ -1893,7 +1911,7 @@ def api_admin_user_detail(user_id: int):
                 u.telefono,
                 u.nome,
                 u.cognome,
-                u.telegram,
+                u.nome_telegram,
                 u.role,
                 u.kyc_status,
                 u.created_at,
@@ -1915,7 +1933,7 @@ def api_admin_user_detail(user_id: int):
         'cognome': u['cognome'],
         'email': u['email'],
         'phone': u['telefono'],
-        'telegram': u['telegram'],
+        'telegram': u['nome_telegram'],
         'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
         'kyc_status': u['kyc_status'],
         'created_at': u['created_at'].isoformat() if u['created_at'] else None,
@@ -1976,7 +1994,7 @@ def api_admin_user_update(user_id: int):
             set_clauses.append('telefono = %s')
             params.append(updates['phone'])
         if 'telegram' in updates:
-            set_clauses.append('telegram = %s')
+            set_clauses.append('nome_telegram = %s')
             params.append(updates['telegram'])
         if 'kyc_status' in updates:
             set_clauses.append('kyc_status = %s')
@@ -2556,9 +2574,20 @@ def analytics_data():
 # =====================================================
 
 @admin_bp.get("/users")
-@admin_required
 def users_management_page():
     """Render della pagina Gestione Utenti"""
+    # Controllo manuale se l'utente è admin
+    from flask import session
+    if 'user_id' not in session:
+        from flask import redirect, url_for
+        return redirect(url_for('auth.login'))
+    
+    from backend.auth.middleware import is_admin
+    if not is_admin():
+        from flask import redirect, url_for, flash
+        flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
+        return redirect(url_for('user.dashboard'))
+    
     return render_template("admin/users/list.html")
 
 def get_analytics_data():

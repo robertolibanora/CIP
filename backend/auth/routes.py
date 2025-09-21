@@ -82,7 +82,7 @@ def login():
         # Cerca utente per email
         cur.execute(
             """
-            SELECT id, email, nome, cognome, password_hash, ruolo
+            SELECT id, email, nome, cognome, password_hash, role
             FROM users WHERE email = %s
             """,
             (email,),
@@ -107,13 +107,13 @@ def login():
                         "email": user["email"],
                         "nome": user["nome"],
                         "cognome": user["cognome"],
-                        "role": user["ruolo"]
+                        "role": user["role"]
                     }
                 }), 200
 
             # Altrimenti, redirect HTML normale
             flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
-            if user["ruolo"] == "admin":
+            if user["role"] == "admin":
                 return redirect(url_for("admin.admin_dashboard"))
             else:
                 return redirect(url_for("user.dashboard"))
@@ -196,7 +196,7 @@ def register():
                                      })
 
             # Verifica nome telegram duplicato
-            cur.execute("SELECT id FROM users WHERE telegram = %s", (telegram,))
+            cur.execute("SELECT id FROM users WHERE nome_telegram = %s", (telegram,))
             if cur.fetchone():
                 flash("Nome Telegram già registrato", "error")
                 return render_template("auth/register.html", 
@@ -216,7 +216,7 @@ def register():
             # Inserisci nuovo utente con hash password
             cur.execute(
                 """
-                INSERT INTO users (nome, cognome, telegram, telefono, email, password_hash, created_at)
+                INSERT INTO users (nome, cognome, nome_telegram, telefono, email, password_hash, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
                 """,
