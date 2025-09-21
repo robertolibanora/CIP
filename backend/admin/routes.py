@@ -1800,32 +1800,12 @@ def users_export():
 
 @admin_bp.get("/api/admin/users")
 def api_admin_users_list():
-    """Lista utenti con ricerca e filtri per dashboard admin.
-    Supporta query: search, role, kyc, page, page_size.
-    """
-    # Versione di debug senza database
-    from flask import session
-    if 'user_id' not in session:
-        return jsonify({"error": "unauthorized"}), 401
-    
-    # Risposta mock per debug
-    return jsonify({
-        'items': [
-            {
-                'id': 1,
-                'nome': 'Test User',
-                'telegram_username': 'testuser',
-                'investor_status': 'no',
-                'kyc_status': 'unverified',
-                'created_at': '2025-09-21T14:00:00',
-                'portfolio_total': 0,
-                'is_vip': False,
-            }
-        ],
-        'total': 1,
-        'page': 1,
-        'page_size': 10
-    })
+    """Lista utenti con ricerca e filtri per dashboard admin."""
+    try:
+        # Versione di debug ultra-semplificata
+        return jsonify({"status": "ok", "message": "API admin funziona"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.get("/api/admin/users/<int:user_id>")
