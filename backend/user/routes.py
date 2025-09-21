@@ -113,7 +113,7 @@ def dashboard():
     with get_conn() as conn, conn.cursor() as cur:
         # Dati utente completi con stato KYC
         cur.execute("""
-            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, ruolo, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
@@ -299,7 +299,7 @@ def new_project():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, ruolo, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
@@ -674,7 +674,7 @@ def kyc_page():
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni dati utente completi
         cur.execute("""
-            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, ruolo, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()
@@ -698,8 +698,8 @@ def serve_project_file_user(filename):
     import os
     
     # Permetti accesso sia a user che admin
-    user_role = session.get('role')
-    if user_role not in ['user', 'admin']:
+    user_ruolo = session.get('ruolo')
+    if user_ruolo not in ['user', 'admin']:
         abort(403)
     
     # Usa la cartella uploads/projects nella root del progetto
@@ -756,7 +756,7 @@ def referral():
     # Ottieni dati utente completi
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, nome, role, referral_code, kyc_status, nome, cognome, is_vip
+            SELECT id, email, nome, ruolo, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()

@@ -71,7 +71,7 @@ def dashboard():
         
         # Dati utente completi - TABELLA: users
         cur.execute("""
-            SELECT id, email, nome, role, referral_code, nome, cognome
+            SELECT id, email, nome, ruolo, cognome
             FROM users WHERE id = %s
         """, (uid,))
         user_data = cur.fetchone()
