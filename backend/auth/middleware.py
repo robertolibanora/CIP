@@ -35,7 +35,7 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
     try:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT id, email, nome, cognome, role
+                SELECT id, email, nome, cognome, ruolo
                 FROM users WHERE id = %s
             """, (user_id,))
             user = cur.fetchone()
@@ -59,7 +59,7 @@ def is_authenticated() -> bool:
 def is_admin() -> bool:
     """Verifica se l'utente corrente è admin"""
     user = get_current_user()
-    return user and user.get('role') == UserRole.ADMIN.value
+    return user and user.get('ruolo') == UserRole.ADMIN.value
 
 def is_kyc_verified() -> bool:
     """Verifica se l'utente corrente ha KYC verificato"""
@@ -112,8 +112,8 @@ def create_secure_session(user_data: dict):
     logger.info(f"Creazione sessione per utente: {user_data['email']}")
     session.clear()
     session['user_id'] = user_data['id']
-    session['user_role'] = user_data['role']
-    session['role'] = user_data['role']  # Per compatibilità
+    session['user_role'] = user_data['ruolo']
+    session['role'] = user_data['ruolo']  # Per compatibilità
     session['user_email'] = user_data.get('email', '')
     session['user_name'] = user_data.get('nome', '')
     session['user_surname'] = user_data.get('cognome', '')
@@ -151,7 +151,7 @@ class KYCRequired:
             return False
         
         # Admin può sempre accedere
-        if user.get('role') == UserRole.ADMIN.value:
+        if user.get('ruolo') == UserRole.ADMIN.value:
             return True
         
         # Utenti normali - KYC non implementato per ora
@@ -245,7 +245,7 @@ def role_required(required_role: UserRole) -> Callable:
                 return redirect(url_for('auth.login'))
             
             user = get_current_user()
-            if not user or user.get('role') != required_role.value:
+            if not user or user.get('ruolo') != required_role.value:
                 flash(f"Accesso negato. Ruolo {required_role.value} richiesto", "error")
                 return redirect(url_for('user.dashboard'))
             
@@ -341,7 +341,7 @@ def can_user_invest(user_id: int) -> bool:
         return False
     
     # Admin può sempre investire
-    if user.get('role') == UserRole.ADMIN.value:
+    if user.get('ruolo') == UserRole.ADMIN.value:
         return True
     
     # Utenti normali devono avere KYC verificato
@@ -354,7 +354,7 @@ def can_user_withdraw(user_id: int) -> bool:
         return False
     
     # Admin può sempre prelevare
-    if user.get('role') == UserRole.ADMIN.value:
+    if user.get('ruolo') == UserRole.ADMIN.value:
         return True
     
     # Utenti normali devono avere KYC verificato

@@ -82,7 +82,7 @@ def login():
         # Cerca utente per email
         cur.execute(
             """
-            SELECT id, email, nome, cognome, password_hash, role
+            SELECT id, email, nome, cognome, password_hash, ruolo
             FROM users WHERE email = %s
             """,
             (email,),
@@ -107,13 +107,13 @@ def login():
                         "email": user["email"],
                         "nome": user["nome"],
                         "cognome": user["cognome"],
-                        "role": user["role"]
+                        "role": user["ruolo"]
                     }
                 }), 200
 
             # Altrimenti, redirect HTML normale
             flash(f"Benvenuto, {user['nome']} {user['cognome']}!", "success")
-            if user["role"] == "admin":
+            if user["ruolo"] == "admin":
                 return redirect(url_for("admin.admin_dashboard"))
             else:
                 return redirect(url_for("user.dashboard"))
