@@ -1798,6 +1798,11 @@ def users_export():
 # API Admin: Users Management (search, filters, detail, update)
 # =====================================================
 
+@admin_bp.get("/test-api")
+def test_api():
+    """Test API per debug."""
+    return jsonify({"status": "ok", "message": "Test API funziona"})
+
 @admin_bp.get("/api/users")
 def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin."""
