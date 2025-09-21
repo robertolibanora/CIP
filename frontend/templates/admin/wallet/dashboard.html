@@ -1,0 +1,178 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Wallet CIP - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-header-left">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="admin-back-button">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+                <div class="admin-header-text">
+                    <h1 class="admin-heading-1">Wallet CIP</h1>
+                    <p class="admin-text-small">Gestione wallet e transazioni criptovalute</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche Wallet -->
+    <div class="admin-grid admin-grid-cols-1 md:admin-grid-cols-2 lg:admin-grid-cols-4 gap-6 mb-8">
+        <!-- Bilancio Totale -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-icon admin-bg-blue-100">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                </div>
+                <h3 class="admin-card-title">Bilancio Totale</h3>
+            </div>
+            <div class="admin-card-content">
+                <p class="admin-text-2xl admin-font-bold admin-text-gray-900">€{{ "%.2f"|format(wallet_stats.total_balance or 0) }}</p>
+                <p class="admin-text-sm admin-text-gray-500">USDT</p>
+            </div>
+        </div>
+
+        <!-- Depositi in Attesa -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-icon admin-bg-yellow-100">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="admin-card-title">In Attesa</h3>
+            </div>
+            <div class="admin-card-content">
+                <p class="admin-text-2xl admin-font-bold admin-text-gray-900">{{ wallet_stats.pending_deposits or 0 }}</p>
+                <p class="admin-text-sm admin-text-gray-500">Depositi</p>
+            </div>
+        </div>
+
+        <!-- Depositi Completati -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-icon admin-bg-green-100">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="admin-card-title">Completati</h3>
+            </div>
+            <div class="admin-card-content">
+                <p class="admin-text-2xl admin-font-bold admin-text-gray-900">{{ wallet_stats.completed_deposits or 0 }}</p>
+                <p class="admin-text-sm admin-text-gray-500">Depositi</p>
+            </div>
+        </div>
+
+        <!-- Totale Depositi -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <div class="admin-card-icon admin-bg-purple-100">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+                <h3 class="admin-card-title">Totale Depositi</h3>
+            </div>
+            <div class="admin-card-content">
+                <p class="admin-text-2xl admin-font-bold admin-text-gray-900">€{{ "%.2f"|format(wallet_stats.total_deposits_amount or 0) }}</p>
+                <p class="admin-text-sm admin-text-gray-500">USDT</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configurazione Wallet -->
+    <div class="admin-grid admin-grid-cols-1 lg:admin-grid-cols-2 gap-6">
+        <!-- Configurazione Attuale -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Configurazione Wallet</h2>
+                <p class="admin-text-small">Wallet USDT attualmente configurato</p>
+            </div>
+            <div class="admin-card-content">
+                <div class="admin-space-y-4">
+                    <div>
+                        <label class="admin-label">Indirizzo Wallet</label>
+                        <div class="admin-input-container">
+                            <input type="text" 
+                                   value="{{ wallet_config.wallet_address or 'Non configurato' }}" 
+                                   class="admin-input" 
+                                   readonly>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="admin-label">Network</label>
+                        <div class="admin-input-container">
+                            <input type="text" 
+                                   value="{{ wallet_config.network or 'USDT' }}" 
+                                   class="admin-input" 
+                                   readonly>
+                        </div>
+                    </div>
+                    <div class="admin-text-sm admin-text-gray-500">
+                        <p>Ultimo aggiornamento: {{ wallet_config.updated_at or 'Mai' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Rapide -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h2 class="admin-heading-2">Azioni Rapide</h2>
+                <p class="admin-text-small">Gestisci wallet e transazioni</p>
+            </div>
+            <div class="admin-card-content">
+                <div class="admin-space-y-4">
+                    <a href="{{ url_for('admin.config_dashboard') }}" class="admin-btn admin-btn--primary admin-w-full">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Configura Wallet
+                    </a>
+                    
+                    <a href="{{ url_for('admin.deposits_dashboard') }}" class="admin-btn admin-btn--secondary admin-w-full">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Gestisci Depositi
+                    </a>
+                    
+                    <a href="{{ url_for('admin.transactions_dashboard') }}" class="admin-btn admin-btn--secondary admin-w-full">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Visualizza Transazioni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messaggio di Stato -->
+    <div class="admin-card admin-mt-6">
+        <div class="admin-card-content">
+            <div class="admin-alert admin-alert--info">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    <h3 class="admin-alert-title">Wallet in Sviluppo</h3>
+                    <p class="admin-alert-text">
+                        La gestione wallet è attualmente in fase di sviluppo. 
+                        Le funzionalità complete saranno disponibili nelle prossime versioni.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

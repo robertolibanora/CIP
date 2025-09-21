@@ -3201,6 +3201,30 @@ def config_bank_save():
             conn.rollback()
             return jsonify({"error": f"Errore nel salvataggio: {str(e)}"}), 500
     
+@admin_bp.get("/wallet")
+@admin_required
+def wallet_dashboard():
+    """Dashboard Wallet CIP"""
+    # Configurazione wallet di default (tabelle non implementate)
+    wallet_config = {
+        'wallet_address': 'Non configurato',
+        'network': 'USDT',
+        'created_at': None,
+        'updated_at': None
+    }
+    
+    # Statistiche wallet di default
+    wallet_stats = {
+        'total_balance': 0.0,
+        'pending_deposits': 0,
+        'completed_deposits': 0,
+        'total_deposits_amount': 0.0
+    }
+    
+    return render_template('admin/wallet/dashboard.html', 
+                         wallet_config=wallet_config, 
+                         wallet_stats=wallet_stats)
+
 @admin_bp.post("/config/wallet")
 @admin_required
 def config_wallet_save():
