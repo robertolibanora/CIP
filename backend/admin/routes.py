@@ -1803,60 +1803,26 @@ def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin.
     Supporta query: search, role, kyc, page, page_size.
     """
-    # Controllo semplificato per debug
+    # Versione di debug senza database
     from flask import session
     if 'user_id' not in session:
         return jsonify({"error": "unauthorized"}), 401
     
-    # Per ora saltiamo il controllo is_admin() per debug
-    # from backend.auth.middleware import get_current_user, is_admin
-    # if not is_admin():
-    #     return jsonify({"error": "forbidden"}), 403
-    # Normalizza parametri
-    search = request.args.get('search')
-    role_param = request.args.get('role')  # expected: 'investor' or 'non-investor'
-    kyc_param = request.args.get('kyc')    # expected: 'verified' | 'unverified' | 'pending' | 'rejected'
-    page = int(request.args.get('page', 1))
-    page_size = int(request.args.get('page_size', 25))
-
-    # Query semplificata per debug
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Query base senza filtri per debug
-            cur.execute("""
-                SELECT 
-                    u.id,
-                    u.nome || ' ' || u.cognome AS nome_completo,
-                    u.nome_telegram,
-                    u.kyc_status,
-                    u.created_at,
-                    u.is_vip
-                FROM users u
-                ORDER BY u.created_at DESC
-                LIMIT 10
-            """)
-            rows = cur.fetchall()
-            total = len(rows)
-    except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
-
-    # Normalizza risposta semplificata
-    items = []
-    for r in rows:
-        items.append({
-            'id': r['id'],
-            'nome': r.get('nome_completo') or '',
-            'telegram_username': r.get('nome_telegram') or '',
-            'investor_status': 'no',
-            'kyc_status': r.get('kyc_status'),
-            'created_at': r.get('created_at').isoformat() if r.get('created_at') else None,
-            'portfolio_total': 0,
-            'is_vip': r.get('is_vip', False),
-        })
-
+    # Risposta mock per debug
     return jsonify({
-        'items': items,
-        'total': total,
+        'items': [
+            {
+                'id': 1,
+                'nome': 'Test User',
+                'telegram_username': 'testuser',
+                'investor_status': 'no',
+                'kyc_status': 'unverified',
+                'created_at': '2025-09-21T14:00:00',
+                'portfolio_total': 0,
+                'is_vip': False,
+            }
+        ],
+        'total': 1,
         'page': 1,
         'page_size': 10
     })
