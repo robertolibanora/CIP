@@ -104,7 +104,7 @@ def dashboard():
         with get_conn() as conn, conn.cursor() as cur:
             # Dati utente base
             cur.execute("""
-                SELECT id, email, nome, role, cognome
+                SELECT id, email, nome, ruolo, cognome
                 FROM users WHERE id = %s
             """, (uid,))
             user_data = cur.fetchone()
