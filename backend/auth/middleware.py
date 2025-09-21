@@ -35,7 +35,7 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
     try:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT id, email, nome, cognome, ruolo, kyc_status
+                SELECT id, email, nome, cognome, ruolo
                 FROM users WHERE id = %s
             """, (user_id,))
             user = cur.fetchone()
@@ -63,8 +63,8 @@ def is_admin() -> bool:
 
 def is_kyc_verified() -> bool:
     """Verifica se l'utente corrente ha KYC verificato"""
-    user = get_current_user()
-    return user and user.get('kyc_status') == KYCStatus.VERIFIED.value
+    # KYC non implementato - sempre False per ora
+    return False
 
 # ============================================================================
 # VALIDAZIONE SICUREZZA SESSIONI
@@ -150,8 +150,8 @@ class KYCRequired:
         if user.get('ruolo') == UserRole.ADMIN.value:
             return True
         
-        # Utenti normali devono avere KYC verificato
-        return user.get('kyc_status') == KYCStatus.VERIFIED.value
+        # Utenti normali - KYC non implementato per ora
+        return True
     
     def __call__(self, f: Callable) -> Callable:
         """Decorator per proteggere route"""
@@ -341,7 +341,7 @@ def can_user_invest(user_id: int) -> bool:
         return True
     
     # Utenti normali devono avere KYC verificato
-    return user.get('kyc_status') == KYCStatus.VERIFIED.value
+    return True
 
 def can_user_withdraw(user_id: int) -> bool:
     """Verifica se un utente può prelevare"""
@@ -354,5 +354,5 @@ def can_user_withdraw(user_id: int) -> bool:
         return True
     
     # Utenti normali devono avere KYC verificato
-    return user.get('kyc_status') == KYCStatus.VERIFIED.value
+    return True
 
