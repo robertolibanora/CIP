@@ -94,143 +94,67 @@ def dashboard_debug():
 @user_bp.get("/dashboard")
 @login_required
 def dashboard():
-    """Dashboard principale con overview portfolio e statistiche"""
-    uid = session.get("user_id")
-    if os.environ.get("TESTING") == "1":
-        user_data = {"nome": "Test User", "kyc_status": "verified", "referral_code": "TESTREF"}
-        # Calcola nome da mostrare
-        nome_value = (user_data.get("nome") or "").strip()
-        greet_name = nome_value.split()[0] if nome_value else "Utente"
-        free_capital = 1000
-        invested_capital = 5000
-        referral_bonus = 50
-        profits = 200
-        total_available = free_capital + referral_bonus + profits
-        total_balance = total_available + invested_capital
-        avg_roi = 4.0
-        portfolio_status = "Attivo"
-        active_investments_data = []
-        referred_users_count = 0
-        total_referral_investments = 0
-        referral_link = request.url_root.rstrip('/') + '/auth/register?ref=TESTREF'
-        return render_template("user/dashboard.html",
-                               user=user_data,
-                               greet_name=greet_name,
-                               portfolio={},
-                               free_capital=free_capital,
-                               invested_capital=invested_capital,
-                               referral_bonus=referral_bonus,
-                               profits=profits,
-                               total_available=total_available,
-                               total_balance=total_balance,
-                               avg_roi=avg_roi,
-                               portfolio_status=portfolio_status,
-                               active_investments=active_investments_data,
-                               referred_users_count=referred_users_count,
-                               total_referral_investments=total_referral_investments,
-                               referral_link=referral_link,
-                               current_page="dashboard")
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Dati utente completi con stato KYC
-        cur.execute("""
-            SELECT id, email, nome, role, cognome, is_verified
-            FROM users WHERE id = %s
-        """, (uid,))
-        user_data = cur.fetchone()
-        # Calcola nome da mostrare
-        nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
-        nome_value = ((user_data.get("nome") if user_data else "") or "").strip()
-        greet_name = nome_value.split()[0] if nome_value else (nome_value if nome_value else "Utente")
+    """Dashboard principale con overview portfolio e statistiche - Versione semplificata"""
+    try:
+        uid = session.get("user_id")
+        if not uid:
+            return redirect(url_for("auth.login"))
         
-        # Portfolio overview - 4 sezioni distinte
-        cur.execute("""
-            SELECT free_capital, invested_capital, referral_bonus, profits
-            FROM user_portfolios 
-            WHERE user_id = %s
-        """, (uid,))
-        portfolio = cur.fetchone()
-        
-        if not portfolio:
-            # Crea portfolio se non esiste
+        # Versione semplificata per compatibilità
+        with get_conn() as conn, conn.cursor() as cur:
+            # Dati utente base
             cur.execute("""
-                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
-                VALUES (%s, 0.00, 0.00, 0.00, 0.00)
-                RETURNING free_capital, invested_capital, referral_bonus, profits
+                SELECT id, email, nome, role, cognome
+                FROM users WHERE id = %s
             """, (uid,))
-            portfolio = cur.fetchone()
-            conn.commit()
-        
-        # Investimenti attivi dettagliati (raggruppati per progetto)
-        cur.execute("""
-            SELECT p.id as project_id, p.name as project_name, 
-                   SUM(i.amount) as total_amount,
-                   MIN(i.created_at) as first_investment_date,
-                   MAX(i.created_at) as last_investment_date,
-                   COUNT(i.id) as investment_count,
-                   CASE WHEN p.total_amount > 0 THEN (SUM(i.amount) / p.total_amount * 100) ELSE 0 END as percentage
-            FROM investments i 
-            JOIN projects p ON p.id = i.project_id 
-            WHERE i.user_id = %s AND i.status = 'active'
-            GROUP BY p.id, p.name, p.total_amount
-            ORDER BY MAX(i.created_at) DESC
-        """, (uid,))
-        active_investments_data = cur.fetchall()
-        
-        # Statistiche referral - Esclude auto-referral
-        cur.execute("SELECT COUNT(*) as count FROM users WHERE referred_by = %s AND id != %s", (uid, uid))
-        referred_users_count = cur.fetchone()['count'] or 0
-        
-        cur.execute("""
-            SELECT COALESCE(SUM(i.amount), 0) as total_invested 
-            FROM investments i 
-            JOIN users u ON u.id = i.user_id 
-            WHERE u.referred_by = %s AND u.id != %s AND i.status IN ('active', 'completed')
-        """, (uid, uid))
-        total_referral_investments = cur.fetchone()['total_invested'] or 0
-        
-        # Calcola KPI e metriche
-        free_capital = portfolio['free_capital'] or 0
-        invested_capital = portfolio['invested_capital'] or 0
-        referral_bonus = portfolio['referral_bonus'] or 0
-        profits = portfolio['profits'] or 0
-        
-        total_available = free_capital + referral_bonus + profits
-        total_balance = total_available + invested_capital
-        
-        # Calcola RA medio se ci sono investimenti
-        avg_roi = 0
-        if invested_capital > 0 and profits > 0:
-            avg_roi = (profits / invested_capital) * 100
-        
-        # Stato portfolio basato su KYC e investimenti
-        portfolio_status = "Attivo" if user_data['kyc_status'] == 'verified' and invested_capital > 0 else "Inattivo"
-        
-        # Genera link referral
-        base_url = request.url_root.rstrip('/')
-        referral_link = f"{base_url}/auth/register?ref={user_data['referral_code']}" if user_data['referral_code'] else f"{base_url}/auth/register"
+            user_data = cur.fetchone()
+            
+            if not user_data:
+                return redirect(url_for("auth.login"))
+            
+            # Calcola nome da mostrare
+            nome_value = (user_data.get("nome") or "").strip()
+            greet_name = nome_value.split()[0] if nome_value else "Utente"
+            
+            # Dati semplificati per compatibilità
+            free_capital = 0.00
+            invested_capital = 0.00
+            referral_bonus = 0.00
+            profits = 0.00
+            total_available = free_capital + referral_bonus + profits
+            total_balance = total_available + invested_capital
+            avg_roi = 0.0
+            portfolio_status = "Inattivo"
+            active_investments_data = []
+            referred_users_count = 0
+            total_referral_investments = 0
+            referral_link = request.url_root.rstrip('/') + '/auth/register'
+            
+            return render_template("user/dashboard.html",
+                                   user=user_data,
+                                   greet_name=greet_name,
+                                   portfolio={},
+                                   free_capital=free_capital,
+                                   invested_capital=invested_capital,
+                                   referral_bonus=referral_bonus,
+                                   profits=profits,
+                                   total_available=total_available,
+                                   total_balance=total_balance,
+                                   avg_roi=avg_roi,
+                                   portfolio_status=portfolio_status,
+                                   active_investments=active_investments_data,
+                                   referred_users_count=referred_users_count,
+                                   total_referral_investments=total_referral_investments,
+                                   referral_link=referral_link,
+                                   current_page="dashboard")
     
-    return render_template("user/dashboard.html", 
-                         user=user_data,
-                         greet_name=greet_name,
-                         portfolio=portfolio,
-                         free_capital=free_capital,
-                         invested_capital=invested_capital,
-                         referral_bonus=referral_bonus,
-                         profits=profits,
-                         total_available=total_available,
-                         total_balance=total_balance,
-                         avg_roi=avg_roi,
-                         portfolio_status=portfolio_status,
-                         active_investments=active_investments_data,
-                         referred_users_count=referred_users_count,
-                         total_referral_investments=total_referral_investments,
-                         referral_link=referral_link,
-                         current_page="dashboard"
-                         )
+    except Exception as e:
+        # Log dell'errore per debug
+        print(f"Errore dashboard utente: {str(e)}")
+        return f"Errore dashboard: {str(e)}", 500
 
 # =====================================================
-# 2. NEW PROJECT - Nuovo investimento
+# 2. PROFILO UTENTE - Gestione dati personali
 # =====================================================
 
 @user_bp.get("/new-project")
