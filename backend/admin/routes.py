@@ -1850,7 +1850,7 @@ def api_admin_users_list():
         # Paginazione
         offset = (page - 1) * page_size
 
-        # Dati principali per tabella (includiamo saldo portafoglio)
+        # Dati principali per tabella (versione semplificata senza portfolio)
         cur.execute(f"""
             SELECT 
                 u.id,
@@ -1859,10 +1859,8 @@ def api_admin_users_list():
                 u.kyc_status,
                 u.created_at,
                 u.is_vip,
-                COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) +
-                COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) AS portfolio_total
+                0 AS portfolio_total
             FROM users u
-            LEFT JOIN user_portfolios up ON up.user_id = u.id
             {where_clause}
             ORDER BY u.created_at DESC
             LIMIT %s OFFSET %s
