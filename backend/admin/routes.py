@@ -3830,7 +3830,10 @@ def deposits_api_metrics():
                 'total_amount': 0.0
             }
             
-            for status, count, total_amount in results:
+            for row in results:
+                status = row['status']
+                count = row['count']
+                total_amount = row['coalesce']  # Il nome della colonna è 'coalesce'
                 logger.info(f"Processing status: {status}, count: {count}, total: {total_amount}")
                 if status == 'pending':
                     metrics['pending'] = count
