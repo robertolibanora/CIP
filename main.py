@@ -46,6 +46,7 @@ from backend.user import user_blueprints
 
 # Importa i nuovi blueprint per le API
 # I blueprint KYC sono già registrati in app_factory.py
+from backend.portfolio import portfolio_bp
 from backend.portfolio_api import portfolio_api_bp
 from backend.deposits import deposits_bp
 from backend.withdrawals import withdrawals_bp
@@ -67,6 +68,7 @@ for blueprint in user_blueprints:
 
 # Registra i nuovi blueprint per le API
 # I blueprint KYC sono già registrati in app_factory.py
+app.register_blueprint(portfolio_bp, url_prefix='/api')
 app.register_blueprint(portfolio_api_bp, url_prefix='/portfolio')
 app.register_blueprint(deposits_bp, url_prefix='/deposits')
 app.register_blueprint(withdrawals_bp, url_prefix='/withdrawals')

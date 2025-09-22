@@ -3,13 +3,11 @@ Portfolio API routes
 API per gestione portfolio e investimenti
 """
 
-from flask import Blueprint, request, session, jsonify
+from flask import request, session, jsonify
 import json
 from backend.shared.database import get_connection
 from backend.shared.validators import ValidationError
-
-# Evita conflitti con blueprint user 'portfolio'
-portfolio_bp = Blueprint("portfolio_api2", __name__)
+from . import portfolio_bp
 
 def get_conn():
     from backend.shared.database import get_connection
