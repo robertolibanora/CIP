@@ -236,6 +236,7 @@ let currentFilters = {};
 // Carica notifiche
 async function loadNotifications() {
     try {
+        console.log('Loading notifications...');
         document.getElementById('loading').style.display = 'block';
         document.getElementById('no-notifications').style.display = 'none';
         
@@ -251,6 +252,7 @@ async function loadNotifications() {
         
         if (response.ok) {
             const data = await response.json();
+            console.log('Notifications loaded:', data);
             notifications = data.notifications || [];
             renderNotifications();
             updateStats();
@@ -463,6 +465,7 @@ function showError(message) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, starting notifications system...');
     loadNotifications();
     
     document.getElementById('mark-all-read').addEventListener('click', markAllAsRead);
