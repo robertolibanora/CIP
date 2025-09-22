@@ -256,7 +256,14 @@
         >
           Crea Account
         </button>
-        <p id="registerError" class="mt-2 text-sm text-red-600 hidden"></p>
+        <div id="registerError" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg hidden">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-red-800 font-medium"></p>
+          </div>
+        </div>
       </form>
 
       <!-- Footer Links -->
@@ -389,21 +396,52 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
       let errorEl = termsContainer.querySelector('.error-message');
       if (!errorEl) {
         errorEl = document.createElement('p');
-        errorEl.className = 'error-message text-red-500 text-xs mt-1';
+        errorEl.className = 'error-message text-red-500 text-sm mt-2 font-medium';
         termsContainer.appendChild(errorEl);
       }
-      errorEl.textContent = 'Devi accettare i Termini e Condizioni per continuare';
+      errorEl.textContent = '⚠️ Devi accettare i Termini e Condizioni per continuare';
       errorEl.classList.remove('hidden');
     }
+    
+    // Mostra anche un avviso generale più visibile
+    const generalError = document.getElementById('registerError');
+    if (generalError) {
+      const errorText = generalError.querySelector('p');
+      if (errorText) {
+        errorText.textContent = 'ATTENZIONE: Devi accettare i Termini e Condizioni per creare un account';
+      }
+      generalError.classList.remove('hidden');
+    }
+    
     hasErrors = true;
+    
+    // Scroll al campo terms per evidenziare l'errore
+    termsAccepted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    termsAccepted.focus();
+    
+    // Aggiungi highlight al campo terms
+    const termsContainer = termsAccepted.closest('.flex');
+    if (termsContainer) {
+      termsContainer.classList.add('ring-2', 'ring-red-500', 'ring-opacity-50', 'bg-red-50', 'rounded-lg', 'p-2');
+      // Rimuovi highlight dopo 3 secondi
+      setTimeout(() => {
+        termsContainer.classList.remove('ring-2', 'ring-red-500', 'ring-opacity-50', 'bg-red-50', 'rounded-lg', 'p-2');
+      }, 3000);
+    }
   } else {
-    // Nascondi errore se presente
+    // Nascondi errori se presenti
     const termsContainer = termsAccepted.closest('.flex');
     if (termsContainer) {
       const errorEl = termsContainer.querySelector('.error-message');
       if (errorEl) {
         errorEl.classList.add('hidden');
       }
+    }
+    
+    // Nascondi anche l'errore generale
+    const generalError = document.getElementById('registerError');
+    if (generalError) {
+      generalError.classList.add('hidden');
     }
   }
   

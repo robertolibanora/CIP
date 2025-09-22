@@ -157,7 +157,7 @@ def register():
 
         # Validazione termini e condizioni
         if not terms_accepted:
-            flash("Devi accettare i Termini e Condizioni per continuare", "error")
+            flash("⚠️ ATTENZIONE: Devi accettare i Termini e Condizioni per creare un account", "error")
             return render_template("auth/register.html", 
                                  form_data={
                                      'nome': nome,
