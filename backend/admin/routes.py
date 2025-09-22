@@ -919,11 +919,6 @@ def portfolio_timeline():
             "invested_capital": invested_capital_timeline
         })
 
-@admin_bp.post("/portfolio/movements")
-@admin_required
-def create_portfolio_movement():
-    """Crea nuovo movimento portfolio"""
-    data = request.json
     
     required_fields = ['user_id', 'type', 'section', 'amount', 'description']
     for field in required_fields:

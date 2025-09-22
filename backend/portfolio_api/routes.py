@@ -255,12 +255,6 @@ def get_transaction_detail(transaction_id):
     
     return jsonify({'transaction': transaction})
 
-@portfolio_api_bp.route('/api/movements', methods=['POST'])
-@kyc_verified
-def create_portfolio_movement():
-    """Crea un nuovo movimento nel portafoglio (solo per operazioni interne)"""
-    uid = session.get("user_id")
-    data = request.get_json() or {}
     
     # Validazione dati
     required_fields = ['type', 'amount', 'description']

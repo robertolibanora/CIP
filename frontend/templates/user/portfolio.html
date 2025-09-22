@@ -197,11 +197,6 @@
                     id="tab-withdrawals">
                 Prelievi
             </button>
-            <button onclick="showSection('movements')" 
-                    class="flex-shrink-0 py-2 px-4 text-center rounded-md transition-colors text-gray-600 hover:text-gray-900" 
-                    id="tab-movements">
-                Movimenti
-            </button>
         </div>
     </div>
 
@@ -601,24 +596,6 @@
             </div>
         </div>
 
-        <!-- Sezione Movimenti -->
-        <div id="section-movements" class="section-content hidden">
-            <div class="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">Movimenti Capitali</h2>
-                <div id="movements-list" class="space-y-4">
-                    <div class="py-2">
-                      <div class="space-y-3">
-                        {% for _ in range(4) %}
-                        <div class="animate-pulse">
-                          <div class="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                          <div class="h-3 bg-gray-100 rounded w-1/3"></div>
-                        </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 
@@ -953,9 +930,7 @@ function showSection(sectionName) {
         loadWithdrawals();
     }
     
-    if (sectionName === 'movements' && !window.movementsLoaded) {
-        loadMovements();
-    } else if (sectionName === 'deposits') {
+    if (sectionName === 'deposits') {
         if (!window.depositsLoaded) {
             loadDeposits();
         }
@@ -1627,61 +1602,6 @@ async function loadWalletConfig() {
     }
 }
 
-// Carica movimenti capitali
-async function loadMovements() {
-    try {
-        const response = await fetch('/api/portfolio/movements');
-        const data = await response.json();
-        
-        const movementsList = document.getElementById('movements-list');
-        
-        if (data.movements && data.movements.length > 0) {
-            movementsList.innerHTML = data.movements.map(movement => `
-                <div class="border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="font-medium text-gray-900">€${parseFloat(movement.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
-                            <p class="text-sm text-gray-500">${movement.description}</p>
-                        </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium
-                            ${movement.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                              movement.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-gray-100 text-gray-800'}">
-                            ${movement.status === 'completed' ? 'Completato' : 
-                              movement.status === 'pending' ? 'In Attesa' : 
-                              movement.status === 'failed' ? 'Fallito' : movement.status}
-                        </span>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        <p>Data: ${new Date(movement.created_at).toLocaleDateString('it-IT')}</p>
-                        <p>Tipo: ${movement.type === 'investment' ? 'Investimento' : 
-                                   movement.type === 'roi' ? 'Rendimento' : 
-                                   movement.type === 'referral' ? 'Referral' : movement.type}</p>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            movementsList.innerHTML = `
-                <div class="text-center py-8">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun movimento</h3>
-                    <p class="text-gray-600">Non ci sono ancora movimenti nel tuo portafoglio.</p>
-                </div>
-            `;
-        }
-        
-        window.movementsLoaded = true;
-    } catch (error) {
-        console.error('Errore caricamento movimenti:', error);
-        document.getElementById('movements-list').innerHTML = `
-            <div class="text-center py-8 text-red-600">
-                <p>Errore durante il caricamento dei movimenti</p>
-            </div>
-        `;
-    }
-}
 
 
 
