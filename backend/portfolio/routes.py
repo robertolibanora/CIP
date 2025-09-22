@@ -7,6 +7,7 @@ from flask import request, session, jsonify
 import json
 from backend.shared.database import get_connection
 from backend.shared.validators import ValidationError
+from backend.auth.decorators import login_required
 from . import portfolio_bp
 
 def get_conn():
