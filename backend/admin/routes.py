@@ -3815,6 +3815,7 @@ def deposits_dashboard():
 @admin_required
 def deposits_api_metrics():
     """API per statistiche depositi"""
+    logger.info(f"deposits_api_metrics called - session: {dict(session)}")
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
@@ -3872,6 +3873,7 @@ def deposits_api_metrics():
 @admin_required
 def deposits_api_pending():
     """API per depositi in attesa"""
+    logger.info(f"deposits_api_pending called - session: {dict(session)}")
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
