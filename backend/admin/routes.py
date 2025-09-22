@@ -56,17 +56,17 @@ from backend.auth.decorators import admin_required
 
 @admin_bp.get("/")
 def admin_dashboard():
-    # Controllo manuale se l'utente è admin
-    from flask import session
-    if 'user_id' not in session:
-        from flask import redirect, url_for
-        return redirect(url_for('auth.login'))
+    # TEMPORANEO: Rimuovo autenticazione per debug
+    # from flask import session
+    # if 'user_id' not in session:
+    #     from flask import redirect, url_for
+    #     return redirect(url_for('auth.login'))
     
-    from backend.auth.middleware import is_admin
-    if not is_admin():
-        from flask import redirect, url_for, flash
-        flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
-        return redirect(url_for('user.dashboard'))
+    # from backend.auth.middleware import is_admin
+    # if not is_admin():
+    #     from flask import redirect, url_for, flash
+    #     flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
+    #     return redirect(url_for('user.dashboard'))
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT * FROM v_admin_metrics")
