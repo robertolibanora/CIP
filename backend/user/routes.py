@@ -1128,4 +1128,52 @@ def api_kyc_status():
             "is_admin": user["role"] == "admin"
         })
 
+@user_bp.get("/api/test-referral-debug")
+def test_referral_debug():
+    """Test endpoint per verificare funzionamento referral senza autenticazione."""
+    try:
+        uid = 2  # Utente di test
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Test referral link
+            cur.execute("SELECT referral_code, kyc_status FROM users WHERE id = %s", (uid,))
+            user_data = cur.fetchone()
+            referral_code = user_data['referral_code'] if user_data else None
+            kyc_status = user_data['kyc_status'] if user_data else None
+            
+            if not referral_code:
+                return jsonify({
+                    "success": False,
+                    "error": "Codice referral non trovato",
+                    "referral_code": None,
+                    "kyc_status": kyc_status
+                })
+            
+            # Costruisci link referral
+            base_url = "https://ciprealestate.eu"
+            referral_link = f"{base_url}/auth/register?ref={referral_code}"
+            
+            # Test referral data
+            cur.execute("""
+                SELECT COUNT(*) as total_invited
+                FROM users u
+                WHERE u.referred_by = %s AND u.id != %s
+            """, (uid, uid))
+            stats = cur.fetchone()
+            
+            return jsonify({
+                "success": True,
+                "referral_code": referral_code,
+                "referral_link": referral_link,
+                "total_invited": stats['total_invited'] if stats else 0,
+                "kyc_status": kyc_status,
+                "user_id": uid
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
