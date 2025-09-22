@@ -3661,6 +3661,12 @@ def admin_documents_visibility(doc_id):
     return jsonify({"updated": True})
 
 # ---- Sistema Notifiche ----
+@admin_bp.get("/notifications")
+@admin_required
+def notifications_dashboard():
+    """Dashboard notifiche admin"""
+    return render_template('admin/notifications/dashboard.html')
+
 @admin_bp.post("/notifications/new")
 @admin_required
 def notifications_new():

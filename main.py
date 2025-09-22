@@ -49,6 +49,7 @@ from backend.user import user_blueprints
 from backend.portfolio_api import portfolio_api_bp
 from backend.deposits import deposits_bp
 from backend.withdrawals import withdrawals_bp
+from backend.admin.notifications_api import notifications_api
 # from backend.profits import profits_bp  # Registrato in app_factory.py
 
 # Healthcheck minimale per smoke test
@@ -70,6 +71,7 @@ for blueprint in user_blueprints:
 app.register_blueprint(portfolio_api_bp, url_prefix='/portfolio')
 app.register_blueprint(deposits_bp, url_prefix='/deposits')
 app.register_blueprint(withdrawals_bp, url_prefix='/withdrawals')
+app.register_blueprint(notifications_api)
 # app.register_blueprint(profits_bp, url_prefix='/profits')  # Registrato in app_factory.py
 
 # Route per assets
