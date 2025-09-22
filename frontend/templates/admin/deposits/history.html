@@ -37,16 +37,16 @@
         <!-- Header -->
         <div class="mb-6">
             <div class="flex items-center justify-between">
-                <div>
+            <div>
                     <h1 class="text-2xl font-bold text-gray-900">Storico Depositi</h1>
                     <p class="mt-1 text-sm text-gray-600">Visualizza e gestisci tutti i depositi</p>
-                </div>
+            </div>
                 <div class="flex space-x-3">
                     <a href="/admin/deposits" 
                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
+                    </svg>
                         Torna ai Pending
                     </a>
                     <button id="delete-selected-btn" 
@@ -57,25 +57,25 @@
                         Elimina Selezionati
                     </button>
                 </div>
-            </div>
         </div>
+    </div>
 
-        <!-- Filtri e Ricerca -->
+    <!-- Filtri e Ricerca -->
         <div class="bg-white shadow rounded-lg mb-6">
             <div class="px-4 py-3 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">Filtri</h3>
             </div>
             <div class="p-4">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
+                <div>
                         <label class="block text-sm font-medium text-gray-700">Status</label>
                         <select id="status-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
                             <option value="">Tutti</option>
                             <option value="pending">In Attesa</option>
-                            <option value="completed">Completati</option>
-                            <option value="rejected">Rifiutati</option>
-                        </select>
-                    </div>
+                        <option value="completed">Completati</option>
+                        <option value="rejected">Rifiutati</option>
+                    </select>
+                </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Utente</label>
                         <input type="text" id="user-filter" placeholder="Cerca per nome o email..." 
@@ -86,7 +86,7 @@
                         <input type="date" id="date-from" 
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
                     </div>
-                    <div>
+                <div>
                         <label class="block text-sm font-medium text-gray-700">Data A</label>
                         <input type="date" id="date-to" 
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
@@ -103,8 +103,8 @@
                     </button>
                 </div>
             </div>
-        </div>
-
+                </div>
+                
         <!-- Depositi List -->
         <div class="bg-white shadow rounded-lg">
             <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -124,7 +124,7 @@
                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                        </svg>
+                    </svg>
                         Caricamento depositi...
                     </div>
                 </div>
@@ -141,9 +141,9 @@
                     <p class="mt-1 text-sm text-gray-500">Non ci sono depositi che corrispondono ai filtri selezionati.</p>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <!-- Paginazione -->
+            <!-- Paginazione -->
         <div id="pagination" class="mt-6 flex justify-center" style="display: none;">
             <!-- Paginazione verrà caricata qui -->
         </div>
@@ -169,8 +169,8 @@
                 </button>
                 <button id="confirm-no" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
                     Annulla
-                </button>
-            </div>
+            </button>
+        </div>
         </div>
     </div>
 </div>
@@ -265,7 +265,7 @@ function renderDeposits(deposits) {
             <div class="flex items-center">
                 <!-- Checkbox -->
                 <div class="flex-shrink-0 mr-4">
-                    <input type="checkbox" 
+                <input type="checkbox" 
                            class="deposit-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
                            data-deposit-id="${deposit.id}">
                 </div>
@@ -300,18 +300,18 @@ function renderDeposits(deposits) {
                     <!-- Seconda Riga: Dettagli Deposito -->
                     <div class="grid grid-cols-4 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">IBAN</label>
+                            <label class="block text-sm font-medium text-gray-700">${deposit.method === 'bank' ? 'IBAN' : 'Indirizzo'}</label>
                             <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.iban || 'N/A'}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Metodo</label>
                             <p class="mt-1 text-sm text-gray-900">${deposit.method || 'bank'}</p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Chiave Unica</label>
-                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.unique_key || 'N/A'}</p>
-                        </div>
-                        <div>
+                <div>
+                            <label class="block text-sm font-medium text-gray-700">${deposit.method === 'bank' ? 'Chiave Unica' : 'Rete'}</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.method === 'bank' ? (deposit.unique_key || 'N/A') : (deposit.network || 'ethereum')}</p>
+                </div>
+                    <div>
                             <label class="block text-sm font-medium text-gray-700">Riferimento Pagamento</label>
                             <p class="mt-1 text-sm text-gray-900">${deposit.payment_reference || 'N/A'}</p>
                         </div>
@@ -395,7 +395,7 @@ function handleCheckboxChange(event) {
     
     if (event.target.checked) {
         selectedDeposits.add(depositId);
-    } else {
+        } else {
         selectedDeposits.delete(depositId);
     }
     

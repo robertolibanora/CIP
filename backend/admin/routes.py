@@ -3864,6 +3864,7 @@ def deposits_api_pending():
                 SELECT dr.id, dr.amount, 
                        COALESCE(dr.iban, '') as iban, 
                        COALESCE(dr.method, 'bank') as method, 
+                       COALESCE(dr.network, 'ethereum') as network,
                        COALESCE(dr.unique_key, '') as unique_key, 
                        COALESCE(dr.payment_reference, '') as payment_reference,
                        dr.created_at, 
@@ -4002,7 +4003,9 @@ def deposits_api_history():
         with get_conn() as conn, conn.cursor() as cur:
             # Query base
             base_query = """
-                SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
+                SELECT dr.id, dr.amount, dr.iban, dr.method, 
+                       COALESCE(dr.network, 'ethereum') as network,
+                       dr.unique_key, dr.payment_reference,
                        dr.status, dr.created_at, dr.approved_at, dr.admin_notes,
                        u.id as user_id, u.nome, u.email, u.kyc_status,
                        ic.bank_name, ic.account_holder,

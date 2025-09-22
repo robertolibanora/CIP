@@ -294,7 +294,7 @@ function renderDeposits(deposits) {
                     <!-- Seconda Riga: Dettagli Deposito -->
                     <div class="grid grid-cols-4 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">IBAN</label>
+                            <label class="block text-sm font-medium text-gray-700">${deposit.method === 'bank' ? 'IBAN' : 'Indirizzo'}</label>
                             <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.iban || 'N/A'}</p>
                         </div>
                         <div>
@@ -302,8 +302,8 @@ function renderDeposits(deposits) {
                             <p class="mt-1 text-sm text-gray-900">${deposit.method || 'bank'}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Chiave Unica</label>
-                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.unique_key || 'N/A'}</p>
+                            <label class="block text-sm font-medium text-gray-700">${deposit.method === 'bank' ? 'Chiave Unica' : 'Rete'}</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.method === 'bank' ? (deposit.unique_key || 'N/A') : (deposit.network || 'ethereum')}</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Riferimento Pagamento</label>
