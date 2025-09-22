@@ -109,3 +109,61 @@ def portfolio_detail(investment_id):
         yields = cur.fetchall()
     
     return jsonify({"investment": inv, "yields": yields})
+
+# =====================================================
+# API PER 4 SEZIONI PORTFOLIO
+# =====================================================
+
+@portfolio_bp.route('/api/portfolio/4-sections', methods=['GET'])
+def get_portfolio_4_sections():
+    """API per ottenere le 4 sezioni del portafoglio utente"""
+    uid = session.get("user_id")
+    
+    if not uid:
+        return jsonify({'error': 'Non autorizzato'}), 401
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni portafoglio utente con 4 sezioni
+        cur.execute("""
+            SELECT 
+                free_capital,
+                invested_capital,
+                referral_bonus,
+                profits,
+                created_at,
+                updated_at
+            FROM user_portfolios 
+            WHERE user_id = %s
+        """, (uid,))
+        
+        portfolio = cur.fetchone()
+        
+        if not portfolio:
+            # Crea portafoglio vuoto se non esiste
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                VALUES (%s, 0.00, 0.00, 0.00, 0.00)
+                RETURNING free_capital, invested_capital, referral_bonus, profits, created_at, updated_at
+            """, (uid,))
+            portfolio = cur.fetchone()
+            conn.commit()
+        
+        # Calcola totale
+        total_balance = float(portfolio['free_capital']) + float(portfolio['invested_capital']) + float(portfolio['referral_bonus']) + float(portfolio['profits'])
+        
+        # Serializza datetime per JSON
+        portfolio_data = dict(portfolio)
+        if portfolio_data.get('created_at'):
+            try:
+                portfolio_data['created_at'] = portfolio_data['created_at'].isoformat()
+            except Exception:
+                portfolio_data['created_at'] = str(portfolio_data['created_at'])
+        if portfolio_data.get('updated_at'):
+            try:
+                portfolio_data['updated_at'] = portfolio_data['updated_at'].isoformat()
+            except Exception:
+                portfolio_data['updated_at'] = str(portfolio_data['updated_at'])
+        
+        portfolio_data['total_balance'] = total_balance
+        
+        return jsonify({'portfolio': portfolio_data})
