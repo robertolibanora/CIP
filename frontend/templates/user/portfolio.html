@@ -13,6 +13,30 @@
     text-transform: none !important;
 }
 
+/* Miglioramenti per modal Sposta Capitale */
+#transferModalContent {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+#transferModalContent::-webkit-scrollbar {
+    width: 6px;
+}
+
+#transferModalContent::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#transferModalContent::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#transferModalContent::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
 /* Preveni conversioni automatiche del browser */
 #withdrawal-wallet:focus {
     text-transform: none !important;
@@ -2469,7 +2493,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Modal Sposta Capitale -->
 <div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0" id="transferModalContent">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform transition-all duration-300 scale-95 opacity-0" id="transferModalContent">
             <!-- Header -->
             <div class="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
                 <div class="flex items-center">
@@ -2538,13 +2562,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <!-- Pulsanti -->
-                <div class="flex space-x-3 pt-6">
+                <div class="flex space-x-3 pt-6 pb-8">
                     <button type="button" onclick="closeTransferModal()" 
                             class="flex-1 px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-semibold transition-all duration-200 hover:shadow-md">
                         Annulla
                     </button>
                     <button type="submit" 
-                            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-105">
+                            class="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-105">
                         <span class="flex items-center justify-center">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -2553,6 +2577,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         </span>
                     </button>
                 </div>
+                
+                <!-- Spazio bianco aggiuntivo per scroll -->
+                <div class="h-16 bg-white"></div>
             </form>
         </div>
     </div>
