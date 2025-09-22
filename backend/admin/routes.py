@@ -3897,7 +3897,6 @@ def deposits_api_pending():
         return jsonify({'pending_deposits': []})
 
 @admin_bp.post("/api/deposits/approve/<int:deposit_id>")
-@admin_required
 def deposits_api_approve(deposit_id):
     """API per approvare deposito"""
     try:
