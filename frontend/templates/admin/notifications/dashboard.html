@@ -1,143 +1,23 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Notifiche Admin - CIP Immobiliare{% endblock %}
-
-{% block extra_css %}
-<style>
-    .notification-item {
-        transition: all 0.3s ease;
-        border-left: 4px solid transparent;
-    }
-    
-    .notification-item.unread {
-        border-left-color: #3b82f6;
-        background-color: #f8fafc;
-    }
-    
-    .notification-item.kyc {
-        border-left-color: #f59e0b;
-    }
-    
-    .notification-item.deposit {
-        border-left-color: #10b981;
-    }
-    
-    .notification-item.withdrawal {
-        border-left-color: #ef4444;
-    }
-    
-    .notification-item:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    
-    .notification-type-badge {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .notification-actions {
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    .notification-item:hover .notification-actions {
-        opacity: 1;
-    }
-    
-    .notification-close-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background-color: #ef4444;
-        color: white;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        font-weight: bold;
-        opacity: 1;
-        transition: all 0.3s ease;
-        z-index: 10;
-        line-height: 1;
-    }
-    
-    .notification-item:hover .notification-close-btn {
-        opacity: 1;
-    }
-    
-    .notification-close-btn:hover {
-        background-color: #dc2626;
-        transform: scale(1.1);
-    }
-</style>
-{% endblock %}
+{% block title %}Notifiche Admin{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900">Notifiche Admin</h1>
-                    <p class="mt-2 text-gray-600">Gestisci le notifiche per KYC, depositi e prelievi</p>
-                </div>
-                <div class="flex space-x-3">
-                    <button id="mark-all-read" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-                        Segna tutte come lette
-                    </button>
-                    <button id="delete-all" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
-                        Elimina tutte
-                    </button>
-                </div>
-            </div>
+            <h1 class="text-3xl font-bold text-gray-900">Notifiche Admin</h1>
+            <p class="mt-2 text-gray-600">Gestisci le notifiche degli utenti</p>
         </div>
 
-        <!-- Filtri -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div class="flex flex-wrap gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                    <select id="filter-type" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Tutti i tipi</option>
-                        <option value="kyc">KYC</option>
-                        <option value="deposit">Depositi</option>
-                        <option value="withdrawal">Prelievi</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Stato</label>
-                    <select id="filter-status" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Tutti</option>
-                        <option value="unread">Non lette</option>
-                        <option value="read">Lette</option>
-                    </select>
-                </div>
-                <div class="flex items-end">
-                    <button id="apply-filters" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
-                        Applica Filtri
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistiche -->
+        <!-- Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 1 0-15 0v5h5l-5 5-5-5h5V7a7.5 7.5 0 1 1 15 0v10z"/>
-                            </svg>
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">📧</span>
                         </div>
                     </div>
                     <div class="ml-4">
@@ -147,29 +27,25 @@
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
+                        <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">⏳</span>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Non lette</p>
+                        <p class="text-sm font-medium text-gray-500">Non Lette</p>
                         <p class="text-2xl font-semibold text-gray-900" id="unread-notifications">0</p>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
+                        <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">✅</span>
                         </div>
                     </div>
                     <div class="ml-4">
@@ -179,13 +55,11 @@
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                            </svg>
+                        <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold">💰</span>
                         </div>
                     </div>
                     <div class="ml-4">
@@ -196,159 +70,189 @@
             </div>
         </div>
 
-        <!-- Lista Notifiche -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Notifiche Recenti</h2>
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow mb-6 p-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select id="type-filter" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">Tutti</option>
+                        <option value="kyc">KYC</option>
+                        <option value="deposit">Depositi</option>
+                        <option value="withdrawal">Prelievi</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stato</label>
+                    <select id="status-filter" class="border border-gray-300 rounded-md px-3 py-2 text-sm">
+                        <option value="">Tutti</option>
+                        <option value="unread">Non lette</option>
+                        <option value="read">Lette</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-end">
+                    <button id="apply-filters" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                        Applica Filtri
+                    </button>
+                </div>
+                
+                <div class="flex items-end ml-auto space-x-2">
+                    <button id="mark-all-read" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700">
+                        Segna Tutte Lette
+                    </button>
+                    <button id="delete-all" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700">
+                        Elimina Tutte
+                    </button>
+                </div>
             </div>
-            
-            <div id="notifications-list" class="divide-y divide-gray-200">
-                <!-- Le notifiche verranno caricate qui -->
+        </div>
+
+        <!-- Notifications List -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Notifiche</h3>
             </div>
             
             <div id="loading" class="text-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p class="text-gray-500 mt-2">Caricamento notifiche...</p>
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">Caricamento notifiche...</p>
             </div>
             
-            <div id="no-notifications" class="text-center py-12 hidden">
-                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 1 0-15 0v5h5l-5 5-5-5h5V7a7.5 7.5 0 1 1 15 0v10z"/>
-                </svg>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna notifica</h3>
-                <p class="text-gray-500">Non ci sono notifiche da visualizzare</p>
+            <div id="no-notifications" class="text-center py-8 text-gray-500" style="display: none;">
+                <p>Nessuna notifica trovata</p>
             </div>
             
-            <!-- Footer con link per visualizzare tutte le notifiche -->
-            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
-                <a href="/admin/notifications" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Visualizza tutte le notifiche
-                </a>
+            <div id="notifications-list" class="divide-y divide-gray-200">
+                <!-- Notifications will be loaded here -->
             </div>
         </div>
     </div>
 </div>
 
 <script>
+// Variabili globali
 let notifications = [];
 let currentFilters = {};
 
-// Carica notifiche con gestione errori robusta
+// Carica notifiche
 async function loadNotifications() {
     try {
-        console.log('📡 Loading notifications...');
+        console.log('📡 Caricamento notifiche...');
         
-        // Verifica che gli elementi esistano prima di usarli
-        const loadingEl = document.getElementById('loading');
-        const noNotificationsEl = document.getElementById('no-notifications');
+        // Mostra loading
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('no-notifications').style.display = 'none';
+        document.getElementById('notifications-list').innerHTML = '';
         
-        if (loadingEl) loadingEl.style.display = 'block';
-        if (noNotificationsEl) noNotificationsEl.style.display = 'none';
-        
+        // Prepara parametri
         const params = new URLSearchParams();
         if (currentFilters.type) params.append('type', currentFilters.type);
-        if (currentFilters.status) {
-            if (currentFilters.status === 'unread') params.append('unread_only', 'true');
-        }
+        if (currentFilters.status === 'unread') params.append('unread_only', 'true');
         
+        // Chiamata API
         const response = await fetch(`/admin/api/notifications/?${params.toString()}`, {
             credentials: 'same-origin'
         });
         
-        console.log('📊 Response status:', response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('📋 Notifications loaded:', data);
-            notifications = data.notifications || [];
-            console.log(`✅ ${notifications.length} notifications to render`);
-            
-            renderNotifications();
-            updateStats();
-        } else {
-            console.error('❌ Errore nel caricamento notifiche:', response.status);
-            showError('Errore nel caricamento delle notifiche');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
+        
+        const data = await response.json();
+        notifications = data.notifications || [];
+        
+        console.log(`✅ Caricate ${notifications.length} notifiche`);
+        
+        // Renderizza notifiche
+        renderNotifications();
+        updateStats();
+        
     } catch (error) {
-        console.error('❌ Errore nel caricamento notifiche:', error);
-        showError('Errore di connessione');
+        console.error('❌ Errore caricamento notifiche:', error);
+        document.getElementById('notifications-list').innerHTML = 
+            '<div class="text-center py-8 text-red-500">Errore nel caricamento delle notifiche</div>';
     } finally {
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) loadingEl.style.display = 'none';
+        document.getElementById('loading').style.display = 'none';
     }
 }
 
-// Renderizza notifiche con gestione errori robusta
+// Renderizza notifiche
 function renderNotifications() {
-    try {
-        console.log(`🎨 Rendering ${notifications.length} notifications...`);
-        
-        const container = document.getElementById('notifications-list');
-        
-        if (!container) {
-            console.error('❌ Container not found');
-            return;
-        }
-        
-        if (notifications.length === 0) {
-            const noNotificationsEl = document.getElementById('no-notifications');
-            if (noNotificationsEl) noNotificationsEl.style.display = 'block';
-            console.log('ℹ️ No notifications to render');
-            return;
-        }
+    const container = document.getElementById('notifications-list');
     
-    container.innerHTML = notifications.map(notification => `
-        <div class="notification-item relative p-6 ${notification.is_read ? '' : 'unread'} ${notification.type}" data-id="${notification.id}">
-            <!-- Pulsante X per eliminazione rapida -->
-            <button class="notification-close-btn" onclick="deleteNotification(${notification.id})" title="Elimina notifica">
+    if (notifications.length === 0) {
+        document.getElementById('no-notifications').style.display = 'block';
+        return;
+    }
+    
+    const html = notifications.map(notification => `
+        <div class="notification-item p-6 hover:bg-gray-50 relative" data-id="${notification.id}">
+            <!-- Pulsante X per eliminazione -->
+            <button 
+                class="absolute top-4 right-4 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors"
+                onclick="deleteNotification(${notification.id})"
+                title="Elimina notifica"
+            >
                 ×
             </button>
             
-            <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-3 mb-2">
-                        <span class="notification-type-badge px-2 py-1 rounded-full text-xs ${
-                            notification.type === 'kyc' ? 'bg-yellow-100 text-yellow-800' :
-                            notification.type === 'deposit' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                        }">
-                            ${notification.type.toUpperCase()}
+            <div class="flex items-start space-x-4">
+                <!-- Icona tipo -->
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center ${
+                        notification.type === 'kyc' ? 'bg-yellow-100' :
+                        notification.type === 'deposit' ? 'bg-green-100' :
+                        'bg-red-100'
+                    }">
+                        <span class="text-lg">
+                            ${notification.type === 'kyc' ? '📋' :
+                              notification.type === 'deposit' ? '💰' :
+                              '💸'}
                         </span>
-                        <span class="text-sm text-gray-500">${formatDate(notification.created_at)}</span>
-                        ${!notification.is_read ? '<span class="w-2 h-2 bg-blue-600 rounded-full"></span>' : ''}
-                    </div>
-                    
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">${notification.title}</h3>
-                    <p class="text-gray-600 mb-2">${notification.message}</p>
-                    
-                    <div class="text-sm text-gray-500">
-                        <span class="font-medium">Utente:</span> ${notification.nome} ${notification.cognome} (${notification.email})
                     </div>
                 </div>
                 
-                <div class="notification-actions flex space-x-2 ml-4">
-                    ${!notification.is_read ? `
-                        <button onclick="markAsRead(${notification.id})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            Segna come letta
-                        </button>
-                    ` : ''}
-                    <button onclick="deleteNotification(${notification.id})" class="text-red-600 hover:text-red-800 text-sm font-medium">
-                        Elimina
-                    </button>
+                <!-- Contenuto -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">${notification.title}</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                notification.is_read ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }">
+                                ${notification.is_read ? 'Letta' : 'Non letta'}
+                            </span>
+                            <span class="text-sm text-gray-500">
+                                ${formatDate(notification.created_at)}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-2 text-gray-600">${notification.message}</p>
+                    
+                    <div class="mt-3 text-sm text-gray-500">
+                        <strong>Utente:</strong> ${notification.nome} ${notification.cognome} (${notification.email})
+                    </div>
+                    
+                    <!-- Azioni -->
+                    <div class="mt-4 flex space-x-2">
+                        ${!notification.is_read ? `
+                            <button 
+                                onclick="markAsRead(${notification.id})"
+                                class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                                Segna come letta
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         </div>
     `).join('');
     
     container.innerHTML = html;
-    console.log('✅ Notifications rendered successfully');
-    } catch (error) {
-        console.error('❌ Error rendering notifications:', error);
-        const container = document.getElementById('notifications-list');
-        if (container) {
-            container.innerHTML = '<div class="text-center py-8 text-red-500">Errore nel caricamento delle notifiche</div>';
-        }
-    }
 }
 
 // Aggiorna statistiche
@@ -365,57 +269,59 @@ function updateStats() {
 }
 
 // Marca come letta
-async function markAsRead(notificationId) {
+async function markAsRead(id) {
     try {
-        const response = await fetch(`/admin/api/notifications/${notificationId}/read`, {
+        const response = await fetch(`/admin/api/notifications/${id}/read`, {
             method: 'POST',
             credentials: 'same-origin'
         });
         
         if (response.ok) {
-            const notification = notifications.find(n => n.id === notificationId);
+            // Aggiorna localmente
+            const notification = notifications.find(n => n.id === id);
             if (notification) {
                 notification.is_read = true;
-                notification.read_at = new Date().toISOString();
+                renderNotifications();
+                updateStats();
             }
-            renderNotifications();
-            updateStats();
-            showSuccess('Notifica marcata come letta');
-        } else {
-            showError('Errore nel marcare la notifica come letta');
         }
     } catch (error) {
-        console.error('Errore:', error);
-        showError('Errore di connessione');
+        console.error('Errore marcatura letta:', error);
     }
 }
 
 // Elimina notifica
-async function deleteNotification(notificationId) {
-    if (!confirm('Sei sicuro di voler eliminare questa notifica?')) return;
+async function deleteNotification(id) {
+    if (!confirm('Sei sicuro di voler eliminare questa notifica?')) {
+        return;
+    }
     
     try {
-        const response = await fetch(`/admin/api/notifications/${notificationId}`, {
+        const response = await fetch(`/admin/api/notifications/${id}`, {
             method: 'DELETE',
             credentials: 'same-origin'
         });
         
         if (response.ok) {
-            notifications = notifications.filter(n => n.id !== notificationId);
+            // Rimuovi localmente
+            notifications = notifications.filter(n => n.id !== id);
             renderNotifications();
             updateStats();
-            showSuccess('Notifica eliminata');
         } else {
-            showError('Errore nell\'eliminazione della notifica');
+            alert('Errore nell\'eliminazione della notifica');
         }
     } catch (error) {
-        console.error('Errore:', error);
-        showError('Errore di connessione');
+        console.error('Errore eliminazione:', error);
+        alert('Errore di connessione');
     }
 }
 
 // Marca tutte come lette
 async function markAllAsRead() {
+    if (!confirm('Sei sicuro di voler marcare tutte le notifiche come lette?')) {
+        return;
+    }
+    
     try {
         const response = await fetch('/admin/api/notifications/mark-all-read', {
             method: 'POST',
@@ -423,26 +329,25 @@ async function markAllAsRead() {
         });
         
         if (response.ok) {
+            // Aggiorna localmente
             notifications.forEach(n => n.is_read = true);
             renderNotifications();
             updateStats();
-            showSuccess('Tutte le notifiche sono state marcate come lette');
-        } else {
-            showError('Errore nel marcare tutte le notifiche come lette');
         }
     } catch (error) {
-        console.error('Errore:', error);
-        showError('Errore di connessione');
+        console.error('Errore marcatura tutte:', error);
     }
 }
 
 // Elimina tutte
 async function deleteAll() {
-    if (!confirm('Sei sicuro di voler eliminare TUTTE le notifiche? Questa azione non può essere annullata.')) return;
+    if (!confirm('Sei sicuro di voler eliminare TUTTE le notifiche? Questa azione non può essere annullata.')) {
+        return;
+    }
     
     try {
-        const response = await fetch('/admin/api/notifications/delete-all', {
-            method: 'DELETE',
+        const response = await fetch('/admin/api/notifications/clear-all', {
+            method: 'POST',
             credentials: 'same-origin'
         });
         
@@ -450,20 +355,16 @@ async function deleteAll() {
             notifications = [];
             renderNotifications();
             updateStats();
-            showSuccess('Tutte le notifiche sono state eliminate');
-        } else {
-            showError('Errore nell\'eliminazione di tutte le notifiche');
         }
     } catch (error) {
-        console.error('Errore:', error);
-        showError('Errore di connessione');
+        console.error('Errore eliminazione tutte:', error);
     }
 }
 
 // Applica filtri
 function applyFilters() {
-    const type = document.getElementById('filter-type').value;
-    const status = document.getElementById('filter-status').value;
+    const type = document.getElementById('type-filter').value;
+    const status = document.getElementById('status-filter').value;
     
     currentFilters = { type, status };
     loadNotifications();
@@ -472,58 +373,31 @@ function applyFilters() {
 // Formatta data
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleString('it-IT', {
+    return date.toLocaleDateString('it-IT', {
         year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+        month: 'short',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
     });
 }
 
-// Mostra messaggi
-function showSuccess(message) {
-    // Implementa notifica di successo
-    console.log('Success:', message);
-}
-
-function showError(message) {
-    // Implementa notifica di errore
-    console.error('Error:', message);
-}
-
-// Event listeners - UNIFICATO CON GESTIONE ERRORI
+// Inizializzazione
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM loaded, starting notifications system...');
+    console.log('🚀 Inizializzazione sistema notifiche...');
     
-    try {
-        // Carica notifiche per la pagina completa
-        loadNotifications();
-        
-        // Event listeners per i pulsanti
-        const markAllReadBtn = document.getElementById('mark-all-read');
-        const deleteAllBtn = document.getElementById('delete-all');
-        const applyFiltersBtn = document.getElementById('apply-filters');
-        
-        if (markAllReadBtn) markAllReadBtn.addEventListener('click', markAllAsRead);
-        if (deleteAllBtn) deleteAllBtn.addEventListener('click', deleteAll);
-        if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', applyFilters);
-        
-        // Auto-refresh ogni 30 secondi
-        setInterval(loadNotifications, 30000);
-        
-        console.log('✅ Notifications system initialized');
-    } catch (error) {
-        console.error('❌ Error initializing notifications system:', error);
-        // Fallback: prova a caricare le notifiche comunque
-        setTimeout(() => {
-            try {
-                loadNotifications();
-            } catch (e) {
-                console.error('❌ Fallback loadNotifications failed:', e);
-            }
-        }, 1000);
-    }
+    // Event listeners
+    document.getElementById('apply-filters').addEventListener('click', applyFilters);
+    document.getElementById('mark-all-read').addEventListener('click', markAllAsRead);
+    document.getElementById('delete-all').addEventListener('click', deleteAll);
+    
+    // Carica notifiche
+    loadNotifications();
+    
+    // Auto-refresh ogni 30 secondi
+    setInterval(loadNotifications, 30000);
+    
+    console.log('✅ Sistema notifiche inizializzato');
 });
 </script>
 {% endblock %}
