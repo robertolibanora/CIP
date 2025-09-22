@@ -88,12 +88,20 @@
                     <h2 class="text-xl font-semibold text-gray-900">Il Tuo Codice Referral</h2>
                     <p class="text-gray-600">Usa questo codice per invitare nuovi investitori</p>
                 </div>
-                <button onclick="copyReferralCode()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                    Copia Codice
-                </button>
+                <div class="flex space-x-2">
+                    <button onclick="regenerateReferralCode()" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Rigenera
+                    </button>
+                    <button onclick="copyReferralCode()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Copia Codice
+                    </button>
+                </div>
             </div>
             <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
                 <p class="text-sm text-gray-500 mb-2">Codice referral:</p>
@@ -350,6 +358,43 @@ async function copyReferralCode() {
     } catch (error) {
         console.error('Errore nel copiare codice referral:', error);
         showNotification('Errore nel copiare il codice', 'error');
+    }
+}
+
+async function regenerateReferralCode() {
+    try {
+        // Mostra loading
+        const regenerateBtn = document.querySelector('button[onclick="regenerateReferralCode()"]');
+        const originalText = regenerateBtn.innerHTML;
+        regenerateBtn.innerHTML = '<svg class="w-5 h-5 mr-2 inline animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Rigenerando...';
+        regenerateBtn.disabled = true;
+        
+        const response = await fetch('/user/api/regenerate-referral-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Aggiorna il display del codice
+            document.getElementById('referral-code-display').textContent = data.referral_code;
+            document.getElementById('referral-link-display').textContent = data.referral_link;
+            
+            showNotification('Codice referral rigenerato con successo!', 'success');
+        } else {
+            showNotification(data.error || 'Errore nella rigenerazione del codice', 'error');
+        }
+    } catch (error) {
+        console.error('Errore nella rigenerazione codice referral:', error);
+        showNotification('Errore nella rigenerazione del codice', 'error');
+    } finally {
+        // Ripristina il pulsante
+        const regenerateBtn = document.querySelector('button[onclick="regenerateReferralCode()"]');
+        regenerateBtn.innerHTML = originalText;
+        regenerateBtn.disabled = false;
     }
 }
 

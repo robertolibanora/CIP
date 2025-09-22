@@ -977,20 +977,10 @@ def get_referral_data():
     try:
         user_id = session.get('user_id')
         
+        # Assicura che l'utente abbia un codice referral
+        referral_code = ensure_referral_code(user_id)
+        
         with get_conn() as conn, conn.cursor() as cur:
-            # Ottieni codice referral dell'utente
-            cur.execute("SELECT referral_code FROM users WHERE id = %s", (user_id,))
-            user_data = cur.fetchone()
-            referral_code = user_data['referral_code'] if user_data else None
-            
-            if not referral_code:
-                return jsonify({
-                    'total_invited': 0,
-                    'total_invested': 0,
-                    'total_profits': 0,
-                    'bonus_earned': 0,
-                    'invited_users': []
-                })
             
             # Trova tutti gli utenti invitati da questo utente
             # Esclude l'utente stesso per evitare auto-referral
@@ -1052,23 +1042,18 @@ def get_referral_link():
     try:
         user_id = session.get('user_id')
         
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("SELECT referral_code FROM users WHERE id = %s", (user_id,))
-            user_data = cur.fetchone()
-            referral_code = user_data['referral_code'] if user_data else None
-            
-            if not referral_code:
-                return jsonify({'error': 'Codice referral non trovato'}), 404
-            
-            # Costruisci link referral
-            base_url = request.host_url.rstrip('/')
-            referral_link = f"{base_url}/auth/register?ref={referral_code}"
-            
-            return jsonify({
-                'referral_code': referral_code,
-                'referral_link': referral_link
-            })
-            
+        # Assicura che l'utente abbia un codice referral
+        referral_code = ensure_referral_code(user_id)
+        
+        # Costruisci link referral
+        base_url = request.host_url.rstrip('/')
+        referral_link = f"{base_url}/auth/register?ref={referral_code}"
+        
+        return jsonify({
+            'referral_code': referral_code,
+            'referral_link': referral_link
+        })
+        
     except Exception as e:
         print(f"Errore nel recupero link referral: {e}")
         return jsonify({'error': 'Errore nel recupero del link referral'}), 500
@@ -1127,6 +1112,92 @@ def api_kyc_status():
             "role": user["role"],
             "is_admin": user["role"] == "admin"
         })
+
+def generate_referral_code():
+    """Genera un codice referral casuale alfanumerico"""
+    import random
+    import string
+    
+    # Caratteri disponibili: lettere maiuscole, minuscole e numeri (esclusi 0, O, I, l per evitare confusione)
+    chars = string.ascii_uppercase.replace('O', '').replace('I', '') + \
+            string.ascii_lowercase.replace('o', '').replace('i', '').replace('l', '') + \
+            string.digits.replace('0', '')
+    
+    # Genera codice di 8 caratteri
+    code = ''.join(random.choice(chars) for _ in range(8))
+    return f"REF{code}"
+
+def ensure_referral_code(user_id):
+    """Assicura che l'utente abbia un codice referral unico"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Controlla se l'utente ha già un codice
+        cur.execute("SELECT referral_code FROM users WHERE id = %s", (user_id,))
+        user_data = cur.fetchone()
+        
+        if user_data and user_data['referral_code']:
+            return user_data['referral_code']
+        
+        # Genera nuovo codice unico
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            new_code = generate_referral_code()
+            
+            # Verifica che il codice sia unico
+            cur.execute("SELECT id FROM users WHERE referral_code = %s", (new_code,))
+            if not cur.fetchone():
+                # Codice unico trovato, aggiorna il database
+                cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (new_code, user_id))
+                conn.commit()
+                return new_code
+        
+        # Se non riesce a generare un codice unico, usa un fallback
+        import random
+        fallback_code = f"REF{user_id:06d}{random.randint(1000, 9999)}"
+        cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (fallback_code, user_id))
+        conn.commit()
+        return fallback_code
+
+@user_bp.post("/api/regenerate-referral-code")
+@login_required
+@kyc_verified
+def regenerate_referral_code():
+    """Rigenera il codice referral dell'utente con un nuovo codice casuale"""
+    try:
+        user_id = session.get('user_id')
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Genera nuovo codice unico
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                new_code = generate_referral_code()
+                
+                # Verifica che il codice sia unico
+                cur.execute("SELECT id FROM users WHERE referral_code = %s", (new_code,))
+                if not cur.fetchone():
+                    # Codice unico trovato, aggiorna il database
+                    cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (new_code, user_id))
+                    conn.commit()
+                    
+                    # Costruisci nuovo link referral
+                    base_url = request.host_url.rstrip('/')
+                    referral_link = f"{base_url}/auth/register?ref={new_code}"
+                    
+                    return jsonify({
+                        'success': True,
+                        'referral_code': new_code,
+                        'referral_link': referral_link,
+                        'message': 'Codice referral rigenerato con successo'
+                    })
+            
+            # Se non riesce a generare un codice unico
+            return jsonify({
+                'success': False,
+                'error': 'Impossibile generare un codice unico'
+            }), 500
+            
+    except Exception as e:
+        print(f"Errore nella rigenerazione codice referral: {e}")
+        return jsonify({'error': 'Errore nella rigenerazione del codice referral'}), 500
 
 
 
