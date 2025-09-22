@@ -6,13 +6,54 @@
 }
 
 /* Nascondi la bottom navigation quando i modal sono aperti */
-.modal-open .tabbar {
+body.modal-open .tabbar {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateY(100%) !important;
 }
 
 /* Nascondi anche il tabbar-spacer quando i modal sono aperti */
-.modal-open .tabbar-spacer {
+body.modal-open .tabbar-spacer {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Assicura che la regola sia applicata anche con z-index alto */
+body.modal-open nav.tabbar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateY(100%) !important;
+}
+
+/* CSS più aggressivo per forzare la rimozione */
+body.modal-open .tabbar[role="navigation"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateY(100%) !important;
+    position: fixed !important;
+    bottom: -100px !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: -1 !important;
+}
+
+/* Forza la rimozione anche con tutti i selettori possibili */
+body.modal-open nav[class*="tabbar"],
+body.modal-open .tabbar[class*="tabbar"],
+body.modal-open nav[role="navigation"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transform: translateY(100%) !important;
+    position: fixed !important;
+    bottom: -100px !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: -1 !important;
 }
 
 /* Padding bottom per mobile - ora non necessario dato che nascondiamo la bottom nav */

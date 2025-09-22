@@ -1077,11 +1077,57 @@ let withdrawalRateLimited = false;
 let withdrawalRateLimitModalTimer = null;
 let currentWithdrawalCountdownSeconds = 0;
 
+// Funzioni helper per gestire la bottom navigation
+function hideBottomNavigation() {
+    const tabbar = document.querySelector('.tabbar');
+    const tabbarSpacer = document.querySelector('.tabbar-spacer');
+    
+    if (tabbar) {
+        tabbar.style.display = 'none';
+        tabbar.style.visibility = 'hidden';
+        tabbar.style.opacity = '0';
+        tabbar.style.transform = 'translateY(100%)';
+        tabbar.style.position = 'fixed';
+        tabbar.style.bottom = '-100px';
+        tabbar.style.zIndex = '-1';
+    }
+    
+    if (tabbarSpacer) {
+        tabbarSpacer.style.display = 'none';
+        tabbarSpacer.style.visibility = 'hidden';
+        tabbarSpacer.style.opacity = '0';
+    }
+}
+
+function showBottomNavigation() {
+    const tabbar = document.querySelector('.tabbar');
+    const tabbarSpacer = document.querySelector('.tabbar-spacer');
+    
+    if (tabbar) {
+        tabbar.style.display = '';
+        tabbar.style.visibility = '';
+        tabbar.style.opacity = '';
+        tabbar.style.transform = '';
+        tabbar.style.position = '';
+        tabbar.style.bottom = '';
+        tabbar.style.zIndex = '';
+    }
+    
+    if (tabbarSpacer) {
+        tabbarSpacer.style.display = '';
+        tabbarSpacer.style.visibility = '';
+        tabbarSpacer.style.opacity = '';
+    }
+}
+
 
 // Funzione per mostrare il modal di rate limiting
 function showRateLimitModal(remainingSeconds) {
     // Nascondi la bottom navigation
     document.body.classList.add('modal-open');
+    hideBottomNavigation();
+    
+    console.log('Modal aperto - classe modal-open aggiunta:', document.body.classList.contains('modal-open'));
     const modal = document.getElementById('rate-limit-modal');
     const modalContent = document.getElementById('rate-limit-modal-content');
     const timerElement = document.getElementById('rate-limit-timer');
@@ -1131,6 +1177,7 @@ function showRateLimitModal(remainingSeconds) {
 function closeRateLimitModal() {
     // Mostra di nuovo la bottom navigation
     document.body.classList.remove('modal-open');
+    showBottomNavigation();
     
     const modal = document.getElementById('rate-limit-modal');
     const modalContent = document.getElementById('rate-limit-modal-content');
@@ -1156,6 +1203,7 @@ function closeRateLimitModal() {
 function showWithdrawalRateLimitModal(remainingSeconds) {
     // Nascondi la bottom navigation
     document.body.classList.add('modal-open');
+    hideBottomNavigation();
     const modal = document.getElementById('withdrawal-rate-limit-modal');
     const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
     const timerElement = document.getElementById('withdrawal-rate-limit-timer');
@@ -1205,6 +1253,7 @@ function showWithdrawalRateLimitModal(remainingSeconds) {
 function closeWithdrawalRateLimitModal() {
     // Mostra di nuovo la bottom navigation
     document.body.classList.remove('modal-open');
+    showBottomNavigation();
     
     const modal = document.getElementById('withdrawal-rate-limit-modal');
     const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
@@ -1729,6 +1778,7 @@ function showCopyNotification(message, type = 'success') {
 function showDepositSuccessModal(depositRequest, method) {
   // Nascondi la bottom navigation
   document.body.classList.add('modal-open');
+  hideBottomNavigation();
   
   const modal = document.getElementById('deposit-success-modal');
   const detailsContainer = document.getElementById('deposit-success-details');
@@ -1825,6 +1875,7 @@ function showDepositSuccessModal(depositRequest, method) {
 function showWithdrawalSuccessModal(withdrawalData) {
   // Nascondi la bottom navigation
   document.body.classList.add('modal-open');
+  hideBottomNavigation();
   
   const modal = document.getElementById('withdrawal-success-modal');
   const detailsContainer = document.getElementById('withdrawal-success-details');
@@ -2313,6 +2364,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeBtn.addEventListener('click', function() {
         // Mostra di nuovo la bottom navigation
         document.body.classList.remove('modal-open');
+        showBottomNavigation();
         successModal.classList.add('hidden');
       });
     }
@@ -2323,6 +2375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === successModal) {
           // Mostra di nuovo la bottom navigation
           document.body.classList.remove('modal-open');
+          showBottomNavigation();
           successModal.classList.add('hidden');
         }
       });
@@ -2359,6 +2412,7 @@ document.addEventListener('DOMContentLoaded', function() {
       closeWithdrawalSuccessBtn.addEventListener('click', function() {
         // Mostra di nuovo la bottom navigation
         document.body.classList.remove('modal-open');
+        showBottomNavigation();
         
         const modal = document.getElementById('withdrawal-success-modal');
         const modalContent = document.getElementById('withdrawal-success-modal-content');
@@ -2381,6 +2435,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === withdrawalSuccessModal) {
           // Mostra di nuovo la bottom navigation
           document.body.classList.remove('modal-open');
+          showBottomNavigation();
           withdrawalSuccessModal.classList.add('hidden');
         }
       });
