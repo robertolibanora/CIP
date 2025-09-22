@@ -36,7 +36,7 @@ def create_admin_user():
         with get_connection() as conn:
             with conn.cursor() as cur:
                 # Verifica se esiste già un admin
-                cur.execute("SELECT id, email FROM users WHERE ruolo = 'admin' LIMIT 1")
+                cur.execute("SELECT id, email FROM users WHERE role = 'admin' LIMIT 1")
                 existing_admin = cur.fetchone()
                 
                 if existing_admin:
@@ -49,7 +49,7 @@ def create_admin_user():
                 cur.execute("""
                     INSERT INTO users (
                         email, password_hash, nome, cognome, nome_telegram, telefono,
-                        ruolo, created_at
+                        role, created_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                     RETURNING id, email
                 """, (

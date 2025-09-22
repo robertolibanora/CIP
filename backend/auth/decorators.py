@@ -85,7 +85,7 @@ def role_required(required_role: Union[UserRole, str]) -> Callable:
                 flash("Sessione utente non valida", "error")
                 return redirect(url_for('auth.login'))
             
-            user_role = user.get('ruolo')
+            user_role = user.get('role')
             required_role_str = required_role.value if hasattr(required_role, 'value') else required_role
             
             if user_role != required_role_str:
@@ -123,7 +123,7 @@ def any_role_required(allowed_roles: List[Union[UserRole, str]]) -> Callable:
                 flash("Sessione utente non valida", "error")
                 return redirect(url_for('auth.login'))
             
-            user_role = user.get('ruolo')
+            user_role = user.get('role')
             allowed_roles_str = [
                 role.value if hasattr(role, 'value') else role 
                 for role in allowed_roles
