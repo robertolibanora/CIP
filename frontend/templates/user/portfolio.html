@@ -947,7 +947,9 @@ function showSection(sectionName) {
 // Carica dati portfolio 4 sezioni
 async function loadPortfolioData() {
     try {
-        const response = await fetch('/api/portfolio/4-sections');
+        const response = await fetch('/user/api/portfolio/4-sections', {
+            credentials: 'same-origin'
+        });
         const data = await response.json();
         
         if (data.portfolio) {
@@ -2563,7 +2565,7 @@ function openTransferModal() {
     const content = document.getElementById('transferModalContent');
     
     modal.classList.remove('hidden');
-    loadPortfolioData();
+    loadPortfolioDataForTransfer();
     
     // Anima l'apertura
     setTimeout(() => {
@@ -2588,8 +2590,8 @@ function closeTransferModal() {
     }, 300);
 }
 
-// Carica i dati del portafoglio
-async function loadPortfolioData() {
+// Carica i dati del portafoglio per transfer modal
+async function loadPortfolioDataForTransfer() {
     try {
         const response = await fetch('/user/api/portfolio-data');
         if (response.ok) {
