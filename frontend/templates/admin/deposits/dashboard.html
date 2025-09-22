@@ -114,9 +114,20 @@
 
         <!-- Depositi Pending -->
         <div class="bg-white shadow rounded-lg">
-            <div class="px-4 py-3 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">Depositi in Attesa</h2>
-                <p class="mt-1 text-sm text-gray-500">Richieste di deposito che richiedono approvazione</p>
+            <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Depositi in Attesa</h2>
+                    <p class="mt-1 text-sm text-gray-500">Richieste di deposito che richiedono approvazione</p>
+                </div>
+                <div>
+                    <a href="/admin/deposits/history" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Storico Depositi
+                    </a>
+                </div>
             </div>
             
             <div id="deposits-container" class="p-3">

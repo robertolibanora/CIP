@@ -2,524 +2,417 @@
 
 {% block title %}Storico Depositi - Admin{% endblock %}
 
+{% block extra_css %}
+<style>
+    .deposit-card {
+        min-height: 100px;
+    }
+    
+    .deposit-card .grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    @media (max-width: 768px) {
+        .deposit-card .grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-pending { @apply bg-yellow-100 text-yellow-800; }
+    .status-completed { @apply bg-green-100 text-green-800; }
+    .status-rejected { @apply bg-red-100 text-red-800; }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Storico Depositi Admin -->
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div>
-                <h1 class="admin-heading-1">Storico Depositi</h1>
-                <p class="admin-text-small">Visualizza e gestisci tutti i depositi del sistema</p>
-            </div>
-            <div class="mt-3 sm:mt-0">
-                <a href="/admin/deposits" class="admin-btn admin-btn--primary">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    Torna ai Depositi
-                </a>
+<div class="min-h-screen bg-gray-50 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Storico Depositi</h1>
+                    <p class="mt-1 text-sm text-gray-600">Visualizza e gestisci tutti i depositi</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/admin/deposits" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Torna ai Pending
+                    </a>
+                    <button id="delete-selected-btn" 
+                            class="hidden inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Elimina Selezionati
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Filtri e Ricerca -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div class="admin-flex admin-flex--gap-4">
-                <div>
-                    <label for="status-filter" class="admin-label">Stato</label>
-                    <select id="status-filter" class="admin-select" onchange="filterDeposits()">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending">In attesa</option>
-                        <option value="approved">Approvati</option>
-                        <option value="completed">Completati</option>
-                        <option value="rejected">Rifiutati</option>
-                    </select>
+        <!-- Filtri e Ricerca -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-4 py-3 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Filtri</h3>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select id="status-filter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option value="">Tutti</option>
+                            <option value="pending">In Attesa</option>
+                            <option value="completed">Completati</option>
+                            <option value="rejected">Rifiutati</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Utente</label>
+                        <input type="text" id="user-filter" placeholder="Cerca per nome o email..." 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Data Da</label>
+                        <input type="date" id="date-from" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Data A</label>
+                        <input type="date" id="date-to" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
                 </div>
-                
-                <div>
-                    <label for="method-filter" class="admin-label">Metodo</label>
-                    <select id="method-filter" class="admin-select" onchange="filterDeposits()">
-                        <option value="">Tutti i metodi</option>
-                        <option value="usdt">USDT (BEP20)</option>
-                        <option value="bank">Bonifico Bancario</option>
-                    </select>
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button id="clear-filters" 
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Pulisci Filtri
+                    </button>
+                    <button id="apply-filters" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Applica Filtri
+                    </button>
                 </div>
-                
+            </div>
+        </div>
+
+        <!-- Depositi List -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                 <div>
-                    <label for="search-filter" class="admin-label">Ricerca</label>
-                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, cognome, email..." onkeyup="filterDeposits()">
+                    <h3 class="text-lg font-medium text-gray-900">Tutti i Depositi</h3>
+                    <p class="mt-1 text-sm text-gray-500" id="deposits-count">Caricamento...</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="select-all" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="select-all" class="text-sm text-gray-700">Seleziona Tutti</label>
                 </div>
             </div>
             
-            <div class="admin-flex admin-flex--gap-2">
-                <button onclick="deleteSelectedDeposits()" id="delete-selected-btn" class="admin-btn admin-btn--danger hidden" disabled>
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            <div id="deposits-container" class="p-4">
+                <div id="loading" class="text-center py-8">
+                    <div class="inline-flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        Caricamento depositi...
+                    </div>
+                </div>
+                
+                <div id="deposits-list" class="space-y-4" style="display: none;">
+                    <!-- Depositi verranno caricati qui -->
+                </div>
+                
+                <div id="no-deposits" class="text-center py-8" style="display: none;">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    <span id="delete-selected-text">Elimina Selezionati (<span id="selected-count">0</span>)</span>
-                </button>
-                <button onclick="deleteAllDeposits()" class="admin-btn admin-btn--danger">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Elimina Storico
-                </button>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Nessun deposito trovato</h3>
+                    <p class="mt-1 text-sm text-gray-500">Non ci sono depositi che corrispondono ai filtri selezionati.</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Lista Storico Depositi -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <h2 class="admin-heading-3">Storico Completo</h2>
-            <span class="admin-text-small text-gray-500" id="deposits-count">0 depositi trovati</span>
-        </div>
-
-        <div class="admin-card-body">
-            <div class="overflow-x-auto">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th class="admin-table-th w-12">
-                                <input type="checkbox" id="select-all-deposits" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" onchange="toggleAllDeposits()">
-                            </th>
-                            <th class="admin-table-th">Utente</th>
-                            <th class="admin-table-th">Importo</th>
-                            <th class="admin-table-th">Metodo</th>
-                            <th class="admin-table-th">Stato</th>
-                            <th class="admin-table-th">Data Richiesta</th>
-                            <th class="admin-table-th">Data Approvazione</th>
-                            <th class="admin-table-th">Approvato da</th>
-                            <th class="admin-table-th">Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="deposits-table-body">
-                        <tr>
-                            <td colspan="9" class="admin-table-td text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p class="text-gray-500 mt-2">Caricamento storico...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Paginazione -->
-            <div id="pagination" class="admin-flex admin-flex--between admin-flex--items-center mt-6">
-                <!-- Paginazione sarà inserita qui dinamicamente -->
-            </div>
+        <!-- Paginazione -->
+        <div id="pagination" class="mt-6 flex justify-center" style="display: none;">
+            <!-- Paginazione verrà caricata qui -->
         </div>
     </div>
 </div>
 
-<!-- Deposit Details Modal -->
-<div id="deposit-details-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay" onclick="closeDepositModal()"></div>
-    <div class="admin-modal-content">
-        <div class="admin-modal-header">
-            <h3 class="admin-heading-3">Dettagli Deposito</h3>
-            <button onclick="closeDepositModal()" class="admin-modal-close">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+<!-- Modal Conferma Eliminazione -->
+<div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style="display: none;">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>
-            </button>
-        </div>
-        <div id="deposit-details-content" class="admin-modal-body">
-            <!-- Content will be loaded here -->
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-4" id="confirm-title">Conferma Eliminazione</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500" id="confirm-message">Sei sicuro di voler eliminare i depositi selezionati?</p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirm-yes" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    Elimina
+                </button>
+                <button id="confirm-no" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Annulla
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Loading Modal -->
-<div id="loading-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay"></div>
-    <div class="admin-modal-content">
-        <div class="admin-modal-body text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p class="mt-4 text-gray-600">Caricamento...</p>
+<!-- Notifiche -->
+<div id="notification" class="fixed top-4 right-4 z-50" style="display: none;">
+    <div class="rounded-md p-4 shadow-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg id="notification-icon" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p id="notification-message" class="text-sm font-medium"></p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 let currentPage = 1;
-let currentFilters = {
-    status: '',
-    method: '',
-    search: ''
-};
+let totalPages = 1;
+let selectedDeposits = new Set();
+let allDeposits = [];
 
-// Carica storico al caricamento della pagina
-document.addEventListener('DOMContentLoaded', function() {
-    // Verifica autenticazione prima di caricare i dati
-    checkAuthentication();
-});
-
-// Verifica autenticazione
-async function checkAuthentication() {
+// Carica depositi
+async function loadDeposits(page = 1) {
     try {
-        const response = await fetch('/auth/check', {
-            method: 'GET',
-            credentials: 'same-origin'
-        });
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('deposits-list').style.display = 'none';
+        document.getElementById('no-deposits').style.display = 'none';
         
-        if (response.ok) {
-            const data = await response.json();
-            if (data.authenticated && data.is_admin) {
-                loadDepositsHistory();
-            } else {
-                showError('Accesso negato. Solo gli amministratori possono visualizzare questa pagina.');
-                setTimeout(() => {
-                    window.location.href = '/auth/login';
-                }, 2000);
-            }
-        } else {
-            showError('Errore di autenticazione. Effettua nuovamente il login.');
-            setTimeout(() => {
-                window.location.href = '/auth/login';
-            }, 2000);
-        }
-    } catch (error) {
-        console.error('Errore verifica autenticazione:', error);
-        showError('Errore di connessione. Verifica la connessione internet e riprova.');
-    }
-}
-
-// Carica storico depositi
-async function loadDepositsHistory(page = 1) {
-    try {
-        currentPage = page;
+        const filters = getFilters();
         const params = new URLSearchParams({
             page: page,
-            ...currentFilters
+            ...filters
         });
-        
-        console.log('🔄 Caricamento storico depositi...', {page, filters: currentFilters});
-        
-        // Mostra loading
-        const tbody = document.getElementById('deposits-table-body');
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="9" class="admin-table-td text-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p class="text-gray-500 mt-2">Caricamento storico...</p>
-                </td>
-            </tr>
-        `;
         
         const response = await fetch(`/admin/api/deposits/history?${params}`, {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            credentials: 'same-origin'
         });
-        
-        console.log('📡 Response status:', response.status);
-        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        if (response.status === 401) {
-            console.error('❌ Sessione scaduta');
-            showError('Sessione scaduta. Effettua nuovamente il login.');
-            setTimeout(() => {
-                window.location.href = '/auth/login';
-            }, 2000);
-            return;
-        }
-        
-        if (response.status === 403) {
-            console.error('❌ Accesso negato');
-            showError('Accesso negato. Non hai i permessi per visualizzare questa pagina.');
-            return;
-        }
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Errore HTTP:', response.status, errorText);
-            showError(`Errore del server (${response.status}): ${errorText}`);
-            return;
-        }
-        
         const data = await response.json();
-        console.log('✅ Response data:', data);
         
-        if (data.deposits && Array.isArray(data.deposits)) {
-            renderDeposits(data.deposits);
-            renderPagination(data.pagination);
-            document.getElementById('deposits-count').textContent = `${data.pagination.total} depositi trovati`;
-            console.log('✅ Storico caricato con successo:', data.deposits.length, 'depositi');
+        if (response.ok) {
+            allDeposits = data.deposits || [];
+            currentPage = data.pagination?.current_page || 1;
+            totalPages = data.pagination?.total_pages || 1;
+            
+            document.getElementById('deposits-count').textContent = 
+                `${data.pagination?.total || 0} depositi totali`;
+            
+            if (allDeposits.length === 0) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('no-deposits').style.display = 'block';
+            } else {
+                renderDeposits(allDeposits);
+                renderPagination();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('deposits-list').style.display = 'block';
+            }
         } else {
-            console.error('❌ Formato dati non valido:', data);
-            showError('Formato dati non valido ricevuto dal server');
+            console.error('Errore nel caricamento depositi:', data);
+            showNotification('Errore nel caricamento depositi', 'error');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('no-deposits').style.display = 'block';
         }
     } catch (error) {
-        console.error('❌ Errore nel caricamento storico:', error);
-        showError('Errore di connessione: ' + error.message);
+        console.error('Errore nel caricamento depositi:', error);
+        showNotification('Errore di connessione', 'error');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('no-deposits').style.display = 'block';
     }
 }
 
-// Renderizza depositi nella tabella
+// Ottieni filtri
+function getFilters() {
+    return {
+        status: document.getElementById('status-filter').value,
+        user: document.getElementById('user-filter').value,
+        date_from: document.getElementById('date-from').value,
+        date_to: document.getElementById('date-to').value
+    };
+}
+
+// Renderizza depositi
 function renderDeposits(deposits) {
-    const tbody = document.getElementById('deposits-table-body');
+    const container = document.getElementById('deposits-list');
     
-    if (deposits.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="9" class="admin-table-td text-center py-8">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun deposito</h3>
-                    <p class="text-gray-600">Non ci sono depositi che corrispondono ai filtri selezionati.</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = deposits.map(deposit => `
-        <tr class="admin-table-tr" 
-            data-status="${deposit.status}" 
-            data-method="${deposit.method}"
-            data-search="${(deposit.full_name || '').toLowerCase()} ${(deposit.email || '').toLowerCase()}">
-            <td class="admin-table-td w-12">
-                <input type="checkbox" 
-                       class="deposit-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                       value="${deposit.id}" 
-                       onchange="updateSelectedCount()">
-            </td>
-            <td class="admin-table-td">
-                <div>
-                    <p class="font-medium text-gray-900">${deposit.full_name || 'Utente'}</p>
-                    <p class="text-sm text-gray-500">${deposit.email || ''}</p>
+    container.innerHTML = deposits.map(deposit => `
+        <div class="deposit-card border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <!-- Checkbox -->
+                <div class="flex-shrink-0 mr-4">
+                    <input type="checkbox" 
+                           class="deposit-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                           data-deposit-id="${deposit.id}">
                 </div>
-            </td>
-            <td class="admin-table-td">
-                <span class="font-semibold text-green-600">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</span>
-            </td>
-            <td class="admin-table-td">
-                <span class="px-2 py-1 text-xs font-medium rounded-full ${deposit.method === 'usdt' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
-                    ${deposit.method === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}
-                </span>
-            </td>
-            <td class="admin-table-td">
-                <span class="px-2 py-1 text-xs font-medium rounded-full ${
-                    deposit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    deposit.status === 'approved' || deposit.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                }">
-                    ${deposit.status === 'pending' ? 'In Attesa' :
-                      deposit.status === 'approved' || deposit.status === 'completed' ? 'Approvato' :
-                      deposit.status === 'rejected' ? 'Rifiutato' : deposit.status}
-                </span>
-            </td>
-            <td class="admin-table-td">
-                <div>
-                    <p class="text-sm text-gray-900">${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
-                    <p class="text-xs text-gray-500">${new Date(deposit.created_at).toLocaleTimeString('it-IT')}</p>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                ${deposit.approved_at ? `
-                    <div>
-                        <p class="text-sm text-gray-900">${new Date(deposit.approved_at).toLocaleDateString('it-IT')}</p>
-                        <p class="text-xs text-gray-500">${new Date(deposit.approved_at).toLocaleTimeString('it-IT')}</p>
+                
+                <!-- Contenuto Principale -->
+                <div class="flex-1 min-w-0">
+                    <!-- Prima Riga: Info Principali -->
+                    <div class="flex items-center space-x-4 mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-medium text-gray-900">Deposito #${deposit.id}</h3>
+                                <p class="text-sm text-gray-500">${deposit.nome || 'N/A'} (${deposit.email})</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="status-badge status-${deposit.status}">${getStatusText(deposit.status)}</span>
+                            <span class="text-xs px-2 py-1 rounded-full ${deposit.kyc_status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${deposit.kyc_status || 'unverified'}</span>
+                        </div>
+                        
+                        <div class="text-right ml-auto">
+                            <p class="text-xl font-bold text-gray-900">€${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
+                            <p class="text-sm text-gray-500">${new Date(deposit.created_at).toLocaleDateString('it-IT')}</p>
+                        </div>
                     </div>
-                ` : '<span class="text-gray-400">-</span>'}
-            </td>
-            <td class="admin-table-td">
-                <span class="text-sm text-gray-900">${deposit.approved_by_name || '-'}</span>
-            </td>
-            <td class="admin-table-td">
-                <div class="flex gap-2">
-                    <button onclick="deleteDeposit(${deposit.id})" class="admin-btn admin-btn--danger admin-btn--sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    
+                    <!-- Seconda Riga: Dettagli Deposito -->
+                    <div class="grid grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">IBAN</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.iban || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Metodo</label>
+                            <p class="mt-1 text-sm text-gray-900">${deposit.method || 'bank'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Chiave Unica</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.unique_key || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Riferimento Pagamento</label>
+                            <p class="mt-1 text-sm text-gray-900">${deposit.payment_reference || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Note Admin se presenti -->
+                    ${deposit.admin_notes ? `
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium text-gray-700">Note Admin</label>
+                        <p class="mt-1 text-sm text-gray-900 bg-gray-50 p-2 rounded">${deposit.admin_notes}</p>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <!-- Azioni -->
+                <div class="ml-6 flex flex-col space-y-2">
+                    <button 
+                        onclick="deleteDeposit(${deposit.id})"
+                        class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                         Elimina
                     </button>
                 </div>
-            </td>
-        </tr>
+            </div>
+        </div>
     `).join('');
+    
+    // Aggiungi event listeners per i checkbox
+    document.querySelectorAll('.deposit-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', handleCheckboxChange);
+    });
+}
+
+// Ottieni testo status
+function getStatusText(status) {
+    const statusMap = {
+        'pending': 'In Attesa',
+        'completed': 'Completato',
+        'rejected': 'Rifiutato'
+    };
+    return statusMap[status] || status;
 }
 
 // Renderizza paginazione
-function renderPagination(pagination) {
-    const paginationDiv = document.getElementById('pagination');
-    
-    if (pagination.total_pages <= 1) {
-        paginationDiv.innerHTML = '';
+function renderPagination() {
+    if (totalPages <= 1) {
+        document.getElementById('pagination').style.display = 'none';
         return;
     }
     
-    let paginationHTML = `
-        <div class="admin-text-small text-gray-500">
-            Pagina ${pagination.page} di ${pagination.total_pages} (${pagination.total_count} depositi totali)
-        </div>
-        <div class="admin-flex admin-flex--gap-2">
-    `;
+    document.getElementById('pagination').style.display = 'flex';
     
-    // Pulsante precedente
-    if (pagination.page > 1) {
-        paginationHTML += `
-            <button onclick="loadDepositsHistory(${pagination.page - 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Precedente
-            </button>
-        `;
+    let paginationHTML = '<nav class="flex space-x-2">';
+    
+    // Pulsante Precedente
+    if (currentPage > 1) {
+        paginationHTML += `<button onclick="loadDeposits(${currentPage - 1})" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Precedente</button>`;
     }
     
     // Numeri pagina
-    const startPage = Math.max(1, pagination.page - 2);
-    const endPage = Math.min(pagination.total_pages, pagination.page + 2);
-    
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHTML += `
-            <button onclick="loadDepositsHistory(${i})" 
-                    class="admin-btn admin-btn--sm ${i === pagination.page ? 'admin-btn--primary' : 'admin-btn--secondary'}">
-                ${i}
-            </button>
-        `;
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const isActive = i === currentPage;
+        paginationHTML += `<button onclick="loadDeposits(${i})" class="px-3 py-2 text-sm font-medium ${isActive ? 'text-white bg-blue-600' : 'text-gray-500 bg-white border border-gray-300'} rounded-md hover:bg-gray-50">${i}</button>`;
     }
     
-    // Pulsante successivo
-    if (pagination.page < pagination.total_pages) {
-        paginationHTML += `
-            <button onclick="loadDepositsHistory(${pagination.page + 1})" class="admin-btn admin-btn--secondary admin-btn--sm">
-                Successivo
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
-        `;
+    // Pulsante Successivo
+    if (currentPage < totalPages) {
+        paginationHTML += `<button onclick="loadDeposits(${currentPage + 1})" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Successivo</button>`;
     }
     
-    paginationHTML += '</div>';
-    paginationDiv.innerHTML = paginationHTML;
+    paginationHTML += '</nav>';
+    document.getElementById('pagination').innerHTML = paginationHTML;
 }
 
-// Filtra depositi
-function filterDeposits() {
-    currentFilters.status = document.getElementById('status-filter').value;
-    currentFilters.method = document.getElementById('method-filter').value;
-    currentFilters.search = document.getElementById('search-filter').value;
+// Gestisci cambio checkbox
+function handleCheckboxChange(event) {
+    const depositId = parseInt(event.target.dataset.depositId);
     
-    loadDepositsHistory(1); // Ricarica dalla prima pagina
-}
-
-// Aggiorna depositi
-function refreshDeposits() {
-    loadDepositsHistory(currentPage);
-    showNotification('Storico aggiornato', 'success');
-}
-
-// Elimina tutto lo storico
-async function deleteAllDeposits() {
-    if (!confirm('Sei sicuro di voler eliminare TUTTO lo storico dei depositi? Questa azione non può essere annullata!')) {
-        return;
-    }
-    
-    if (!confirm('CONFERMA FINALE: Eliminare tutti i depositi dal database?')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        const response = await fetch('/admin/api/deposits/delete-all', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification(`Eliminati ${data.deleted_count} depositi`, 'success');
-            loadDepositsHistory(1);
-        } else {
-            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
-        }
-    } catch (error) {
-        console.error('Errore eliminazione:', error);
-        showError('Errore nell\'eliminazione dei depositi');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Elimina singolo deposito
-async function deleteDeposit(id) {
-    if (!confirm('Sei sicuro di voler eliminare questo deposito? Questa azione non può essere annullata!')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        const response = await fetch(`/admin/api/deposits/delete/${id}`, {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showNotification('Deposito eliminato con successo', 'success');
-            loadDepositsHistory(1);
-        } else {
-            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
-        }
-    } catch (error) {
-        console.error('Errore eliminazione:', error);
-        showError('Errore nell\'eliminazione del deposito');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Gestione selezione multipla
-function toggleAllDeposits() {
-    const selectAllCheckbox = document.getElementById('select-all-deposits');
-    const checkboxes = document.querySelectorAll('.deposit-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-    });
-    
-    updateSelectedCount();
-}
-
-function updateSelectedCount() {
-    const checkboxes = document.querySelectorAll('.deposit-checkbox');
-    const selectedCheckboxes = document.querySelectorAll('.deposit-checkbox:checked');
-    const selectedCount = selectedCheckboxes.length;
-    const totalCount = checkboxes.length;
-    
-    // Aggiorna il contatore
-    document.getElementById('selected-count').textContent = selectedCount;
-    
-    // Mostra/nascondi il pulsante di eliminazione multipla
-    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
-    if (selectedCount > 0) {
-        deleteSelectedBtn.classList.remove('hidden');
-        deleteSelectedBtn.disabled = false;
+    if (event.target.checked) {
+        selectedDeposits.add(depositId);
     } else {
-        deleteSelectedBtn.classList.add('hidden');
-        deleteSelectedBtn.disabled = true;
+        selectedDeposits.delete(depositId);
     }
     
-    // Aggiorna lo stato del checkbox "Seleziona tutto"
-    const selectAllCheckbox = document.getElementById('select-all-deposits');
-    if (selectedCount === 0) {
+    updateSelectAllCheckbox();
+    updateDeleteButton();
+}
+
+// Aggiorna checkbox "Seleziona Tutti"
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    const allCheckboxes = document.querySelectorAll('.deposit-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.deposit-checkbox:checked');
+    
+    if (checkedCheckboxes.length === 0) {
         selectAllCheckbox.indeterminate = false;
         selectAllCheckbox.checked = false;
-    } else if (selectedCount === totalCount) {
+    } else if (checkedCheckboxes.length === allCheckboxes.length) {
         selectAllCheckbox.indeterminate = false;
         selectAllCheckbox.checked = true;
     } else {
@@ -527,77 +420,137 @@ function updateSelectedCount() {
     }
 }
 
+// Aggiorna pulsante elimina
+function updateDeleteButton() {
+    const deleteBtn = document.getElementById('delete-selected-btn');
+    
+    if (selectedDeposits.size > 0) {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.textContent = `Elimina Selezionati (${selectedDeposits.size})`;
+    } else {
+        deleteBtn.classList.add('hidden');
+    }
+}
+
+// Elimina deposito singolo
+async function deleteDeposit(depositId) {
+    if (confirm('Sei sicuro di voler eliminare questo deposito?')) {
+        try {
+            const response = await fetch(`/admin/api/deposits/delete/${depositId}`, {
+                method: 'DELETE',
+                credentials: 'same-origin'
+            });
+            
+            if (response.ok) {
+                showNotification('Deposito eliminato con successo', 'success');
+                loadDeposits(currentPage);
+            } else {
+                const data = await response.json();
+                showNotification(`Errore: ${data.error || 'Errore sconosciuto'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Errore nell\'eliminazione:', error);
+            showNotification('Errore di connessione', 'error');
+        }
+    }
+}
+
+// Elimina depositi selezionati
 async function deleteSelectedDeposits() {
-    const selectedCheckboxes = document.querySelectorAll('.deposit-checkbox:checked');
-    const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
-    
-    if (selectedIds.length === 0) {
-        showError('Nessun deposito selezionato');
-        return;
-    }
-    
-    if (!confirm(`Sei sicuro di voler eliminare ${selectedIds.length} depositi selezionati? Questa azione non può essere annullata!`)) {
-        return;
-    }
+    if (selectedDeposits.size === 0) return;
     
     try {
-        showLoading();
         const response = await fetch('/admin/api/deposits/delete-multiple', {
             method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ deposit_ids: selectedIds }),
-            credentials: 'same-origin'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ deposit_ids: Array.from(selectedDeposits) })
         });
         
-        const data = await response.json();
-        
         if (response.ok) {
+            const data = await response.json();
             showNotification(`Eliminati ${data.deleted_count} depositi con successo`, 'success');
-            loadDepositsHistory(1);
+            selectedDeposits.clear();
+            loadDeposits(currentPage);
         } else {
-            showError('Errore nell\'eliminazione: ' + (data.error || 'Errore sconosciuto'));
+            const data = await response.json();
+            showNotification(`Errore: ${data.error || 'Errore sconosciuto'}`, 'error');
         }
     } catch (error) {
-        console.error('Errore eliminazione multipla:', error);
-        showError('Errore nell\'eliminazione dei depositi selezionati');
-    } finally {
-        hideLoading();
+        console.error('Errore nell\'eliminazione multipla:', error);
+        showNotification('Errore di connessione', 'error');
     }
 }
 
-// Chiudi modal
-function closeDepositModal() {
-    document.getElementById('deposit-details-modal').classList.add('hidden');
-}
-
-// Mostra loading
-function showLoading() {
-    document.getElementById('loading-modal').classList.remove('hidden');
-}
-
-// Nascondi loading
-function hideLoading() {
-    document.getElementById('loading-modal').classList.add('hidden');
-}
-
-// Mostra notifica di successo
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-    }`;
-    notification.textContent = message;
+// Mostra notifica
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const icon = document.getElementById('notification-icon');
+    const messageEl = document.getElementById('notification-message');
     
-    document.body.appendChild(notification);
+    notification.className = 'fixed top-4 right-4 z-50';
+    
+    if (type === 'success') {
+        notification.classList.add('bg-green-50', 'border', 'border-green-200');
+        messageEl.classList.add('text-green-800');
+        icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
+    } else {
+        notification.classList.add('bg-red-50', 'border', 'border-red-200');
+        messageEl.classList.add('text-red-800');
+        icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
+    }
+    
+    messageEl.textContent = message;
+    notification.style.display = 'block';
     
     setTimeout(() => {
-        notification.remove();
-    }, 3000);
+        notification.style.display = 'none';
+    }, 5000);
 }
 
-// Mostra errore
-function showError(message) {
-    showNotification(message, 'error');
-}
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica depositi iniziali
+    loadDeposits();
+    
+    // Filtri
+    document.getElementById('apply-filters').addEventListener('click', () => {
+        loadDeposits(1);
+    });
+    
+    document.getElementById('clear-filters').addEventListener('click', () => {
+        document.getElementById('status-filter').value = '';
+        document.getElementById('user-filter').value = '';
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        loadDeposits(1);
+    });
+    
+    // Seleziona tutti
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.deposit-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            const depositId = parseInt(checkbox.dataset.depositId);
+            if (this.checked) {
+                selectedDeposits.add(depositId);
+            } else {
+                selectedDeposits.delete(depositId);
+            }
+        });
+        updateDeleteButton();
+    });
+    
+    // Elimina selezionati
+    document.getElementById('delete-selected-btn').addEventListener('click', function() {
+        if (selectedDeposits.size > 0) {
+            if (confirm(`Sei sicuro di voler eliminare ${selectedDeposits.size} depositi selezionati?`)) {
+                deleteSelectedDeposits();
+            }
+        }
+    });
+});
 </script>
 {% endblock %}

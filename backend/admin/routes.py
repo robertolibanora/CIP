@@ -4907,3 +4907,59 @@ def change_admin_password():
     return render_template('admin/config/change_password.html',
                          current_page="config")
 
+# ---- ENDPOINT ELIMINAZIONE DEPOSITI ----
+@admin_bp.delete("/api/deposits/delete/<int:deposit_id>")
+@admin_required
+def deposits_api_delete(deposit_id):
+    """API per eliminare un singolo deposito"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che il deposito esista
+            cur.execute("SELECT id FROM deposit_requests WHERE id = %s", (deposit_id,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Deposito non trovato'}), 404
+            
+            # Elimina il deposito
+            cur.execute("DELETE FROM deposit_requests WHERE id = %s", (deposit_id,))
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Deposito eliminato con successo'})
+            
+    except Exception as e:
+        logger.exception("Errore nell'eliminazione deposito: %s", e)
+        return jsonify({'error': 'delete_failed', 'debug': str(e)}), 500
+
+@admin_bp.delete("/api/deposits/delete-multiple")
+@admin_required
+def deposits_api_delete_multiple():
+    """API per eliminare più depositi"""
+    try:
+        data = request.get_json()
+        deposit_ids = data.get('deposit_ids', [])
+        
+        if not deposit_ids:
+            return jsonify({'error': 'Nessun deposito selezionato'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che tutti i depositi esistano
+            placeholders = ','.join(['%s'] * len(deposit_ids))
+            cur.execute(f"SELECT id FROM deposit_requests WHERE id IN ({placeholders})", deposit_ids)
+            existing_ids = [row['id'] for row in cur.fetchall()]
+            
+            if len(existing_ids) != len(deposit_ids):
+                return jsonify({'error': 'Alcuni depositi non sono stati trovati'}), 400
+            
+            # Elimina i depositi
+            cur.execute(f"DELETE FROM deposit_requests WHERE id IN ({placeholders})", deposit_ids)
+            conn.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Eliminati {len(deposit_ids)} depositi con successo',
+                'deleted_count': len(deposit_ids)
+            })
+            
+    except Exception as e:
+        logger.exception("Errore nell'eliminazione multipla depositi: %s", e)
+        return jsonify({'error': 'delete_multiple_failed', 'debug': str(e)}), 500
+
