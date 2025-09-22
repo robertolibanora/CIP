@@ -16,6 +16,9 @@ def get_conn():
 @portfolio_bp.before_request
 def require_login():
     """Verifica che l'utente sia autenticato per tutte le route portfolio"""
+    # Skip login check for API endpoints
+    if request.endpoint and 'api' in request.endpoint:
+        return
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
