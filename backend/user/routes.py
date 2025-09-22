@@ -1007,10 +1007,15 @@ def change_password():
 def get_referral_data():
     """Ottieni dati referral dell'utente corrente"""
     try:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user_id = session.get('user_id')
+        logger.info(f"DEBUG: get_referral_data - user_id: {user_id}")
         print(f"DEBUG: get_referral_data - user_id: {user_id}")
         
         # Test semplificato senza ensure_referral_code
+        logger.info(f"DEBUG: get_referral_data - INIZIO FUNZIONE")
         print(f"DEBUG: get_referral_data - INIZIO FUNZIONE")
         
         with get_conn() as conn, conn.cursor() as cur:
