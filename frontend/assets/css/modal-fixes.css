@@ -85,13 +85,13 @@
     
     #rate-limit-modal .modal-content,
     #withdrawal-rate-limit-modal .modal-content {
-        max-height: calc(100vh - 4rem) !important;
+        max-height: calc(100vh - 6rem) !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         background: white !important;
         border-radius: 0.75rem !important;
         margin: 1rem !important;
-        margin-bottom: 6rem !important; /* Spazio per la bottom nav */
+        margin-bottom: 8rem !important; /* Spazio extra per la bottom nav */
     }
     
     /* Assicura che il contenuto sia scrollabile */
@@ -99,12 +99,44 @@
     #withdrawal-rate-limit-modal .modal-content > div {
         min-height: auto !important;
     }
+    
+    /* Padding extra per il footer dei modal */
+    #rate-limit-modal .modal-content .p-6.pt-0.pb-8,
+    #withdrawal-rate-limit-modal .modal-content .p-6.pt-0.pb-8 {
+        padding-bottom: 3rem !important; /* Spazio extra per il pulsante */
+    }
 }
 
 /* Fix specifico per i modal di successo */
 #deposit-success-modal .modal-content,
 #withdrawal-success-modal .modal-content {
     max-height: calc(100vh - 10rem) !important;
+}
+
+/* Modal di successo scrollabili su mobile */
+@media (max-width: 767px) {
+    #deposit-success-modal,
+    #withdrawal-success-modal {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    #deposit-success-modal .modal-content,
+    #withdrawal-success-modal .modal-content {
+        max-height: calc(100vh - 8rem) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        background: white !important;
+        border-radius: 0.75rem !important;
+        margin: 1rem !important;
+        margin-bottom: 8rem !important; /* Spazio extra per la bottom nav */
+    }
+    
+    /* Padding extra per il footer dei modal di successo */
+    #deposit-success-modal .modal-content .p-6.pt-4,
+    #withdrawal-success-modal .modal-content .p-6.pt-4 {
+        padding-bottom: 3rem !important; /* Spazio extra per il pulsante */
+    }
 }
 
 /* Assicura che i pulsanti siano sempre accessibili */
