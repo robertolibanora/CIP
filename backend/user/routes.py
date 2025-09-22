@@ -1012,6 +1012,7 @@ def get_referral_data():
         print(f"DEBUG: get_referral_data - user_id: {user_id}")
         
         # Assicura che l'utente abbia un codice referral
+        print(f"DEBUG: get_referral_data - chiamando ensure_referral_code per user_id: {user_id}")
         referral_code = ensure_referral_code(user_id)
         print(f"DEBUG: get_referral_data - referral_code: {referral_code}")
         
