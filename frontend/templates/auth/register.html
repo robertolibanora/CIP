@@ -37,7 +37,7 @@
               placeholder="Inserisci il codice referral"
             />
           </div>
-          <p id="referral_info" class="text-sm mt-1 text-gray-600 hidden"></p>
+          <div id="referral_info" class="mt-2 p-3 rounded-lg border hidden"></div>
           <p class="text-xs text-gray-500">Se lasci vuoto, verrai inserito automaticamente sotto il primo utente registrato.</p>
         </div>
         <!-- CSRF Token removed - not configured -->
@@ -420,13 +420,29 @@ setTimeout(function() {
 
 <script>
 // Verifica referral via API automaticamente con debounce
+const referralInput = document.getElementById('referral_code');
 const referralInfo = document.getElementById('referral_info');
 let referralDebounce;
 
 async function validateReferral(code) {
-  referralInfo.classList.remove('text-red-600', 'text-green-600');
+  // Rimuovi tutte le classi di colore e styling
+  referralInfo.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 
+                               'bg-red-50', 'bg-green-50', 'bg-blue-50', 
+                               'border-red-200', 'border-green-200', 'border-blue-200');
+  
   if (!code) {
-    referralInfo.textContent = 'Nessun codice inserito: verrai assegnato a Marco Trapella.';
+    referralInfo.innerHTML = `
+      <div class="flex items-center">
+        <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="font-medium text-blue-800">Nessun codice inserito</span>
+      </div>
+      <div class="mt-1 text-sm text-blue-700">
+        Verrai assegnato a: <span class="font-semibold">Marco Trapella</span>
+      </div>
+    `;
+    referralInfo.classList.add('bg-blue-50', 'border-blue-200');
     referralInfo.classList.remove('hidden');
     return;
   }
@@ -434,17 +450,43 @@ async function validateReferral(code) {
     const res = await fetch(`/auth/referral/validate?code=${encodeURIComponent(code)}`);
     const data = await res.json();
     if (res.ok && data.valid) {
-      referralInfo.textContent = `Codice valido: ${data.user.nome} ${data.user.cognome}`;
-      referralInfo.classList.add('text-green-600');
+      referralInfo.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-4 h-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span class="font-medium text-green-800">Codice valido!</span>
+        </div>
+        <div class="mt-1 text-sm text-green-700">
+          Sarai invitato da: <span class="font-semibold">${data.user.nome} ${data.user.cognome}</span>
+        </div>
+      `;
+      referralInfo.classList.add('bg-green-50', 'border-green-200');
       referralInfo.classList.remove('hidden');
     } else {
-      referralInfo.textContent = 'Codice referral non valido';
-      referralInfo.classList.add('text-red-600');
+      referralInfo.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-4 h-4 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+          <span class="font-medium text-red-800">Codice referral non valido</span>
+        </div>
+        <div class="mt-1 text-sm text-red-700">Verifica che il codice sia corretto</div>
+      `;
+      referralInfo.classList.add('bg-red-50', 'border-red-200');
       referralInfo.classList.remove('hidden');
     }
   } catch (e) {
-    referralInfo.textContent = 'Errore di connessione durante la verifica';
-    referralInfo.classList.add('text-red-600');
+    referralInfo.innerHTML = `
+      <div class="flex items-center">
+        <svg class="w-4 h-4 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="font-medium text-red-800">Errore di connessione</span>
+      </div>
+      <div class="mt-1 text-sm text-red-700">Riprova tra qualche secondo</div>
+    `;
+    referralInfo.classList.add('bg-red-50', 'border-red-200');
     referralInfo.classList.remove('hidden');
   }
 }
