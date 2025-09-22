@@ -467,13 +467,6 @@ function showError(message) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, starting notifications system...');
     
-    // Inizializza il sistema notifiche
-    if (typeof window.adminNotifications !== 'undefined') {
-        console.log('⚠️ AdminNotifications già presente, skip');
-    } else {
-        window.adminNotifications = new AdminNotifications();
-    }
-    
     // Carica notifiche per la pagina completa
     loadNotifications();
     
