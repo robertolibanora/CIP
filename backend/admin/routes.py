@@ -3818,8 +3818,25 @@ def deposits_api_metrics():
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
-            from backend.deposits.routes import ensure_deposits_schema
-            ensure_deposits_schema(cur)
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
             
             # Conta depositi per stato
             cur.execute("SELECT status, COUNT(*), COALESCE(SUM(amount), 0) FROM deposit_requests GROUP BY status")
@@ -3858,8 +3875,25 @@ def deposits_api_pending():
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
-            from backend.deposits.routes import ensure_deposits_schema
-            ensure_deposits_schema(cur)
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
             
             cur.execute("""
                 SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
@@ -3900,8 +3934,25 @@ def deposits_api_approve(deposit_id):
         
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
-            from backend.deposits.routes import ensure_deposits_schema
-            ensure_deposits_schema(cur)
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
             
             # Verifica richiesta esiste e è pending
             cur.execute("""
@@ -3953,8 +4004,25 @@ def deposits_api_reject(deposit_id):
         
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
-            from backend.deposits.routes import ensure_deposits_schema
-            ensure_deposits_schema(cur)
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
             
             # Verifica richiesta esiste e è pending
             cur.execute("""
@@ -3997,8 +4065,25 @@ def deposits_api_history():
         
         with get_conn() as conn, conn.cursor() as cur:
             # Assicura che lo schema sia aggiornato
-            from backend.deposits.routes import ensure_deposits_schema
-            ensure_deposits_schema(cur)
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
             
             # Query base
             base_query = """
