@@ -3677,7 +3677,7 @@ def notifications_test():
 @admin_required
 def notifications_debug():
     """Debug page per test JavaScript"""
-    return send_file('/tmp/test_js_debug.html')
+    return render_template('admin/notifications/debug.html')
 
 @admin_bp.post("/notifications/new")
 @admin_required
