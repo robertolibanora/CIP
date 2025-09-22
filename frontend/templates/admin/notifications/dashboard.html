@@ -46,6 +46,36 @@
     .notification-item:hover .notification-actions {
         opacity: 1;
     }
+    
+    .notification-close-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: #ef4444;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+    
+    .notification-item:hover .notification-close-btn {
+        opacity: 1;
+    }
+    
+    .notification-close-btn:hover {
+        background-color: #dc2626;
+        transform: scale(1.1);
+    }
 </style>
 {% endblock %}
 
@@ -238,7 +268,12 @@ function renderNotifications() {
     }
     
     container.innerHTML = notifications.map(notification => `
-        <div class="notification-item p-6 ${notification.is_read ? '' : 'unread'} ${notification.type}" data-id="${notification.id}">
+        <div class="notification-item relative p-6 ${notification.is_read ? '' : 'unread'} ${notification.type}" data-id="${notification.id}">
+            <!-- Pulsante X per eliminazione rapida -->
+            <button class="notification-close-btn" onclick="deleteNotification(${notification.id})" title="Elimina notifica">
+                ×
+            </button>
+            
             <div class="flex items-start justify-between">
                 <div class="flex-1">
                     <div class="flex items-center space-x-3 mb-2">
