@@ -341,7 +341,7 @@ def can_user_invest(user_id: int) -> bool:
         return False
     
     # Admin può sempre investire
-    if user.get('ruolo') == UserRole.ADMIN.value:
+    if user.get('role') == UserRole.ADMIN.value:
         return True
     
     # Utenti normali devono avere KYC verificato
@@ -354,7 +354,7 @@ def can_user_withdraw(user_id: int) -> bool:
         return False
     
     # Admin può sempre prelevare
-    if user.get('ruolo') == UserRole.ADMIN.value:
+    if user.get('role') == UserRole.ADMIN.value:
         return True
     
     # Utenti normali devono avere KYC verificato

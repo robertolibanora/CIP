@@ -253,7 +253,7 @@ def admin_get_kyc_stats_old():
                 SUM(CASE WHEN kyc_status = 'pending' THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN kyc_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
                 SUM(CASE WHEN kyc_status = 'unverified' THEN 1 ELSE 0 END) as unverified
-            FROM users WHERE ruolo = 'investor'
+            FROM users WHERE role = 'investor'
         """)
         stats = cur.fetchone()
         

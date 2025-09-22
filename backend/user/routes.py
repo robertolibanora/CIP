@@ -104,7 +104,7 @@ def dashboard():
         with get_conn() as conn, conn.cursor() as cur:
             # Dati utente base
             cur.execute("""
-                SELECT id, email, nome, ruolo, cognome
+                SELECT id, email, nome, role, cognome
                 FROM users WHERE id = %s
             """, (uid,))
             user_data = cur.fetchone()
@@ -290,7 +290,7 @@ def new_project():
             {"name": "Capitale Libero", "key": "free_capital", "amount": 1000, "description": "Soldi non investiti, sempre prelevabili"}
         ]
         available_projects = [{"id": 1, "title": "Progetto Test", "description": "Descrizione", "completion_percent": 10, "location": "Milano", "roi": 8.5, "min_investment": 1000, "code": "PRJ001"}]
-        user = {"id": uid, "nome": "Utente", "email": "user@example.com", "ruolo": "user", "cognome": "Test", "is_verified": False}
+        user = {"id": uid, "nome": "Utente", "email": "user@example.com", "role": "user", "cognome": "Test", "is_verified": False}
         greet_name = "Utente"
     
     return render_template("user/new_project.html", 
@@ -777,7 +777,7 @@ def referral():
         stats = {"total_referrals": 0, "verified_referrals": 0, "pending_referrals": 0}
         referrals = []
         bonus = {"total_bonus": 0}
-        user = {"id": uid, "nome": "Utente", "email": "user@example.com", "ruolo": "user", "cognome": "Test", "is_verified": False}
+        user = {"id": uid, "nome": "Utente", "email": "user@example.com", "role": "user", "cognome": "Test", "is_verified": False}
         greet_name = "Utente"
     
     return render_template("user/referral.html", 

@@ -53,7 +53,7 @@ def new_project():
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni dati utente completi
         cur.execute("""
-            SELECT id, email, nome, ruolo, cognome, is_verified
+            SELECT id, email, nome, role, cognome, is_verified
             FROM users WHERE id = %s
         """, (uid,))
         user = cur.fetchone()

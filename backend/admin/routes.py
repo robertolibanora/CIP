@@ -1420,7 +1420,7 @@ def users_stats():
                 COUNT(*) FILTER (WHERE kyc_status = 'pending') as pending,
                 COUNT(*) FILTER (WHERE kyc_status = 'rejected') as rejected,
                 COUNT(*) FILTER (WHERE kyc_status = 'rejected') as suspended,
-                COUNT(*) FILTER (WHERE ruolo = 'admin') as admins
+                COUNT(*) FILTER (WHERE role = 'admin') as admins
             FROM users
         """)
         basic_stats = cur.fetchone()
