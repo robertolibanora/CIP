@@ -248,6 +248,7 @@
           </div>
         </div>
 
+
         <!-- Submit Button -->
         <button
           type="submit" id="registerSubmit"
@@ -376,6 +377,35 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
       hasErrors = true;
     }
   });
+
+  // Validate terms and conditions
+  const termsAccepted = document.getElementById('terms');
+  
+  if (!termsAccepted.checked) {
+    // Mostra errore nel campo terms
+    const termsContainer = termsAccepted.closest('.flex');
+    if (termsContainer) {
+      // Crea o aggiorna messaggio di errore
+      let errorEl = termsContainer.querySelector('.error-message');
+      if (!errorEl) {
+        errorEl = document.createElement('p');
+        errorEl.className = 'error-message text-red-500 text-xs mt-1';
+        termsContainer.appendChild(errorEl);
+      }
+      errorEl.textContent = 'Devi accettare i Termini e Condizioni per continuare';
+      errorEl.classList.remove('hidden');
+    }
+    hasErrors = true;
+  } else {
+    // Nascondi errore se presente
+    const termsContainer = termsAccepted.closest('.flex');
+    if (termsContainer) {
+      const errorEl = termsContainer.querySelector('.error-message');
+      if (errorEl) {
+        errorEl.classList.add('hidden');
+      }
+    }
+  }
   
   // Validate password match
   const password = document.getElementById('password').value;

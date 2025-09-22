@@ -141,10 +141,23 @@ def register():
         email = request.form.get("email")
         referral_code = request.form.get("referral_code", "").strip()
         password = request.form.get("password")
+        terms_accepted = request.form.get("terms")
 
         # Validazione
         if not all([nome, cognome, telegram, telefono, email, password]):
             flash("Tutti i campi obbligatori sono richiesti", "error")
+            return render_template("auth/register.html", 
+                                 form_data={
+                                     'nome': nome,
+                                     'cognome': cognome,
+                                     'telegram': telegram,
+                                     'telefono': telefono,
+                                     'email': email
+                                 })
+
+        # Validazione termini e condizioni
+        if not terms_accepted:
+            flash("Devi accettare i Termini e Condizioni per continuare", "error")
             return render_template("auth/register.html", 
                                  form_data={
                                      'nome': nome,
