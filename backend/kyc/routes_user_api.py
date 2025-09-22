@@ -199,6 +199,42 @@ def test_endpoint():
     """Test endpoint semplice"""
     return jsonify({"test": "ok", "message": "Endpoint funziona!"})
 
+@kyc_user_api.route("/test-upload", methods=["POST"])
+def test_kyc_upload():
+    """Test KYC upload senza autenticazione per debug."""
+    try:
+        # Simula dati di test
+        user_id = 2  # Utente di test
+        doc_type = "driver_license"
+        
+        # Test creazione richiesta KYC
+        from backend.models.kyc import KYCRequest, KYCStatus
+        from backend.database.connection import get_connection
+        
+        req = KYCRequest(
+            user_id=user_id,
+            doc_type=doc_type,
+            file_front="test_front.png",
+            file_back="test_back.png",
+            status=KYCStatus.PENDING
+        )
+        
+        # Salva nel database
+        req_id = req.save()
+        
+        return jsonify({
+            "success": True,
+            "message": "Test KYC upload completato",
+            "request_id": req_id,
+            "doc_type": doc_type
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @kyc_user_api.route("/doc-types", methods=["GET"])
 def get_kyc_doc_types():
     """Ritorna i tipi di documenti disponibili"""
