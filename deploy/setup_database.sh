@@ -53,7 +53,7 @@ try:
             cognome VARCHAR(100),
             telefono VARCHAR(20),
             telegram VARCHAR(50),
-            ruolo VARCHAR(50) DEFAULT 'user',
+            role VARCHAR(50) DEFAULT 'user',
             is_verified BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -102,7 +102,7 @@ try:
         # Crea admin
         cursor.execute('''
             INSERT INTO users (email, password_hash, nome, cognome, telefono, telegram, 
-                             ruolo, is_verified, created_at, updated_at)
+                             role, is_verified, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ''', (
             admin_email,
