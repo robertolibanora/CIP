@@ -131,8 +131,7 @@ def login():
 @auth_bp.route("/register", methods=["GET", "POST"])
 @guest_only
 def register():
-    """Registrazione nuovo utente"""
-    # Logica referral non implementata
+    """Registrazione nuovo utente con logica referral"""
     
     if request.method == "POST":
         nome = request.form.get("nome")
@@ -140,7 +139,7 @@ def register():
         telegram = request.form.get("telegram")
         telefono = request.form.get("telefono")
         email = request.form.get("email")
-        # referral_link = request.form.get("referral_link") or referral_code_from_url  # Non implementato
+        referral_code = request.form.get("referral_code", "").strip()
         password = request.form.get("password")
 
         # Validazione
@@ -208,16 +207,31 @@ def register():
                                          'email': email,
                                      })
 
-            # Logica referral non implementata
+            # Logica referral: determina referred_by
+            referred_by = None
+            
+            if referral_code:
+                # Cerca l'utente con il codice referral
+                cur.execute("SELECT id FROM users WHERE referral_code = %s", (referral_code,))
+                referrer = cur.fetchone()
+                if referrer:
+                    referred_by = referrer["id"]
+                else:
+                    # Codice referral non valido, usa default
+                    cur.execute("SELECT id FROM users WHERE role != 'admin' ORDER BY id ASC LIMIT 1")
+                    default_referrer = cur.fetchone()
+                    referred_by = default_referrer["id"] if default_referrer else None
+            else:
+                # Nessun codice referral, usa il primo utente non admin (ID 2)
+                cur.execute("SELECT id FROM users WHERE role != 'admin' ORDER BY id ASC LIMIT 1")
+                default_referrer = cur.fetchone()
+                referred_by = default_referrer["id"] if default_referrer else None
 
-            # Genera codice referral unico (non implementato)
-            import uuid
-
-            # Inserisci nuovo utente con hash password
+            # Inserisci nuovo utente con hash password e referred_by
             cur.execute(
                 """
-                INSERT INTO users (nome, cognome, nome_telegram, telefono, email, password_hash, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                INSERT INTO users (nome, cognome, nome_telegram, telefono, email, password_hash, referred_by, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                 RETURNING id
                 """,
                 (
@@ -227,12 +241,11 @@ def register():
                     telefono,
                     email,
                     hash_password(password),
+                    referred_by,
                 ),
             )
 
             new_user_id = cur.fetchone()["id"]
-
-            # Logica referral non implementata
 
             conn.commit()
 
