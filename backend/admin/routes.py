@@ -1807,7 +1807,7 @@ def test_api():
 def test_users():
     """Test API utenti senza autenticazione per debug."""
     try:
-        with get_connection() as conn, conn.cursor() as cur:
+        with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
                 SELECT 
                     u.id,
