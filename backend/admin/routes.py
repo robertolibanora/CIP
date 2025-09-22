@@ -3821,6 +3821,7 @@ def deposits_api_metrics():
             # Conta depositi per stato
             cur.execute("SELECT status, COUNT(*), COALESCE(SUM(amount), 0) FROM deposit_requests GROUP BY status")
             results = cur.fetchall()
+            logger.info(f"Deposits metrics query results: {results}")
             
             metrics = {
                 'pending': 0,
@@ -3830,6 +3831,7 @@ def deposits_api_metrics():
             }
             
             for status, count, total_amount in results:
+                logger.info(f"Processing status: {status}, count: {count}, total: {total_amount}")
                 if status == 'pending':
                     metrics['pending'] = count
                 elif status == 'completed':
