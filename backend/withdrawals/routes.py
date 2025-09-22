@@ -345,7 +345,7 @@ def admin_get_pending_withdrawals():
                        COALESCE(NULLIF(u.nome, ''), u.nome || ' ' || u.cognome) as nome,
                        u.email, wr.amount, wr.method,
                        wr.source_section, wr.wallet_address, wr.network, wr.unique_key,
-                       wr.status, wr.created_at, wr.admin_notes
+                       wr.status, wr.created_at, wr.admin_notes, wr.bank_details
                 FROM withdrawal_requests wr
                 JOIN users u ON u.id = wr.user_id
                 WHERE wr.status = 'pending'
