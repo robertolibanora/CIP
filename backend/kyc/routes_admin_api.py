@@ -217,6 +217,45 @@ def admin_revoke_kyc(user_id: int):
 
 
 
+@kyc_admin_api.route("/test-data", methods=["GET"])
+def test_kyc_data():
+    """Test endpoint per verificare struttura dati KYC."""
+    try:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT DISTINCT u.id AS user_id,
+                       u.nome, u.cognome, u.email, u.telefono, u.kyc_status,
+                       u.created_at,
+                       COUNT(d.id) AS documents_count,
+                       MAX(d.uploaded_at) AS last_upload
+                FROM users u
+                LEFT JOIN documents d ON u.id = d.user_id 
+                LEFT JOIN doc_categories dc ON d.category_id = dc.id AND dc.is_kyc = TRUE
+                WHERE u.role IN ('investor', 'user')
+                GROUP BY u.id, u.nome, u.cognome, u.email, u.telefono, u.kyc_status, u.created_at
+                ORDER BY u.created_at DESC
+                LIMIT 1
+            """)
+            row = cur.fetchone()
+            
+            if row:
+                result = {
+                    "id": row["user_id"],
+                    "nome": f"{row['nome']} {row['cognome']}",
+                    "email": row["email"],
+                    "telefono": row.get("telefono"),
+                    "kyc_status": row["kyc_status"],
+                    "documents_count": row.get("documents_count") or 0,
+                    "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+                    "last_upload": row.get("last_upload").isoformat() if row.get("last_upload") else None
+                }
+                return jsonify({"success": True, "data": result})
+            else:
+                return jsonify({"success": False, "error": "Nessun utente trovato"})
+                
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @kyc_admin_api.route("/kyc-stats", methods=["GET"])
 @admin_required
 def admin_get_kyc_stats():
