@@ -1,0 +1,186 @@
+{% extends "layouts/admin_base.html" %}
+
+{% block title %}Notifiche Admin - Test{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notification-close-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: #ef4444;
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 10;
+    }
+    
+    .notification-close-btn:hover {
+        background-color: #dc2626;
+        transform: scale(1.1);
+    }
+    
+    .notification-item {
+        position: relative;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        background-color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Test Notifiche con Pulsante X</h1>
+        
+        <!-- Lista Notifiche -->
+        <div id="notifications-container">
+            <div id="loading" class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="text-gray-500 mt-2">Caricamento notifiche...</p>
+            </div>
+        </div>
+        
+        <!-- Link per tornare al dashboard normale -->
+        <div class="mt-8">
+            <a href="/admin/notifications" class="text-blue-600 hover:text-blue-800">← Torna al dashboard normale</a>
+        </div>
+    </div>
+</div>
+
+<script>
+console.log('🔧 Inizializzazione test notifiche...');
+
+async function loadAndRenderNotifications() {
+    console.log('📡 Caricamento notifiche...');
+    
+    try {
+        const response = await fetch('/admin/api/notifications/', {
+            credentials: 'same-origin'
+        });
+        
+        console.log('📊 Risposta API:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('📋 Dati ricevuti:', data);
+        
+        const notifications = data.notifications || [];
+        console.log(`✅ ${notifications.length} notifiche da renderizzare`);
+        
+        renderNotifications(notifications);
+        
+    } catch (error) {
+        console.error('❌ Errore caricamento:', error);
+        document.getElementById('notifications-container').innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>Errore caricamento notifiche: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderNotifications(notifications) {
+    console.log(`🎨 Rendering ${notifications.length} notifiche...`);
+    
+    const container = document.getElementById('notifications-container');
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna notifica</h3>
+                <p class="text-gray-500">Non ci sono notifiche da visualizzare</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = notifications.map(notification => `
+        <div class="notification-item" data-id="${notification.id}">
+            <button class="notification-close-btn" onclick="deleteNotification(${notification.id})" title="Elimina notifica">
+                ×
+            </button>
+            
+            <div class="mb-2">
+                <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                    notification.type === 'kyc' ? 'bg-yellow-100 text-yellow-800' :
+                    notification.type === 'deposit' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                }">
+                    ${notification.type.toUpperCase()}
+                </span>
+                ${!notification.is_read ? '<span class="ml-2 w-2 h-2 bg-blue-600 rounded-full inline-block"></span>' : ''}
+            </div>
+            
+            <h3 class="text-lg font-semibold text-gray-900 mb-1">${notification.title}</h3>
+            <p class="text-gray-600 mb-2">${notification.message}</p>
+            
+            <div class="text-sm text-gray-500">
+                <span class="font-medium">Utente:</span> ${notification.nome} ${notification.cognome} (${notification.email})
+                <br>
+                <span class="font-medium">Data:</span> ${new Date(notification.created_at).toLocaleString('it-IT')}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+    console.log('✅ Notifiche renderizzate con successo');
+}
+
+async function deleteNotification(id) {
+    console.log(`🗑️ Eliminazione notifica ID: ${id}`);
+    
+    try {
+        const response = await fetch(`/admin/api/notifications/${id}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+        
+        console.log('📊 Risposta eliminazione:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Eliminazione completata:', result);
+        
+        // Rimuovi dal DOM
+        const element = document.querySelector(`[data-id="${id}"]`);
+        if (element) {
+            element.remove();
+            console.log('✅ Elemento rimosso dal DOM');
+        }
+        
+        // Ricarica le notifiche per aggiornare la lista
+        setTimeout(() => {
+            loadAndRenderNotifications();
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Errore eliminazione:', error);
+        alert(`Errore eliminazione notifica: ${error.message}`);
+    }
+}
+
+// Avvia al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM caricato, avvio test notifiche...');
+    loadAndRenderNotifications();
+});
+</script>
+{% endblock %}

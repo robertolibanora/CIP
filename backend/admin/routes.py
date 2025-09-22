@@ -3667,6 +3667,12 @@ def notifications_dashboard():
     """Dashboard notifiche admin"""
     return render_template('admin/notifications/dashboard.html')
 
+@admin_bp.get("/notifications/test")
+@admin_required
+def notifications_test():
+    """Test page per notifiche admin"""
+    return render_template('admin/notifications/simple.html')
+
 @admin_bp.post("/notifications/new")
 @admin_required
 def notifications_new():
