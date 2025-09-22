@@ -1,0 +1,77 @@
+/* Fix per modal su mobile - evita sovrapposizione con bottom navigation */
+
+/* Z-index più alto per tutti i modal */
+.modal-overlay {
+    z-index: 60 !important;
+}
+
+/* Padding bottom per mobile per evitare sovrapposizione con bottom nav */
+@media (max-width: 767px) {
+    .modal-container {
+        padding-bottom: 6rem !important; /* 96px per la bottom nav + padding */
+    }
+    
+    /* Assicura che i modal siano sempre visibili sopra la bottom nav */
+    .modal-content {
+        max-height: calc(100vh - 8rem) !important; /* Lascia spazio per la bottom nav */
+        margin-bottom: 1rem !important;
+    }
+}
+
+/* Animazioni migliorate per i modal */
+.modal-enter {
+    transform: scale(0.95) !important;
+    opacity: 0 !important;
+}
+
+.modal-enter-active {
+    transform: scale(1) !important;
+    opacity: 1 !important;
+    transition: all 0.3s ease-out !important;
+}
+
+.modal-exit {
+    transform: scale(1) !important;
+    opacity: 1 !important;
+}
+
+.modal-exit-active {
+    transform: scale(0.95) !important;
+    opacity: 0 !important;
+    transition: all 0.2s ease-in !important;
+}
+
+/* Migliora la leggibilità del testo nei modal su mobile */
+@media (max-width: 767px) {
+    .modal-content h3 {
+        font-size: 1.25rem !important;
+        line-height: 1.4 !important;
+    }
+    
+    .modal-content p {
+        font-size: 0.875rem !important;
+        line-height: 1.5 !important;
+    }
+    
+    .modal-content .text-sm {
+        font-size: 0.8rem !important;
+    }
+}
+
+/* Fix specifico per il modal di rate limiting */
+#rate-limit-modal .modal-content,
+#withdrawal-rate-limit-modal .modal-content {
+    max-width: 28rem !important; /* 448px */
+}
+
+/* Fix specifico per i modal di successo */
+#deposit-success-modal .modal-content,
+#withdrawal-success-modal .modal-content {
+    max-height: calc(100vh - 10rem) !important;
+}
+
+/* Assicura che i pulsanti siano sempre accessibili */
+.modal-content button {
+    min-height: 44px !important; /* Touch target minimo per iOS */
+    padding: 0.75rem 1rem !important;
+}

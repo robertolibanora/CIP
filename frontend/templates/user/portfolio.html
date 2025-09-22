@@ -603,8 +603,8 @@
 
 
 <!-- Modal istruzioni deposito - Design CIP -->
-<div id="deposit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 transition-all duration-300">
-    <div class="min-h-screen flex items-center justify-center p-6">
+<div id="deposit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300">
+    <div class="min-h-screen flex items-center justify-center p-6 pb-24 md:pb-6">
         <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-lg transform transition-all duration-300 scale-95 opacity-0" id="deposit-modal-content">
             <div class="p-6 border-b border-cip-primary-darker flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-cip-neutral-800">Istruzioni deposito</h3>
@@ -628,8 +628,8 @@
 </div>
 
 <!-- Modal Rate Limiting - Design CIP -->
-<div id="rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 transition-all duration-300">
-    <div class="min-h-screen flex items-center justify-center p-6">
+<div id="rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300">
+    <div class="min-h-screen flex items-center justify-center p-6 pb-24 md:pb-6">
         <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="rate-limit-modal-content">
             <!-- Header con icona -->
             <div class="p-6 border-b border-cip-primary-darker text-center">
@@ -685,8 +685,8 @@
 </div>
 
 <!-- Modal Rate Limiting Prelievi -->
-<div id="withdrawal-rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 transition-all duration-300">
-    <div class="min-h-screen flex items-center justify-center p-6">
+<div id="withdrawal-rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300">
+    <div class="min-h-screen flex items-center justify-center p-6 pb-24 md:pb-6">
         <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="withdrawal-rate-limit-modal-content">
             <!-- Header con icona -->
             <div class="p-6 border-b border-cip-primary-darker text-center">
@@ -776,9 +776,9 @@
 </div>
 
 <!-- Popup di successo deposito - Design CIP -->
-<div id="deposit-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
-  <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[90vh] flex flex-col" id="deposit-success-modal-content">
+<div id="deposit-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-[60] transition-all duration-300">
+  <div class="relative min-h-full flex items-center justify-center p-4 py-8 pb-24 md:pb-8 w-full">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[85vh] flex flex-col" id="deposit-success-modal-content">
       <!-- Header fisso -->
       <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
@@ -829,9 +829,9 @@
 </div>
 
 <!-- Popup di successo prelievo - Design CIP -->
-<div id="withdrawal-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
-  <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[90vh] flex flex-col" id="withdrawal-success-modal-content">
+<div id="withdrawal-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-[60] transition-all duration-300">
+  <div class="relative min-h-full flex items-center justify-center p-4 py-8 pb-24 md:pb-8 w-full">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[85vh] flex flex-col" id="withdrawal-success-modal-content">
       <!-- Header fisso -->
       <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
@@ -2651,8 +2651,8 @@ document.getElementById('transferModal').addEventListener('click', function(e) {
 </script>
 
 <!-- Modal di Successo -->
-<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-    <div class="flex items-center justify-center min-h-screen p-4">
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[60]">
+    <div class="flex items-center justify-center min-h-screen p-4 pb-24 md:pb-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="successModalContent">
             <div class="p-8 text-center">
                 <!-- Icona di successo -->
@@ -2679,8 +2679,8 @@ document.getElementById('transferModal').addEventListener('click', function(e) {
 </div>
 
 <!-- Modal di Errore -->
-<div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-    <div class="flex items-center justify-center min-h-screen p-4">
+<div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[60]">
+    <div class="flex items-center justify-center min-h-screen p-4 pb-24 md:pb-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="errorModalContent">
             <div class="p-8 text-center">
                 <!-- Icona di errore -->
