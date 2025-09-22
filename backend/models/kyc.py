@@ -39,13 +39,21 @@ class KYCRequest:
                 """, (self.doc_type, self.file_front, self.file_back, 
                       self.status, self.id))
             else:
+                # Mappa doc_type a category
+                category_map = {
+                    "passport": "passport",
+                    "id_card": "id_card", 
+                    "driver_license": "residence"
+                }
+                category = category_map.get(self.doc_type, "id_card")
+                
                 # Insert nuovo
                 cur.execute("""
                     INSERT INTO kyc_requests 
-                    (user_id, doc_type, file_front, file_back, status, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                    (user_id, category, doc_type, file_front, file_back, status, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
                     RETURNING id
-                """, (self.user_id, self.doc_type, self.file_front, 
+                """, (self.user_id, category, self.doc_type, self.file_front, 
                       self.file_back, self.status))
             
             result = cur.fetchone()
