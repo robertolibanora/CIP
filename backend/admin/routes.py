@@ -4,7 +4,7 @@ import time
 import logging
 import json
 from datetime import datetime, date, timedelta
-from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template
+from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template, send_file
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 
@@ -3672,6 +3672,12 @@ def notifications_dashboard():
 def notifications_test():
     """Test page per notifiche admin"""
     return render_template('admin/notifications/simple.html')
+
+@admin_bp.get("/notifications/debug")
+@admin_required
+def notifications_debug():
+    """Debug page per test JavaScript"""
+    return send_file('/tmp/test_js_debug.html')
 
 @admin_bp.post("/notifications/new")
 @admin_required
