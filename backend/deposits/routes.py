@@ -142,27 +142,6 @@ def get_deposit_requests():
         return jsonify({'error': 'unauthorized'}), 401
     
     with get_conn() as conn, conn.cursor() as cur:
-        # Assicura che lo schema sia aggiornato
-        try:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS deposit_requests (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER NOT NULL REFERENCES users(id),
-                    amount DECIMAL(15,2) NOT NULL,
-                    iban VARCHAR(255),
-                    method VARCHAR(50) DEFAULT 'bank',
-                    unique_key VARCHAR(50),
-                    payment_reference VARCHAR(255),
-                    status VARCHAR(50) DEFAULT 'pending',
-                    admin_notes TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    approved_at TIMESTAMP,
-                    approved_by INTEGER REFERENCES users(id)
-                )
-            """)
-        except Exception as e:
-            logger.warning(f"Errore creazione schema depositi: {e}")
-        
         cur.execute("""
             SELECT id, amount, iban, 
                    COALESCE(unique_key, '') as unique_key, 
