@@ -327,23 +327,27 @@ def check_auth():
 @auth_bp.get("/referral/validate")
 def validate_referral_code():
     """Valida un codice referral e restituisce nome/cognome associati."""
-    code = (request.args.get("code") or "").strip()
-    if not code:
-        return jsonify({"valid": False, "error": "missing_code"}), 400
+    try:
+        code = (request.args.get("code") or "").strip()
+        if not code:
+            return jsonify({"valid": False, "error": "missing_code"}), 400
 
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id, nome, cognome FROM users WHERE referral_code = %s", (code,))
-        row = cur.fetchone()
-        if not row:
-            return jsonify({"valid": False}), 200
-        return jsonify({
-            "valid": True,
-            "user": {
-                "id": row["id"],
-                "nome": row["nome"],
-                "cognome": row["cognome"]
-            }
-        }), 200
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT id, nome, cognome FROM users WHERE referral_code = %s", (code,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"valid": False}), 200
+            return jsonify({
+                "valid": True,
+                "user": {
+                    "id": row["id"],
+                    "nome": row["nome"],
+                    "cognome": row["cognome"]
+                }
+            }), 200
+    except Exception as e:
+        logger.exception(f"Errore nella validazione referral code {code}: {e}")
+        return jsonify({"valid": False, "error": "database_error"}), 500
 
 
 # Route di supporto solo in testing per creare una sessione senza DB

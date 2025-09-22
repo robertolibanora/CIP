@@ -545,14 +545,27 @@ async function validateReferral(code) {
       referralInfo.classList.remove('hidden');
     }
   } catch (e) {
+    console.error('Errore validazione referral:', e);
+    
+    let errorMessage = 'Errore di connessione';
+    let errorDescription = 'Riprova tra qualche secondo';
+    
+    if (e.name === 'TypeError' && e.message.includes('fetch')) {
+      errorMessage = 'Errore di rete';
+      errorDescription = 'Verifica la connessione internet';
+    } else if (e.name === 'SyntaxError') {
+      errorMessage = 'Errore del server';
+      errorDescription = 'Il server ha restituito una risposta non valida';
+    }
+    
     referralInfo.innerHTML = `
       <div class="flex items-center">
         <svg class="w-4 h-4 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        <span class="font-medium text-red-800">Errore di connessione</span>
+        <span class="font-medium text-red-800">${errorMessage}</span>
       </div>
-      <div class="mt-1 text-sm text-red-700">Riprova tra qualche secondo</div>
+      <div class="mt-1 text-sm text-red-700">${errorDescription}</div>
     `;
     referralInfo.classList.add('bg-red-50', 'border-red-200');
     referralInfo.classList.remove('hidden');
