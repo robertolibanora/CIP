@@ -63,8 +63,13 @@ def is_admin() -> bool:
 
 def is_kyc_verified() -> bool:
     """Verifica se l'utente corrente ha KYC verificato"""
-    # KYC non implementato - sempre False per ora
-    return False
+    user = get_current_user()
+    if not user:
+        return False
+    
+    # Controlla lo stato KYC dell'utente
+    kyc_status = user.get('kyc_status')
+    return kyc_status == 'verified'
 
 # ============================================================================
 # VALIDAZIONE SICUREZZA SESSIONI
