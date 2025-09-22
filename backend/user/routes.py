@@ -1004,7 +1004,6 @@ def change_password():
 
 @user_bp.get("/api/referral-data")
 @login_required
-@kyc_verified
 def get_referral_data():
     """Ottieni dati referral dell'utente corrente"""
     try:
