@@ -3919,6 +3919,11 @@ def get_referral_users():
                         NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
                         u.nome
                     ) AS nome,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
+                        u.nome,
+                        'Utente'
+                    ) AS full_name,
                     u.email, u.created_at, u.referral_code,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
@@ -3960,6 +3965,11 @@ def get_user_referral_details(user_id):
                         NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
                         u.nome
                     ) AS nome,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u.nome, u.cognome)), ''),
+                        u.nome,
+                        'Utente'
+                    ) AS full_name,
                     u.email, u.created_at, u.referral_code,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
@@ -3983,6 +3993,11 @@ def get_user_referral_details(user_id):
                         NULLIF(TRIM(CONCAT_WS(' ', u2.nome, u2.cognome)), ''),
                         u2.nome
                     ) AS nome,
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', u2.nome, u2.cognome)), ''),
+                        u2.nome,
+                        'Utente'
+                    ) AS full_name,
                     u2.email, u2.created_at,
                     COALESCE(up2.free_capital, 0) + COALESCE(up2.invested_capital, 0) + 
                     COALESCE(up2.referral_bonus, 0) + COALESCE(up2.profits, 0) as total_balance,

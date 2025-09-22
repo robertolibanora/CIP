@@ -212,9 +212,12 @@
         ? '<span class="chip" style="background:#fef3c7; color:#92400e; font-weight:700;">👑 VIP</span>'
         : '<span class="chip chip-gray">—</span>';
         
+      // Crea nome completo gestendo casi vuoti
+      const fullName = [u.nome, u.cognome].filter(Boolean).join(' ') || 'Utente';
+      
       tr.innerHTML = `
         <td style="padding:14px; text-align:center;"><input type="checkbox" class="row-sel" data-id="${u.id}"></td>
-        <td style="padding:14px;">${(u.nome || '') + ' ' + (u.cognome || '')}</td>
+        <td style="padding:14px;">${fullName}</td>
         <td style="padding:14px;">${u.telegram || ''}</td>
         <td style="padding:14px;">${investorBadge}</td>
         <td style="padding:14px;">${kycBadge}</td>
