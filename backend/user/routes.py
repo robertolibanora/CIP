@@ -1105,3 +1105,25 @@ def get_referrer_info():
         if not ref:
             return jsonify({ 'has_referrer': False, 'referrer': None })
         return jsonify({ 'has_referrer': True, 'referrer': ref })
+
+@user_bp.get("/api/kyc-status")
+@login_required
+def api_kyc_status():
+    """API per verificare lo stato KYC dell'utente"""
+    uid = session.get("user_id")
+    
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT kyc_status, role
+            FROM users WHERE id = %s
+        """, (uid,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        return jsonify({
+            "kyc_status": user["kyc_status"],
+            "role": user["role"],
+            "is_admin": user["role"] == "admin"
+        })

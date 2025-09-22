@@ -1,7 +1,229 @@
 /* 
  * KYC Popups CSS
  * Stili per popup e modali KYC
- * File stub per evitare 404
  */
 
-/* Popups KYC verranno stilizzati inline o con classi Tailwind */
+/* Overlay del popup KYC */
+.kyc-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Popup KYC principale */
+.kyc-popup {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+    position: relative;
+}
+
+/* Header del popup */
+.kyc-popup-header {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    padding: 20px;
+    border-radius: 16px 16px 0 0;
+    text-align: center;
+    position: relative;
+}
+
+.kyc-popup-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.kyc-popup-header .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.kyc-popup-header .close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Contenuto del popup */
+.kyc-popup-content {
+    padding: 24px;
+}
+
+.kyc-popup-content p {
+    margin: 0 0 16px 0;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.kyc-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.kyc-status-badge.unverified {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.kyc-status-badge.pending {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.kyc-status-badge.rejected {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+/* Pulsanti del popup */
+.kyc-popup-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.kyc-popup-actions .btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.kyc-popup-actions .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.kyc-popup-actions .btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.kyc-popup-actions .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.kyc-popup-actions .btn-secondary:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+/* Icona KYC */
+.kyc-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Animazioni */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .kyc-popup-overlay {
+        padding: 10px;
+    }
+    
+    .kyc-popup {
+        max-width: 100%;
+    }
+    
+    .kyc-popup-content {
+        padding: 20px;
+    }
+    
+    .kyc-popup-actions {
+        flex-direction: column;
+    }
+    
+    .kyc-popup-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Modalità scura */
+@media (prefers-color-scheme: dark) {
+    .kyc-popup {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .kyc-popup-content p {
+        color: #d1d5db;
+    }
+    
+    .kyc-popup-actions .btn-secondary {
+        background: #374151;
+        color: #d1d5db;
+        border-color: #4b5563;
+    }
+    
+    .kyc-popup-actions .btn-secondary:hover {
+        background: #4b5563;
+    }
+}

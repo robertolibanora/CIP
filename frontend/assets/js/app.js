@@ -29,6 +29,8 @@ class CIPApp {
     // Setup background sync
     this.setupBackgroundSync();
     
+    // Setup KYC popup system
+    this.setupKYCPopup();
 
     console.log('✅ CIP Immobiliare PWA inizializzato');
   }
@@ -413,6 +415,163 @@ class CIPApp {
     setTimeout(() => {
       updateDiv.remove();
     }, 10000);
+  }
+  
+  // =====================================================
+  // KYC POPUP SYSTEM
+  // =====================================================
+  
+  setupKYCPopup() {
+    // Intercetta i click sui link protetti da KYC
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a[href*="/user/"]');
+      if (link && this.isKYCProtectedLink(link.href)) {
+        e.preventDefault();
+        this.checkKYCAndNavigate(link.href);
+      }
+    });
+    
+    // Intercetta le richieste AJAX per mostrare popup KYC
+    this.interceptAjaxRequests();
+  }
+  
+  isKYCProtectedLink(href) {
+    const protectedPaths = [
+      '/user/projects',
+      '/user/portfolio', 
+      '/user/referral',
+      '/user/new-project'
+    ];
+    
+    return protectedPaths.some(path => href.includes(path));
+  }
+  
+  async checkKYCAndNavigate(href) {
+    try {
+      // Verifica lo stato KYC dell'utente
+      const response = await fetch('/user/api/kyc-status', {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.kyc_status === 'verified') {
+          // KYC verificato, naviga normalmente
+          window.location.href = href;
+        } else {
+          // KYC non verificato, mostra popup
+          this.showKYCPopup(data.kyc_status);
+        }
+      } else {
+        // Errore nella verifica, naviga comunque
+        window.location.href = href;
+      }
+    } catch (error) {
+      console.error('Errore verifica KYC:', error);
+      // In caso di errore, naviga comunque
+      window.location.href = href;
+    }
+  }
+  
+  interceptAjaxRequests() {
+    const originalFetch = window.fetch;
+    const self = this;
+    
+    window.fetch = async function(...args) {
+      const response = await originalFetch.apply(this, args);
+      
+      // Controlla se la risposta contiene un errore KYC
+      if (response.status === 403) {
+        try {
+          const data = await response.clone().json();
+          if (data.error === 'kyc_required' && data.show_kyc_popup) {
+            self.showKYCPopup(data.kyc_status);
+            return response;
+          }
+        } catch (e) {
+          // Non è JSON, ignora
+        }
+      }
+      
+      return response;
+    };
+  }
+  
+  showKYCPopup(kycStatus) {
+    // Rimuovi popup esistenti
+    this.hideKYCPopup();
+    
+    const statusTexts = {
+      'unverified': 'Non Verificato',
+      'pending': 'In Verifica', 
+      'rejected': 'Rifiutato'
+    };
+    
+    const statusMessages = {
+      'unverified': 'Per accedere a questa sezione devi completare la verifica della tua identità (KYC).',
+      'pending': 'La tua verifica KYC è in corso. Riceverai una notifica quando sarà completata.',
+      'rejected': 'La tua verifica KYC è stata rifiutata. Contatta l\'assistenza per maggiori informazioni.'
+    };
+    
+    const popupHTML = `
+      <div class="kyc-popup-overlay" id="kyc-popup-overlay">
+        <div class="kyc-popup">
+          <div class="kyc-popup-header">
+            <h3>🔒 Verifica KYC Richiesta</h3>
+            <button class="close-btn" onclick="window.cipApp.hideKYCPopup()">&times;</button>
+          </div>
+          <div class="kyc-popup-content">
+            <div class="kyc-icon">🔐</div>
+            <div class="kyc-status-badge ${kycStatus}">
+              ${statusTexts[kycStatus] || 'Sconosciuto'}
+            </div>
+            <p>${statusMessages[kycStatus] || 'Verifica KYC richiesta per accedere a questa funzionalità.'}</p>
+            <p>La verifica KYC è necessaria per:</p>
+            <ul style="margin: 16px 0; padding-left: 20px; color: #6b7280;">
+              <li>Effettuare investimenti</li>
+              <li>Visualizzare il portfolio</li>
+              <li>Accedere al sistema referral</li>
+              <li>Utilizzare tutte le funzionalità avanzate</li>
+            </ul>
+          </div>
+          <div class="kyc-popup-actions">
+            <a href="/user/profile" class="btn btn-primary">
+              ${kycStatus === 'rejected' ? 'Contatta Assistenza' : 'Completa Verifica KYC'}
+            </a>
+            <button class="btn btn-secondary" onclick="window.cipApp.hideKYCPopup()">
+              Chiudi
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Chiudi popup cliccando sull'overlay
+    document.getElementById('kyc-popup-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'kyc-popup-overlay') {
+        this.hideKYCPopup();
+      }
+    });
+    
+    // Chiudi popup con ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.hideKYCPopup();
+      }
+    });
+  }
+  
+  hideKYCPopup() {
+    const popup = document.getElementById('kyc-popup-overlay');
+    if (popup) {
+      popup.remove();
+    }
   }
 }
 
