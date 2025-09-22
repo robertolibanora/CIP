@@ -1251,4 +1251,60 @@ def test_referral_with_auth():
             "error": str(e)
         }), 500
 
+@user_bp.get("/api/test-login-and-referral")
+def test_login_and_referral():
+    """Test endpoint per simulare login completo e testare referral."""
+    try:
+        uid = 2  # Utente di test
+        
+        # Simula login completo
+        from backend.auth.middleware import create_secure_session
+        from backend.shared.models import UserRole
+        
+        # Crea sessione completa
+        user_data = {
+            'id': uid,
+            'email': 'marktrapella06@gmail.com',
+            'nome': 'Cip',
+            'cognome': 'Test',
+            'role': 'user',
+            'kyc_status': 'verified'
+        }
+        
+        create_secure_session(user_data)
+        
+        # Test referral data
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT referral_code, kyc_status FROM users WHERE id = %s", (uid,))
+            user_data = cur.fetchone()
+            referral_code = user_data['referral_code'] if user_data else None
+            kyc_status = user_data['kyc_status'] if user_data else None
+            
+            if not referral_code:
+                return jsonify({
+                    "success": False,
+                    "error": "Codice referral non trovato",
+                    "referral_code": None,
+                    "kyc_status": kyc_status
+                })
+            
+            # Costruisci link referral
+            base_url = "https://ciprealestate.eu"
+            referral_link = f"{base_url}/auth/register?ref={referral_code}"
+            
+            return jsonify({
+                "success": True,
+                "referral_code": referral_code,
+                "referral_link": referral_link,
+                "kyc_status": kyc_status,
+                "user_id": uid,
+                "session_data": dict(session)
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
