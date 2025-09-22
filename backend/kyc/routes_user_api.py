@@ -209,7 +209,7 @@ def test_kyc_upload():
         
         # Test creazione richiesta KYC
         from backend.models.kyc import KYCRequest, KYCStatus
-        from backend.database.connection import get_connection
+        from backend.shared.database import get_connection
         
         req = KYCRequest(
             user_id=user_id,
