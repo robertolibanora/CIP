@@ -225,7 +225,7 @@ def test_kyc_upload():
         return jsonify({
             "success": True,
             "message": "Test KYC upload completato",
-            "request_id": req_id,
+            "request_id": int(req_id) if req_id else None,
             "doc_type": doc_type
         })
         
