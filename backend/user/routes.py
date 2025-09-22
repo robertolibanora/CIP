@@ -971,7 +971,7 @@ def change_password():
 
 @user_bp.get("/api/referral-data")
 @login_required
-# @kyc_verified  # Temporaneamente rimosso per debug
+@kyc_verified
 def get_referral_data():
     """Ottieni dati referral dell'utente corrente"""
     try:
@@ -1046,7 +1046,7 @@ def get_referral_data():
 
 @user_bp.get("/api/referral-link")
 @login_required
-# @kyc_verified  # Temporaneamente rimosso per debug
+@kyc_verified
 def get_referral_link():
     """Ottieni link referral dell'utente"""
     try:
@@ -1128,81 +1128,4 @@ def api_kyc_status():
             "is_admin": user["role"] == "admin"
         })
 
-@user_bp.get("/api/test-referral")
-def test_referral():
-    """Test endpoint per verificare funzionamento referral senza autenticazione."""
-    try:
-        uid = 2  # Utente di test
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            # Test referral link
-            cur.execute("SELECT referral_code FROM users WHERE id = %s", (uid,))
-            user_data = cur.fetchone()
-            referral_code = user_data['referral_code'] if user_data else None
-            
-            if not referral_code:
-                return jsonify({
-                    "success": False,
-                    "error": "Codice referral non trovato",
-                    "referral_code": None
-                })
-            
-            # Costruisci link referral
-            base_url = "https://ciprealestate.eu"
-            referral_link = f"{base_url}/auth/register?ref={referral_code}"
-            
-            # Test referral data
-            cur.execute("""
-                SELECT COUNT(*) as total_invited
-                FROM users u
-                WHERE u.referred_by = %s AND u.id != %s
-            """, (uid, uid))
-            stats = cur.fetchone()
-            
-            return jsonify({
-                "success": True,
-                "referral_code": referral_code,
-                "referral_link": referral_link,
-                "total_invited": stats['total_invited'] if stats else 0
-            })
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-@user_bp.get("/api/generate-referral-code")
-def generate_referral_code():
-    """Genera codice referral per utente di test."""
-    try:
-        uid = 2  # Utente di test
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            # Genera codice referral se non esiste
-            cur.execute("SELECT referral_code FROM users WHERE id = %s", (uid,))
-            user_data = cur.fetchone()
-            referral_code = user_data['referral_code'] if user_data else None
-            
-            if not referral_code:
-                referral_code = 'REF' + str(uid).zfill(6)
-                cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (referral_code, uid))
-                conn.commit()
-                return jsonify({
-                    "success": True,
-                    "message": "Codice referral generato",
-                    "referral_code": referral_code
-                })
-            else:
-                return jsonify({
-                    "success": True,
-                    "message": "Codice referral già esistente",
-                    "referral_code": referral_code
-                })
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
 
