@@ -5,15 +5,25 @@
     z-index: 60 !important;
 }
 
-/* Padding bottom per mobile per evitare sovrapposizione con bottom nav */
+/* Nascondi la bottom navigation quando i modal sono aperti */
+.modal-open .tabbar {
+    display: none !important;
+}
+
+/* Nascondi anche il tabbar-spacer quando i modal sono aperti */
+.modal-open .tabbar-spacer {
+    display: none !important;
+}
+
+/* Padding bottom per mobile - ora non necessario dato che nascondiamo la bottom nav */
 @media (max-width: 767px) {
     .modal-container {
-        padding-bottom: 6rem !important; /* 96px per la bottom nav + padding */
+        padding-bottom: 2rem !important; /* Padding normale */
     }
     
-    /* Assicura che i modal siano sempre visibili sopra la bottom nav */
+    /* Assicura che i modal siano sempre visibili */
     .modal-content {
-        max-height: calc(100vh - 8rem) !important; /* Lascia spazio per la bottom nav */
+        max-height: calc(100vh - 4rem) !important; /* Spazio normale */
         margin-bottom: 1rem !important;
     }
     
@@ -23,9 +33,9 @@
         -webkit-overflow-scrolling: touch !important; /* Smooth scrolling su iOS */
     }
     
-    /* Aggiungi padding extra per permettere scroll */
+    /* Padding normale per i modal */
     .modal-content {
-        padding-bottom: 2rem !important;
+        padding-bottom: 1rem !important;
     }
 }
 
@@ -85,13 +95,13 @@
     
     #rate-limit-modal .modal-content,
     #withdrawal-rate-limit-modal .modal-content {
-        max-height: calc(100vh - 6rem) !important;
+        max-height: calc(100vh - 4rem) !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         background: white !important;
         border-radius: 0.75rem !important;
         margin: 1rem !important;
-        margin-bottom: 8rem !important; /* Spazio extra per la bottom nav */
+        margin-bottom: 2rem !important; /* Spazio normale */
     }
     
     /* Assicura che il contenuto sia scrollabile */
@@ -100,10 +110,10 @@
         min-height: auto !important;
     }
     
-    /* Padding extra per il footer dei modal */
+    /* Padding normale per il footer dei modal */
     #rate-limit-modal .modal-content .p-6.pt-0.pb-8,
     #withdrawal-rate-limit-modal .modal-content .p-6.pt-0.pb-8 {
-        padding-bottom: 3rem !important; /* Spazio extra per il pulsante */
+        padding-bottom: 1.5rem !important; /* Padding normale */
     }
 }
 
@@ -123,19 +133,19 @@
     
     #deposit-success-modal .modal-content,
     #withdrawal-success-modal .modal-content {
-        max-height: calc(100vh - 8rem) !important;
+        max-height: calc(100vh - 4rem) !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         background: white !important;
         border-radius: 0.75rem !important;
         margin: 1rem !important;
-        margin-bottom: 8rem !important; /* Spazio extra per la bottom nav */
+        margin-bottom: 2rem !important; /* Spazio normale */
     }
     
-    /* Padding extra per il footer dei modal di successo */
+    /* Padding normale per il footer dei modal di successo */
     #deposit-success-modal .modal-content .p-6.pt-4,
     #withdrawal-success-modal .modal-content .p-6.pt-4 {
-        padding-bottom: 3rem !important; /* Spazio extra per il pulsante */
+        padding-bottom: 1.5rem !important; /* Padding normale */
     }
 }
 

@@ -1080,6 +1080,8 @@ let currentWithdrawalCountdownSeconds = 0;
 
 // Funzione per mostrare il modal di rate limiting
 function showRateLimitModal(remainingSeconds) {
+    // Nascondi la bottom navigation
+    document.body.classList.add('modal-open');
     const modal = document.getElementById('rate-limit-modal');
     const modalContent = document.getElementById('rate-limit-modal-content');
     const timerElement = document.getElementById('rate-limit-timer');
@@ -1127,6 +1129,9 @@ function showRateLimitModal(remainingSeconds) {
 
 // Funzione per chiudere il modal di rate limiting
 function closeRateLimitModal() {
+    // Mostra di nuovo la bottom navigation
+    document.body.classList.remove('modal-open');
+    
     const modal = document.getElementById('rate-limit-modal');
     const modalContent = document.getElementById('rate-limit-modal-content');
     
@@ -1149,6 +1154,8 @@ function closeRateLimitModal() {
 
 // Funzione per mostrare il modal di rate limiting per prelievi
 function showWithdrawalRateLimitModal(remainingSeconds) {
+    // Nascondi la bottom navigation
+    document.body.classList.add('modal-open');
     const modal = document.getElementById('withdrawal-rate-limit-modal');
     const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
     const timerElement = document.getElementById('withdrawal-rate-limit-timer');
@@ -1196,6 +1203,9 @@ function showWithdrawalRateLimitModal(remainingSeconds) {
 
 // Funzione per chiudere il modal di rate limiting per prelievi
 function closeWithdrawalRateLimitModal() {
+    // Mostra di nuovo la bottom navigation
+    document.body.classList.remove('modal-open');
+    
     const modal = document.getElementById('withdrawal-rate-limit-modal');
     const modalContent = document.getElementById('withdrawal-rate-limit-modal-content');
     
@@ -1717,6 +1727,9 @@ function showCopyNotification(message, type = 'success') {
 
 // Funzione per mostrare il popup di successo deposito
 function showDepositSuccessModal(depositRequest, method) {
+  // Nascondi la bottom navigation
+  document.body.classList.add('modal-open');
+  
   const modal = document.getElementById('deposit-success-modal');
   const detailsContainer = document.getElementById('deposit-success-details');
   
@@ -1810,6 +1823,9 @@ function showDepositSuccessModal(depositRequest, method) {
 
 // Funzione per mostrare popup di successo prelievo - Design CIP
 function showWithdrawalSuccessModal(withdrawalData) {
+  // Nascondi la bottom navigation
+  document.body.classList.add('modal-open');
+  
   const modal = document.getElementById('withdrawal-success-modal');
   const detailsContainer = document.getElementById('withdrawal-success-details');
   
@@ -2295,6 +2311,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (closeBtn) {
       closeBtn.addEventListener('click', function() {
+        // Mostra di nuovo la bottom navigation
+        document.body.classList.remove('modal-open');
         successModal.classList.add('hidden');
       });
     }
@@ -2303,6 +2321,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (successModal) {
       successModal.addEventListener('click', function(e) {
         if (e.target === successModal) {
+          // Mostra di nuovo la bottom navigation
+          document.body.classList.remove('modal-open');
           successModal.classList.add('hidden');
         }
       });
@@ -2337,6 +2357,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeWithdrawalSuccessBtn = document.getElementById('close-withdrawal-success');
     if (closeWithdrawalSuccessBtn) {
       closeWithdrawalSuccessBtn.addEventListener('click', function() {
+        // Mostra di nuovo la bottom navigation
+        document.body.classList.remove('modal-open');
+        
         const modal = document.getElementById('withdrawal-success-modal');
         const modalContent = document.getElementById('withdrawal-success-modal-content');
         
@@ -2347,6 +2370,18 @@ document.addEventListener('DOMContentLoaded', function() {
           setTimeout(() => {
             modal.classList.add('hidden');
           }, 300);
+        }
+      });
+    }
+    
+    // Chiudi cliccando fuori dal modal di successo prelievo
+    const withdrawalSuccessModal = document.getElementById('withdrawal-success-modal');
+    if (withdrawalSuccessModal) {
+      withdrawalSuccessModal.addEventListener('click', function(e) {
+        if (e.target === withdrawalSuccessModal) {
+          // Mostra di nuovo la bottom navigation
+          document.body.classList.remove('modal-open');
+          withdrawalSuccessModal.classList.add('hidden');
         }
       });
     }
