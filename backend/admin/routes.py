@@ -4052,10 +4052,17 @@ def deposits_api_reject(deposit_id):
         logger.exception("Errore nel rifiuto deposito: %s", e)
         return jsonify({'error': 'reject_failed', 'debug': str(e)}), 500
 
+@admin_bp.get("/deposits/history")
+@admin_required
+def deposits_history():
+    """Pagina storico depositi"""
+    return render_template('admin/deposits/history.html')
+
 @admin_bp.get("/api/deposits/history")
 @admin_required
 def deposits_api_history():
     """API per storico depositi"""
+    logger.info(f"deposits_api_history called - session: {dict(session)}")
     try:
         # Parametri di paginazione
         page = request.args.get('page', 1, type=int)
@@ -4155,20 +4162,16 @@ def deposits_api_history():
             
             return jsonify({
                 'deposits': deposits_list,
-                'total': total_count,
-                'page': page,
-                'per_page': per_page,
-                'pages': (total_count + per_page - 1) // per_page
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total_count,
+                    'total_pages': (total_count + per_page - 1) // per_page
+                }
             })
     except Exception as e:
         logger.exception("Errore nel caricamento storico depositi: %s", e)
-        return jsonify({'deposits': [], 'total': 0, 'page': 1, 'per_page': 20, 'pages': 0})
-
-@admin_bp.get("/deposits/history")
-@admin_required
-def deposits_history():
-    """Pagina storico depositi"""
-    return render_template('admin/deposits/history.html')
+        return jsonify({'deposits': [], 'pagination': {'page': 1, 'per_page': 20, 'total': 0, 'total_pages': 0}})
 
 @admin_bp.get("/api/deposit-requests")
 @admin_required

@@ -249,7 +249,7 @@ async function loadDepositsHistory(page = 1) {
         if (data.deposits && Array.isArray(data.deposits)) {
             renderDeposits(data.deposits);
             renderPagination(data.pagination);
-            document.getElementById('deposits-count').textContent = `${data.pagination.total_count} depositi trovati`;
+            document.getElementById('deposits-count').textContent = `${data.pagination.total} depositi trovati`;
             console.log('✅ Storico caricato con successo:', data.deposits.length, 'depositi');
         } else {
             console.error('❌ Formato dati non valido:', data);
