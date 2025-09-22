@@ -25,11 +25,14 @@
       <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6" id="registerForm" autocomplete="off" novalidate>
         <!-- Referral code -->
         <div class="space-y-2">
+          <label for="referral_code" class="block text-sm font-semibold text-gray-700">
             Codice Referral (opzionale)
           </label>
           <div class="flex items-center space-x-2">
             <input
               type="text"
+              id="referral_code"
+              name="referral_code"
               class="flex-1 input-field bg-gray-50 focus:bg-white transition-colors duration-200"
               placeholder="Inserisci il codice referral"
             />
