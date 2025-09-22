@@ -23,9 +23,9 @@
         </a>
 
         <!-- Progetti -->
-        <a href="{{ url_for('user_projects.projects') }}" 
+        <a href="{{ url_for('user.projects') }}" 
            class="flex flex-col items-center justify-center flex-1 h-full text-xs transition-colors duration-200
-                  {% if request.endpoint == 'user_projects.projects' %}text-cip-primary{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+                  {% if request.endpoint == 'user.projects' %}text-cip-primary{% else %}text-gray-500 hover:text-gray-700{% endif %}">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
