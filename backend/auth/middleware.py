@@ -269,6 +269,7 @@ def setup_auth_middleware(app):
             request.path.startswith("/assets") or
             request.path.startswith("/kyc/api/") or  # Tutte le API KYC
             request.path.startswith("/uploads/") or  # Route per file upload
+            request.path.startswith("/admin/test-") or  # Endpoint di test admin
             request.endpoint in ['auth.login', 'auth.register', 'auth.logout']):
             return
         
