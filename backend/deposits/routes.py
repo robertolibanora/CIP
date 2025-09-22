@@ -142,17 +142,17 @@ def get_deposit_requests():
         return jsonify({'error': 'unauthorized'}), 401
     
     with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, amount, iban, 
-                       COALESCE(unique_key, '') as unique_key, 
-                       COALESCE(payment_reference, '') as payment_reference, 
-                       status, admin_notes, created_at, approved_at, 
-                       COALESCE(method, 'bank') as method,
-                       COALESCE(network, 'ethereum') as network
-                FROM deposit_requests 
-                WHERE user_id = %s 
-                ORDER BY created_at DESC
-            """, (uid,))
+        cur.execute("""
+            SELECT id, amount, iban, 
+                   COALESCE(unique_key, '') as unique_key, 
+                   COALESCE(payment_reference, '') as payment_reference, 
+                   status, admin_notes, created_at, approved_at, 
+                   COALESCE(method, 'bank') as method,
+                   COALESCE(network, 'ethereum') as network
+            FROM deposit_requests 
+            WHERE user_id = %s 
+            ORDER BY created_at DESC
+        """, (uid,))
         rows = cur.fetchall()
         # Serializza datetime e normalizza campi per JSON
         requests = []
