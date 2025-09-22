@@ -5,6 +5,7 @@ Compartimento stagno per il portafoglio investimenti utente
 
 from flask import Blueprint, session, render_template, jsonify, request, redirect, url_for
 from backend.shared.database import get_connection
+from backend.auth.decorators import login_required
 
 # Blueprint isolato per Portfolio
 portfolio_bp = Blueprint("portfolio", __name__)
@@ -13,16 +14,10 @@ def get_conn():
     from backend.shared.database import get_connection
     return get_connection()
 
-@portfolio_bp.before_request
-def require_login():
-    """Verifica che l'utente sia autenticato per tutte le route portfolio"""
-    # Skip login check for specific API endpoints
-    if request.endpoint == 'portfolio.get_portfolio_4_sections':
-        return
-    if 'user_id' not in session:
-        return redirect(url_for('auth.login'))
+# Controllo login rimosso - ora gestito da @login_required sui singoli endpoint
 
 @portfolio_bp.get("/portfolio")
+@login_required
 def portfolio():
     """
     Portafoglio dettagliato con investimenti attivi e completati
@@ -86,6 +81,7 @@ def portfolio():
                          current_page="portfolio")
 
 @portfolio_bp.get("/portfolio/<int:investment_id>")
+@login_required
 def portfolio_detail(investment_id):
     """
     Dettaglio specifico di un investimento
@@ -118,13 +114,13 @@ def portfolio_detail(investment_id):
 # =====================================================
 
 @portfolio_bp.route('/api/portfolio/4-sections', methods=['GET'])
+@login_required
 def get_portfolio_4_sections():
     """API per ottenere le 4 sezioni del portafoglio utente"""
     uid = session.get("user_id")
     
     if not uid:
-        # Per test, usa l'utente piero (ID 6)
-        uid = 6
+        return jsonify({'error': 'Non autorizzato'}), 401
     
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni portafoglio utente con 4 sezioni
