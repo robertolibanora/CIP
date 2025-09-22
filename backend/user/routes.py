@@ -1307,4 +1307,49 @@ def test_login_and_referral():
             "error": str(e)
         }), 500
 
+@user_bp.get("/api/test-kyc-decorator")
+def test_kyc_decorator():
+    """Test endpoint per verificare funzionamento decorator kyc_verified."""
+    try:
+        uid = 2  # Utente di test
+        
+        # Simula login completo
+        from backend.auth.middleware import create_secure_session
+        from backend.shared.models import UserRole
+        
+        # Crea sessione completa
+        user_data = {
+            'id': uid,
+            'email': 'marktrapella06@gmail.com',
+            'nome': 'Cip',
+            'cognome': 'Test',
+            'role': 'user',
+            'kyc_status': 'verified'
+        }
+        
+        create_secure_session(user_data)
+        
+        # Test decorator kyc_verified
+        from backend.auth.decorators import kyc_verified
+        from backend.auth.middleware import get_current_user, is_authenticated
+        
+        # Verifica autenticazione
+        auth_status = is_authenticated()
+        user = get_current_user()
+        
+        return jsonify({
+            "success": True,
+            "is_authenticated": auth_status,
+            "user": user,
+            "session_data": dict(session),
+            "kyc_status": user.get('kyc_status') if user else None,
+            "role": user.get('role') if user else None
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
