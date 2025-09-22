@@ -6,7 +6,7 @@ Gestisce portfolio, investimenti e sistema referral
 from flask import Blueprint
 
 # Crea blueprint portfolio
-portfolio_bp = Blueprint('portfolio_mega', __name__)
+portfolio_bp = Blueprint('portfolio_ultra', __name__)
 
 # Importa routes
 from . import routes
