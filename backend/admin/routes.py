@@ -3815,30 +3815,267 @@ def deposits_dashboard():
 @admin_required
 def deposits_api_metrics():
     """API per statistiche depositi"""
-    return jsonify({
-        'pending': 0,
-        'completed': 0,
-        'rejected': 0,
-        'total_amount': 0.0
-    })
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            from backend.deposits.routes import ensure_deposits_schema
+            ensure_deposits_schema(cur)
+            
+            # Conta depositi per stato
+            cur.execute("SELECT status, COUNT(*), COALESCE(SUM(amount), 0) FROM deposit_requests GROUP BY status")
+            results = cur.fetchall()
+            
+            metrics = {
+                'pending': 0,
+                'completed': 0,
+                'rejected': 0,
+                'total_amount': 0.0
+            }
+            
+            for status, count, total_amount in results:
+                if status == 'pending':
+                    metrics['pending'] = count
+                elif status == 'completed':
+                    metrics['completed'] = count
+                elif status in ['failed', 'rejected']:
+                    metrics['rejected'] += count
+                metrics['total_amount'] += float(total_amount or 0)
+            
+            return jsonify(metrics)
+    except Exception as e:
+        logger.exception("Errore nel caricamento metriche depositi: %s", e)
+        return jsonify({
+            'pending': 0,
+            'completed': 0,
+            'rejected': 0,
+            'total_amount': 0.0
+        })
 
 @admin_bp.get("/api/deposits/pending")
 @admin_required
 def deposits_api_pending():
     """API per depositi in attesa"""
-    return jsonify([])
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            from backend.deposits.routes import ensure_deposits_schema
+            ensure_deposits_schema(cur)
+            
+            cur.execute("""
+                SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
+                       dr.created_at, dr.admin_notes,
+                       u.id as user_id, u.nome, u.email, u.kyc_status,
+                       ic.bank_name, ic.account_holder
+                FROM deposit_requests dr
+                JOIN users u ON dr.user_id = u.id
+                LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+                WHERE dr.status = 'pending'
+                ORDER BY dr.created_at ASC
+            """)
+            pending_deposits = cur.fetchall()
+            
+            # Serializza datetime per JSON
+            deposits = []
+            for deposit in pending_deposits:
+                item = dict(deposit)
+                if item.get('created_at'):
+                    try:
+                        item['created_at'] = item['created_at'].isoformat()
+                    except Exception:
+                        item['created_at'] = str(item['created_at'])
+                deposits.append(item)
+            
+            return jsonify({'pending_deposits': deposits})
+    except Exception as e:
+        logger.exception("Errore nel caricamento depositi in attesa: %s", e)
+        return jsonify({'pending_deposits': []})
 
 @admin_bp.post("/api/deposits/approve/<int:deposit_id>")
 @admin_required
 def deposits_api_approve(deposit_id):
     """API per approvare deposito"""
-    return jsonify({'success': True, 'message': 'Deposito approvato'})
+    try:
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', '')
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            from backend.deposits.routes import ensure_deposits_schema
+            ensure_deposits_schema(cur)
+            
+            # Verifica richiesta esiste e è pending
+            cur.execute("""
+                SELECT id, user_id, amount, status FROM deposit_requests 
+                WHERE id = %s
+            """, (deposit_id,))
+            request_detail = cur.fetchone()
+            
+            if not request_detail:
+                return jsonify({'error': 'Richiesta non trovata'}), 404
+            if request_detail['status'] != 'pending':
+                return jsonify({'error': 'Solo le richieste in attesa possono essere approvate'}), 400
+            
+            # Approva richiesta
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'completed', approved_at = NOW(), approved_by = %s, admin_notes = %s
+                WHERE id = %s
+            """, (session.get('user_id'), admin_notes, deposit_id))
+            
+            # Aggiorna portfolio utente
+            cur.execute("""
+                UPDATE user_portfolios 
+                SET free_capital = free_capital + %s, updated_at = NOW()
+                WHERE user_id = %s
+            """, (request_detail['amount'], request_detail['user_id']))
+            
+            # Crea transazione portfolio
+            cur.execute("""
+                INSERT INTO portfolio_transactions 
+                (user_id, transaction_type, amount, description, created_at)
+                VALUES (%s, 'deposit', %s, 'Deposito approvato', NOW())
+            """, (request_detail['user_id'], request_detail['amount']))
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Deposito approvato con successo'})
+    except Exception as e:
+        logger.exception("Errore nell'approvazione deposito: %s", e)
+        return jsonify({'error': 'approve_failed', 'debug': str(e)}), 500
 
 @admin_bp.post("/api/deposits/reject/<int:deposit_id>")
 @admin_required
 def deposits_api_reject(deposit_id):
     """API per rifiutare deposito"""
-    return jsonify({'success': True, 'message': 'Deposito rifiutato'})
+    try:
+        data = request.get_json() or {}
+        admin_notes = data.get('admin_notes', '')
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            from backend.deposits.routes import ensure_deposits_schema
+            ensure_deposits_schema(cur)
+            
+            # Verifica richiesta esiste e è pending
+            cur.execute("""
+                SELECT id, status FROM deposit_requests 
+                WHERE id = %s
+            """, (deposit_id,))
+            request_detail = cur.fetchone()
+            
+            if not request_detail:
+                return jsonify({'error': 'Richiesta non trovata'}), 404
+            if request_detail['status'] != 'pending':
+                return jsonify({'error': 'Solo le richieste in attesa possono essere rifiutate'}), 400
+            
+            # Rifiuta richiesta
+            cur.execute("""
+                UPDATE deposit_requests 
+                SET status = 'failed', admin_notes = %s
+                WHERE id = %s
+            """, (admin_notes, deposit_id))
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Deposito rifiutato con successo'})
+    except Exception as e:
+        logger.exception("Errore nel rifiuto deposito: %s", e)
+        return jsonify({'error': 'reject_failed', 'debug': str(e)}), 500
+
+@admin_bp.get("/api/deposits/history")
+@admin_required
+def deposits_api_history():
+    """API per storico depositi"""
+    try:
+        # Parametri di paginazione
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        status_filter = request.args.get('status', '')
+        search = request.args.get('search', '')
+        
+        offset = (page - 1) * per_page
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            from backend.deposits.routes import ensure_deposits_schema
+            ensure_deposits_schema(cur)
+            
+            # Query base
+            base_query = """
+                SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
+                       dr.status, dr.created_at, dr.approved_at, dr.admin_notes,
+                       u.id as user_id, u.nome, u.email, u.kyc_status,
+                       ic.bank_name, ic.account_holder,
+                       admin_user.nome as approved_by_name
+                FROM deposit_requests dr
+                JOIN users u ON dr.user_id = u.id
+                LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+                LEFT JOIN users admin_user ON dr.approved_by = admin_user.id
+            """
+            
+            # Condizioni WHERE
+            where_conditions = []
+            params = []
+            
+            if status_filter:
+                where_conditions.append("dr.status = %s")
+                params.append(status_filter)
+            
+            if search:
+                where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR dr.unique_key ILIKE %s)")
+                search_param = f"%{search}%"
+                params.extend([search_param, search_param, search_param])
+            
+            where_clause = ""
+            if where_conditions:
+                where_clause = "WHERE " + " AND ".join(where_conditions)
+            
+            # Query per contare il totale
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM deposit_requests dr
+                JOIN users u ON dr.user_id = u.id
+                {where_clause}
+            """
+            cur.execute(count_query, params)
+            total_count = cur.fetchone()['total']
+            
+            # Query per i dati
+            data_query = f"""
+                {base_query}
+                {where_clause}
+                ORDER BY dr.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(data_query, params + [per_page, offset])
+            deposits = cur.fetchall()
+            
+            # Serializza datetime per JSON
+            deposits_list = []
+            for deposit in deposits:
+                item = dict(deposit)
+                if item.get('created_at'):
+                    try:
+                        item['created_at'] = item['created_at'].isoformat()
+                    except Exception:
+                        item['created_at'] = str(item['created_at'])
+                if item.get('approved_at'):
+                    try:
+                        item['approved_at'] = item['approved_at'].isoformat()
+                    except Exception:
+                        item['approved_at'] = str(item['approved_at'])
+                deposits_list.append(item)
+            
+            return jsonify({
+                'deposits': deposits_list,
+                'total': total_count,
+                'page': page,
+                'per_page': per_page,
+                'pages': (total_count + per_page - 1) // per_page
+            })
+    except Exception as e:
+        logger.exception("Errore nel caricamento storico depositi: %s", e)
+        return jsonify({'deposits': [], 'total': 0, 'page': 1, 'per_page': 20, 'pages': 0})
 
 @admin_bp.get("/deposits/history")
 @admin_required
