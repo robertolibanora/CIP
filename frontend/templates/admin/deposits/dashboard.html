@@ -97,7 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // Carica metriche depositi
 async function loadMetrics() {
     try {
-        const response = await fetch('/admin/api/deposits/metrics');
+        const response = await fetch('/admin/api/deposits/metrics', {
+            credentials: 'same-origin'
+        });
         const data = await response.json();
         
         if (response.ok) {
@@ -114,7 +116,9 @@ async function loadMetrics() {
 }
 
 async function loadPendingDeposits() {
-  const res = await fetch('/admin/api/deposits/pending');
+  const res = await fetch('/admin/api/deposits/pending', {
+    credentials: 'same-origin'
+  });
   const data = await res.json();
   const list = document.getElementById('deposits-list');
   if (!res.ok || !data.pending_deposits || data.pending_deposits.length === 0) {
