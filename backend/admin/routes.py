@@ -1803,6 +1803,56 @@ def test_api():
     """Test API per debug."""
     return jsonify({"status": "ok", "message": "Test API funziona"})
 
+@admin_bp.get("/test-users")
+def test_users():
+    """Test API utenti senza autenticazione per debug."""
+    try:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    u.id,
+                    u.email,
+                    u.nome,
+                    u.cognome,
+                    u.telefono,
+                    u.nome_telegram,
+                    u.role,
+                    u.kyc_status,
+                    u.created_at,
+                    u.address,
+                    u.is_vip
+                FROM users u
+                WHERE u.role IN ('investor', 'user')
+                ORDER BY u.created_at DESC
+            """)
+            users = cur.fetchall()
+            
+            # Converti in formato JSON
+            users_list = []
+            for u in users:
+                users_list.append({
+                    'id': u['id'],
+                    'nome': u['nome'],
+                    'cognome': u['cognome'],
+                    'email': u['email'],
+                    'phone': u['telefono'],
+                    'telegram': u['nome_telegram'],
+                    'investor_status': 'investor' if u['role'] == 'investor' else 'admin',
+                    'kyc_status': u['kyc_status'],
+                    'created_at': u['created_at'].isoformat() if u['created_at'] else None,
+                    'address': u['address'],
+                    'is_vip': u['is_vip']
+                })
+            
+            return jsonify({
+                "status": "ok",
+                "users": users_list,
+                "total": len(users_list)
+            })
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @admin_bp.get("/api/users")
 def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin."""
