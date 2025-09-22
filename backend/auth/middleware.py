@@ -285,9 +285,8 @@ def setup_auth_middleware(app):
         if not is_authenticated():
             # Route che richiedono autenticazione
             protected_routes = [
-                'user.', 'portfolio.', 
+                'user.', 'admin.', 'portfolio.', 
                 'deposits.', 'withdrawals.', 'profits.'
-                # TEMPORANEO: Rimuovo 'admin.' per debug
             ]
             # Escludi le API KYC dal controllo globale - gestite dai decorator
             

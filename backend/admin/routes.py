@@ -56,17 +56,17 @@ from backend.auth.decorators import admin_required
 
 @admin_bp.get("/")
 def admin_dashboard():
-    # TEMPORANEO: Rimuovo autenticazione per debug
-    # from flask import session
-    # if 'user_id' not in session:
-    #     from flask import redirect, url_for
-    #     return redirect(url_for('auth.login'))
+    # Controllo manuale se l'utente è admin
+    from flask import session
+    if 'user_id' not in session:
+        from flask import redirect, url_for
+        return redirect(url_for('auth.login'))
     
-    # from backend.auth.middleware import is_admin
-    # if not is_admin():
-    #     from flask import redirect, url_for, flash
-    #     flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
-    #     return redirect(url_for('user.dashboard'))
+    from backend.auth.middleware import is_admin
+    if not is_admin():
+        from flask import redirect, url_for, flash
+        flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
+        return redirect(url_for('user.dashboard'))
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT * FROM v_admin_metrics")
@@ -1857,16 +1857,16 @@ def test_users():
 def api_admin_users_list():
     """Lista utenti con ricerca e filtri per dashboard admin."""
     try:
-        # TEMPORANEO: Rimuovo autenticazione per debug
-        # if not session.get('user_id'):
-        #     return jsonify({"error": "Non autenticato"}), 401
+        # Verifica autenticazione admin
+        if not session.get('user_id'):
+            return jsonify({"error": "Non autenticato"}), 401
         
-        # # Verifica ruolo admin
-        # with get_connection() as conn, conn.cursor() as cur:
-        #     cur.execute("SELECT role FROM users WHERE id = %s", (session.get('user_id'),))
-        #     user = cur.fetchone()
-        #     if not user or user['role'] != 'admin':
-        #         return jsonify({"error": "Accesso negato"}), 403
+        # Verifica ruolo admin
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT role FROM users WHERE id = %s", (session.get('user_id'),))
+            user = cur.fetchone()
+            if not user or user['role'] != 'admin':
+                return jsonify({"error": "Accesso negato"}), 403
         
         # Query utenti
         with get_conn() as conn, conn.cursor() as cur:
@@ -2594,17 +2594,17 @@ def analytics_data():
 @admin_bp.get("/users")
 def users_management_page():
     """Render della pagina Gestione Utenti"""
-    # TEMPORANEO: Rimuovo autenticazione per debug
-    # from flask import session
-    # if 'user_id' not in session:
-    #     from flask import redirect, url_for
-    #     return redirect(url_for('auth.login'))
+    # Controllo manuale se l'utente è admin
+    from flask import session
+    if 'user_id' not in session:
+        from flask import redirect, url_for
+        return redirect(url_for('auth.login'))
     
-    # from backend.auth.middleware import is_admin
-    # if not is_admin():
-    #     from flask import redirect, url_for, flash
-    #     flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
-    #     return redirect(url_for('user.dashboard'))
+    from backend.auth.middleware import is_admin
+    if not is_admin():
+        from flask import redirect, url_for, flash
+        flash("Accesso negato. Solo gli amministratori possono accedere a questa pagina", "error")
+        return redirect(url_for('user.dashboard'))
     
     return render_template("admin/users/list.html")
 

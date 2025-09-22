@@ -190,11 +190,8 @@
     const params = new URLSearchParams();
     if(searchEl.value) params.set('search', searchEl.value);
 
-    console.log('🔍 Caricamento utenti...');
     const res = await fetch(`/admin/api/users?${params.toString()}`);
     const data = await res.json();
-    console.log('📊 Dati ricevuti:', data);
-    console.log('👥 Utenti da renderizzare:', data.users || []);
     renderRows(data.users || []);
   }
 
