@@ -1128,29 +1128,3 @@ def api_kyc_status():
             "is_admin": user["role"] == "admin"
         })
 
-@user_bp.get("/api/test-dashboard-data")
-def test_dashboard_data():
-    """Test endpoint per verificare dati dashboard utente."""
-    try:
-        uid = 2  # Utente di test
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, email, nome, role, cognome, kyc_status
-                FROM users WHERE id = %s
-            """, (uid,))
-            user_data = cur.fetchone()
-            
-            if not user_data:
-                return jsonify({"error": "Utente non trovato"}), 404
-            
-            return jsonify({
-                "success": True,
-                "user_data": dict(user_data)
-            })
-            
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
