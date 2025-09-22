@@ -220,12 +220,12 @@ def test_kyc_upload():
         )
         
         # Salva nel database
-        req_id = req.save()
+        req.save()
         
         return jsonify({
             "success": True,
             "message": "Test KYC upload completato",
-            "request_id": int(req_id) if req_id else None,
+            "request_id": req.id,
             "doc_type": doc_type
         })
         
