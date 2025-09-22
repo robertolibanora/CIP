@@ -1022,7 +1022,7 @@ def get_referral_data():
             
             # Trova tutti gli utenti invitati da questo utente
             # Esclude l'utente stesso per evitare auto-referral
-            print(f"DEBUG: get_referral_data - eseguendo query per user_id: {user_id}")
+            logger.info(f"DEBUG: get_referral_data - eseguendo query per user_id: {user_id}")
             cur.execute("""
                 SELECT 
                     u.id, u.nome, u.cognome, u.email, u.created_at,
@@ -1043,7 +1043,7 @@ def get_referral_data():
                 ORDER BY u.created_at DESC
             """, (user_id, user_id))
             invited_users = cur.fetchall()
-            print(f"DEBUG: get_referral_data - invited_users count: {len(invited_users)}")
+            logger.info(f"DEBUG: get_referral_data - invited_users count: {len(invited_users)}")
             
             # Ottieni investimenti per ogni utente invitato
             for user in invited_users:
@@ -1071,6 +1071,8 @@ def get_referral_data():
             })
             
     except Exception as e:
+        logger.error(f"Errore nel caricamento dati referral: {e}")
+        logger.exception("Stack trace completo:")
         print(f"Errore nel caricamento dati referral: {e}")
         return jsonify({'error': 'Errore nel caricamento dei dati referral'}), 500
 
