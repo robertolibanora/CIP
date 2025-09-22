@@ -1,98 +1,161 @@
 {% extends "layouts/admin_base.html" %}
 
-{% block title %}Depositi{% endblock %}
+{% block title %}Gestione Depositi - Admin{% endblock %}
 
 {% block content %}
-<style>
-.notification-popup {
-  transform: translateX(100%);
-  opacity: 0;
-}
-</style>
-<div class="max-w-7xl mx-auto">
-  <div class="flex items-center justify-between mb-6">
-    <h2 class="text-2xl font-bold text-gray-900">Richieste Deposito</h2>
-    <div class="flex items-center gap-4">
-      <a href="/deposits/admin/deposits/history" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-        Storico Depositi
-      </a>
-      <span id="pending-indicator" class="hidden animate-pulse inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Nuove richieste</span>
-    </div>
-  </div>
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Gestione Depositi</h1>
+            <p class="mt-2 text-gray-600">Gestisci le richieste di deposito degli utenti</p>
+        </div>
 
-  <!-- Metriche Depositi -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center">
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-500">In Attesa</p>
-          <p class="text-3xl font-bold text-orange-600" id="pending-count">-</p>
-        </div>
-        <div class="text-orange-600">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center">
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-500">Completati</p>
-          <p class="text-3xl font-bold text-green-600" id="completed-count">-</p>
-        </div>
-        <div class="text-green-600">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center">
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-500">Rifiutati</p>
-          <p class="text-3xl font-bold text-red-600" id="rejected-count">-</p>
-        </div>
-        <div class="text-red-600">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-    
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center">
-        <div class="flex-1">
-          <p class="text-sm font-medium text-gray-500">Totale Depositi</p>
-          <p class="text-3xl font-bold text-blue-600" id="total-amount">-</p>
-        </div>
-        <div class="text-blue-600">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-          </svg>
-        </div>
-      </div>
-    </div>
-  </div>
+        <!-- Metriche -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">In Attesa</p>
+                        <p class="text-2xl font-semibold text-yellow-600" id="pending-count">-</p>
+                    </div>
+                </div>
+            </div>
 
-  <div id="deposits-list" class="space-y-4">
-    <div class="text-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="text-gray-500 mt-2">Caricamento richieste...</p>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Completati</p>
+                        <p class="text-2xl font-semibold text-green-600" id="completed-count">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Rifiutati</p>
+                        <p class="text-2xl font-semibold text-red-600" id="rejected-count">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Totale</p>
+                        <p class="text-2xl font-semibold text-blue-600" id="total-amount">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Depositi Pending -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Depositi in Attesa</h2>
+                <p class="mt-1 text-sm text-gray-500">Richieste di deposito che richiedono approvazione</p>
+            </div>
+            
+            <div id="deposits-container" class="p-6">
+                <div id="loading" class="text-center py-8">
+                    <div class="inline-flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        Caricamento depositi...
+                    </div>
+                </div>
+                
+                <div id="deposits-list" class="space-y-4" style="display: none;">
+                    <!-- Depositi verranno caricati qui -->
+                </div>
+                
+                <div id="no-deposits" class="text-center py-8" style="display: none;">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Nessun deposito in attesa</h3>
+                    <p class="mt-1 text-sm text-gray-500">Non ci sono richieste di deposito da approvare al momento.</p>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
+</div>
+
+<!-- Modal Conferma Azione -->
+<div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style="display: none;">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-4" id="confirm-title">Conferma Azione</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500" id="confirm-message">Sei sicuro di voler procedere?</p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirm-yes" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    Sì
+                </button>
+                <button id="confirm-no" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    No
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notifiche -->
+<div id="notification" class="fixed top-4 right-4 z-50" style="display: none;">
+    <div class="rounded-md p-4 shadow-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg id="notification-icon" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p id="notification-message" class="text-sm font-medium"></p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-// Carica metriche al caricamento della pagina
-document.addEventListener('DOMContentLoaded', function() {
-    loadMetrics();
-    loadPendingDeposits();
-});
+let currentAction = null;
+let currentDepositId = null;
 
 // Carica metriche depositi
 async function loadMetrics() {
@@ -108,179 +171,238 @@ async function loadMetrics() {
             document.getElementById('rejected-count').textContent = data.rejected || 0;
             document.getElementById('total-amount').textContent = `€${(data.total_amount || 0).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
         } else {
-            console.error('Errore nel caricamento metriche:', data.error);
+            console.error('Errore nel caricamento metriche:', data);
         }
     } catch (error) {
         console.error('Errore nel caricamento metriche:', error);
     }
 }
 
+// Carica depositi pending
 async function loadPendingDeposits() {
-  const res = await fetch('/admin/api/deposits/pending', {
-    credentials: 'same-origin'
-  });
-  const data = await res.json();
-  const list = document.getElementById('deposits-list');
-  if (!res.ok || !data.pending_deposits || data.pending_deposits.length === 0) {
-    list.innerHTML = `
-      <div class="text-center py-8">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-        </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna richiesta</h3>
-        <p class="text-gray-600">Le richieste appariranno qui.</p>
-      </div>`;
-    document.getElementById('pending-indicator').classList.add('hidden');
-    return;
-  }
-  document.getElementById('pending-indicator').classList.remove('hidden');
-  list.innerHTML = data.pending_deposits.map(req => `
-    <div class="border border-gray-200 rounded-lg p-4">
-      <div class="flex justify-between items-start">
-        <div>
-          <p class="text-sm text-gray-500">Utente</p>
-          <p class="font-semibold text-gray-900">${req.full_name || 'Utente'} <span class="text-gray-500 text-sm">(${req.email || ''})</span></p>
-        </div>
-        <span class="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">In attesa</span>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4 text-sm">
-        <div>
-          <p class="text-gray-500 mb-1">Importo</p>
-          <p class="font-medium">€${parseFloat(req.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</p>
-        </div>
-        <div>
-          <p class="text-gray-500 mb-1">Metodo</p>
-          <p class="font-medium">${String((req.method || '')).toLowerCase() === 'usdt' ? 'USDT (BEP20)' : 'Bonifico Bancario'}</p>
-        </div>
-        <div class="md:col-span-1">
-          <p class="text-gray-500 mb-1">${String((req.method||'')).toLowerCase()==='usdt' ? 'Wallet' : 'IBAN'}</p>
-          <p class="font-medium font-mono text-xs break-all leading-relaxed">${req.iban || ''}</p>
-        </div>
-        <div>
-          <p class="text-gray-500 mb-1">Chiave</p>
-          <p class="font-mono text-xs">${req.unique_key}</p>
-        </div>
-      </div>
-      <div class="mt-3">
-        <textarea id="note-${req.id}" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Note amministratore (obbligatorie in caso di rifiuto)"></textarea>
-      </div>
-      <div class="mt-3 flex gap-2">
-        <button onclick="approve(${req.id})" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">Approva</button>
-        <button onclick="reject(${req.id})" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md">Rifiuta</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function approve(id){
-  const notes = document.getElementById(`note-${id}`).value;
-  const r = await fetch(`/admin/api/deposits/approve/${id}`, {
-    method:'POST', 
-    headers:{'Content-Type':'application/json'}, 
-    body: JSON.stringify({admin_notes: notes}),
-    credentials: 'same-origin'
-  });
-  if(r.ok){ 
-    showNotification('Richiesta approvata con successo', 'success');
-    loadPendingDeposits();
-    loadMetrics(); // Aggiorna le metriche
-  }
-  else { 
-    const j = await r.json(); 
-    showNotification((j.error||'Errore approvazione') + (j.debug?`\nDettagli: ${j.debug}`:''), 'error'); 
-  }
-}
-async function reject(id){
-  const notes = document.getElementById(`note-${id}`).value || '';
-  if(!notes.trim()){ 
-    showNotification('Inserisci il motivo del rifiuto', 'error');
-    return; 
-  }
-  
-  const r = await fetch(`/admin/api/deposits/reject/${id}`, {
-    method:'POST', 
-    headers:{'Content-Type':'application/json'}, 
-    body: JSON.stringify({admin_notes: notes}),
-    credentials: 'same-origin'
-  });
-  if(r.ok){ 
-    showNotification('Richiesta rifiutata con successo', 'success');
-    loadPendingDeposits();
-    loadMetrics(); // Aggiorna le metriche
-  }
-  else { 
-    const j = await r.json(); 
-    showNotification((j.error||'Errore rifiuto') + (j.debug?`\nDettagli: ${j.debug}`:''), 'error'); 
-  }
-}
-
-// Funzione per mostrare notifiche
-function showNotification(message, type = 'info') {
-  // Rimuovi notifiche esistenti
-  const existingNotifications = document.querySelectorAll('.notification-popup');
-  existingNotifications.forEach(notif => notif.remove());
-  
-  // Crea la notifica
-  const notification = document.createElement('div');
-  notification.className = `notification-popup fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border-l-4 p-4 transform transition-all duration-300 ease-in-out`;
-  
-  // Colori in base al tipo
-  const colors = {
-    success: 'border-green-500 bg-green-50',
-    error: 'border-red-500 bg-red-50',
-    warning: 'border-yellow-500 bg-yellow-50',
-    info: 'border-blue-500 bg-blue-50'
-  };
-  
-  const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
-  };
-  
-  notification.classList.add(...colors[type].split(' '));
-  
-  notification.innerHTML = `
-    <div class="flex items-start">
-      <div class="flex-shrink-0 text-lg">${icons[type]}</div>
-      <div class="ml-3 flex-1">
-        <p class="text-sm font-medium text-gray-900">${message}</p>
-      </div>
-      <div class="ml-4 flex-shrink-0">
-        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
-          <span class="sr-only">Chiudi</span>
-          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  `;
-  
-  // Aggiungi al DOM
-  document.body.appendChild(notification);
-  
-  // Animazione di entrata
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-    notification.style.opacity = '1';
-  }, 100);
-  
-  // Auto-rimozione dopo 5 secondi
-  setTimeout(() => {
-    if (notification.parentElement) {
-      notification.style.transform = 'translateX(100%)';
-      notification.style.opacity = '0';
-      setTimeout(() => {
-        if (notification.parentElement) {
-          notification.remove();
+    try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('deposits-list').style.display = 'none';
+        document.getElementById('no-deposits').style.display = 'none';
+        
+        const response = await fetch('/admin/api/deposits/pending', {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            const deposits = data.pending_deposits || [];
+            
+            if (deposits.length === 0) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('no-deposits').style.display = 'block';
+            } else {
+                renderDeposits(deposits);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('deposits-list').style.display = 'block';
+            }
+        } else {
+            console.error('Errore nel caricamento depositi:', data);
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('no-deposits').style.display = 'block';
         }
-      }, 300);
+    } catch (error) {
+        console.error('Errore nel caricamento depositi:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('no-deposits').style.display = 'block';
     }
-  }, 5000);
 }
 
-document.addEventListener('DOMContentLoaded', loadPendingDeposits);
+// Renderizza depositi
+function renderDeposits(deposits) {
+    const container = document.getElementById('deposits-list');
+    
+    container.innerHTML = deposits.map(deposit => `
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-medium text-gray-900">
+                                Deposito #${deposit.id}
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Utente: ${deposit.nome || 'N/A'} (${deposit.email})
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                KYC: ${deposit.kyc_status || 'unverified'}
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-gray-900">
+                                €${parseFloat(deposit.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                ${new Date(deposit.created_at).toLocaleDateString('it-IT')}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">IBAN</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.iban || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Metodo</label>
+                            <p class="mt-1 text-sm text-gray-900">${deposit.method || 'bank'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Chiave Unica</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${deposit.unique_key || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Riferimento Pagamento</label>
+                            <p class="mt-1 text-sm text-gray-900">${deposit.payment_reference || 'N/A'}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700">Note Admin</label>
+                        <textarea 
+                            id="note-${deposit.id}" 
+                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                            rows="2" 
+                            placeholder="Aggiungi note per questo deposito..."
+                        >${deposit.admin_notes || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="ml-6 flex flex-col space-y-2">
+                    <button 
+                        onclick="approveDeposit(${deposit.id})"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Approva
+                    </button>
+                    
+                    <button 
+                        onclick="rejectDeposit(${deposit.id})"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Rifiuta
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Approva deposito
+async function approveDeposit(depositId) {
+    const notes = document.getElementById(`note-${depositId}`).value;
+    
+    try {
+        const response = await fetch(`/admin/api/deposits/approve/${depositId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                admin_notes: notes
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('Deposito approvato con successo', 'success');
+            loadPendingDeposits();
+            loadMetrics();
+        } else {
+            const data = await response.json();
+            showNotification(`Errore: ${data.error || 'Errore sconosciuto'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Errore nell\'approvazione:', error);
+        showNotification('Errore di connessione', 'error');
+    }
+}
+
+// Rifiuta deposito
+async function rejectDeposit(depositId) {
+    const notes = document.getElementById(`note-${depositId}`).value;
+    
+    if (!notes.trim()) {
+        showNotification('Inserisci il motivo del rifiuto', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/deposits/reject/${depositId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                admin_notes: notes
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('Deposito rifiutato con successo', 'success');
+            loadPendingDeposits();
+            loadMetrics();
+        } else {
+            const data = await response.json();
+            showNotification(`Errore: ${data.error || 'Errore sconosciuto'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Errore nel rifiuto:', error);
+        showNotification('Errore di connessione', 'error');
+    }
+}
+
+// Mostra notifica
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    const icon = document.getElementById('notification-icon');
+    const messageEl = document.getElementById('notification-message');
+    
+    // Rimuovi classi precedenti
+    notification.className = 'fixed top-4 right-4 z-50';
+    
+    if (type === 'success') {
+        notification.classList.add('bg-green-50', 'border', 'border-green-200');
+        messageEl.classList.add('text-green-800');
+        icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
+    } else {
+        notification.classList.add('bg-red-50', 'border', 'border-red-200');
+        messageEl.classList.add('text-red-800');
+        icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
+    }
+    
+    messageEl.textContent = message;
+    notification.style.display = 'block';
+    
+    // Nascondi dopo 5 secondi
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 5000);
+}
+
+// Inizializza al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadMetrics();
+    loadPendingDeposits();
+});
 </script>
 {% endblock %}
