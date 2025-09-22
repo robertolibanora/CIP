@@ -1176,4 +1176,79 @@ def test_referral_debug():
             "error": str(e)
         }), 500
 
+@user_bp.get("/api/test-referral-with-auth")
+def test_referral_with_auth():
+    """Test endpoint per verificare funzionamento referral con simulazione autenticazione."""
+    try:
+        uid = 2  # Utente di test
+        
+        # Simula sessione utente
+        session['user_id'] = uid
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Test referral link
+            cur.execute("SELECT referral_code, kyc_status FROM users WHERE id = %s", (uid,))
+            user_data = cur.fetchone()
+            referral_code = user_data['referral_code'] if user_data else None
+            kyc_status = user_data['kyc_status'] if user_data else None
+            
+            if not referral_code:
+                return jsonify({
+                    "success": False,
+                    "error": "Codice referral non trovato",
+                    "referral_code": None,
+                    "kyc_status": kyc_status
+                })
+            
+            # Costruisci link referral
+            base_url = "https://ciprealestate.eu"
+            referral_link = f"{base_url}/auth/register?ref={referral_code}"
+            
+            # Test referral data completo
+            cur.execute("""
+                SELECT 
+                    u.id, u.nome, u.email, u.created_at,
+                    COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
+                    COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
+                    COALESCE(up.invested_capital, 0) as total_invested,
+                    COALESCE(up.profits, 0) as total_profits,
+                    COALESCE(up.referral_bonus, 0) as bonus_generated,
+                    CASE 
+                        WHEN up.id IS NOT NULL AND (up.free_capital + up.invested_capital + up.referral_bonus + up.profits) > 0 
+                        THEN 'active'
+                        WHEN u.kyc_status = 'verified' THEN 'pending'
+                        ELSE 'inactive'
+                    END as status
+                FROM users u
+                LEFT JOIN user_portfolios up ON up.user_id = u.id
+                WHERE u.referred_by = %s AND u.id != %s
+                ORDER BY u.created_at DESC
+            """, (uid, uid))
+            invited_users = cur.fetchall()
+            
+            # Calcola statistiche
+            total_invited = len(invited_users)
+            total_invested = sum(user.get('total_invested', 0) for user in invited_users)
+            total_profits = sum(user.get('total_profits', 0) for user in invited_users)
+            bonus_earned = sum(user.get('bonus_generated', 0) for user in invited_users)
+            
+            return jsonify({
+                "success": True,
+                "referral_code": referral_code,
+                "referral_link": referral_link,
+                "total_invited": total_invited,
+                "total_invested": total_invested,
+                "total_profits": total_profits,
+                "bonus_earned": bonus_earned,
+                "invited_users": invited_users,
+                "kyc_status": kyc_status,
+                "user_id": uid
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
