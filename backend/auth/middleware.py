@@ -34,10 +34,10 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
     """Recupera utente dal database per ID"""
     try:
         with get_connection() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT id, email, nome, cognome, role
-            FROM users WHERE id = %s
-        """, (user_id,))
+            cur.execute("""
+                SELECT id, email, nome, cognome, role
+                FROM users WHERE id = %s
+            """, (user_id,))
             user = cur.fetchone()
             return user
     except Exception as e:
