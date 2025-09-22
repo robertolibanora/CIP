@@ -140,6 +140,36 @@ def mark_all_as_read():
         }), 500
 
 
+@notifications_api.route("/<int:notification_id>", methods=["DELETE"])
+@admin_required
+def delete_notification(notification_id):
+    """Elimina una singola notifica"""
+    try:
+        from backend.shared.database import get_connection
+        
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM admin_notifications WHERE id = %s", (notification_id,))
+            deleted_count = cur.rowcount
+            conn.commit()
+            
+        if deleted_count > 0:
+            return jsonify({
+                "success": True,
+                "message": "Notifica eliminata"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Notifica non trovata"
+            }), 404
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Errore eliminazione notifica: {str(e)}"
+        }), 500
+
+
 @notifications_api.route("/clear-all", methods=["POST"])
 @admin_required
 def clear_all_notifications():
