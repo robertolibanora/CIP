@@ -63,9 +63,10 @@
         justify-content: center;
         font-size: 14px;
         font-weight: bold;
-        opacity: 0;
+        opacity: 1;
         transition: all 0.3s ease;
         z-index: 10;
+        line-height: 1;
     }
     
     .notification-item:hover .notification-close-btn {
@@ -217,6 +218,13 @@
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Nessuna notifica</h3>
                 <p class="text-gray-500">Non ci sono notifiche da visualizzare</p>
             </div>
+            
+            <!-- Footer con link per visualizzare tutte le notifiche -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <a href="/admin/notifications" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    Visualizza tutte le notifiche
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -260,6 +268,7 @@ async function loadNotifications() {
 
 // Renderizza notifiche
 function renderNotifications() {
+    console.log('Rendering notifications:', notifications.length);
     const container = document.getElementById('notifications-list');
     
     if (notifications.length === 0) {
