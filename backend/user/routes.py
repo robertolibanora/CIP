@@ -1009,14 +1009,17 @@ def get_referral_data():
     """Ottieni dati referral dell'utente corrente"""
     try:
         user_id = session.get('user_id')
+        print(f"DEBUG: get_referral_data - user_id: {user_id}")
         
         # Assicura che l'utente abbia un codice referral
         referral_code = ensure_referral_code(user_id)
+        print(f"DEBUG: get_referral_data - referral_code: {referral_code}")
         
         with get_conn() as conn, conn.cursor() as cur:
             
             # Trova tutti gli utenti invitati da questo utente
             # Esclude l'utente stesso per evitare auto-referral
+            print(f"DEBUG: get_referral_data - eseguendo query per user_id: {user_id}")
             cur.execute("""
                 SELECT 
                     u.id, u.nome, u.cognome, u.email, u.created_at,
@@ -1037,6 +1040,7 @@ def get_referral_data():
                 ORDER BY u.created_at DESC
             """, (user_id, user_id))
             invited_users = cur.fetchall()
+            print(f"DEBUG: get_referral_data - invited_users count: {len(invited_users)}")
             
             # Ottieni investimenti per ogni utente invitato
             for user in invited_users:
