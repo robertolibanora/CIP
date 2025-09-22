@@ -463,17 +463,33 @@ function showError(message) {
     console.error('Error:', message);
 }
 
-// Event listeners
+// Event listeners - UNIFICATO
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, starting notifications system...');
+    console.log('🚀 DOM loaded, starting notifications system...');
+    
+    // Inizializza il sistema notifiche
+    if (typeof window.adminNotifications !== 'undefined') {
+        console.log('⚠️ AdminNotifications già presente, skip');
+    } else {
+        window.adminNotifications = new AdminNotifications();
+    }
+    
+    // Carica notifiche per la pagina completa
     loadNotifications();
     
-    document.getElementById('mark-all-read').addEventListener('click', markAllAsRead);
-    document.getElementById('delete-all').addEventListener('click', deleteAll);
-    document.getElementById('apply-filters').addEventListener('click', applyFilters);
+    // Event listeners per i pulsanti
+    const markAllReadBtn = document.getElementById('mark-all-read');
+    const deleteAllBtn = document.getElementById('delete-all');
+    const applyFiltersBtn = document.getElementById('apply-filters');
+    
+    if (markAllReadBtn) markAllReadBtn.addEventListener('click', markAllAsRead);
+    if (deleteAllBtn) deleteAllBtn.addEventListener('click', deleteAll);
+    if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', applyFilters);
     
     // Auto-refresh ogni 30 secondi
     setInterval(loadNotifications, 30000);
+    
+    console.log('✅ Notifications system initialized');
 });
 </script>
 {% endblock %}
