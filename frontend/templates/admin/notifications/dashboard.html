@@ -233,12 +233,17 @@
 let notifications = [];
 let currentFilters = {};
 
-// Carica notifiche
+// Carica notifiche con gestione errori robusta
 async function loadNotifications() {
     try {
-        console.log('Loading notifications...');
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('no-notifications').style.display = 'none';
+        console.log('📡 Loading notifications...');
+        
+        // Verifica che gli elementi esistano prima di usarli
+        const loadingEl = document.getElementById('loading');
+        const noNotificationsEl = document.getElementById('no-notifications');
+        
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (noNotificationsEl) noNotificationsEl.style.display = 'none';
         
         const params = new URLSearchParams();
         if (currentFilters.type) params.append('type', currentFilters.type);
@@ -250,33 +255,47 @@ async function loadNotifications() {
             credentials: 'same-origin'
         });
         
+        console.log('📊 Response status:', response.status);
+        
         if (response.ok) {
             const data = await response.json();
-            console.log('Notifications loaded:', data);
+            console.log('📋 Notifications loaded:', data);
             notifications = data.notifications || [];
+            console.log(`✅ ${notifications.length} notifications to render`);
+            
             renderNotifications();
             updateStats();
         } else {
-            console.error('Errore nel caricamento notifiche:', response.status);
+            console.error('❌ Errore nel caricamento notifiche:', response.status);
             showError('Errore nel caricamento delle notifiche');
         }
     } catch (error) {
-        console.error('Errore nel caricamento notifiche:', error);
+        console.error('❌ Errore nel caricamento notifiche:', error);
         showError('Errore di connessione');
     } finally {
-        document.getElementById('loading').style.display = 'none';
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.style.display = 'none';
     }
 }
 
-// Renderizza notifiche
+// Renderizza notifiche con gestione errori robusta
 function renderNotifications() {
-    console.log('Rendering notifications:', notifications.length);
-    const container = document.getElementById('notifications-list');
-    
-    if (notifications.length === 0) {
-        document.getElementById('no-notifications').style.display = 'block';
-        return;
-    }
+    try {
+        console.log(`🎨 Rendering ${notifications.length} notifications...`);
+        
+        const container = document.getElementById('notifications-list');
+        
+        if (!container) {
+            console.error('❌ Container not found');
+            return;
+        }
+        
+        if (notifications.length === 0) {
+            const noNotificationsEl = document.getElementById('no-notifications');
+            if (noNotificationsEl) noNotificationsEl.style.display = 'block';
+            console.log('ℹ️ No notifications to render');
+            return;
+        }
     
     container.innerHTML = notifications.map(notification => `
         <div class="notification-item relative p-6 ${notification.is_read ? '' : 'unread'} ${notification.type}" data-id="${notification.id}">
@@ -320,6 +339,16 @@ function renderNotifications() {
             </div>
         </div>
     `).join('');
+    
+    container.innerHTML = html;
+    console.log('✅ Notifications rendered successfully');
+    } catch (error) {
+        console.error('❌ Error rendering notifications:', error);
+        const container = document.getElementById('notifications-list');
+        if (container) {
+            container.innerHTML = '<div class="text-center py-8 text-red-500">Errore nel caricamento delle notifiche</div>';
+        }
+    }
 }
 
 // Aggiorna statistiche
@@ -463,26 +492,38 @@ function showError(message) {
     console.error('Error:', message);
 }
 
-// Event listeners - UNIFICATO
+// Event listeners - UNIFICATO CON GESTIONE ERRORI
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, starting notifications system...');
     
-    // Carica notifiche per la pagina completa
-    loadNotifications();
-    
-    // Event listeners per i pulsanti
-    const markAllReadBtn = document.getElementById('mark-all-read');
-    const deleteAllBtn = document.getElementById('delete-all');
-    const applyFiltersBtn = document.getElementById('apply-filters');
-    
-    if (markAllReadBtn) markAllReadBtn.addEventListener('click', markAllAsRead);
-    if (deleteAllBtn) deleteAllBtn.addEventListener('click', deleteAll);
-    if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', applyFilters);
-    
-    // Auto-refresh ogni 30 secondi
-    setInterval(loadNotifications, 30000);
-    
-    console.log('✅ Notifications system initialized');
+    try {
+        // Carica notifiche per la pagina completa
+        loadNotifications();
+        
+        // Event listeners per i pulsanti
+        const markAllReadBtn = document.getElementById('mark-all-read');
+        const deleteAllBtn = document.getElementById('delete-all');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        
+        if (markAllReadBtn) markAllReadBtn.addEventListener('click', markAllAsRead);
+        if (deleteAllBtn) deleteAllBtn.addEventListener('click', deleteAll);
+        if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', applyFilters);
+        
+        // Auto-refresh ogni 30 secondi
+        setInterval(loadNotifications, 30000);
+        
+        console.log('✅ Notifications system initialized');
+    } catch (error) {
+        console.error('❌ Error initializing notifications system:', error);
+        // Fallback: prova a caricare le notifiche comunque
+        setTimeout(() => {
+            try {
+                loadNotifications();
+            } catch (e) {
+                console.error('❌ Fallback loadNotifications failed:', e);
+            }
+        }, 1000);
+    }
 });
 </script>
 {% endblock %}
