@@ -261,6 +261,92 @@ select[class*="bg-"] {
 }
 
 /* =====================================================
+   FIX VISIBILITÀ TASTO CAMBIO PASSWORD
+   ===================================================== */
+
+/* Assicura che il tasto cambio password sia sempre visibile */
+#password-submit {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 10 !important;
+    position: relative !important;
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+    font-weight: 500 !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+#password-submit:hover {
+    background-color: #2563eb !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+#password-submit:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+#password-submit:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* Forza visibilità del tasto anche con classi Tailwind */
+button#password-submit,
+input#password-submit,
+[type="submit"]#password-submit {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: #3b82f6 !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+    font-weight: 500 !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+button#password-submit:hover,
+input#password-submit:hover,
+[type="submit"]#password-submit:hover {
+    background-color: #2563eb !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Assicura che il form password sia visibile */
+#password-form {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Assicura che la sezione cambio password sia visibile */
+.mt-8.bg-white.rounded-xl.border.border-gray-200.p-6 {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-top: 2rem !important;
+    background-color: white !important;
+    border-radius: 12px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 1.5rem !important;
+}
+
+/* =====================================================
    DARK MODE SUPPORT
    ===================================================== */
 

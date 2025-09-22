@@ -23,10 +23,8 @@
   </style>
   <div class="users-header" style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
     <input id="user-search" type="text" placeholder="Cerca per email, nome o Telegram" style="flex:1; padding:10px;">
-    <button id="view-history" class="btn-theme btn-small" style="background:#334155">Storico</button>
     <button id="bulk-add" class="btn-theme btn-small">Aggiungi</button>
     <button id="bulk-remove" class="btn-theme btn-small" style="background:#b91c1c">Rimuovi</button>
-    <button id="refresh-users" class="btn">Aggiorna</button>
   </div>
 
   <div style="display:flex; gap:16px;">
@@ -144,11 +142,9 @@
 (function(){
   const tbody = document.getElementById('users-tbody');
   const searchEl = document.getElementById('user-search');
-  const refreshBtn = document.getElementById('refresh-users');
   const bulkAddBtn = document.getElementById('bulk-add');
   const bulkRemoveBtn = document.getElementById('bulk-remove');
   const selectAll = document.getElementById('select-all');
-  const viewHistoryBtn = document.getElementById('view-history');
 
   const modal = document.getElementById('user-detail-modal');
   const closeModalBtn = document.getElementById('close-modal');
@@ -262,15 +258,39 @@
       telegram: dTelegram.value,
       is_vip: dVip.checked,
     };
-    const res = await fetch(`/admin/api/admin/users/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if(res.ok){
-      showToast('Utente aggiornato con successo');
-      closeModal();
-      fetchUsers();
+    
+    console.log('Salvataggio utente:', payload); // Debug
+    
+    try {
+      const res = await fetch(`/admin/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      console.log('Risposta server:', res.status, res.statusText); // Debug
+      
+      if(res.ok){
+        const data = await res.json();
+        console.log('Dati risposta:', data); // Debug
+        showToast('Utente aggiornato con successo');
+        closeModal();
+        fetchUsers();
+      } else {
+        let errorMessage = 'Errore durante il salvataggio';
+        try {
+          const errorData = await res.json();
+          console.error('Errore salvataggio:', errorData); // Debug
+          errorMessage = errorData.error || errorData.message || `Errore ${res.status}: ${res.statusText}`;
+        } catch (jsonError) {
+          console.error('Errore parsing JSON:', jsonError); // Debug
+          errorMessage = `Errore ${res.status}: ${res.statusText}`;
+        }
+        showToast(`Errore: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('Errore connessione:', error); // Debug
+      showToast('Errore di connessione durante il salvataggio');
     }
   }
 
@@ -349,7 +369,6 @@
   }
 
   searchEl.addEventListener('input', debouncedFetch);
-  refreshBtn.addEventListener('click', fetchUsers);
   selectAll.addEventListener('change', ()=>{
     document.querySelectorAll('.row-sel').forEach(cb=> cb.checked = selectAll.checked);
   });
@@ -377,7 +396,6 @@
 
   bulkAddBtn.addEventListener('click', ()=> runBulk('add'));
   bulkRemoveBtn.addEventListener('click', ()=> runBulk('remove'));
-  viewHistoryBtn.addEventListener('click', loadGlobalHistory);
 
   // Auto load latest users on enter of the page
   document.addEventListener('visibilitychange', ()=>{
@@ -530,52 +548,6 @@
     return '';
   }
 
-  async function loadGlobalHistory(){
-    // Show modal immediately with loading state
-    portfolioSummary.innerHTML = '<div style="grid-column:1/-1; font-weight:600;">Storico globale utenti</div>';
-    portfolioTbody.innerHTML = '<tr><td style="padding:14px;" colspan="4">Caricamento...</td></tr>';
-    openPortfolio();
-    try {
-      const res = await fetch('/admin/api/admin/users/history');
-      if(!res.ok){
-        portfolioTbody.innerHTML = '<tr><td style="padding:14px; color:#b91c1c;" colspan="4">Errore nel caricamento dello storico</td></tr>';
-        return;
-      }
-      const data = await res.json();
-      currentHistoryItems = data.items || [];
-      portfolioTbody.innerHTML = '';
-      for(const item of currentHistoryItems){
-        const tr = document.createElement('tr');
-        tr.className = 'history-row';
-        tr.setAttribute('data-history-id', String(item.id));
-        tr.style.cursor = 'pointer';
-        tr.innerHTML = `
-          <td style="padding:14px;" colspan="4">
-            <div style="display:flex; justify-content:space-between; gap:12px;">
-              <span>
-                <strong>${humanizeAction(item.action)}</strong>
-                <span class="user-inline" data-user-id="${item.target_type==='user'?item.target_id:''}"></span>
-                — ${item.details||''} (admin: ${item.admin_email||item.admin_id})
-              </span>
-              <span style="color:#64748b;">${(item.created_at||'').slice(0,19).replace('T',' ')}</span>
-            </div>
-          </td>`;
-        portfolioTbody.appendChild(tr);
-        // Enrich with username asynchronously (solo azioni su singolo utente)
-        if(item.target_type === 'user' && item.target_id){
-          getUserName(item.target_id).then(name=>{
-            const span = tr.querySelector('.user-inline');
-            if(span && name) span.textContent = ` per ${name}`;
-          });
-        }
-      }
-      if(!portfolioTbody.children.length){
-        portfolioTbody.innerHTML = '<tr><td style="padding:14px;" colspan="4">Nessuna azione registrata</td></tr>';
-      }
-    } catch (err) {
-      portfolioTbody.innerHTML = '<tr><td style="padding:14px; color:#b91c1c;" colspan="4">Errore imprevisto</td></tr>';
-    }
-  }
   async function loadHistory(id){
     const res = await fetch(`/admin/api/admin/users/${id}/history`);
     const data = await res.json();

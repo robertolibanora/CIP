@@ -209,7 +209,7 @@ async function loadDepositsHistory(page = 1) {
             </tr>
         `;
         
-        const response = await fetch(`/deposits/api/admin/history?${params}`, {
+        const response = await fetch(`/admin/api/deposits/history?${params}`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: {
@@ -431,7 +431,7 @@ async function deleteAllDeposits() {
     
     try {
         showLoading();
-        const response = await fetch('/deposits/api/admin/delete-all', {
+        const response = await fetch('/admin/api/deposits/delete-all', {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'}
         });
@@ -460,7 +460,7 @@ async function deleteDeposit(id) {
     
     try {
         showLoading();
-        const response = await fetch(`/deposits/api/admin/delete/${id}`, {
+        const response = await fetch(`/admin/api/deposits/delete/${id}`, {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'}
         });
@@ -540,7 +540,7 @@ async function deleteSelectedDeposits() {
     
     try {
         showLoading();
-        const response = await fetch('/deposits/api/admin/delete-multiple', {
+        const response = await fetch('/admin/api/deposits/delete-multiple', {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ deposit_ids: selectedIds })

@@ -15,11 +15,11 @@ load_dotenv(ENV_FILE)
 # Carica anche le variabili d'ambiente esplicitamente per debug
 import os
 if not os.environ.get('DATABASE_URL'):
-    os.environ['DATABASE_URL'] = 'postgresql://localhost/cip_immobiliare'
+    os.environ['DATABASE_URL'] = 'postgresql://cipapp:cipapp_password@localhost:5432/cip_immobiliare_prod'
 if not os.environ.get('SECRET_KEY'):
-    os.environ['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+    os.environ['SECRET_KEY'] = 'Uscendo-da-casa22-ei4cUl0-sul-p3zz3nt3'
 if not os.environ.get('FLASK_DEBUG'):
-    os.environ['FLASK_DEBUG'] = '1'
+    os.environ['FLASK_DEBUG'] = '0'
 
 # Importa configurazione
 from config.config import config

@@ -20,7 +20,9 @@ def is_api_request() -> bool:
     # Verifica per path API specifici
     if (request.path.startswith("/kyc/admin/api/") or 
         request.path.startswith("/admin/api/") or
-        "/api/" in request.path):
+        request.path.startswith("/user/api/") or
+        "/api/" in request.path or
+        request.path.endswith("/change-password")):
         return True
     
     # Verifica header Accept

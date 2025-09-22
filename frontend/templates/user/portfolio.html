@@ -778,7 +778,7 @@
 <!-- Popup di successo deposito - Design CIP -->
 <div id="deposit-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
   <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto" id="deposit-success-modal-content">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[90vh] flex flex-col" id="deposit-success-modal-content">
       <!-- Header fisso -->
       <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
@@ -798,7 +798,7 @@
       </div>
       
       <!-- Contenuto scrollabile -->
-      <div class="flex-1 overflow-y-auto max-h-96 p-6">
+      <div class="flex-1 overflow-y-auto p-6 min-h-0">
         <!-- Dettagli deposito -->
         <div id="deposit-success-details" class="mb-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg text-left shadow-md">
           <!-- I dettagli verranno inseriti qui dinamicamente -->
@@ -831,7 +831,7 @@
 <!-- Popup di successo prelievo - Design CIP -->
 <div id="withdrawal-success-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
   <div class="relative min-h-full flex items-center justify-center p-4 py-8 w-full">
-    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto" id="withdrawal-success-modal-content">
+    <div class="bg-card-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker transform transition-all duration-300 scale-95 opacity-0 w-full max-w-lg my-auto max-h-[90vh] flex flex-col" id="withdrawal-success-modal-content">
       <!-- Header fisso -->
       <div class="p-6 pb-4 text-center border-b border-cip-primary-darker">
         <!-- Icona successo -->
@@ -851,7 +851,7 @@
       </div>
       
       <!-- Contenuto scrollabile -->
-      <div class="flex-1 overflow-y-auto max-h-96 p-6">
+      <div class="flex-1 overflow-y-auto p-6 min-h-0">
         <!-- Dettagli prelievo -->
         <div id="withdrawal-success-details" class="mb-4 p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg text-left shadow-md">
           <!-- I dettagli verranno inseriti qui dinamicamente -->
@@ -973,7 +973,21 @@ async function loadDeposits(){
     const r = await fetch('/deposits/api/requests');
     const j = await r.json();
     const list = document.getElementById('deposits-list');
-    if (!r.ok) { console.error('Deposits API error', j); throw new Error(j.error || 'Errore caricamento depositi'); }
+    
+    if (!r.ok) { 
+      console.error('Deposits API error', j); 
+      list.innerHTML = `
+        <div class="text-center py-8">
+          <svg class="w-16 h-16 text-red-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+          <h3 class="text-lg font-medium text-red-900 mb-2">Errore durante il caricamento dei depositi</h3>
+          <p class="text-red-600">${j.error || 'Errore di connessione al server'}</p>
+        </div>`;
+      window.depositsLoaded = true;
+      return;
+    }
+    
     const items = (j.deposit_requests || []);
     if (items.length === 0) {
       list.innerHTML = `

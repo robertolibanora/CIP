@@ -1965,84 +1965,98 @@ def api_admin_user_detail(user_id: int):
 @admin_required
 def api_admin_user_update(user_id: int):
     """Aggiorna dati utente. Solo admin."""
-    data = request.get_json() or {}
+    try:
+        data = request.get_json() or {}
 
-    allowed_fields = ['name', 'nome', 'cognome', 'email', 'phone', 'telegram', 'investor_status', 'kyc_status', 'address', 'is_vip']
-    updates = {k: v for k, v in data.items() if k in allowed_fields}
+        allowed_fields = ['name', 'nome', 'cognome', 'email', 'phone', 'telegram', 'investor_status', 'kyc_status', 'address', 'is_vip']
+        updates = {k: v for k, v in data.items() if k in allowed_fields}
 
-    if not updates:
-        return jsonify({'error': 'Nessun campo da aggiornare'}), 400
+        if not updates:
+            return jsonify({'error': 'Nessun campo da aggiornare'}), 400
 
-    # Split name in nome/cognome se presente
-    nome = None
-    cognome = None
-    if 'name' in updates and updates['name']:
-        parts = str(updates['name']).strip().split(' ', 1)
-        nome = parts[0]
-        cognome = parts[1] if len(parts) > 1 else ''
-    # Se arrivano separati, sovrascrivono lo split
-    if 'nome' in updates:
-        nome = updates['nome']
-    if 'cognome' in updates:
-        cognome = updates['cognome']
+        # Split name in nome/cognome se presente
+        nome = None
+        cognome = None
+        if 'name' in updates and updates['name']:
+            parts = str(updates['name']).strip().split(' ', 1)
+            nome = parts[0]
+            cognome = parts[1] if len(parts) > 1 else ''
+        # Se arrivano separati, sovrascrivono lo split
+        if 'nome' in updates:
+            nome = updates['nome']
+        if 'cognome' in updates:
+            cognome = updates['cognome']
 
-    # Mappa investor_status a role
-    role_value = None
-    if 'investor_status' in updates:
-        role_value = 'investor' if updates['investor_status'] in (True, 'si', 'investor', 'yes') else 'admin'
+        # Mappa investor_status a role
+        role_value = None
+        if 'investor_status' in updates:
+            role_value = 'investor' if updates['investor_status'] in (True, 'si', 'investor', 'yes') else 'admin'
 
-    with get_conn() as conn, conn.cursor() as cur:
-        ensure_admin_actions_table(cur)
-        # Esiste utente?
-        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        if not cur.fetchone():
-            return jsonify({'error': 'Utente non trovato'}), 404
+        # Assicurati che la tabella admin_actions esista prima della transazione
+        with get_conn() as conn, conn.cursor() as cur:
+            ensure_admin_actions_table(cur)
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            try:
+                # Esiste utente?
+                cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+                if not cur.fetchone():
+                    return jsonify({'error': 'Utente non trovato'}), 404
 
-        set_clauses = []
-        params = []
-        if nome is not None:
-            set_clauses.append('nome = %s')
-            params.append(nome)
-        if cognome is not None:
-            set_clauses.append('cognome = %s')
-            params.append(cognome)
-        if 'email' in updates:
-            set_clauses.append('email = %s')
-            params.append(updates['email'])
-        if 'phone' in updates:
-            set_clauses.append('telefono = %s')
-            params.append(updates['phone'])
-        if 'telegram' in updates:
-            set_clauses.append('nome_telegram = %s')
-            params.append(updates['telegram'])
-        if 'kyc_status' in updates:
-            set_clauses.append('kyc_status = %s')
-            params.append(updates['kyc_status'])
-        if role_value is not None:
-            set_clauses.append('role = %s')
-            params.append(role_value)
-        if 'address' in updates:
-            set_clauses.append('address = %s')
-            params.append(updates['address'])
-        if 'is_vip' in updates:
-            set_clauses.append('is_vip = %s')
-            params.append(bool(updates['is_vip']))
+                set_clauses = []
+                params = []
+                if nome is not None:
+                    set_clauses.append('nome = %s')
+                    params.append(nome)
+                if cognome is not None:
+                    set_clauses.append('cognome = %s')
+                    params.append(cognome)
+                if 'email' in updates:
+                    set_clauses.append('email = %s')
+                    params.append(updates['email'])
+                if 'phone' in updates:
+                    set_clauses.append('telefono = %s')
+                    params.append(updates['phone'])
+                if 'telegram' in updates:
+                    set_clauses.append('nome_telegram = %s')
+                    params.append(updates['telegram'])
+                if 'kyc_status' in updates:
+                    set_clauses.append('kyc_status = %s')
+                    params.append(updates['kyc_status'])
+                if role_value is not None:
+                    set_clauses.append('role = %s')
+                    params.append(role_value)
+                if 'address' in updates:
+                    set_clauses.append('address = %s')
+                    params.append(updates['address'])
+                if 'is_vip' in updates:
+                    set_clauses.append('is_vip = %s')
+                    params.append(bool(updates['is_vip']))
 
-        if not set_clauses:
-            return jsonify({'error': 'Nessun campo valido da aggiornare'}), 400
+                if not set_clauses:
+                    return jsonify({'error': 'Nessun campo valido da aggiornare'}), 400
 
-        params.append(user_id)
-        cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id = %s", params)
-        # Log azione
-        cur.execute(
-            """
-            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (session.get('user_id'), 'user_update', 'user', user_id, 'Aggiornati campi utente')
-        )
+                params.append(user_id)
+                cur.execute(f"UPDATE users SET {', '.join(set_clauses)} WHERE id = %s", params)
+                # Log azione
+                cur.execute(
+                    """
+                    INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (session.get('user_id'), 'user_update', 'user', user_id, 'Aggiornati campi utente')
+                )
+                conn.commit()
+            except Exception as db_error:
+                conn.rollback()
+                print(f"Errore database aggiornamento utente {user_id}: {db_error}")
+                return jsonify({'error': f'Errore database: {str(db_error)}'}), 500
 
-    return jsonify({'success': True, 'message': 'Utente aggiornato con successo'})
+        return jsonify({'success': True, 'message': 'Utente aggiornato con successo'})
+    
+    except Exception as e:
+        print(f"Errore aggiornamento utente {user_id}: {e}")
+        return jsonify({'error': f'Errore durante l\'aggiornamento: {str(e)}'}), 500
 
 
 @admin_bp.get("/api/admin/users/<int:user_id>/portfolio")
@@ -2429,68 +2443,88 @@ def api_admin_delete_user(user_id: int):
 @admin_required
 def api_admin_reset_user_password(user_id: int):
     """Genera una nuova password temporanea per un utente previa verifica password admin."""
-    data = request.get_json() or {}
-    admin_password = data.get('admin_password')
-    if not admin_password:
-        return jsonify({'error': 'Password admin richiesta'}), 400
+    try:
+        data = request.get_json() or {}
+        admin_password = data.get('admin_password')
+        if not admin_password:
+            return jsonify({'error': 'Password admin richiesta'}), 400
 
-    admin_id = session.get('user_id')
-    if not admin_id:
-        return jsonify({'error': 'Non autenticato'}), 401
+        admin_id = session.get('user_id')
+        if not admin_id:
+            return jsonify({'error': 'Non autenticato'}), 401
 
-    with get_conn() as conn, conn.cursor() as cur:
-        ensure_admin_actions_table(cur)
-        
-        # Verifica password admin
-        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
-        admin_row = cur.fetchone()
-        if not admin_row or admin_row.get('role') != 'admin':
-            return jsonify({'error': 'Permesso negato'}), 403
-        
-        # Verifica password usando SHA-256 (come nel sistema di login)
-        import hashlib
-        if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
-            return jsonify({'error': 'Password admin non corretta'}), 401
+        # Verifiche preliminari FUORI dalla transazione
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica password admin
+            cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+            admin_row = cur.fetchone()
+            if not admin_row or admin_row.get('role') != 'admin':
+                return jsonify({'error': 'Permesso negato'}), 403
+            
+            # Verifica password usando SHA-256 (come nel sistema di login)
+            import hashlib
+            if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
+                return jsonify({'error': 'Password admin non corretta'}), 401
 
-        # Verifica che l'utente esista
-        cur.execute("SELECT id, email, role FROM users WHERE id = %s", (user_id,))
-        target_user = cur.fetchone()
-        if not target_user:
-            return jsonify({'error': 'Utente non trovato'}), 404
-        
-        # Non consentire reset password di un amministratore
-        if target_user.get('role') == 'admin':
-            return jsonify({'error': 'Non è possibile resettare la password di un amministratore'}), 400
+            # Verifica che l'utente esista
+            cur.execute("SELECT id, email, role FROM users WHERE id = %s", (user_id,))
+            target_user = cur.fetchone()
+            if not target_user:
+                return jsonify({'error': 'Utente non trovato'}), 404
+            
+            # Non consentire reset password di un amministratore
+            if target_user.get('role') == 'admin':
+                return jsonify({'error': 'Non è possibile resettare la password di un amministratore'}), 400
 
-        # Genera nuova password temporanea (8 caratteri alfanumerici)
-        import secrets
-        import string
-        new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+        # Verifica che la tabella admin_actions esista FUORI dalla transazione
+        with get_conn() as conn, conn.cursor() as cur:
+            ensure_admin_actions_table(cur)
         
-        # Hash della nuova password con SHA-256
-        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        # Transazione separata per le modifiche
+        with get_conn() as conn, conn.cursor() as cur:
+            try:
+                
+                # Genera nuova password temporanea (8 caratteri alfanumerici)
+                import secrets
+                import string
+                new_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+                
+                # Hash della nuova password con SHA-256
+                new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+                
+                # Aggiorna la password nel database e marca come password temporanea
+                cur.execute("""
+                    UPDATE users 
+                    SET password_hash = %s, updated_at = NOW(), password_reset_required = true
+                    WHERE id = %s
+                """, (new_password_hash, user_id))
+                
+                # Log dell'azione admin
+                cur.execute(
+                    """
+                    INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                    VALUES (%s, 'password_reset', 'user', %s, %s)
+                    """,
+                    (admin_id, user_id, f'Password resettata per utente {target_user.get("email")}')
+                )
+                
+                # COMMIT DELLE MODIFICHE
+                conn.commit()
+                
+                return jsonify({
+                    'success': True, 
+                    'message': 'Password generata con successo',
+                    'new_password': new_password
+                })
+                
+            except Exception as db_error:
+                print(f"Errore database reset password utente {user_id}: {db_error}")
+                conn.rollback()
+                return jsonify({'error': f'Errore di connessione al database: {str(db_error)}'}), 500
         
-        # Aggiorna la password nel database e marca come password temporanea
-        cur.execute("""
-            UPDATE users 
-            SET password_hash = %s, updated_at = NOW(), password_reset_required = true
-            WHERE id = %s
-        """, (new_password_hash, user_id))
-        
-        # Log dell'azione admin
-        cur.execute(
-            """
-            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-            VALUES (%s, 'password_reset', 'user', %s, %s)
-            """,
-            (admin_id, user_id, f'Password resettata per utente {target_user.get("email")}')
-        )
-
-    return jsonify({
-        'success': True, 
-        'message': 'Password generata con successo',
-        'new_password': new_password
-    })
+    except Exception as e:
+        print(f"Errore reset password utente {user_id}: {e}")
+        return jsonify({'error': f'Errore interno del server: {str(e)}'}), 500
 
 
 @admin_bp.get("/api/admin/users/<int:user_id>/history")

@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Carica metriche depositi
 async function loadMetrics() {
     try {
-        const response = await fetch('/deposits/api/admin/metrics');
+        const response = await fetch('/admin/api/deposits/metrics');
         const data = await response.json();
         
         if (response.ok) {
@@ -114,7 +114,7 @@ async function loadMetrics() {
 }
 
 async function loadPendingDeposits() {
-  const res = await fetch('/deposits/api/admin/pending');
+  const res = await fetch('/admin/api/deposits/pending');
   const data = await res.json();
   const list = document.getElementById('deposits-list');
   if (!res.ok || !data.pending_deposits || data.pending_deposits.length === 0) {
@@ -170,7 +170,7 @@ async function loadPendingDeposits() {
 
 async function approve(id){
   const notes = document.getElementById(`note-${id}`).value;
-  const r = await fetch(`/deposits/api/admin/approve/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
+  const r = await fetch(`/admin/api/deposits/approve/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
   if(r.ok){ 
     showNotification('Richiesta approvata con successo', 'success');
     loadPendingDeposits();
@@ -188,7 +188,7 @@ async function reject(id){
     return; 
   }
   
-  const r = await fetch(`/deposits/api/admin/reject/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
+  const r = await fetch(`/admin/api/deposits/reject/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
   if(r.ok){ 
     showNotification('Richiesta rifiutata con successo', 'success');
     loadPendingDeposits();

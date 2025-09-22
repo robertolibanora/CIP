@@ -29,45 +29,29 @@ def generate_unique_key(length=6):
 
 def generate_payment_reference(user_name=None, length=12):
     """Genera una causale bonifico unica usando il template configurato dall'admin"""
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            SELECT payment_reference 
-            FROM bank_configurations 
-            WHERE is_active = true 
-            ORDER BY created_at DESC 
-            LIMIT 1
-        """)
-        config = cur.fetchone()
-        
-        if config and config['payment_reference']:
-            template = config['payment_reference']
-            # Genera sempre una chiave unica
-            unique_key = generate_unique_key(8)
-            
-            # Sostituisci {NOME_UTENTE} con il nome dell'utente se fornito
-            if user_name and '{NOME_UTENTE}' in template:
-                base_reference = template.replace('{NOME_UTENTE}', user_name)
-            elif '{NOME_UTENTE}' in template:
-                # Se non c'è il nome utente, usa un placeholder
-                base_reference = template.replace('{NOME_UTENTE}', 'UTENTE')
-            else:
-                base_reference = template
-            
-            # Aggiungi la chiave unica alla fine
-            return f"{base_reference} {unique_key}"
-        else:
-            # Fallback: genera una chiave randomica
-            characters = string.ascii_uppercase + string.digits
-            return ''.join(secrets.choice(characters) for _ in range(length))
+    # Fallback: genera una chiave randomica
+    characters = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(characters) for _ in range(length))
 
 def ensure_deposits_schema(cur):
     """Crea tabelle minime necessarie se mancanti (solo per ambienti dev)."""
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS iban_configurations (
+        CREATE TABLE IF NOT EXISTS bank_configurations (
             id SERIAL PRIMARY KEY,
             iban TEXT NOT NULL UNIQUE,
             bank_name TEXT NOT NULL,
             account_holder TEXT NOT NULL,
+            bic_swift TEXT,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS wallet_configurations (
+            id SERIAL PRIMARY KEY,
+            wallet_address TEXT NOT NULL,
+            network TEXT NOT NULL,
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -154,16 +138,22 @@ def get_deposit_requests():
     """Ottiene le richieste di deposito dell'utente"""
     uid = session.get("user_id")
     
+    if not uid:
+        return jsonify({'error': 'unauthorized'}), 401
+    
     with get_conn() as conn, conn.cursor() as cur:
-        # In ambienti nuovi la tabella potrebbe non esistere ancora
-        # Garantiamo lo schema per evitare errori 500
+        # Assicura che lo schema sia aggiornato
         try:
             ensure_deposits_schema(cur)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Errore aggiornamento schema depositi: {e}")
+        
         cur.execute("""
-            SELECT id, amount, iban, unique_key, payment_reference, status, 
-                   admin_notes, created_at, approved_at, method
+            SELECT id, amount, iban, 
+                   COALESCE(unique_key, '') as unique_key, 
+                   COALESCE(payment_reference, '') as payment_reference, 
+                   status, admin_notes, created_at, approved_at, 
+                   COALESCE(method, 'bank') as method
             FROM deposit_requests 
             WHERE user_id = %s 
             ORDER BY created_at DESC
@@ -297,41 +287,42 @@ def create_deposit_request():
         return jsonify({'error': 'unauthorized'}), 401
     logger.info("[deposits] POST /api/requests/new uid=%s payload=%s", uid, data)
     
-    # Rate limiting: controlla se l'utente ha già fatto una richiesta negli ultimi 10 minuti
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("""
-                SELECT created_at 
-                FROM deposit_requests 
-                WHERE user_id = %s 
-                AND created_at > NOW() - INTERVAL '5 minutes'
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (uid,))
-            recent_request = cur.fetchone()
-            
-            if recent_request:
-                # Calcola il tempo rimanente
-                from datetime import datetime, timezone
-                now = datetime.now(timezone.utc)
-                last_request_time = recent_request['created_at']
-                if last_request_time.tzinfo is None:
-                    last_request_time = last_request_time.replace(tzinfo=timezone.utc)
-                
-                time_diff = now - last_request_time
-                remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
-                
-                if remaining_seconds > 0:
-                    minutes = remaining_seconds // 60
-                    seconds = remaining_seconds % 60
-                    return jsonify({
-                        'error': 'Rate limit exceeded',
-                        'message': f'Puoi fare una nuova richiesta di deposito tra {minutes}m {seconds}s',
-                        'remaining_seconds': remaining_seconds
-                    }), 429
-    except Exception as e:
-        logger.warning("[deposits] rate limiting check failed: %s", e)
-        # Continua comunque se il controllo fallisce
+    # Rate limiting: controlla se l'utente ha già fatto una richiesta negli ultimi 5 minuti
+    # DISABILITATO TEMPORANEAMENTE PER DEBUG
+    # try:
+    #     with get_conn() as conn, conn.cursor() as cur:
+    #         cur.execute("""
+    #             SELECT created_at 
+    #             FROM deposit_requests 
+    #             WHERE user_id = %s 
+    #             AND created_at > NOW() - INTERVAL '5 minutes'
+    #             ORDER BY created_at DESC 
+    #             LIMIT 1
+    #         """, (uid,))
+    #         recent_request = cur.fetchone()
+    #         
+    #         if recent_request:
+    #             # Calcola il tempo rimanente
+    #             from datetime import datetime, timezone
+    #             now = datetime.now(timezone.utc)
+    #             last_request_time = recent_request['created_at']
+    #             if last_request_time.tzinfo is None:
+    #                 last_request_time = last_request_time.replace(tzinfo=timezone.utc)
+    #             
+    #             time_diff = now - last_request_time
+    #             remaining_seconds = 300 - int(time_diff.total_seconds())  # 5 minuti = 300 secondi
+    #             
+    #             if remaining_seconds > 0:
+    #                 minutes = remaining_seconds // 60
+    #                 seconds = remaining_seconds % 60
+    #                 return jsonify({
+    #                     'error': 'Rate limit exceeded',
+    #                     'message': f'Puoi fare una nuova richiesta di deposito tra {minutes}m {seconds}s',
+    #                     'remaining_seconds': remaining_seconds
+    #                 }), 429
+    # except Exception as e:
+    #     logger.warning("[deposits] rate limiting check failed: %s", e)
+    #     # Continua comunque se il controllo fallisce
     
     # Validazione dati
     if 'amount' not in data:
@@ -352,100 +343,114 @@ def create_deposit_request():
         return jsonify({'error': 'Metodo pagamento non valido'}), 400
     
     try:
+        # Transazione per le operazioni
         with get_conn() as conn, conn.cursor() as cur:
-            # Garantisce schema in dev
-            ensure_deposits_schema(cur)
-            # Ottieni configurazione bonifici attiva
-            cur.execute("""
-                SELECT iban, bank_name, account_holder, bic_swift
-                FROM bank_configurations 
-                WHERE is_active = true 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """)
-            bank_config = cur.fetchone()
-            logger.info("[deposits] active bank config fetched: %s", bank_config)
-            
-            if not bank_config:
-                # Se non esiste una configurazione attiva, usa valori di default
-                bank_config = {
-                    'iban': 'IT60X0542811101000000123456',
-                    'bank_name': 'Banca Example',
-                    'account_holder': 'CIP Immobiliare SRL',
-                    'bic_swift': ''
-                }
-            
-            # Ottieni configurazione wallet USDT
-            cur.execute("""
-                SELECT wallet_address, network
-                FROM wallet_configurations 
-                WHERE is_active = true 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """)
-            wallet_config = cur.fetchone()
-            logger.info("[deposits] active wallet config fetched: %s", wallet_config)
-            
-            if not wallet_config:
-                # Se non esiste una configurazione attiva, usa valori di default
-                import os
-                wallet_config = {
-                    'wallet_address': os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000'),
-                    'network': 'BEP20'
-                }
-            
-            # Determina destinatario fondi in base al metodo
-            # - bank: usa IBAN configurato
-            # - usdt: usa wallet configurato
-            if method == 'bank':
-                receiver_field_value = bank_config['iban']
-            else:
-                receiver_field_value = wallet_config['wallet_address']
-
-            # Ottieni nome utente per la causale
-            cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
-            user_info = cur.fetchone()
-            user_name = f"{user_info.get('nome', '')} {user_info.get('cognome', '')}".strip() if user_info else None
-            
-            # Prova inserimento con retry per evitare collisioni univoche
-            attempts = 0
-            new_request = None
-            last_error = None
-            while attempts < 5 and not new_request:
-                attempts += 1
-                unique_key = generate_unique_key()
-                payment_reference = generate_payment_reference(user_name)
-                try:
-                    cur.execute("""
-                        INSERT INTO deposit_requests 
-                        (user_id, amount, iban, method, unique_key, payment_reference, status)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id, created_at
-                    """, (uid, amount, receiver_field_value, method, unique_key, payment_reference, 'pending'))
-                    new_request = cur.fetchone()
-                except pg_errors.UniqueViolation as ue:
-                    conn.rollback()
-                    last_error = ue
-                    # Ritenta con nuove chiavi
-                    continue
-            if not new_request:
-                logger.error("[deposits] unique key generation failed after retries: %s", last_error)
-                return jsonify({'error': 'Errore generazione chiavi, riprovare tra poco'}), 500
-            conn.commit()
-            logger.info("[deposits] created deposit_request id=%s amount=%s user=%s", new_request['id'] if new_request else None, amount, uid)
-            
-            # Crea notifica per admin
             try:
-                # Recupera nome utente per la notifica
+                # Ottieni configurazione bonifici attiva
+                cur.execute("""
+                    SELECT iban, bank_name, account_holder, bic_swift
+                    FROM bank_configurations 
+                    WHERE is_active = true 
+                    ORDER BY created_at DESC 
+                    LIMIT 1
+                """)
+                bank_config = cur.fetchone()
+                logger.info("[deposits] active bank config fetched: %s", bank_config)
+                
+                if not bank_config:
+                    # Se non esiste una configurazione attiva, usa valori di default
+                    bank_config = {
+                        'iban': 'IT60X0542811101000000123456',
+                        'bank_name': 'Banca Example',
+                        'account_holder': 'CIP Immobiliare SRL',
+                        'bic_swift': ''
+                    }
+                
+                # Ottieni configurazione wallet USDT
+                cur.execute("""
+                    SELECT wallet_address, network
+                    FROM wallet_configurations 
+                    WHERE is_active = true 
+                    ORDER BY created_at DESC 
+                    LIMIT 1
+                """)
+                wallet_config = cur.fetchone()
+                logger.info("[deposits] active wallet config fetched: %s", wallet_config)
+                
+                if not wallet_config:
+                    # Se non esiste una configurazione attiva, usa valori di default
+                    import os
+                    wallet_config = {
+                        'wallet_address': os.environ.get('USDT_BEP20_WALLET', '0xF00DBABECAFEBABE000000000000000000000000'),
+                        'network': 'BEP20'
+                    }
+                
+                # Determina destinatario fondi in base al metodo
+                # - bank: usa IBAN configurato
+                # - usdt: usa wallet configurato
+                if method == 'bank':
+                    receiver_field_value = bank_config['iban']
+                else:
+                    receiver_field_value = wallet_config['wallet_address']
+
+                # Ottieni nome utente per la causale
                 cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
-                user_data = cur.fetchone()
-                if user_data:
-                    user_name = f"{user_data['nome']} {user_data['cognome']}"
-                    create_deposit_notification(uid, user_name)
-            except Exception as e:
-                logger.error(f"Errore creazione notifica deposito: {e}")
+                user_info = cur.fetchone()
+                user_name = f"{user_info.get('nome', '')} {user_info.get('cognome', '')}".strip() if user_info else None
+                
+                # Prova inserimento con retry per evitare collisioni univoche
+                attempts = 0
+                new_request = None
+                last_error = None
+                while attempts < 5 and not new_request:
+                    attempts += 1
+                    unique_key = generate_unique_key()
+                    payment_reference = generate_payment_reference(user_name)
+                    try:
+                        cur.execute("""
+                            INSERT INTO deposit_requests 
+                            (user_id, amount, iban, method, unique_key, payment_reference, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id, created_at
+                        """, (uid, amount, receiver_field_value, method, unique_key, payment_reference, 'pending'))
+                        new_request = cur.fetchone()
+                    except pg_errors.UniqueViolation as ue:
+                        conn.rollback()
+                        last_error = ue
+                        # Ritenta con nuove chiavi
+                        continue
+                if not new_request:
+                    logger.error("[deposits] unique key generation failed after retries: %s", last_error)
+                    return jsonify({'error': 'Errore generazione chiavi, riprovare tra poco'}), 500
+                
+                logger.info("[deposits] created deposit_request id=%s amount=%s user=%s", new_request['id'] if new_request else None, amount, uid)
+                
+                # Crea notifica per admin
+                try:
+                    # Recupera nome utente per la notifica
+                    cur.execute("SELECT nome, cognome FROM users WHERE id = %s", (uid,))
+                    user_data = cur.fetchone()
+                    if user_data:
+                        user_name = f"{user_data['nome']} {user_data['cognome']}"
+                        create_deposit_notification(uid, user_name)
+                except Exception as e:
+                    logger.error(f"Errore creazione notifica deposito: {e}")
+                
+                # COMMIT DELLA TRANSAZIONE
+                conn.commit()
+                
+            except Exception as db_error:
+                logger.exception("[deposits] database error: %s", db_error)
+                conn.rollback()
+                return jsonify({'error': 'Errore interno durante la creazione della richiesta', 'debug': str(db_error)}), 500
+            
     except Exception as e:
         logger.exception("[deposits] create failed: %s", e)
+        # Rollback in caso di errore
+        try:
+            conn.rollback()
+        except:
+            pass
         # Risposta dettagliata in dev per debug rapido
         return jsonify({'error': 'Errore interno durante la creazione della richiesta', 'debug': str(e)}), 500
     
@@ -587,7 +592,7 @@ def admin_get_pending_deposits():
                    ic.bank_name, ic.account_holder
             FROM deposit_requests dr
             JOIN users u ON dr.user_id = u.id
-            LEFT JOIN iban_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+            LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
             WHERE dr.status = 'pending'
             ORDER BY dr.created_at ASC
         """)
@@ -618,7 +623,7 @@ def admin_get_deposits_history():
                    admin_user.nome as approved_by_name
             FROM deposit_requests dr
             JOIN users u ON dr.user_id = u.id
-            LEFT JOIN iban_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+            LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
             LEFT JOIN users admin_user ON dr.approved_by = admin_user.id
         """
         

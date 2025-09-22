@@ -63,6 +63,34 @@ def get_nome_telegram_config():
             'nome_telegram_link': nome_telegram_config['config_value'] if nome_telegram_config else None
         })
 
+@user_bp.get("/api/telegram-config")
+@login_required
+def get_telegram_config():
+    """Ottieni configurazione Telegram per l'utente (endpoint compatibile)"""
+    with get_conn() as conn, conn.cursor() as cur:
+        # Configurazione Telegram - prova prima telegram_link, poi nome_telegram_link
+        cur.execute("""
+            SELECT config_value
+            FROM system_configurations 
+            WHERE config_key = 'telegram_link' AND is_active = true
+            LIMIT 1
+        """)
+        telegram_config = cur.fetchone()
+        
+        # Se non trova telegram_link, prova nome_telegram_link
+        if not telegram_config:
+            cur.execute("""
+                SELECT config_value
+                FROM system_configurations 
+                WHERE config_key = 'nome_telegram_link' AND is_active = true
+                LIMIT 1
+            """)
+            telegram_config = cur.fetchone()
+        
+        return jsonify({
+            'telegram_link': telegram_config['config_value'] if telegram_config else None
+        })
+
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione
 
@@ -938,32 +966,37 @@ def change_password():
     def hash_password(p: str) -> str:
         return hashlib.sha256(p.encode()).hexdigest()
     
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica password corrente
-        cur.execute("""
-            SELECT password_hash FROM users WHERE id = %s
-        """, (uid,))
-        row = cur.fetchone()
-        if not row or not row.get('password_hash'):
-            return jsonify({'success': False, 'error': 'Utente non trovato'}), 404
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica password corrente
+            cur.execute("""
+                SELECT password_hash FROM users WHERE id = %s
+            """, (uid,))
+            row = cur.fetchone()
+            if not row or not row.get('password_hash'):
+                return jsonify({'success': False, 'error': 'Utente non trovato'}), 404
+            
+            if row['password_hash'] != hash_password(current_password):
+                return jsonify({'success': False, 'error': 'Password corrente non corretta'}), 400
+            
+            # Evita riuso stessa password
+            if row['password_hash'] == hash_password(new_password):
+                return jsonify({'success': False, 'error': 'La nuova password deve essere diversa da quella attuale'}), 400
+            
+            # Aggiorna password e resetta il flag password_reset_required
+            new_hash = hash_password(new_password)
+            cur.execute("""
+                UPDATE users 
+                SET password_hash = %s, password_reset_required = false, updated_at = NOW()
+                WHERE id = %s
+            """, (new_hash, uid))
+            conn.commit()
         
-        if row['password_hash'] != hash_password(current_password):
-            return jsonify({'success': False, 'error': 'Password corrente non corretta'}), 400
-        
-        # Evita riuso stessa password
-        if row['password_hash'] == hash_password(new_password):
-            return jsonify({'success': False, 'error': 'La nuova password deve essere diversa da quella attuale'}), 400
-        
-        # Aggiorna password e resetta il flag password_reset_required
-        new_hash = hash_password(new_password)
-        cur.execute("""
-            UPDATE users 
-            SET password_hash = %s, password_reset_required = false, updated_at = NOW()
-            WHERE id = %s
-        """, (new_hash, uid))
-        conn.commit()
+        return jsonify({'success': True, 'message': 'Password cambiata con successo'})
     
-    return jsonify({'success': True, 'message': 'Password cambiata con successo'})
+    except Exception as e:
+        print(f"Errore cambio password per utente {uid}: {e}")
+        return jsonify({'success': False, 'error': f'Errore interno del server: {str(e)}'}), 500
 
 # =====================================================
 # API REFERRAL - Sistema referral utente

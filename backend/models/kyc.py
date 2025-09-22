@@ -59,6 +59,14 @@ class KYCRequest:
             result = cur.fetchone()
             if result:
                 self.id = result['id']
+                
+                # Aggiorna stato utente a 'pending' quando invia documenti
+                cur.execute("""
+                    UPDATE users 
+                    SET kyc_status = 'pending' 
+                    WHERE id = %s AND kyc_status = 'unverified'
+                """, (self.user_id,))
+                
             conn.commit()
         return self
     
