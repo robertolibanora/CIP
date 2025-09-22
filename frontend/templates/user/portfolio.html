@@ -970,7 +970,9 @@ async function loadPortfolioData() {
 // Carica richieste deposito (storico)
 async function loadDeposits(){
   try {
-    const r = await fetch('/deposits/api/requests');
+    const r = await fetch('/deposits/api/requests', {
+      credentials: 'same-origin'
+    });
     const j = await r.json();
     const list = document.getElementById('deposits-list');
     
@@ -1029,7 +1031,10 @@ async function loadDeposits(){
         if(!id) return;
         if(!confirm('Vuoi annullare questa richiesta di deposito?')) return;
         try {
-          const r2 = await fetch(`/deposits/api/requests/${id}/cancel`, {method:'POST'});
+          const r2 = await fetch(`/deposits/api/requests/${id}/cancel`, {
+            method:'POST',
+            credentials: 'same-origin'
+          });
           const j2 = await r2.json();
           if(!r2.ok){ alert(j2.error||'Errore annullamento'); return; }
           loadDeposits();
@@ -1392,7 +1397,9 @@ function startWithdrawalCountdown(remainingSeconds) {
 // Funzione per controllare lo stato del rate limiting
 async function checkDepositRateLimit() {
     try {
-        const response = await fetch('/deposits/api/rate-limit-status');
+        const response = await fetch('/deposits/api/rate-limit-status', {
+          credentials: 'same-origin'
+        });
         if (response.ok) {
             const data = await response.json();
             if (data.rate_limited && data.remaining_seconds > 0) {
@@ -1472,7 +1479,12 @@ if (depositForm) {
     btn.innerHTML = '<span>Elaborazione...</span>';
     
     try {
-      const r = await fetch('/deposits/api/requests/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      const r = await fetch('/deposits/api/requests/new', { 
+        method:'POST', 
+        headers:{'Content-Type':'application/json'}, 
+        body: JSON.stringify(payload),
+        credentials: 'same-origin'
+      });
       const j = await r.json();
       
       if (r.ok) {

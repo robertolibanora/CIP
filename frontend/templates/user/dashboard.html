@@ -264,7 +264,9 @@
 // Mostra ultimo deposito rifiutato con motivo (solo se recente e non già visto)
 document.addEventListener('DOMContentLoaded', async ()=>{
   try{
-    const r = await fetch('/deposits/api/requests');
+    const r = await fetch('/deposits/api/requests', {
+      credentials: 'same-origin'
+    });
     if(!r.ok) return;
     const j = await r.json();
     
