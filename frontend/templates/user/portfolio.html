@@ -628,9 +628,9 @@
 </div>
 
 <!-- Modal Rate Limiting - Design CIP -->
-<div id="rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300">
-    <div class="min-h-screen flex items-center justify-center p-6 pb-24 md:pb-6">
-        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="rate-limit-modal-content">
+<div id="rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300 overflow-y-auto">
+    <div class="min-h-screen flex items-start justify-center p-6 pb-24 md:pb-6 md:items-center">
+        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0 my-4 md:my-0" id="rate-limit-modal-content">
             <!-- Header con icona -->
             <div class="p-6 border-b border-cip-primary-darker text-center">
                 <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -672,7 +672,7 @@
             </div>
             
             <!-- Footer -->
-            <div class="p-6 pt-0">
+            <div class="p-6 pt-0 pb-8">
                 <button id="rate-limit-close" class="btn-mobile btn-mobile-primary w-full">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
@@ -685,9 +685,9 @@
 </div>
 
 <!-- Modal Rate Limiting Prelievi -->
-<div id="withdrawal-rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300">
-    <div class="min-h-screen flex items-center justify-center p-6 pb-24 md:pb-6">
-        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="withdrawal-rate-limit-modal-content">
+<div id="withdrawal-rate-limit-modal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-[60] transition-all duration-300 overflow-y-auto">
+    <div class="min-h-screen flex items-start justify-center p-6 pb-24 md:pb-6 md:items-center">
+        <div class="bg-white shadow-cip-xl rounded-cip-lg border border-cip-primary-darker w-full max-w-md transform transition-all duration-300 scale-95 opacity-0 my-4 md:my-0" id="withdrawal-rate-limit-modal-content">
             <!-- Header con icona -->
             <div class="p-6 border-b border-cip-primary-darker text-center">
                 <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -729,7 +729,7 @@
             </div>
             
             <!-- Footer -->
-            <div class="p-6 pt-0">
+            <div class="p-6 pt-0 pb-8">
                 <button id="withdrawal-rate-limit-close" class="btn-mobile btn-mobile-primary w-full">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
