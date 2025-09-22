@@ -4059,19 +4059,119 @@ def deposits_history():
     return render_template('admin/deposits/history.html')
 
 @admin_bp.get("/api/deposits/history")
+@admin_required
 def deposits_api_history():
-    """API per storico depositi - versione semplificata per debug"""
-    logger.info("deposits_api_history called - TEST VERSION")
-    return jsonify({
-        'deposits': [],
-        'pagination': {
-            'page': 1,
-            'per_page': 20,
-            'total': 0,
-            'total_pages': 0
-        },
-        'test': 'endpoint funzionante'
-    })
+    """API per storico depositi"""
+    logger.info(f"deposits_api_history called - session: {dict(session)}")
+    try:
+        # Parametri di paginazione
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        status_filter = request.args.get('status', '')
+        search = request.args.get('search', '')
+        
+        offset = (page - 1) * per_page
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Assicura che lo schema sia aggiornato
+            try:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS deposit_requests (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        amount DECIMAL(15,2) NOT NULL,
+                        iban VARCHAR(255),
+                        method VARCHAR(50) DEFAULT 'bank',
+                        unique_key VARCHAR(50),
+                        payment_reference VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'pending',
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        approved_at TIMESTAMP,
+                        approved_by INTEGER REFERENCES users(id)
+                    )
+                """)
+            except Exception as e:
+                logger.warning(f"Errore creazione schema depositi: {e}")
+            
+            # Query base
+            base_query = """
+                SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
+                       dr.status, dr.created_at, dr.approved_at, dr.admin_notes,
+                       u.id as user_id, u.nome, u.email, u.kyc_status,
+                       ic.bank_name, ic.account_holder,
+                       admin_user.nome as approved_by_name
+                FROM deposit_requests dr
+                JOIN users u ON dr.user_id = u.id
+                LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
+                LEFT JOIN users admin_user ON dr.approved_by = admin_user.id
+            """
+            
+            # Condizioni WHERE
+            where_conditions = []
+            params = []
+            
+            if status_filter:
+                where_conditions.append("dr.status = %s")
+                params.append(status_filter)
+            
+            if search:
+                where_conditions.append("(u.email ILIKE %s OR u.nome ILIKE %s OR dr.unique_key ILIKE %s)")
+                search_param = f"%{search}%"
+                params.extend([search_param, search_param, search_param])
+            
+            where_clause = ""
+            if where_conditions:
+                where_clause = "WHERE " + " AND ".join(where_conditions)
+            
+            # Query per contare il totale
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM deposit_requests dr
+                JOIN users u ON dr.user_id = u.id
+                {where_clause}
+            """
+            cur.execute(count_query, params)
+            total_count = cur.fetchone()['total']
+            
+            # Query per i dati
+            data_query = f"""
+                {base_query}
+                {where_clause}
+                ORDER BY dr.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            cur.execute(data_query, params + [per_page, offset])
+            deposits = cur.fetchall()
+            
+            # Serializza datetime per JSON
+            deposits_list = []
+            for deposit in deposits:
+                item = dict(deposit)
+                if item.get('created_at'):
+                    try:
+                        item['created_at'] = item['created_at'].isoformat()
+                    except Exception:
+                        item['created_at'] = str(item['created_at'])
+                if item.get('approved_at'):
+                    try:
+                        item['approved_at'] = item['approved_at'].isoformat()
+                    except Exception:
+                        item['approved_at'] = str(item['approved_at'])
+                deposits_list.append(item)
+            
+            return jsonify({
+                'deposits': deposits_list,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total_count,
+                    'total_pages': (total_count + per_page - 1) // per_page
+                }
+            })
+    except Exception as e:
+        logger.exception("Errore nel caricamento storico depositi: %s", e)
+        return jsonify({'deposits': [], 'pagination': {'page': 1, 'per_page': 20, 'total': 0, 'total_pages': 0}})
 
 @admin_bp.get("/api/deposit-requests")
 @admin_required
