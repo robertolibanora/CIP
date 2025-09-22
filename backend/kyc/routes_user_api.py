@@ -199,6 +199,34 @@ def test_endpoint():
     """Test endpoint semplice"""
     return jsonify({"test": "ok", "message": "Endpoint funziona!"})
 
+@kyc_user_api.route("/test-db", methods=["GET"])
+def test_db_access():
+    """Test accesso database per verificare permessi"""
+    try:
+        from backend.shared.database import get_connection
+        
+        with get_connection() as conn, conn.cursor() as cur:
+            # Test accesso doc_categories
+            cur.execute("SELECT COUNT(*) FROM doc_categories WHERE is_kyc=TRUE")
+            categories_count = cur.fetchone()['count']
+            
+            # Test accesso documents
+            cur.execute("SELECT COUNT(*) FROM documents")
+            documents_count = cur.fetchone()['count']
+            
+            return jsonify({
+                "success": True,
+                "categories_count": categories_count,
+                "documents_count": documents_count,
+                "message": "Accesso database funziona"
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 
 @kyc_user_api.route("/doc-types", methods=["GET"])
 def get_kyc_doc_types():
