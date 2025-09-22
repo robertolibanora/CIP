@@ -433,7 +433,8 @@ async function deleteAllDeposits() {
         showLoading();
         const response = await fetch('/admin/api/deposits/delete-all', {
             method: 'DELETE',
-            headers: {'Content-Type': 'application/json'}
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin'
         });
         
         const data = await response.json();
@@ -462,7 +463,8 @@ async function deleteDeposit(id) {
         showLoading();
         const response = await fetch(`/admin/api/deposits/delete/${id}`, {
             method: 'DELETE',
-            headers: {'Content-Type': 'application/json'}
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin'
         });
         
         const data = await response.json();
@@ -543,7 +545,8 @@ async function deleteSelectedDeposits() {
         const response = await fetch('/admin/api/deposits/delete-multiple', {
             method: 'DELETE',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ deposit_ids: selectedIds })
+            body: JSON.stringify({ deposit_ids: selectedIds }),
+            credentials: 'same-origin'
         });
         
         const data = await response.json();

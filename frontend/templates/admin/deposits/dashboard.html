@@ -174,7 +174,12 @@ async function loadPendingDeposits() {
 
 async function approve(id){
   const notes = document.getElementById(`note-${id}`).value;
-  const r = await fetch(`/admin/api/deposits/approve/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
+  const r = await fetch(`/admin/api/deposits/approve/${id}`, {
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({admin_notes: notes}),
+    credentials: 'same-origin'
+  });
   if(r.ok){ 
     showNotification('Richiesta approvata con successo', 'success');
     loadPendingDeposits();
@@ -192,7 +197,12 @@ async function reject(id){
     return; 
   }
   
-  const r = await fetch(`/admin/api/deposits/reject/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({admin_notes: notes})});
+  const r = await fetch(`/admin/api/deposits/reject/${id}`, {
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({admin_notes: notes}),
+    credentials: 'same-origin'
+  });
   if(r.ok){ 
     showNotification('Richiesta rifiutata con successo', 'success');
     loadPendingDeposits();
