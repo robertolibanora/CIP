@@ -3898,13 +3898,19 @@ def deposits_api_pending():
                 logger.warning(f"Errore creazione schema depositi: {e}")
             
             cur.execute("""
-                SELECT dr.id, dr.amount, dr.iban, dr.method, dr.unique_key, dr.payment_reference,
-                       dr.created_at, dr.admin_notes,
-                       u.id as user_id, u.nome, u.email, u.kyc_status,
-                       ic.bank_name, ic.account_holder
+                SELECT dr.id, dr.amount, 
+                       COALESCE(dr.iban, '') as iban, 
+                       COALESCE(dr.method, 'bank') as method, 
+                       COALESCE(dr.unique_key, '') as unique_key, 
+                       COALESCE(dr.payment_reference, '') as payment_reference,
+                       dr.created_at, 
+                       COALESCE(dr.admin_notes, '') as admin_notes,
+                       u.id as user_id, 
+                       COALESCE(u.nome, '') as nome, 
+                       u.email, 
+                       COALESCE(u.kyc_status, 'unverified') as kyc_status
                 FROM deposit_requests dr
                 JOIN users u ON dr.user_id = u.id
-                LEFT JOIN bank_configurations ic ON (dr.iban = ic.iban AND dr.method = 'bank')
                 WHERE dr.status = 'pending'
                 ORDER BY dr.created_at ASC
             """)
