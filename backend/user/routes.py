@@ -1157,47 +1157,6 @@ def ensure_referral_code(user_id):
         conn.commit()
         return fallback_code
 
-@user_bp.post("/api/regenerate-referral-code")
-@login_required
-@kyc_verified
-def regenerate_referral_code():
-    """Rigenera il codice referral dell'utente con un nuovo codice casuale"""
-    try:
-        user_id = session.get('user_id')
-        
-        with get_conn() as conn, conn.cursor() as cur:
-            # Genera nuovo codice unico
-            max_attempts = 10
-            for attempt in range(max_attempts):
-                new_code = generate_referral_code()
-                
-                # Verifica che il codice sia unico
-                cur.execute("SELECT id FROM users WHERE referral_code = %s", (new_code,))
-                if not cur.fetchone():
-                    # Codice unico trovato, aggiorna il database
-                    cur.execute("UPDATE users SET referral_code = %s WHERE id = %s", (new_code, user_id))
-                    conn.commit()
-                    
-                    # Costruisci nuovo link referral
-                    base_url = request.host_url.rstrip('/')
-                    referral_link = f"{base_url}/auth/register?ref={new_code}"
-                    
-                    return jsonify({
-                        'success': True,
-                        'referral_code': new_code,
-                        'referral_link': referral_link,
-                        'message': 'Codice referral rigenerato con successo'
-                    })
-            
-            # Se non riesce a generare un codice unico
-            return jsonify({
-                'success': False,
-                'error': 'Impossibile generare un codice unico'
-            }), 500
-            
-    except Exception as e:
-        print(f"Errore nella rigenerazione codice referral: {e}")
-        return jsonify({'error': 'Errore nella rigenerazione del codice referral'}), 500
 
 
 
