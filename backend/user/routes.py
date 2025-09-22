@@ -75,7 +75,7 @@ def get_nome_telegram_config():
 def dashboard_debug():
     """Dashboard debug semplificata"""
     try:
-        uid = session.get("user_id") or 1  # Default per test
+        uid = session.get("user_id")
         if not uid:
             return "Errore: user_id non trovato", 400
         
@@ -96,7 +96,7 @@ def dashboard_debug():
 def dashboard():
     """Dashboard principale con overview portfolio e statistiche - Versione semplificata"""
     try:
-        uid = session.get("user_id") or 1  # Default per test
+        uid = session.get("user_id")
         if not uid:
             return redirect(url_for("auth.login"))
         
@@ -158,9 +158,10 @@ def dashboard():
 # =====================================================
 
 @user_bp.get("/projects")
+@login_required
 def projects():
     """Lista progetti disponibili per investimento"""
-    uid = session.get("user_id") or 1  # Default per test or 1  # Default per test
+    uid = session.get("user_id") or 1  # Default per test
     
     # Versione semplificata per compatibilità
     try:
@@ -198,7 +199,7 @@ def projects():
 @login_required
 def new_project():
     """Pagina per nuovo investimento - Task 2.5 implementazione completa"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Versione semplificata per compatibilità
     try:
@@ -306,7 +307,7 @@ def new_project():
 @can_invest
 def invest(project_id):
     """Gestisce nuovo investimento - Task 2.5 implementazione completa"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Validazione input
     amount = request.form.get('amount')
@@ -453,9 +454,10 @@ def invest(project_id):
 # =====================================================
 
 @user_bp.get("/portfolio")
+@login_required
 def portfolio():
     """Portafoglio dettagliato con investimenti attivi e completati"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Versione semplificata per compatibilità
     try:
@@ -549,7 +551,7 @@ def portfolio():
 @kyc_verified
 def get_portfolio_data():
     """API per ottenere i dati del portafoglio per il trasferimento"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -578,7 +580,7 @@ def get_portfolio_data():
 @kyc_verified
 def transfer_capital():
     """API per trasferire capitale tra le sezioni del portafoglio"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     try:
         data = request.get_json()
@@ -640,7 +642,7 @@ def transfer_capital():
 @kyc_verified
 def portfolio_detail(investment_id):
     """Dettaglio specifico di un investimento"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
@@ -674,7 +676,7 @@ def portfolio_detail(investment_id):
 @login_required
 def kyc_page():
     """Pagina dedicata per upload documenti KYC dell'utente"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni dati utente completi
@@ -722,9 +724,10 @@ def serve_project_file_user(filename):
 # =====================================================
 
 @user_bp.get("/referral")
+@login_required
 def referral():
     """Dashboard referral dell'utente"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Versione semplificata per compatibilità
     try:
@@ -791,9 +794,10 @@ def referral():
 # =====================================================
 
 @user_bp.get("/profile")
+@login_required
 def profile():
     """Gestione profilo utente"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Versione semplificata per compatibilità
     try:
@@ -845,7 +849,7 @@ def profile():
 @login_required
 def profile_update():
     """Aggiornamento dati profilo"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     data = request.get_json()
     
     # Validazione dati base
@@ -909,7 +913,7 @@ def profile_update():
 @login_required
 def change_password():
     """Cambio password utente"""
-    uid = session.get("user_id") or 1  # Default per test
+    uid = session.get("user_id")
     
     # Se è una richiesta GET, mostra la pagina
     if request.method == "GET":
