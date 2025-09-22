@@ -216,6 +216,61 @@ def admin_revoke_kyc(user_id: int):
         return jsonify({"error": "Errore durante la revoca"}), 500
 
 
+@kyc_admin_api.route("/test-kyc-requests", methods=["GET"])
+def test_kyc_requests():
+    """Test endpoint per verificare richieste KYC senza autenticazione."""
+    try:
+        from backend.shared.database import get_connection
+        
+        with get_connection() as conn, conn.cursor() as cur:
+            # Query per richieste KYC
+            cur.execute("""
+                SELECT 
+                    kr.id as request_id,
+                    kr.user_id,
+                    kr.doc_type,
+                    kr.status as request_status,
+                    kr.created_at as request_date,
+                    u.nome,
+                    u.cognome,
+                    u.email,
+                    u.kyc_status
+                FROM kyc_requests kr
+                JOIN users u ON kr.user_id = u.id
+                ORDER BY kr.created_at DESC
+            """)
+            requests = cur.fetchall()
+            
+            # Query per statistiche
+            cur.execute("SELECT COUNT(*) as total FROM users")
+            total_users = cur.fetchone()['total']
+            
+            cur.execute("SELECT COUNT(*) as verified FROM users WHERE kyc_status = 'verified'")
+            verified_users = cur.fetchone()['verified']
+            
+            cur.execute("SELECT COUNT(*) as pending FROM users WHERE kyc_status = 'pending'")
+            pending_users = cur.fetchone()['pending']
+            
+            cur.execute("SELECT COUNT(*) as rejected FROM users WHERE kyc_status = 'rejected'")
+            rejected_users = cur.fetchone()['rejected']
+            
+            return jsonify({
+                "success": True,
+                "requests": [dict(req) for req in requests],
+                "stats": {
+                    "total_users": total_users,
+                    "verified": verified_users,
+                    "pending": pending_users,
+                    "rejected": rejected_users
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @kyc_admin_api.route("/kyc-stats", methods=["GET"])
 @admin_required
 def admin_get_kyc_stats():
