@@ -35,7 +35,7 @@ def get_user_by_id(user_id: int) -> Optional[dict]:
     try:
         with get_connection() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT id, email, nome, cognome, role
+                SELECT id, email, nome, cognome, role, kyc_status
                 FROM users WHERE id = %s
             """, (user_id,))
             user = cur.fetchone()
