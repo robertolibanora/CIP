@@ -2365,56 +2365,56 @@ def api_admin_delete_user(user_id: int):
         if not admin_id:
             return jsonify({'error': 'Non autenticato'}), 401
 
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica password admin
-        cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
-        admin_row = cur.fetchone()
-        if not admin_row or admin_row.get('role') != 'admin':
-            return jsonify({'error': 'Permesso negato'}), 403
-        # Verifica password usando SHA-256 (come nel sistema di login)
-        import hashlib
-        if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
-            return jsonify({'error': 'Password admin non corretta'}), 401
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica password admin
+            cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
+            admin_row = cur.fetchone()
+            if not admin_row or admin_row.get('role') != 'admin':
+                return jsonify({'error': 'Permesso negato'}), 403
+            # Verifica password usando SHA-256 (come nel sistema di login)
+            import hashlib
+            if admin_row.get('password_hash') != hashlib.sha256(admin_password.encode()).hexdigest():
+                return jsonify({'error': 'Password admin non corretta'}), 401
 
-        # Non consentire eliminazione di un amministratore
-        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
-        target = cur.fetchone()
-        if not target:
-            return jsonify({'error': 'Utente non trovato'}), 404
-        if target.get('role') == 'admin':
-            return jsonify({'error': 'Non  possibile eliminare un amministratore'}), 400
+            # Non consentire eliminazione di un amministratore
+            cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+            target = cur.fetchone()
+            if not target:
+                return jsonify({'error': 'Utente non trovato'}), 404
+            if target.get('role') == 'admin':
+                return jsonify({'error': 'Non è possibile eliminare un amministratore'}), 400
 
-        # Prima di eliminare: fai "slittare" tutti gli invitati diretti al referrer del target
-        cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
-        parent_row = cur.fetchone()
-        parent_id = parent_row.get('referred_by') if parent_row else None
+            # Prima di eliminare: fai "slittare" tutti gli invitati diretti al referrer del target
+            cur.execute("SELECT referred_by FROM users WHERE id = %s", (user_id,))
+            parent_row = cur.fetchone()
+            parent_id = parent_row.get('referred_by') if parent_row else None
 
-        if parent_id is not None:
-            # Riassegna tutti gli utenti che avevano come referrer l'utente eliminato
-            cur.execute(
-                """
-                UPDATE users
-                SET referred_by = %s
-                WHERE referred_by = %s
-                """,
-                (parent_id, user_id)
-            )
-        else:
-            # Nessun referrer sopra: mantieni comportamento di orfanizzazione
-            cur.execute(
-                """
-                UPDATE users
-                SET referred_by = NULL
-                WHERE referred_by = %s
-                """,
-                (user_id,)
-            )
+            if parent_id is not None:
+                # Riassegna tutti gli utenti che avevano come referrer l'utente eliminato
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET referred_by = %s
+                    WHERE referred_by = %s
+                    """,
+                    (parent_id, user_id)
+                )
+            else:
+                # Nessun referrer sopra: mantieni comportamento di orfanizzazione
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET referred_by = NULL
+                    WHERE referred_by = %s
+                    """,
+                    (user_id,)
+                )
 
-        # Elimina record correlati essenziali (investments, documents, portfolio) e infine l'utente
-        cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
-        cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
-        cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
-        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            # Elimina record correlati essenziali (investments, documents, portfolio) e infine l'utente
+            cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
         return jsonify({'success': True, 'message': 'Utente eliminato'})
     
