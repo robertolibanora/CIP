@@ -1870,7 +1870,7 @@ def test_delete_user(user_id: int):
 
             # Elimina record correlati essenziali e infine l'utente
             cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
-            cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
+            # cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))  # Rimuovo per problemi di permessi
             cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
             cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
@@ -2436,9 +2436,9 @@ def api_admin_delete_user(user_id: int):
                     (user_id,)
                 )
 
-            # Elimina record correlati essenziali (investments, documents, portfolio) e infine l'utente
+            # Elimina record correlati essenziali (investments, portfolio) e infine l'utente
             cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
-            cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
+            # cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))  # Rimuovo per problemi di permessi
             cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
             cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
