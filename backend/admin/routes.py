@@ -1834,7 +1834,7 @@ def api_admin_users_list():
                     u.address,
                     u.is_vip
                 FROM users u
-                WHERE u.role = 'investor'
+                WHERE u.role IN ('investor', 'user')
                 ORDER BY u.created_at DESC
             """)
             users = cur.fetchall()
