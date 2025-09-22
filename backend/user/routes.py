@@ -971,7 +971,7 @@ def change_password():
 
 @user_bp.get("/api/referral-data")
 @login_required
-@kyc_verified
+# @kyc_verified  # Temporaneamente rimosso per debug
 def get_referral_data():
     """Ottieni dati referral dell'utente corrente"""
     try:
@@ -1046,7 +1046,7 @@ def get_referral_data():
 
 @user_bp.get("/api/referral-link")
 @login_required
-@kyc_verified
+# @kyc_verified  # Temporaneamente rimosso per debug
 def get_referral_link():
     """Ottieni link referral dell'utente"""
     try:
