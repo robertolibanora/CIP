@@ -306,7 +306,7 @@ class KYCAdminDashboard {
             return `
                 <tr class="border-t border-gray-200 hover:bg-gray-50" data-status="${request.kyc_status}">
                     <td class="px-4 py-3" data-col="name">
-                        <p class="admin-text-body font-medium">${request.full_name}</p>
+                        <p class="admin-text-body font-medium">${request.nome || 'N/A'}</p>
                         <p class="admin-text-caption text-gray-500">${request.email}</p>
                         ${request.telefono ? `<p class="admin-text-caption text-gray-500">${request.telefono}</p>` : ''}
                     </td>
@@ -371,7 +371,7 @@ class KYCAdminDashboard {
                     <div class="admin-grid admin-grid--2">
                         <div>
                             <p class="admin-text-caption text-gray-500">Nome Completo</p>
-                            <p class="admin-text-body font-medium">${user.full_name}</p>
+                            <p class="admin-text-body font-medium">${user.nome || 'N/A'}</p>
                         </div>
                         <div>
                             <p class="admin-text-caption text-gray-500">Email</p>
