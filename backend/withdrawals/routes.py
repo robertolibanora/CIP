@@ -169,8 +169,7 @@ def create_withdrawal_request():
             if not bank_details.get('account_holder'):
                 return jsonify({'error': 'Intestatario richiesto per prelievi bancari'}), 400
         
-        # Assicura schema aggiornato
-        ensure_withdrawals_schema()
+        # Schema withdrawal_requests gestito esternamente
         
         with get_conn() as conn, conn.cursor() as cur:
             # Controllo rate limit - verifica se c'è stata una richiesta negli ultimi 5 minuti
