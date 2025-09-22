@@ -3933,7 +3933,7 @@ def deposits_api_approve(deposit_id):
             # Crea transazione portfolio
             cur.execute("""
                 INSERT INTO portfolio_transactions 
-                (user_id, transaction_type, amount, description, created_at)
+                (user_id, type, amount, description, created_at)
                 VALUES (%s, 'deposit', %s, 'Deposito approvato', NOW())
             """, (request_detail['user_id'], request_detail['amount']))
             
