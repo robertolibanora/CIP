@@ -264,64 +264,8 @@ async function loadPendingWithdrawals() {
         currentWithdrawals = data.withdrawals;
         console.log('currentWithdrawals popolato:', currentWithdrawals);
         
-        document.getElementById('withdrawals-count').textContent = `${data.withdrawals.length} richieste trovate`;
-        list.innerHTML = data.withdrawals.map(req => `
-        <tr class="admin-table-tr">
-            <td class="admin-table-td">
-                <div>
-                    <p class="font-medium text-gray-900">${req.full_name || 'Utente'}</p>
-                    <p class="text-sm text-gray-500">${req.email || ''}</p>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <span class="font-semibold text-green-600">€${parseFloat(req.amount).toLocaleString('it-IT', {minimumFractionDigits:2})}</span>
-            </td>
-            <td class="admin-table-td">
-                <span class="px-2 py-1 text-xs font-medium rounded-full ${req.method === 'usdt' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}">
-                    ${req.method === 'usdt' ? `USDT (${req.network || 'BEP20'})` : 'Bonifico Bancario'}
-                </span>
-            </td>
-            <td class="admin-table-td">
-                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                    ${req.source_section === 'free_capital' ? 'Capitale Libero' : 
-                      req.source_section === 'profits' ? 'Profitti' : 
-                      req.source_section === 'referral_bonus' ? 'Bonus Referral' : req.source_section}
-                </span>
-            </td>
-            <td class="admin-table-td">
-                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">In Attesa</span>
-            </td>
-            <td class="admin-table-td">
-                <div>
-                    <p class="text-sm text-gray-900">${new Date(req.created_at).toLocaleDateString('it-IT')}</p>
-                    <p class="text-xs text-gray-500">${Math.round(req.hours_pending || 0)}h fa</p>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <div class="flex" style="flex-direction: row !important; gap: 0.25rem;">
-                    <button onclick="viewWithdrawalDetails(${req.id})" class="admin-btn admin-btn--secondary admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        Dettagli
-                    </button>
-                    <button onclick="approveWithdrawal(${req.id})" class="admin-btn admin-btn--success admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Approva
-                    </button>
-                    <button onclick="rejectWithdrawal(${req.id})" class="admin-btn admin-btn--danger admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Rifiuta
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+        // Render withdrawals using the dedicated function
+        renderWithdrawals();
     } catch (error) {
         console.error('Errore nel caricamento prelievi:', error);
         currentWithdrawals = [];
@@ -353,10 +297,10 @@ function renderWithdrawals() {
         <tr class="admin-table-tr" 
             data-status="${withdrawal.status}" 
             data-method="${withdrawal.method}"
-            data-search="${withdrawal.full_name.toLowerCase()} ${withdrawal.email.toLowerCase()}">
+            data-search="${withdrawal.nome.toLowerCase()} ${withdrawal.email.toLowerCase()}">
             <td class="admin-table-td">
                 <div>
-                    <div class="admin-text-body font-medium">${withdrawal.full_name}</div>
+                    <div class="admin-text-body font-medium">${withdrawal.nome}</div>
                     <div class="admin-text-small text-gray-500">${withdrawal.email}</div>
                 </div>
             </td>
