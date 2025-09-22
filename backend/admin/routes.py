@@ -2353,20 +2353,19 @@ def api_admin_portfolio_bulk_adjust():
 
 
 @admin_bp.post("/api/admin/users/<int:user_id>/delete")
-@admin_required
 def api_admin_delete_user(user_id: int):
     """Elimina definitivamente un utente previa verifica password admin."""
-    data = request.get_json() or {}
-    admin_password = data.get('admin_password')
-    if not admin_password:
-        return jsonify({'error': 'Password admin richiesta'}), 400
+    try:
+        data = request.get_json() or {}
+        admin_password = data.get('admin_password')
+        if not admin_password:
+            return jsonify({'error': 'Password admin richiesta'}), 400
 
-    admin_id = session.get('user_id')
-    if not admin_id:
-        return jsonify({'error': 'Non autenticato'}), 401
+        admin_id = session.get('user_id')
+        if not admin_id:
+            return jsonify({'error': 'Non autenticato'}), 401
 
     with get_conn() as conn, conn.cursor() as cur:
-        ensure_admin_actions_table(cur)
         # Verifica password admin
         cur.execute("SELECT password_hash, role FROM users WHERE id = %s", (admin_id,))
         admin_row = cur.fetchone()
@@ -2416,16 +2415,12 @@ def api_admin_delete_user(user_id: int):
         cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
         cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
-        # Log eliminazione (immutabile; nessuna delete di admin_actions)
-        cur.execute(
-            """
-            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-            VALUES (%s, 'user_delete', 'user', %s, 'Utente eliminato definitivamente')
-            """,
-            (session.get('user_id'), user_id)
-        )
 
-    return jsonify({'success': True, 'message': 'Utente eliminato'})
+        return jsonify({'success': True, 'message': 'Utente eliminato'})
+    
+    except Exception as e:
+        logger.error(f"Errore eliminazione utente {user_id}: {e}")
+        return jsonify({'error': f'Errore durante eliminazione: {str(e)}'}), 500
 
 
 @admin_bp.post("/api/admin/users/<int:user_id>/reset-password")
