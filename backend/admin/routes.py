@@ -1853,31 +1853,6 @@ def test_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@admin_bp.post("/test-delete-user/<int:user_id>")
-def test_delete_user(user_id: int):
-    """Test eliminazione utente senza autenticazione per debug."""
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Verifica che l'utente esista
-            cur.execute("SELECT id, email, role FROM users WHERE id = %s", (user_id,))
-            user = cur.fetchone()
-            if not user:
-                return jsonify({'error': 'Utente non trovato'}), 404
-            
-            # Non consentire eliminazione di un amministratore
-            if user.get('role') == 'admin':
-                return jsonify({'error': 'Non è possibile eliminare un amministratore'}), 400
-
-            # Elimina record correlati essenziali e infine l'utente
-            cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
-            # cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))  # Rimuovo per problemi di permessi
-            cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
-            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
-
-            return jsonify({'success': True, 'message': f'Utente {user.get("email")} eliminato'})
-            
-    except Exception as e:
-        return jsonify({'error': f'Errore durante eliminazione: {str(e)}'}), 500
 
 @admin_bp.get("/api/users")
 def api_admin_users_list():
@@ -2379,6 +2354,7 @@ def api_admin_portfolio_bulk_adjust():
 
 
 @admin_bp.post("/api/admin/users/<int:user_id>/delete")
+@admin_required
 def api_admin_delete_user(user_id: int):
     """Elimina definitivamente un utente previa verifica password admin."""
     try:
