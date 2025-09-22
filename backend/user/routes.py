@@ -743,12 +743,12 @@ def referral():
             
             # Lista referral - Esclude auto-referral
             cur.execute("""
-                SELECT u.id, u.nome, u.email, u.created_at, u.kyc_status,
+                SELECT u.id, u.nome, u.cognome, u.email, u.created_at, u.kyc_status,
                        COALESCE(SUM(i.amount), 0) as total_invested
                 FROM users u 
                 LEFT JOIN investments i ON u.id = i.user_id AND i.status = 'active'
                 WHERE u.referred_by = %s AND u.id != %s
-                GROUP BY u.id, u.nome, u.email, u.created_at, u.kyc_status
+                GROUP BY u.id, u.nome, u.cognome, u.email, u.created_at, u.kyc_status
                 ORDER BY u.created_at DESC
             """, (uid, uid))
             referrals = cur.fetchall()
@@ -986,7 +986,7 @@ def get_referral_data():
             # Esclude l'utente stesso per evitare auto-referral
             cur.execute("""
                 SELECT 
-                    u.id, u.nome, u.email, u.created_at,
+                    u.id, u.nome, u.cognome, u.email, u.created_at,
                     COALESCE(up.free_capital, 0) + COALESCE(up.invested_capital, 0) + 
                     COALESCE(up.referral_bonus, 0) + COALESCE(up.profits, 0) as total_balance,
                     COALESCE(up.invested_capital, 0) as total_invested,
