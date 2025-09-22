@@ -174,15 +174,19 @@ async function loadMetrics() {
 // Carica prelievi in attesa
 async function loadPendingWithdrawals() {
     try {
+        console.log('🔄 Caricamento prelievi in corso...');
         const response = await fetch('/withdrawals/api/admin/pending', {
             credentials: 'same-origin'
         });
+        console.log('📡 Risposta API:', response.status, response.ok);
         const data = await response.json();
+        console.log('📊 Dati ricevuti:', data);
         
         currentWithdrawals = data.withdrawals || [];
+        console.log('💾 currentWithdrawals:', currentWithdrawals);
         renderWithdrawals();
     } catch (error) {
-        console.error('Errore nel caricamento prelievi:', error);
+        console.error('❌ Errore nel caricamento prelievi:', error);
         currentWithdrawals = [];
         renderWithdrawals();
     }
@@ -190,10 +194,12 @@ async function loadPendingWithdrawals() {
 
 // Renderizza prelievi
 function renderWithdrawals() {
+    console.log('🎨 Rendering prelievi:', currentWithdrawals.length);
     const container = document.getElementById('withdrawals-container');
     const countElement = document.getElementById('withdrawals-count');
     
     if (currentWithdrawals.length === 0) {
+        console.log('📭 Nessun prelievo da mostrare');
         container.innerHTML = `
             <div class="text-center py-8">
                 <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
