@@ -3818,27 +3818,6 @@ def deposits_api_metrics():
     logger.info(f"deposits_api_metrics called - session: {dict(session)}")
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Assicura che lo schema sia aggiornato
-            try:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS deposit_requests (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(id),
-                        amount DECIMAL(15,2) NOT NULL,
-                        iban VARCHAR(255),
-                        method VARCHAR(50) DEFAULT 'bank',
-                        unique_key VARCHAR(50),
-                        payment_reference VARCHAR(255),
-                        status VARCHAR(50) DEFAULT 'pending',
-                        admin_notes TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        approved_at TIMESTAMP,
-                        approved_by INTEGER REFERENCES users(id)
-                    )
-                """)
-            except Exception as e:
-                logger.warning(f"Errore creazione schema depositi: {e}")
-            
             # Conta depositi per stato
             cur.execute("SELECT status, COUNT(*), COALESCE(SUM(amount), 0) FROM deposit_requests GROUP BY status")
             results = cur.fetchall()
@@ -3876,27 +3855,6 @@ def deposits_api_pending():
     logger.info(f"deposits_api_pending called - session: {dict(session)}")
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Assicura che lo schema sia aggiornato
-            try:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS deposit_requests (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(id),
-                        amount DECIMAL(15,2) NOT NULL,
-                        iban VARCHAR(255),
-                        method VARCHAR(50) DEFAULT 'bank',
-                        unique_key VARCHAR(50),
-                        payment_reference VARCHAR(255),
-                        status VARCHAR(50) DEFAULT 'pending',
-                        admin_notes TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        approved_at TIMESTAMP,
-                        approved_by INTEGER REFERENCES users(id)
-                    )
-                """)
-            except Exception as e:
-                logger.warning(f"Errore creazione schema depositi: {e}")
-            
             cur.execute("""
                 SELECT dr.id, dr.amount, 
                        COALESCE(dr.iban, '') as iban, 
