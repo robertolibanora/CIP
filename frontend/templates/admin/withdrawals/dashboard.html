@@ -2,738 +2,356 @@
 
 {% block title %}Gestione Prelievi - Admin{% endblock %}
 
+{% block extra_css %}
+<style>
+    .withdrawal-card {
+        min-height: 120px;
+    }
+    
+    @media (max-width: 1200px) {
+        .withdrawal-card .flex {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .withdrawal-card .flex > div:last-child {
+            margin-top: 1rem;
+            width: 100%;
+        }
+    }
+    
+    .withdrawal-card textarea {
+        min-height: 60px;
+    }
+    
+    .withdrawal-card .grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    @media (max-width: 768px) {
+        .withdrawal-card .grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Dashboard Gestione Prelievi -->
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div>
-                <h1 class="admin-heading-1">Gestione Prelievi</h1>
-                <p class="admin-text-small">Gestisci tutte le richieste di prelievo del sistema</p>
-            </div>
-            <!-- Status Badge -->
-            <div class="mt-3 sm:mt-0">
-                <div class="admin-badge admin-badge--info">
-                    <div class="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                    Sistema Prelievi Attivo
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Metriche Prelievi -->
-    <div class="admin-grid admin-grid--4">
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">In Attesa</p>
-                    <p class="admin-heading-2 text-yellow-600" id="pending-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--warning">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
+<div class="min-h-screen bg-gray-50 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Gestione Prelievi</h1>
+            <p class="mt-1 text-sm text-gray-600">Gestisci le richieste di prelievo degli utenti</p>
         </div>
 
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Completati</p>
-                    <p class="admin-heading-2 text-green-600" id="completed-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--success">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Rifiutati</p>
-                    <p class="admin-heading-2 text-red-600" id="rejected-count">-</p>
-                </div>
-                <div class="admin-icon admin-icon--error">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="admin-card admin-card-body">
-            <div class="admin-flex admin-flex--between admin-flex--items-center">
-                <div>
-                    <p class="admin-text-small text-gray-500">Totale Prelievi</p>
-                    <p class="admin-heading-2 text-blue-600" id="total-amount">-</p>
-                </div>
-                <div class="admin-icon admin-icon--info">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Alert Prelievi Urgenti -->
-    <div id="urgent-alert" class="admin-alert admin-alert--warning hidden">
-        <div class="admin-alert-icon">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-            </svg>
-        </div>
-        <div class="admin-alert-content">
-            <h4 class="admin-alert-title">Prelievi Urgenti!</h4>
-            <p class="admin-alert-message" id="urgent-message">Ci sono prelievi in attesa da più di 24 ore.</p>
-        </div>
-    </div>
-
-    <!-- Filtri e Azioni -->
-    <div class="admin-card admin-card-body">
-        <div class="admin-flex admin-flex--between">
-            <div class="admin-flex admin-flex--gap-4">
-                <div>
-                    <label for="status-filter" class="admin-label">Stato</label>
-                    <select id="status-filter" class="admin-select" onchange="filterWithdrawals()">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending">In attesa</option>
-                        <option value="completed">Completati</option>
-                        <option value="cancelled">Rifiutati</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="method-filter" class="admin-label">Metodo</label>
-                    <select id="method-filter" class="admin-select" onchange="filterWithdrawals()">
-                        <option value="">Tutti i metodi</option>
-                        <option value="usdt">USDT (BEP20)</option>
-                        <option value="bank">Bonifico Bancario</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="search-filter" class="admin-label">Ricerca</label>
-                    <input type="text" id="search-filter" class="admin-input" placeholder="Nome, email..." onkeyup="filterWithdrawals()">
+        <!-- Metriche -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-xs font-medium text-gray-500">In Attesa</p>
+                        <p class="text-lg font-semibold text-yellow-600" id="pending-count">-</p>
+                    </div>
                 </div>
             </div>
             
-            <div class="admin-flex admin-flex--gap-2">
-                <a href="/withdrawals/admin/withdrawals/history" class="admin-btn admin-btn--secondary">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Storico Prelievi
-                </a>
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-xs font-medium text-gray-500">Completati</p>
+                        <p class="text-lg font-semibold text-green-600" id="completed-count">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-xs font-medium text-gray-500">Rifiutati</p>
+                        <p class="text-lg font-semibold text-red-600" id="rejected-count">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-xs font-medium text-gray-500">Totale Prelievi</p>
+                        <p class="text-lg font-semibold text-blue-600" id="total-amount">€0,00</p>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Lista Richieste Prelievo -->
-    <div class="admin-card">
-        <div class="admin-card-header">
-            <h2 class="admin-heading-3">Richieste di Prelievo</h2>
-            <span class="admin-text-small text-gray-500" id="withdrawals-count">0 richieste trovate</span>
-        </div>
-
-        <div class="admin-card-body">
-            <div class="overflow-x-auto">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th class="admin-table-th">Utente</th>
-                            <th class="admin-table-th">Importo</th>
-                            <th class="admin-table-th">Metodo</th>
-                            <th class="admin-table-th">Sezione</th>
-                            <th class="admin-table-th">Stato</th>
-                            <th class="admin-table-th">Data & Urgenza</th>
-                            <th class="admin-table-th">Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody id="withdrawals-table-body">
-                        <tr>
-                            <td colspan="7" class="admin-table-td text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p class="text-gray-500 mt-2">Caricamento prelievi...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Withdrawal Details Modal -->
-<div id="withdrawal-details-modal" class="admin-modal hidden" onclick="closeWithdrawalModal()">
-    <div class="admin-modal-content" onclick="event.stopPropagation()">
-        <div class="admin-modal-header">
-            <h3 class="admin-heading-3">Dettagli Prelievo</h3>
-            <button onclick="closeWithdrawalModal()" class="admin-modal-close">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        <!-- Pulsante Storico -->
+        <div class="mb-6">
+            <a href="/admin/withdrawals/history" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-            </button>
+                Storico Prelievi
+            </a>
         </div>
-        <div id="withdrawal-details-content" class="admin-modal-body">
-            <!-- Content will be loaded here -->
+
+        <!-- Lista Prelievi -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Richieste di Prelievo</h2>
+                <p class="text-sm text-gray-500" id="withdrawals-count">0 richieste trovate</p>
+            </div>
+            
+            <div class="p-6" id="withdrawals-container">
+                <!-- I prelievi verranno caricati qui -->
+            </div>
         </div>
-    </div>
-</div>
-
-<!-- Loading Modal -->
-<div id="loading-modal" class="admin-modal hidden">
-    <div class="admin-modal-overlay"></div>
-    <div class="admin-modal-content">
-        <div class="admin-modal-body text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p class="mt-4 text-gray-600">Caricamento...</p>
-        </div>
-    </div>
-</div>
-
-<!-- Success/Error Alerts -->
-<div id="success-alert" class="admin-alert admin-alert--success hidden">
-    <div class="admin-alert-icon">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-    </div>
-    <div class="admin-alert-content">
-        <h4 class="admin-alert-title">Successo!</h4>
-        <p class="admin-alert-message">Operazione completata con successo!</p>
-    </div>
-</div>
-
-<div id="error-alert" class="admin-alert admin-alert--error hidden">
-    <div class="admin-alert-icon">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-    </div>
-    <div class="admin-alert-content">
-        <h4 class="admin-alert-title">Errore!</h4>
-        <p class="admin-alert-message">Si è verificato un errore!</p>
     </div>
 </div>
 
 <script>
-// Load withdrawals on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadPendingWithdrawals();
-    loadMetrics();
-});
-
-// Global variable to store current withdrawals
+// Variabili globali
 let currentWithdrawals = [];
 
-// Load withdrawals from API - versione semplificata come depositi
-async function loadPendingWithdrawals() {
-    try {
-        console.log('Caricamento prelievi in corso...');
-        const res = await fetch('/withdrawals/api/admin/pending');
-        console.log('Risposta API:', res.status, res.ok);
-        const data = await res.json();
-        console.log('Dati ricevuti:', data);
-        const list = document.getElementById('withdrawals-table-body');
-        
-        if (!res.ok || !data.withdrawals || data.withdrawals.length === 0) {
-            console.log('Nessun prelievo trovato');
-            currentWithdrawals = []; // Reset the array
-            list.innerHTML = `
-                <tr>
-                    <td colspan="7" class="admin-table-td text-center py-8">
-                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun prelievo</h3>
-                        <p class="text-gray-600">Non ci sono richieste di prelievo in attesa.</p>
-                    </td>
-                </tr>
-            `;
-            document.getElementById('withdrawals-count').textContent = '0 richieste trovate';
-            return;
-        }
-        
-        // Store withdrawals data for the details function
-        currentWithdrawals = data.withdrawals;
-        console.log('currentWithdrawals popolato:', currentWithdrawals);
-        
-        // Render withdrawals using the dedicated function
-        renderWithdrawals();
-    } catch (error) {
-        console.error('Errore nel caricamento prelievi:', error);
-        currentWithdrawals = [];
-    }
-}
+// Carica dati al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    loadMetrics();
+    loadPendingWithdrawals();
+});
 
-// Render withdrawals table
-function renderWithdrawals() {
-    const tbody = document.getElementById('withdrawals-table-body');
-    const countElement = document.getElementById('withdrawals-count');
-    
-    if (currentWithdrawals.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="admin-table-td text-center py-8">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun prelievo</h3>
-                    <p class="text-gray-600">Non ci sono richieste di prelievo in attesa.</p>
-                </td>
-            </tr>
-        `;
-        countElement.textContent = '0 richieste trovate';
-        return;
-    }
-    
-    tbody.innerHTML = currentWithdrawals.map(withdrawal => `
-        <tr class="admin-table-tr" 
-            data-status="${withdrawal.status}" 
-            data-method="${withdrawal.method}"
-            data-search="${withdrawal.nome.toLowerCase()} ${withdrawal.email.toLowerCase()}">
-            <td class="admin-table-td">
-                <div>
-                    <div class="admin-text-body font-medium">${withdrawal.nome}</div>
-                    <div class="admin-text-small text-gray-500">${withdrawal.email}</div>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <span class="admin-text-body font-medium">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</span>
-            </td>
-            <td class="admin-table-td">
-                <div class="flex items-center">
-                    ${withdrawal.method === 'usdt' ? 
-                        '<div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center mr-2"><span class="text-white font-bold text-xs">₮</span></div>' :
-                        '<div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-2"><span class="text-white font-bold text-xs">€</span></div>'
-                    }
-                    <span class="admin-text-body">${withdrawal.method === 'usdt' ? `USDT (${withdrawal.network || 'BEP20'})` : 'Bonifico'}</span>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <div>
-                    <div class="admin-text-body font-medium">${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
-                                                                    withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : 'Profitti'}</div>
-                    <div class="admin-text-small text-gray-500">Chiave: ${withdrawal.unique_key}</div>
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <span class="admin-badge admin-badge--warning">In attesa</span>
-            </td>
-            <td class="admin-table-td">
-                <div class="admin-text-body">${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</div>
-                <div class="admin-text-small text-gray-500">${new Date(withdrawal.created_at).toLocaleTimeString('it-IT')}</div>
-                <div class="admin-text-small ${withdrawal.hours_pending > 24 ? 'text-red-600 font-medium' : 'text-gray-500'}">
-                    ${withdrawal.hours_pending.toFixed(1)}h fa
-                    ${withdrawal.hours_pending > 24 ? ' (URGENTE!)' : ''}
-                </div>
-            </td>
-            <td class="admin-table-td">
-                <div class="flex" style="flex-direction: row !important; gap: 0.25rem;">
-                    <button onclick="viewWithdrawalDetails(${withdrawal.id})" class="admin-btn admin-btn--secondary admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        Dettagli
-                    </button>
-                    <button onclick="approveWithdrawal(${withdrawal.id})" class="admin-btn admin-btn--success admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Approva
-                    </button>
-                    <button onclick="rejectWithdrawal(${withdrawal.id})" class="admin-btn admin-btn--error admin-btn--sm" style="flex: 1; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Rifiuta
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-    
-    countElement.textContent = `${currentWithdrawals.length} richieste trovate`;
-}
-
-// Update metrics
-function updateMetrics() {
-    const pending = currentWithdrawals.filter(w => w.status === 'pending').length;
-    const completed = currentWithdrawals.filter(w => w.status === 'completed').length;
-    const rejected = currentWithdrawals.filter(w => w.status === 'cancelled').length;
-    const totalAmount = currentWithdrawals
-        .filter(w => w.status === 'completed')
-        .reduce((sum, w) => sum + parseFloat(w.amount), 0);
-    
-    document.getElementById('pending-count').textContent = pending;
-    document.getElementById('completed-count').textContent = completed;
-    document.getElementById('rejected-count').textContent = rejected;
-    document.getElementById('total-amount').textContent = `€${totalAmount.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-    
-    // Show urgent alert if needed
-    const urgentCount = currentWithdrawals.filter(w => w.hours_pending > 24).length;
-    const urgentAlert = document.getElementById('urgent-alert');
-    const urgentMessage = document.getElementById('urgent-message');
-    
-    if (urgentCount > 0) {
-        urgentMessage.textContent = `Ci sono ${urgentCount} prelievi in attesa da più di 24 ore.`;
-        urgentAlert.classList.remove('hidden');
-    } else {
-        urgentAlert.classList.add('hidden');
-    }
-}
-
-// Filter withdrawals
-function filterWithdrawals() {
-    const statusFilter = document.getElementById('status-filter').value;
-    const methodFilter = document.getElementById('method-filter').value;
-    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
-    
-    currentFilters.status = statusFilter;
-    currentFilters.method = methodFilter;
-    currentFilters.search = searchFilter;
-    
-    const rows = document.querySelectorAll('#withdrawals-table-body tr');
-    let visibleCount = 0;
-    
-    rows.forEach(row => {
-        const status = row.dataset.status;
-        const method = row.dataset.method;
-        const searchText = row.dataset.search;
-        
-        const statusMatch = !statusFilter || status === statusFilter;
-        const methodMatch = !methodFilter || method === methodFilter;
-        const searchMatch = !searchFilter || searchText.includes(searchFilter);
-        
-        if (statusMatch && methodMatch && searchMatch) {
-            row.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            row.classList.add('hidden');
-        }
-    });
-    
-    // Update subtitle
-    document.getElementById('withdrawals-count').textContent = `${visibleCount} richieste trovate`;
-}
-
-// Refresh withdrawals
-async function refreshWithdrawals() {
-    await loadWithdrawals();
-}
-
-// View withdrawal details
-async function viewWithdrawalDetails(withdrawalId) {
-    try {
-        console.log('viewWithdrawalDetails chiamata con ID:', withdrawalId);
-        showLoading();
-        
-        // Fai una chiamata API per ottenere i dettagli completi del prelievo
-        const response = await fetch(`/withdrawals/api/admin/pending`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const withdrawal = data.withdrawals.find(w => w.id === withdrawalId);
-        
-        console.log('withdrawal trovato:', withdrawal);
-        if (withdrawal) {
-            showWithdrawalDetailsModal(withdrawal);
-        } else {
-            throw new Error('Prelievo non trovato');
-        }
-    } catch (error) {
-        console.error('Errore dettagli:', error);
-        showError('Errore nel caricamento dei dettagli');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Show withdrawal details modal
-function showWithdrawalDetailsModal(withdrawal) {
-    console.log('showWithdrawalDetailsModal chiamata con:', withdrawal);
-    const modal = document.getElementById('withdrawal-details-modal');
-    const content = document.getElementById('withdrawal-details-content');
-    
-    if (!modal) {
-        console.error('Modal withdrawal-details-modal non trovato');
-        return;
-    }
-    
-    if (!content) {
-        console.error('Content withdrawal-details-content non trovato');
-        return;
-    }
-    
-    // Il modal usa le classi CSS predefinite per il posizionamento
-    
-    // Dettagli specifici per metodo
-    let methodDetails = '';
-    if (withdrawal.method === 'usdt') {
-        const network = withdrawal.network || 'BEP20';
-        const networkLabel = network === 'BEP20' ? 'BSC (BEP20)' : 
-                            network === 'ERC20' ? 'Ethereum (ERC20)' : 
-                            network === 'TRC20' ? 'Tron (TRC20)' : network;
-        
-        methodDetails = `
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-blue-800 mb-3">💳 Dettagli USDT</h4>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-blue-700">Rete:</span>
-                        <span class="text-sm font-bold text-blue-900">${networkLabel}</span>
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-blue-700">Indirizzo Wallet:</span>
-                        <div class="mt-1 p-2 bg-white border border-blue-300 rounded font-mono text-xs break-all">
-                            ${withdrawal.wallet_address}
-                        </div>
-                        <button onclick="copyToClipboard('${withdrawal.wallet_address}')" class="mt-2 text-xs text-blue-600 hover:text-blue-800 underline">
-                            📋 Copia indirizzo
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        const bankDetails = withdrawal.bank_details || {};
-        methodDetails = `
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-green-800 mb-3">🏦 Dettagli Bancari</h4>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-green-700">IBAN:</span>
-                        <span class="text-sm font-mono text-green-900">${bankDetails.iban || 'N/A'}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-green-700">Intestatario:</span>
-                        <span class="text-sm font-bold text-green-900">${bankDetails.account_holder || 'N/A'}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-green-700">Banca:</span>
-                        <span class="text-sm text-green-900">${bankDetails.bank_name || 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    content.innerHTML = `
-        <div class="space-y-6">
-            <!-- Header con info principali -->
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">👤 Utente</label>
-                        <p class="mt-1 text-sm font-bold text-gray-900">${withdrawal.full_name || 'N/A'}</p>
-                        <p class="text-sm text-gray-500">${withdrawal.email || 'N/A'}</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">💰 Importo</label>
-                        <p class="mt-1 text-lg font-bold text-green-600">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Info prelievo -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">📋 Metodo</label>
-                    <p class="mt-1 text-sm font-bold text-gray-900">${withdrawal.method === 'usdt' ? 'USDT' : 'Bonifico Bancario'}</p>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">📂 Sezione</label>
-                    <p class="mt-1 text-sm font-bold text-gray-900">${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
-                      withdrawal.source_section === 'profits' ? 'Profitti' : 
-                      withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : withdrawal.source_section}</p>
-                </div>
-            </div>
-            
-            <!-- Chiave unica -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">🔑 Chiave Unica</label>
-                <div class="mt-1 p-2 bg-gray-100 border border-gray-300 rounded font-mono text-sm">
-                    ${withdrawal.unique_key}
-                </div>
-            </div>
-            
-            <!-- Dettagli specifici metodo -->
-            ${methodDetails}
-            
-            <!-- Info temporali -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">📅 Data Richiesta</label>
-                    <p class="mt-1 text-sm text-gray-900">${new Date(withdrawal.created_at).toLocaleString('it-IT')}</p>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">⏱️ Tempo in Attesa</label>
-                    <p class="mt-1 text-sm ${withdrawal.hours_pending > 24 ? 'text-red-600 font-bold' : 'text-gray-900'}">
-                        ${withdrawal.hours_pending ? withdrawal.hours_pending.toFixed(1) + ' ore' : 'N/A'}
-                        ${withdrawal.hours_pending > 24 ? ' (URGENTE!)' : ''}
-                    </p>
-                </div>
-            </div>
-            
-            <!-- Status -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">📊 Stato</label>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                    withdrawal.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                    withdrawal.status === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
-                    ${withdrawal.status === 'pending' ? 'In Attesa' : 
-                      withdrawal.status === 'completed' ? 'Completato' : 
-                      withdrawal.status === 'cancelled' ? 'Rifiutato' : withdrawal.status}
-                </span>
-            </div>
-        </div>
-    `;
-    
-    console.log('Mostro il modal...');
-    modal.classList.remove('hidden');
-    console.log('Modal mostrato, classi:', modal.className);
-}
-
-// Close withdrawal modal
-function closeWithdrawalModal() {
-    const modal = document.getElementById('withdrawal-details-modal');
-    modal.classList.add('hidden');
-}
-
-// Copy to clipboard function
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        showNotification('Indirizzo copiato negli appunti!', 'success');
-    }, function(err) {
-        console.error('Errore copia: ', err);
-        showNotification('Errore nella copia', 'error');
-    });
-}
-
-// Approve withdrawal - versione semplificata come depositi
-async function approveWithdrawal(id) {
-    if (!confirm('Sei sicuro di voler approvare questo prelievo?')) return;
-    
-    const r = await fetch(`/withdrawals/api/admin/approve/${id}`, {
-            method: 'POST',
-        headers: {'Content-Type': 'application/json'}
-    });
-    
-    if (r.ok) { 
-        showNotification('Prelievo approvato con successo', 'success');
-        loadPendingWithdrawals(); 
-        } else {
-        const error = await r.json();
-        showNotification('Errore: ' + (error.error || 'Errore nell\'approvazione'), 'error');
-    }
-}
-
-// Reject withdrawal - versione semplificata come depositi
-async function rejectWithdrawal(id) {
-    const reason = prompt('Motivo del rifiuto (opzionale):');
-    if (reason === null) return; // User cancelled
-    
-    const r = await fetch(`/withdrawals/api/admin/reject/${id}`, {
-            method: 'POST',
-        headers: {'Content-Type': 'application/json'}, 
-        body: JSON.stringify({admin_notes: reason || 'Rifiutato da admin'})
-    });
-    
-    if (r.ok) { 
-        showNotification('Prelievo rifiutato con successo', 'success');
-        loadPendingWithdrawals(); 
-        } else {
-        const error = await r.json();
-        showNotification('Errore: ' + (error.error || 'Errore nel rifiuto'), 'error');
-    }
-}
-
-// Notification system - come depositi
-function showNotification(message, type) {
-    // Crea elemento notifica
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-    }`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    // Rimuovi dopo 3 secondi
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Load metrics from API
+// Carica metriche
 async function loadMetrics() {
     try {
-        const response = await fetch('/withdrawals/api/admin/metrics');
+        const response = await fetch('/withdrawals/api/admin/metrics', {
+            credentials: 'same-origin'
+        });
         const data = await response.json();
         
-        if (response.ok) {
-            document.getElementById('pending-count').textContent = data.pending || 0;
-            document.getElementById('completed-count').textContent = data.completed || 0;
-            document.getElementById('rejected-count').textContent = data.cancelled || 0;
-            document.getElementById('total-amount').textContent = `€${(data.total_amount || 0).toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
-        } else {
-            console.error('Errore nel caricamento metriche:', data.error);
+        if (data.pending !== undefined) {
+            document.getElementById('pending-count').textContent = data.pending;
+        }
+        if (data.completed !== undefined) {
+            document.getElementById('completed-count').textContent = data.completed;
+        }
+        if (data.cancelled !== undefined) {
+            document.getElementById('rejected-count').textContent = data.cancelled;
+        }
+        if (data.total_amount !== undefined) {
+            document.getElementById('total-amount').textContent = `€${data.total_amount.toLocaleString('it-IT', {minimumFractionDigits: 2})}`;
         }
     } catch (error) {
         console.error('Errore nel caricamento metriche:', error);
     }
 }
 
-// Refresh withdrawals and metrics
-async function refreshWithdrawals() {
-    await loadPendingWithdrawals();
-    await loadMetrics();
-    showNotification('Dati aggiornati', 'success');
-}
-
-// Utility functions
-function showLoading() {
-    const modal = document.getElementById('loading-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
+// Carica prelievi in attesa
+async function loadPendingWithdrawals() {
+    try {
+        const response = await fetch('/withdrawals/api/admin/pending', {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+        
+        currentWithdrawals = data.withdrawals || [];
+        renderWithdrawals();
+    } catch (error) {
+        console.error('Errore nel caricamento prelievi:', error);
+        currentWithdrawals = [];
+        renderWithdrawals();
     }
 }
 
-function hideLoading() {
-    const modal = document.getElementById('loading-modal');
-    if (modal) {
-        modal.classList.add('hidden');
+// Renderizza prelievi
+function renderWithdrawals() {
+    const container = document.getElementById('withdrawals-container');
+    const countElement = document.getElementById('withdrawals-count');
+    
+    if (currentWithdrawals.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun prelievo</h3>
+                <p class="text-gray-600">Non ci sono richieste di prelievo in attesa.</p>
+            </div>
+        `;
+        countElement.textContent = '0 richieste trovate';
+        return;
     }
+    
+    countElement.textContent = `${currentWithdrawals.length} richieste trovate`;
+    
+    container.innerHTML = currentWithdrawals.map(withdrawal => `
+        <div class="withdrawal-card border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center">
+                <!-- Prima Riga: Info Utente -->
+                <div class="flex-1">
+                    <div class="flex items-center mb-2">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Prelievo #${withdrawal.id}</p>
+                            <p class="text-xs text-gray-500">${withdrawal.nome} - ${withdrawal.email}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Seconda Riga: Dettagli Prelievo -->
+                    <div class="grid grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">${withdrawal.method === 'bank' ? 'IBAN' : 'Indirizzo'}</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${withdrawal.method === 'bank' ? (withdrawal.bank_details?.iban || 'N/A') : (withdrawal.wallet_address || 'N/A')}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Metodo</label>
+                            <p class="mt-1 text-sm text-gray-900">${withdrawal.method === 'bank' ? 'Bonifico' : 'USDT'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">${withdrawal.method === 'bank' ? 'Intestatario' : 'Rete'}</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${withdrawal.method === 'bank' ? (withdrawal.bank_details?.account_holder || 'N/A') : (withdrawal.network || 'BEP20')}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Sezione</label>
+                            <p class="mt-1 text-sm text-gray-900">${withdrawal.source_section === 'free_capital' ? 'Capitale Libero' : 
+                              withdrawal.source_section === 'profits' ? 'Profitti' : 
+                              withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : withdrawal.source_section}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sezione Destra: Note e Azioni -->
+                <div class="flex-shrink-0 w-80">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Note Admin</label>
+                        <textarea id="admin-notes-${withdrawal.id}" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" 
+                                rows="3" 
+                                placeholder="Aggiungi note per questo prelievo...">${withdrawal.admin_notes || ''}</textarea>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button onclick="approveWithdrawal(${withdrawal.id})" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approva
+                        </button>
+                        <button onclick="rejectWithdrawal(${withdrawal.id})" 
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Rifiuta
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Importo e Data -->
+            <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
+                <div>
+                    <span class="text-2xl font-bold text-green-600">€${parseFloat(withdrawal.amount).toLocaleString('it-IT', {minimumFractionDigits: 2})}</span>
+                    <p class="text-xs text-gray-500">Chiave: ${withdrawal.unique_key}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-900">${new Date(withdrawal.created_at).toLocaleDateString('it-IT')}</p>
+                    <p class="text-xs text-gray-500">${new Date(withdrawal.created_at).toLocaleTimeString('it-IT')}</p>
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
-function showError(message) {
-    const alert = document.getElementById('error-alert');
-    if (alert) {
-        const messageEl = alert.querySelector('.admin-alert-message');
-        if (messageEl) {
-            messageEl.textContent = message;
+// Approva prelievo
+async function approveWithdrawal(id) {
+    if (!confirm('Sei sicuro di voler approvare questo prelievo?')) return;
+    
+    try {
+        const response = await fetch(`/withdrawals/api/admin/approve/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Prelievo approvato con successo!');
+            loadPendingWithdrawals();
+            loadMetrics();
+        } else {
+            alert('Errore: ' + (data.error || 'Errore nell\'approvazione'));
         }
-        alert.classList.remove('hidden');
-        setTimeout(() => {
-            alert.classList.add('hidden');
-        }, 5000);
-    } else {
-        console.error('Error:', message);
-        alert('Errore: ' + message);
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore durante l\'approvazione del prelievo');
     }
 }
 
+// Rifiuta prelievo
+async function rejectWithdrawal(id) {
+    const adminNotes = document.getElementById(`admin-notes-${id}`).value;
+    
+    if (!confirm('Sei sicuro di voler rifiutare questo prelievo?')) return;
+    
+    try {
+        const response = await fetch(`/withdrawals/api/admin/reject/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                admin_notes: adminNotes || 'Rifiutato da admin'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Prelievo rifiutato con successo!');
+            loadPendingWithdrawals();
+            loadMetrics();
+        } else {
+            alert('Errore: ' + (data.error || 'Errore nel rifiuto'));
+        }
+    } catch (error) {
+        console.error('Errore:', error);
+        alert('Errore durante il rifiuto del prelievo');
+    }
+}
 </script>
 {% endblock %}
