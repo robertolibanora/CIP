@@ -3924,12 +3924,15 @@ def deposits_api_approve(deposit_id):
                 WHERE id = %s
             """, (session.get('user_id'), admin_notes, deposit_id))
             
-            # Aggiorna portfolio utente
+            # Aggiorna portfolio utente (crea record se non esiste)
             cur.execute("""
-                UPDATE user_portfolios 
-                SET free_capital = free_capital + %s, updated_at = NOW()
-                WHERE user_id = %s
-            """, (request_detail['amount'], request_detail['user_id']))
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits, created_at, updated_at)
+                VALUES (%s, %s, 0.00, 0.00, 0.00, NOW(), NOW())
+                ON CONFLICT (user_id) 
+                DO UPDATE SET 
+                    free_capital = user_portfolios.free_capital + %s,
+                    updated_at = NOW()
+            """, (request_detail['user_id'], request_detail['amount'], request_detail['amount']))
             
             # Crea transazione portfolio
             cur.execute("""

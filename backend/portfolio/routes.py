@@ -94,9 +94,13 @@ def get_referral_stats():
 # =====================================================
 
 @portfolio_bp.route('/api/portfolio/4-sections', methods=['GET'])
+@login_required
 def get_portfolio_4_sections():
     """API per ottenere le 4 sezioni del portafoglio utente"""
     uid = session.get("user_id")
+    
+    if not uid:
+        return jsonify({'error': 'Non autorizzato'}), 401
     
     with get_conn() as conn, conn.cursor() as cur:
         # Ottieni portafoglio utente con 4 sezioni
