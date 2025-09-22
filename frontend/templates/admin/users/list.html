@@ -190,9 +190,9 @@
     const params = new URLSearchParams();
     if(searchEl.value) params.set('search', searchEl.value);
 
-    const res = await fetch(`/admin/api/admin/users?${params.toString()}`);
+    const res = await fetch(`/admin/api/users?${params.toString()}`);
     const data = await res.json();
-    renderRows(data.items || []);
+    renderRows(data.users || []);
   }
 
   function renderRows(items){
