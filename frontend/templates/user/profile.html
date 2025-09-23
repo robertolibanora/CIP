@@ -73,23 +73,6 @@
 
                 
 
-                <div>
-                    <label for="referral_code" class="block text-sm font-medium text-gray-700 mb-2">
-                        Codice Referral
-                    </label>
-                    <div class="flex">
-                        <input type="text" 
-                               id="referral_code" 
-                               value="{{ user.referral_code or '' }}"
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50"
-                               readonly>
-                        <button type="button" onclick="copyReferralCode()"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors">
-                            Copia
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Condividi questo codice con amici per ricevere bonus</p>
-                </div>
                 
                 <p class="text-sm text-gray-500 mt-4">Per cambiare i propri dati è necessario contattare un amministratore, per farlo basta unirsi al gruppo telegram.</p>
             </form>
@@ -128,33 +111,6 @@
 </div>
 
 <script>
-// Referral copy using modern Clipboard API with fallback
-function copyReferralCode() {
-  const input = document.getElementById('referral_code');
-  const text = input ? input.value : '';
-  if (!text) return;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(() => {
-      showTempToast('Codice copiato!');
-    }).catch(() => legacyCopy(input));
-  } else {
-    legacyCopy(input);
-  }
-}
-
-function legacyCopy(input) {
-  input.select();
-  document.execCommand('copy');
-  showTempToast('Codice copiato!');
-}
-
-function showTempToast(message) {
-  const n = document.createElement('div');
-  n.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow z-50';
-  n.textContent = message;
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 2000);
-}
 
 // Mostra le icone toggle solo quando FontAwesome è caricato
 document.addEventListener('DOMContentLoaded', function() {
