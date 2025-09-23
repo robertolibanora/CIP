@@ -120,7 +120,6 @@
                                 
                                 <!-- Azioni -->
                                 <div class="flex flex-col sm:flex-row gap-3">
-                                    {% if is_kyc_verified %}
                                     <button onclick="openInvestmentModal('{{ project.id }}')" 
                                             class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
                                         <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,14 +131,6 @@
                                             Investi Ora
                                         {% endif %}
                                     </button>
-                                    {% else %}
-                                    <button disabled class="flex-1 bg-gray-300 text-gray-500 px-6 py-3 rounded-lg font-medium cursor-not-allowed">
-                                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                                        </svg>
-                                        KYC Richiesto
-                                    </button>
-                                    {% endif %}
                                     
                                     {% if project.documents_filename %}
                                     <button onclick="viewProjectDocuments('{{ project.id }}', '{{ project.documents_filename }}')" 

@@ -196,7 +196,7 @@ def projects():
             # Progetti attivi
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi
+                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
                 FROM projects p 
                 WHERE p.status = 'active'
                 ORDER BY p.created_at DESC
@@ -206,7 +206,7 @@ def projects():
             # Progetti completati
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi
+                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
                 FROM projects p 
                 WHERE p.status = 'completed'
                 ORDER BY p.created_at DESC
@@ -216,7 +216,7 @@ def projects():
             # Progetti venduti
             cur.execute("""
                 SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi
+                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
                 FROM projects p 
                 WHERE p.status = 'sold'
                 ORDER BY p.created_at DESC
