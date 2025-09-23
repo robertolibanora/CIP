@@ -154,13 +154,6 @@ def create_app():
     except Exception as e:
         app.logger.warning(f"Impossibile registrare blueprint Admin principale: {e}")
     
-    # Registra blueprint Notifiche Admin
-    try:
-        from backend.admin.notifications_api import notifications_api
-        app.register_blueprint(notifications_api)
-        app.logger.info("Blueprint Notifiche Admin registrato con successo")
-    except Exception as e:
-        app.logger.warning(f"Impossibile registrare blueprint Notifiche Admin: {e}")
     
     # Registra blueprint Portfolio (API deposito/bonifico/cronologie)
     try:

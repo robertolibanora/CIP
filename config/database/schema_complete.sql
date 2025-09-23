@@ -28,7 +28,6 @@ DROP TABLE IF EXISTS investment_requests CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS doc_categories CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 -- ============================================================================
@@ -313,17 +312,6 @@ CREATE TABLE IF NOT EXISTS referral_codes (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Notifiche
-CREATE TABLE IF NOT EXISTS notifications (
-    id                  SERIAL PRIMARY KEY,
-    user_id             INT REFERENCES users(id) ON DELETE CASCADE, -- NULL => broadcast
-    priority            TEXT NOT NULL CHECK (priority IN ('low','medium','high','urgent')) DEFAULT 'low',
-    kind                TEXT NOT NULL DEFAULT 'system',
-    title               TEXT NOT NULL,
-    body                TEXT,
-    is_read             BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 -- ============================================================================
 -- INDICI PER PERFORMANCE
@@ -368,8 +356,6 @@ CREATE INDEX IF NOT EXISTS idx_investments_project_id ON investments(project_id)
 CREATE INDEX IF NOT EXISTS idx_investments_status ON investments(status);
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer_id ON referrals(referrer_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_referred_user_id ON referrals(referred_user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
 -- ============================================================================
 -- TRIGGER PER AGGIORNAMENTO TIMESTAMP
@@ -570,4 +556,3 @@ COMMENT ON TABLE documents IS 'Documenti KYC e altri file utente';
 COMMENT ON TABLE projects IS 'Progetti immobiliari investibili';
 COMMENT ON TABLE investments IS 'Investimenti utenti nei progetti';
 COMMENT ON TABLE referrals IS 'Sistema referral con commissioni 3%';
-COMMENT ON TABLE notifications IS 'Sistema notifiche utente e broadcast';

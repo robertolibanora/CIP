@@ -121,9 +121,6 @@
                 <!-- Spacer per spingere elementi a destra -->
                 <div style="flex: 1;"></div>
                 
-                <!-- Bollino notifiche -->
-                {% include "admin/components/notification_badge.html" %}
-                
                 <!-- Pulsante logout a destra -->
                 <a href="{{ url_for('auth.logout') }}" style="color: #6b7280; padding: 8px; border-radius: 6px; text-decoration: none; margin-left: 8px;" onmouseover="this.style.color='#374151'; this.style.backgroundColor='#f3f4f6';" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent';">
                     <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">

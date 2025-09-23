@@ -537,56 +537,6 @@ Content-Type: application/json
 }
 ```
 
-### Sistema Notifiche
-
-#### Nuova Notifica
-```http
-POST /admin/notifications/new
-Content-Type: application/json
-
-{
-  "user_id": 1,
-  "title": "Nuova notifica",
-  "body": "Contenuto notifica",
-  "priority": "high"
-}
-```
-
-#### Notifica Programmata
-```http
-POST /admin/notifications/new
-Content-Type: application/json
-
-{
-  "user_id": 1,
-  "title": "Notifica programmata",
-  "body": "Contenuto",
-  "priority": "medium",
-  "scheduled_at": "2024-02-01T10:00:00Z"
-}
-```
-
-#### Esegui Scheduler
-```http
-POST /admin/notifications/run_scheduler
-```
-
-#### Template Notifiche
-```http
-GET /admin/notifications/templates
-```
-
-#### Nuovo Template
-```http
-POST /admin/notifications/templates
-Content-Type: application/json
-
-{
-  "name": "Benvenuto",
-  "title": "Benvenuto in CIP Immobiliare",
-  "body": "Grazie per esserti registrato",
-  "priority": "low"
-}
 ```
 
 ### Analytics

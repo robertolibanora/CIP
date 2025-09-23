@@ -276,16 +276,6 @@ def logout():
         user_name = session.get('user_name', 'Utente')
         user_role = session.get('user_role', 'investor')
         
-        # Se è un admin, elimina tutte le notifiche prima del logout
-        if user_role == 'admin':
-            try:
-                from backend.shared.database import get_connection
-                with get_connection() as conn, conn.cursor() as cur:
-                    cur.execute("DELETE FROM admin_notifications")
-                    conn.commit()
-                    print(f"Notifiche eliminate per logout admin {user_id}")
-            except Exception as e:
-                print(f"Errore eliminazione notifiche al logout: {e}")
         
         # Distrugge sessione in modo sicuro
         destroy_session()

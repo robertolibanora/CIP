@@ -1259,7 +1259,7 @@ def kyc_bulk_action():
     if not action or not request_ids:
         return jsonify({"error": "Parametri mancanti"}), 400
     
-    valid_actions = ['approve', 'reject', 'pending', 'export', 'notify']
+    valid_actions = ['approve', 'reject', 'pending', 'export']
     if action not in valid_actions:
         return jsonify({"error": "Azione non valida"}), 400
     
@@ -1302,9 +1302,6 @@ def kyc_bulk_action():
             users = cur.fetchall()
             return jsonify({"users": users, "action": "export"})
         
-        elif action == 'notify':
-            # TODO: Implementare sistema notifiche
-            pass
         
         # Log dell'azione admin
         if action != 'export':
@@ -1674,7 +1671,7 @@ def users_bulk_action():
     if not action or not user_ids:
         return jsonify({"error": "Parametri mancanti"}), 400
     
-    valid_actions = ['approve_kyc', 'reject_kyc', 'suspend', 'activate', 'export', 'send_notification']
+    valid_actions = ['approve_kyc', 'reject_kyc', 'suspend', 'activate', 'export']
     if action not in valid_actions:
         return jsonify({"error": "Azione non valida"}), 400
     
@@ -1723,9 +1720,6 @@ def users_bulk_action():
             users = cur.fetchall()
             return jsonify({"users": users, "action": "export"})
         
-        elif action == 'send_notification':
-            # TODO: Implementare sistema notifiche
-            pass
         
         # Log dell'azione admin
         if action != 'export':
@@ -3660,130 +3654,6 @@ def admin_documents_visibility(doc_id):
                     (visibility, True if verified in ('1','true','True') else None, doc_id))
     return jsonify({"updated": True})
 
-# ---- Sistema Notifiche ----
-@admin_bp.get("/notifications")
-@admin_required
-def notifications_dashboard():
-    """Dashboard notifiche admin"""
-    return render_template('admin/notifications/dashboard.html')
-
-@admin_bp.get("/notifications/test")
-@admin_required
-def notifications_test():
-    """Test page per notifiche admin"""
-    return render_template('admin/notifications/simple.html')
-
-@admin_bp.get("/notifications/debug")
-@admin_required
-def notifications_debug():
-    """Debug page per test JavaScript"""
-    return render_template('admin/notifications/debug.html')
-
-@admin_bp.post("/notifications/new")
-@admin_required
-def notifications_new():
-    data = request.form or request.json or {}
-    user_id = data.get('user_id')  # None => broadcast
-    title = data.get('title'); body = data.get('body'); priority = data.get('priority','low')
-    scheduled_at = data.get('scheduled_at')  # ISO string optional
-    if not title:
-        abort(400)
-    if scheduled_at:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS scheduled_notifications (
-                  id SERIAL PRIMARY KEY,
-                  user_id INT REFERENCES users(id) ON DELETE CASCADE,
-                  priority TEXT NOT NULL,
-                  title TEXT NOT NULL,
-                  body TEXT,
-                  scheduled_at TIMESTAMPTZ NOT NULL
-                )
-                """
-            )
-            cur.execute(
-                "INSERT INTO scheduled_notifications(user_id,priority,title,body,scheduled_at) VALUES (%s,%s,%s,%s,%s) RETURNING id",
-                (user_id, priority, title, body, scheduled_at)
-            )
-            nid = cur.fetchone()['id']
-        return jsonify({"scheduled_id": nid})
-    else:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("INSERT INTO notifications(user_id,priority,title,body) VALUES (%s,%s,%s,%s) RETURNING id",
-                        (user_id, priority, title, body))
-            nid = cur.fetchone()['id']
-        return jsonify({"notification_id": nid})
-
-@admin_bp.post("/notifications/run_scheduler")
-@admin_required
-def notifications_run_scheduler():
-    # move due scheduled to notifications
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS scheduled_notifications (
-              id SERIAL PRIMARY KEY,
-              user_id INT REFERENCES users(id) ON DELETE CASCADE,
-              priority TEXT NOT NULL,
-              title TEXT NOT NULL,
-              body TEXT,
-              scheduled_at TIMESTAMPTZ NOT NULL
-            )
-        """)
-        cur.execute("SELECT id, user_id, priority, title, body FROM scheduled_notifications WHERE scheduled_at <= NOW()")
-        due = cur.fetchall()
-        for d in due:
-            cur.execute("INSERT INTO notifications(user_id,priority,title,body) VALUES (%s,%s,%s,%s)",
-                        (d['user_id'], d['priority'], d['title'], d['body']))
-            cur.execute("DELETE FROM scheduled_notifications WHERE id=%s", (d['id'],))
-    return jsonify({"moved": len(due) if due else 0})
-
-@admin_bp.route("/notifications/templates", methods=['GET', 'POST'])
-@admin_required
-def notifications_templates(tid=None):
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS notification_templates (
-              id SERIAL PRIMARY KEY,
-              name TEXT NOT NULL,
-              title TEXT NOT NULL,
-              body TEXT NOT NULL,
-              priority TEXT NOT NULL DEFAULT 'low'
-            )
-        """)
-    if request.method == 'GET':
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("SELECT * FROM notification_templates ORDER BY id DESC")
-            rows = cur.fetchall()
-        return jsonify(rows)
-    data = request.form or request.json or {}
-    if tid:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
-                        (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
-        return jsonify({"updated": tid})
-    else:
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute("INSERT INTO notification_templates(name,title,body,priority) VALUES (%s,%s,%s,%s) RETURNING id",
-                        (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low')))
-            nid = cur.fetchone()['id']
-        return jsonify({"id": nid})
-
-@admin_bp.post("/notifications/templates/<int:tid>/edit")
-@admin_required
-def notifications_templates_edit(tid):
-    data = request.form or request.json or {}
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("UPDATE notification_templates SET name=%s, title=%s, body=%s, priority=%s WHERE id=%s",
-                    (data.get('name'), data.get('title'), data.get('body'), data.get('priority','low'), tid))
-    return jsonify({"updated": tid})
-
-@admin_bp.post("/notifications/templates/<int:tid>/delete")
-@admin_required
-def notifications_templates_delete(tid):
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("DELETE FROM notification_templates WHERE id=%s", (tid,))
-    return jsonify({"deleted": tid})
 
 # ---- Analytics Legacy ----
 @admin_bp.get("/analytics/legacy")

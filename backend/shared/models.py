@@ -392,18 +392,3 @@ class Project:
             'sale_date': self.sale_date
         }
 
-# ============================================================================
-# MODELLI NOTIFICHE
-# ============================================================================
-
-@dataclass
-class Notification:
-    """Modello notifica sistema"""
-    id: Optional[int]
-    user_id: Optional[int]  # NULL per broadcast
-    priority: str
-    kind: str
-    title: str
-    body: Optional[str]
-    is_read: bool
-    created_at: datetime

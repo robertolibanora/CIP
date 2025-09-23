@@ -4,7 +4,6 @@ DROP VIEW IF EXISTS v_user_bonus;
 DROP VIEW IF EXISTS v_user_invested;
 
 DROP TABLE IF EXISTS referral_bonuses CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS doc_categories CASCADE;
 DROP TABLE IF EXISTS investment_yields CASCADE;
@@ -118,19 +117,6 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);
 
--- NOTIFICATIONS
-CREATE TABLE IF NOT EXISTS notifications (
-    id              SERIAL PRIMARY KEY,
-    user_id         INT REFERENCES users(id) ON DELETE CASCADE, -- NULL => broadcast
-    priority        TEXT NOT NULL CHECK (priority IN ('low','medium','high','urgent')) DEFAULT 'low',
-    kind            TEXT NOT NULL DEFAULT 'system',
-    title           TEXT NOT NULL,
-    body            TEXT,
-    is_read         BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
 -- REFERRAL BONUSES
 CREATE TABLE IF NOT EXISTS referral_bonuses (

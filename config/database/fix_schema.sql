@@ -142,16 +142,6 @@ CREATE TABLE IF NOT EXISTS referrals (
     UNIQUE(referred_user_id)
 );
 
-CREATE TABLE IF NOT EXISTS notifications (
-    id                  SERIAL PRIMARY KEY,
-    user_id             INT REFERENCES users(id) ON DELETE CASCADE,
-    priority            TEXT NOT NULL CHECK (priority IN ('low','medium','high','urgent')) DEFAULT 'low',
-    kind                TEXT NOT NULL DEFAULT 'system',
-    title               TEXT NOT NULL,
-    body                TEXT,
-    is_read             BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 -- 3. Tabelle che dipendono da investments
 CREATE TABLE IF NOT EXISTS investment_yields (
@@ -281,8 +271,6 @@ CREATE INDEX IF NOT EXISTS idx_referral_commissions_referral ON referral_commiss
 CREATE INDEX IF NOT EXISTS idx_referral_commissions_referrer ON referral_commissions(referrer_id);
 CREATE INDEX IF NOT EXISTS idx_referral_commissions_investment ON referral_commissions(investment_id);
 
-CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_user ON portfolio_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_type ON portfolio_transactions(type);
