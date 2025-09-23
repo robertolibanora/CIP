@@ -541,62 +541,8 @@ def projects_edit(pid):
         
         cur.execute(sql, params)
         
-        # Se il progetto è stato marcato come completato, aggiorna anche gli investimenti
-        if 'status' in data and data['status'] == 'completed':
-            # Aggiorna gli investimenti
-            cur.execute("""
-                UPDATE investments 
-                SET status = 'completed' 
-                WHERE project_id = %s AND status = 'active'
-            """, (pid,))
-            
-            # Aggiorna anche il funded_amount del progetto
-            cur.execute("""
-                UPDATE projects 
-                SET funded_amount = (
-                    SELECT COALESCE(SUM(amount), 0) 
-                    FROM investments 
-                    WHERE project_id = %s AND status = 'completed'
-                )
-                WHERE id = %s
-            """, (pid, pid))
-            
-            # Calcola e distribuisci i profitti agli utenti
-            cur.execute("""
-                SELECT i.user_id, i.amount, p.roi
-                FROM investments i
-                JOIN projects p ON p.id = i.project_id
-                WHERE i.project_id = %s AND i.status = 'completed'
-            """, (pid,))
-            investments = cur.fetchall()
-            
-            for investment in investments:
-                user_id = investment['user_id']
-                amount = float(investment['amount'])
-                roi = float(investment['roi'])
-                
-                # Calcola il profitto
-                profit = amount * (roi / 100)
-                
-                # Aggiorna il portafoglio dell'utente
-                cur.execute("""
-                    UPDATE user_portfolios 
-                    SET profits = profits + %s,
-                        invested_capital = invested_capital - %s,
-                        free_capital = free_capital + %s + %s
-                    WHERE user_id = %s
-                """, (profit, amount, amount, profit, user_id))
-                
-                # Registra la transazione
-                cur.execute("""
-                    INSERT INTO portfolio_transactions (
-                        user_id, type, amount, balance_before, balance_after,
-                        description, reference_id, reference_type, status, created_at
-                    ) VALUES (
-                        %s, 'roi', %s, 0, 0,
-                        'Profitto da progetto completato', %s, 'investment', 'completed', NOW()
-                    )
-                """, (user_id, profit, pid))
+        # NOTA: Gli investimenti rimangono attivi fino alla vendita effettiva
+        # La distribuzione profitti avviene solo durante la vendita, non quando il progetto viene marcato come "completed"
         
         conn.commit()
     
