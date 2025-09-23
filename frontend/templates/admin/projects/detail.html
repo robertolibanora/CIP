@@ -58,7 +58,6 @@
                                 <option value="active">Attivo</option>
                                 <option value="completed">Completato</option>
                                 <option value="cancelled">Annullato</option>
-                                <option value="sold">Venduto</option>
                             </select>
                         </div>
                     </div>
@@ -901,6 +900,22 @@ async function updateInvestmentAmount(investmentId, userId, newAmount, originalA
 document.addEventListener('DOMContentLoaded', function() {
     const projectId = {{ project_id }};
     projectDetailManager = new ProjectDetailManager(projectId);
+    
+    // Rimuovi forzatamente l'opzione "Venduto" dal dropdown se presente
+    const statusSelect = document.getElementById('field-status');
+    if (statusSelect) {
+        const soldOption = statusSelect.querySelector('option[value="sold"]');
+        if (soldOption) {
+            soldOption.remove();
+        }
+        
+        // Rimuovi anche opzioni con testo "Venduto"
+        Array.from(statusSelect.options).forEach(option => {
+            if (option.textContent.trim() === 'Venduto') {
+                option.remove();
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
