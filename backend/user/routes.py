@@ -630,6 +630,14 @@ def transfer_capital():
         if from_source == 'invested_capital' or to_source == 'invested_capital':
             return jsonify({"error": "Il capitale investito non può essere spostato"}), 400
         
+        # Verifica logica unidirezionale: solo da profitti/bonus a capitale libero
+        if from_source == 'free_capital':
+            return jsonify({"error": "Il capitale libero può essere spostato solo investendo in progetti"}), 400
+        
+        # Solo profitti e bonus possono essere spostati a capitale libero
+        if from_source not in ['profits', 'referral_bonus'] or to_source != 'free_capital':
+            return jsonify({"error": "Solo profitti e bonus possono essere spostati a capitale libero"}), 400
+        
         with get_conn() as conn, conn.cursor() as cur:
             # Verifica fondi disponibili
             cur.execute("""

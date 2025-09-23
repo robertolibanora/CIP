@@ -2476,7 +2476,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                         <div class="text-sm text-blue-800">
                             <p class="font-medium">Nota importante:</p>
-                            <p>Il capitale investito non può essere spostato in quanto è bloccato fino alla vendita dell'immobile.</p>
+                            <p>Solo profitti e bonus possono essere spostati a capitale libero. Il capitale libero può essere utilizzato solo investendo in progetti.</p>
                         </div>
                     </div>
                 </div>
@@ -2560,22 +2560,35 @@ function updateSourceOptions() {
     const fromSelect = document.getElementById('fromSource');
     const toSelect = document.getElementById('toSource');
     
-    // Aggiorna le opzioni "Da"
+    // Aggiorna le opzioni "Da" - solo profitti e bonus
     Array.from(fromSelect.options).forEach(option => {
         if (option.value) {
             const amount = window.portfolioData[option.value];
             const baseText = option.textContent.split(' (€')[0]; // Rimuove la parte esistente con l'importo
             option.textContent = `${baseText} (€${amount.toFixed(2)})`;
-            option.disabled = amount <= 0;
+            
+            // Solo profitti e bonus possono essere spostati
+            if (option.value === 'free_capital') {
+                option.disabled = true;
+                option.textContent = `${baseText} (€${amount.toFixed(2)}) - Non spostabile`;
+            } else {
+                option.disabled = amount <= 0;
+            }
         }
     });
     
-    // Aggiorna le opzioni "A"
+    // Aggiorna le opzioni "A" - solo capitale libero
     Array.from(toSelect.options).forEach(option => {
         if (option.value) {
             const amount = window.portfolioData[option.value];
             const baseText = option.textContent.split(' (€')[0]; // Rimuove la parte esistente con l'importo
             option.textContent = `${baseText} (€${amount.toFixed(2)})`;
+            
+            // Solo capitale libero può essere destinazione
+            if (option.value !== 'free_capital') {
+                option.disabled = true;
+                option.textContent = `${baseText} (€${amount.toFixed(2)}) - Non disponibile`;
+            }
         }
     });
 }
