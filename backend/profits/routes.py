@@ -87,13 +87,13 @@ def admin_create_project_sale():
                         'error': 'Progetto cancellato, non può essere venduto'
                     }), 400
                 
-                # 2. Ottieni tutti gli investimenti attivi per questo progetto
+                # 2. Ottieni tutti gli investimenti per questo progetto (esclusi completed e cancelled)
                 cur.execute("""
                     SELECT i.id, i.user_id, i.amount, i.status,
                            u.nome, u.cognome, u.email, u.referred_by
                     FROM investments i
                     JOIN users u ON u.id = i.user_id
-                    WHERE i.project_id = %s AND i.status = 'active'
+                    WHERE i.project_id = %s AND i.status NOT IN ('completed', 'cancelled')
                     ORDER BY i.created_at ASC
                 """, (project_id,))
                 investments = cur.fetchall()
@@ -101,7 +101,7 @@ def admin_create_project_sale():
                 if not investments:
                     return jsonify({
                         'success': False,
-                        'error': 'Nessun investimento attivo trovato per questo progetto'
+                        'error': 'Nessun investimento valido trovato per questo progetto'
                     }), 400
                 
                 # 3. Calcola la distribuzione del denaro
@@ -327,7 +327,7 @@ def admin_create_project_sale():
                     UPDATE investments 
                     SET status = 'completed', 
                         completed_at = NOW()
-                    WHERE project_id = %s AND status = 'active'
+                    WHERE project_id = %s AND status NOT IN ('completed', 'cancelled')
                 """, (project_id,))
                 
                 # Commit della transazione
@@ -394,13 +394,13 @@ def admin_cancel_project():
                         'error': 'Progetto non trovato o non attivo'
                     }), 404
                 
-                # 2. Ottieni tutti gli investimenti attivi per questo progetto
+                # 2. Ottieni tutti gli investimenti per questo progetto (esclusi completed e cancelled)
                 cur.execute("""
                     SELECT i.id, i.user_id, i.amount, i.status,
                            u.nome, u.cognome, u.email
                     FROM investments i
                     JOIN users u ON u.id = i.user_id
-                    WHERE i.project_id = %s AND i.status = 'active'
+                    WHERE i.project_id = %s AND i.status NOT IN ('completed', 'cancelled')
                     ORDER BY i.created_at ASC
                 """, (project_id,))
                 investments = cur.fetchall()
@@ -456,7 +456,7 @@ def admin_cancel_project():
                 cur.execute("""
                     UPDATE investments 
                     SET status = 'cancelled'
-                    WHERE project_id = %s AND status = 'active'
+                    WHERE project_id = %s AND status NOT IN ('completed', 'cancelled')
                 """, (project_id,))
                 
                 # Commit della transazione
