@@ -3342,9 +3342,9 @@ def wallet_dashboard():
                 """)
                 wallet_config = cur.fetchone()
                 if not wallet_config:
-    wallet_config = {
+                    wallet_config = {
                         'wallet_name': 'Wallet USDT',
-        'wallet_address': 'Non configurato',
+                        'wallet_address': 'Non configurato',
                         'network': 'BEP20',
                         'created_at': None,
                         'updated_at': None
