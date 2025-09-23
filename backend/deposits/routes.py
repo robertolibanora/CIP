@@ -28,6 +28,31 @@ def generate_unique_key(length=6):
 
 def generate_payment_reference(user_name=None, length=12):
     """Genera una causale bonifico unica usando il template configurato dall'admin"""
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            # Ottieni il template della causale configurato dall'admin
+            cur.execute("""
+                SELECT payment_reference 
+                FROM bank_configurations 
+                WHERE is_active = true 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """)
+            result = cur.fetchone()
+            
+            if result and result['payment_reference']:
+                template = result['payment_reference']
+                # Sostituisci {NOME_UTENTE} con il nome dell'utente se fornito
+                if user_name and '{NOME_UTENTE}' in template:
+                    return template.replace('{NOME_UTENTE}', user_name)
+                elif user_name:
+                    return template + f" - {user_name}"
+                else:
+                    return template
+    except Exception as e:
+        logger.error(f"Errore nel caricamento template causale: {e}")
+    
     # Fallback: genera una chiave randomica
     characters = string.ascii_uppercase + string.digits
     return ''.join(secrets.choice(characters) for _ in range(length))

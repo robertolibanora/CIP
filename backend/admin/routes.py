@@ -38,19 +38,19 @@ def ensure_admin_actions_table(cur):
         exists = cur.fetchone()[0]
         
         if not exists:
-            cur.execute(
-                """
+        cur.execute(
+            """
                 CREATE TABLE admin_actions (
-                    id SERIAL PRIMARY KEY,
-                    admin_id INT REFERENCES users(id) ON DELETE SET NULL,
-                    action TEXT NOT NULL,
-                    target_type TEXT NOT NULL,
-                    target_id INT NOT NULL,
-                    details TEXT,
-                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-                )
-                """
+                id SERIAL PRIMARY KEY,
+                admin_id INT REFERENCES users(id) ON DELETE SET NULL,
+                action TEXT NOT NULL,
+                target_type TEXT NOT NULL,
+                target_id INT NOT NULL,
+                details TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
+            """
+        )
     except Exception as e:
         # Log dell'errore ma non bloccare l'esecuzione
         print(f"Warning: Could not create admin_actions table: {e}")
@@ -58,7 +58,7 @@ def ensure_admin_actions_table(cur):
         try:
             cur.connection.rollback()
         except:
-            pass
+        pass
 
 # -----------------------------
 # ADMIN BLUEPRINT (protected)
@@ -3202,7 +3202,7 @@ def config_data():
     with get_conn() as conn, conn.cursor() as cur:
         # Configurazione bonifici
         cur.execute("""
-            SELECT bank_name, account_holder, iban, bic_swift, created_at, updated_at
+            SELECT bank_name, account_holder, iban, bic_swift, payment_reference, created_at, updated_at
             FROM bank_configurations 
             WHERE is_active = true 
             ORDER BY created_at DESC 
@@ -3212,14 +3212,14 @@ def config_data():
         
         # Configurazione wallet USDT
         try:
-            cur.execute("""
+        cur.execute("""
                 SELECT wallet_name, wallet_address, network, created_at, updated_at
-                FROM wallet_configurations 
-                WHERE is_active = true 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """)
-            wallet_config = cur.fetchone()
+            FROM wallet_configurations 
+            WHERE is_active = true 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """)
+        wallet_config = cur.fetchone()
         except:
             # Se la tabella non esiste ancora, usa valori di default
             wallet_config = {
@@ -3278,13 +3278,14 @@ def config_bank_save():
             # Inserisci nuova configurazione
             cur.execute("""
                 INSERT INTO bank_configurations 
-                (bank_name, account_holder, iban, bic_swift, created_by)
-                VALUES (%s, %s, %s, %s, %s)
+                (bank_name, account_holder, iban, bic_swift, payment_reference, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """, (
                 data.get('bank_name', ''),
                 data.get('account_holder', ''),
                 data.get('iban', ''),
                 data.get('bic_swift', ''),
+                data.get('payment_reference', ''),
                 session.get('user_id')
             ))
             
@@ -3318,9 +3319,9 @@ def wallet_dashboard():
                 """)
                 wallet_config = cur.fetchone()
                 if not wallet_config:
-                    wallet_config = {
+    wallet_config = {
                         'wallet_name': 'Wallet USDT',
-                        'wallet_address': 'Non configurato',
+        'wallet_address': 'Non configurato',
                         'network': 'BEP20',
                         'created_at': None,
                         'updated_at': None
@@ -3330,10 +3331,10 @@ def wallet_dashboard():
                     'wallet_name': 'Wallet USDT',
                     'wallet_address': 'Non configurato',
                     'network': 'BEP20',
-                    'created_at': None,
-                    'updated_at': None
-                }
-            
+        'created_at': None,
+        'updated_at': None
+    }
+    
             # Statistiche wallet reali
             cur.execute("""
                 SELECT 
@@ -3368,12 +3369,12 @@ def wallet_dashboard():
             'created_at': None,
             'updated_at': None
         }
-        wallet_stats = {
-            'total_balance': 0.0,
-            'pending_deposits': 0,
-            'completed_deposits': 0,
-            'total_deposits_amount': 0.0
-        }
+    wallet_stats = {
+        'total_balance': 0.0,
+        'pending_deposits': 0,
+        'completed_deposits': 0,
+        'total_deposits_amount': 0.0
+    }
     
     return render_template('admin/wallet/dashboard.html', 
                          wallet_config=wallet_config, 
@@ -4795,41 +4796,41 @@ def transactions_dashboard():
     except Exception as e:
         logger.error(f"Errore nel caricamento dashboard transazioni: {e}")
         # Valori di default in caso di errore
-        deposits_stats = {
-            'total_deposits': 0,
-            'total_deposit_amount': 0.0,
-            'completed_deposits': 0,
-            'completed_deposit_amount': 0.0,
-            'pending_deposits': 0,
-            'rejected_deposits': 0
-        }
-        withdrawals_stats = {
-            'total_withdrawals': 0,
-            'total_withdrawal_amount': 0.0,
-            'completed_withdrawals': 0,
-            'completed_withdrawal_amount': 0.0
-        }
-        portfolio_stats = {
-            'total_transactions': 0,
-            'total_transaction_amount': 0.0,
-            'deposit_transactions': 0,
-            'withdrawal_transactions': 0,
-            'investment_transactions': 0,
-            'roi_transactions': 0,
-            'referral_transactions': 0
-        }
-        sales_stats = {
-            'total_sales': 0,
-            'total_sales_amount': 0.0,
-            'total_profits': 0.0
-        }
-        capital_stats = {
-            'total_free_capital': 0.0,
-            'total_invested_capital': 0.0,
-            'total_referral_bonus': 0.0,
-            'total_profits': 0.0,
-            'total_capital': 0.0
-        }
+            deposits_stats = {
+                'total_deposits': 0,
+                'total_deposit_amount': 0.0,
+                'completed_deposits': 0,
+                'completed_deposit_amount': 0.0,
+                'pending_deposits': 0,
+                'rejected_deposits': 0
+            }
+            withdrawals_stats = {
+                'total_withdrawals': 0,
+                'total_withdrawal_amount': 0.0,
+                'completed_withdrawals': 0,
+                'completed_withdrawal_amount': 0.0
+            }
+            portfolio_stats = {
+                'total_transactions': 0,
+                'total_transaction_amount': 0.0,
+                'deposit_transactions': 0,
+                'withdrawal_transactions': 0,
+                'investment_transactions': 0,
+                'roi_transactions': 0,
+                'referral_transactions': 0
+            }
+            sales_stats = {
+                'total_sales': 0,
+                'total_sales_amount': 0.0,
+                'total_profits': 0.0
+            }
+            capital_stats = {
+                'total_free_capital': 0.0,
+                'total_invested_capital': 0.0,
+                'total_referral_bonus': 0.0,
+                'total_profits': 0.0,
+                'total_capital': 0.0
+            }
         return render_template('admin/transactions/dashboard.html',
                              deposits_stats=deposits_stats,
                              withdrawals_stats=withdrawals_stats,
