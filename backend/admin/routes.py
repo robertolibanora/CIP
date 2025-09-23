@@ -3648,7 +3648,7 @@ def investment_detail(iid):
 @admin_required
 def investment_confirm_wire(iid):
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute("UPDATE investments SET status='active', investment_date=NOW() WHERE id=%s", (iid,))
+        cur.execute("UPDATE investments SET status='active' WHERE id=%s", (iid,))
     return jsonify({"status": "active"})
 
 @admin_bp.post("/investments/<int:iid>/yield")

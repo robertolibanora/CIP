@@ -240,8 +240,8 @@ def invest_in_project():
             # 6. Esegui l'investimento
             # 6a. Crea il record di investimento
             cur.execute("""
-                INSERT INTO investments (user_id, project_id, amount, status, investment_date)
-                VALUES (%s, %s, %s, 'active', CURRENT_TIMESTAMP)
+                INSERT INTO investments (user_id, project_id, amount, status)
+                VALUES (%s, %s, %s, 'active')
                 RETURNING id
             """, (uid, project_id, amount))
             

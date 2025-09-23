@@ -136,12 +136,12 @@ def get_portfolio_section(section):
         investment_details = []
         if section == 'invested_capital':
             cur.execute("""
-                SELECT i.id, i.amount, i.percentage, i.status, i.investment_date,
+                SELECT i.id, i.amount, i.percentage, i.status, i.created_at as investment_date,
                        p.title as project_name, p.code as project_code
                 FROM investments i
                 JOIN projects p ON i.project_id = p.id
                 WHERE i.user_id = %s AND i.status = 'active'
-                ORDER BY i.investment_date DESC
+                ORDER BY i.created_at DESC
             """, (uid,))
             investment_details = cur.fetchall()
     
@@ -243,7 +243,7 @@ def get_transaction_detail(transaction_id):
         if transaction['reference_type'] and transaction['reference_id']:
             if transaction['reference_type'] == 'investment':
                 cur.execute("""
-                    SELECT i.amount, i.percentage, i.status, i.investment_date,
+                    SELECT i.amount, i.percentage, i.status, i.created_at as investment_date,
                            p.title as project_name, p.code as project_code
                     FROM investments i
                     JOIN projects p ON i.project_id = p.id

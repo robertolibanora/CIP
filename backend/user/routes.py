@@ -439,8 +439,8 @@ def invest(project_id):
             
             # Crea investimento
             cur.execute("""
-                INSERT INTO investments (user_id, project_id, amount, status, investment_date)
-                VALUES (%s, %s, %s, 'active', NOW())
+                INSERT INTO investments (user_id, project_id, amount, status)
+                VALUES (%s, %s, %s, 'active')
                 RETURNING id
             """, (uid, project_id, amount))
             investment_id = cur.fetchone()['id']

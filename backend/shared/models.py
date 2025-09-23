@@ -254,9 +254,8 @@ class Investment:
     percentage: Decimal
     status: InvestmentStatus
     roi_earned: Decimal
-    investment_date: datetime
-    completion_date: Optional[datetime]
     created_at: datetime
+    completion_date: Optional[datetime]
     updated_at: datetime
 
 @dataclass
