@@ -4791,7 +4791,48 @@ def transactions_dashboard():
         
     except Exception as e:
         logger.error(f"Errore nel caricamento dashboard transazioni: {e}")
+        # Valori di default in caso di errore
+        deposits_stats = {
+            'total_deposits': 0,
+            'total_deposit_amount': 0.0,
+            'completed_deposits': 0,
+            'completed_deposit_amount': 0.0,
+            'pending_deposits': 0,
+            'rejected_deposits': 0
+        }
+        withdrawals_stats = {
+            'total_withdrawals': 0,
+            'total_withdrawal_amount': 0.0,
+            'completed_withdrawals': 0,
+            'completed_withdrawal_amount': 0.0
+        }
+        portfolio_stats = {
+            'total_transactions': 0,
+            'total_transaction_amount': 0.0,
+            'deposit_transactions': 0,
+            'withdrawal_transactions': 0,
+            'investment_transactions': 0,
+            'roi_transactions': 0,
+            'referral_transactions': 0
+        }
+        sales_stats = {
+            'total_sales': 0,
+            'total_sales_amount': 0.0,
+            'total_profits': 0.0
+        }
+        capital_stats = {
+            'total_free_capital': 0.0,
+            'total_invested_capital': 0.0,
+            'total_referral_bonus': 0.0,
+            'total_profits': 0.0,
+            'total_capital': 0.0
+        }
         return render_template('admin/transactions/dashboard.html',
+                             deposits_stats=deposits_stats,
+                             withdrawals_stats=withdrawals_stats,
+                             portfolio_stats=portfolio_stats,
+                             sales_stats=sales_stats,
+                             capital_stats=capital_stats,
                              error="Errore nel caricamento dei dati")
 
 
