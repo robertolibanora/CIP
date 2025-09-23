@@ -341,39 +341,6 @@ def serve_project_file(filename):
     
     return send_from_directory(projects_folder, filename)
 
-@admin_bp.get("/projects/<int:pid>/sale-data")
-@admin_required
-def project_sale_data(pid):
-    """Ottiene i dati necessari per la vendita di un progetto"""
-    with get_conn() as conn, conn.cursor() as cur:
-        # Dettagli progetto
-        cur.execute("""
-            SELECT id, code, title, description, total_amount, funded_amount, 
-                   min_investment, status, created_at
-            FROM projects 
-            WHERE id = %s
-        """, (pid,))
-        project = cur.fetchone()
-        
-        if not project:
-            return jsonify({'error': 'Progetto non trovato'}), 404
-        
-        # Investimenti per questo progetto (tutti gli status)
-        cur.execute("""
-            SELECT i.id, i.amount, i.status, i.created_at,
-                   u.id as user_id, u.nome, u.cognome, u.email,
-                   CONCAT(u.nome, ' ', u.cognome) as user_name
-            FROM investments i
-            JOIN users u ON u.id = i.user_id
-            WHERE i.project_id = %s
-            ORDER BY i.created_at DESC
-        """, (pid,))
-        investments = cur.fetchall()
-        
-        return jsonify({
-            'project': project,
-            'investments': investments
-        })
 
 @admin_bp.get("/projects/<int:pid>/cancel-data")
 @admin_required
@@ -517,8 +484,6 @@ def projects_edit(pid):
         
         cur.execute(sql, params)
         
-        # NOTA: Gli investimenti rimangono attivi fino alla vendita effettiva
-        # La distribuzione profitti avviene solo durante la vendita, non quando il progetto viene marcato come "completed"
         
         conn.commit()
     
@@ -4697,17 +4662,10 @@ def transactions_dashboard():
             
             # 4. STATISTICHE VENDITE (se la tabella esiste)
             try:
-                cur.execute("""
-                    SELECT 
-                        COUNT(*) as total_sales,
-                        COALESCE(SUM(sale_amount), 0) as total_sales_amount
-                    FROM project_sales
-                """)
-                sales_data = cur.fetchone()
                 sales_stats = {
-                    'total_sales': sales_data['total_sales'] or 0,
-                    'total_sales_amount': float(sales_data['total_sales_amount'] or 0),
-                    'total_profits': 0.0  # Calcolato come differenza se necessario
+                    'total_sales': 0,
+                    'total_sales_amount': 0.0,
+                    'total_profits': 0.0
                 }
             except Exception as e:
                 logger.error(f"Errore nel caricamento statistiche vendite: {e}")
