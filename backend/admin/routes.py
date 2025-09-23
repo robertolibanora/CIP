@@ -3235,14 +3235,14 @@ def config_data():
         
         # Configurazione wallet USDT
         try:
-        cur.execute("""
+            cur.execute("""
                 SELECT wallet_name, wallet_address, network, created_at, updated_at
             FROM wallet_configurations 
             WHERE is_active = true 
             ORDER BY created_at DESC 
             LIMIT 1
         """)
-        wallet_config = cur.fetchone()
+            wallet_config = cur.fetchone()
         except:
             # Se la tabella non esiste ancora, usa valori di default
             wallet_config = {
