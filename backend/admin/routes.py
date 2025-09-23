@@ -3400,21 +3400,6 @@ def config_wallet_save():
     
     with get_conn() as conn, conn.cursor() as cur:
         try:
-            # Crea la tabella se non esiste
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS wallet_configurations (
-                    id SERIAL PRIMARY KEY,
-                    wallet_name VARCHAR(255) NOT NULL,
-                    wallet_address VARCHAR(255) NOT NULL,
-                    network VARCHAR(50) DEFAULT 'BEP20',
-                    qr_code_url VARCHAR(500),
-                    is_active BOOLEAN DEFAULT true,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL
-                )
-            """)
-            
             # Disattiva tutte le configurazioni precedenti
             cur.execute("UPDATE wallet_configurations SET is_active = false")
             
