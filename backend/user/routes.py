@@ -145,6 +145,12 @@ def dashboard():
             greet_name = nome_value.split()[0] if nome_value else "Utente"
             
             # Dati semplificati per compatibilità
+            free_capital = 0.00
+            invested_capital = 0.00
+            referral_bonus = 0.00
+            profits = 0.00
+            total_available = free_capital + referral_bonus + profits
+            total_balance = total_available + invested_capital
             avg_roi = 0.0
             portfolio_status = "Inattivo"
             active_investments_data = []
@@ -156,6 +162,12 @@ def dashboard():
                                    user=user_data,
                                    greet_name=greet_name,
                                    portfolio={},
+                                   free_capital=free_capital,
+                                   invested_capital=invested_capital,
+                                   referral_bonus=referral_bonus,
+                                   profits=profits,
+                                   total_available=total_available,
+                                   total_balance=total_balance,
                                    avg_roi=avg_roi,
                                    portfolio_status=portfolio_status,
                                    active_investments=active_investments_data,
