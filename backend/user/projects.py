@@ -98,8 +98,8 @@ def projects():
                 WHERE user_id = %s AND status = 'completed'
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
-            WHERE p.status = 'sold'
-            ORDER BY p.created_at DESC
+            WHERE p.sale_price IS NOT NULL AND p.sale_price > 0
+            ORDER BY p.sale_date DESC, p.created_at DESC
         """, (uid,))
         
         sold_projects = cur.fetchall()
@@ -129,7 +129,7 @@ def projects():
                 project['gallery_count'] = 1 if project.get('image_url') else 0
                 
                 # Calcola informazioni profitto per progetti venduti
-                if project['status'] == 'sold':
+                if project.get('sale_price') and project.get('sale_price', 0) > 0:
                     # Usa i valori dal database se disponibili, altrimenti default
                     project['sale_price'] = project.get('sale_price') or 0
                     project['sale_date'] = project.get('sale_date') or None

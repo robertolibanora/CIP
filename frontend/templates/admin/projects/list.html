@@ -37,7 +37,6 @@
                         <option value="">Tutti gli stati</option>
                         <option value="active">Attivo</option>
                         <option value="completed">Completato</option>
-                        <option value="sold">Venduto</option>
                         <option value="cancelled">Annullato</option>
                     </select>
                 </div>
@@ -1471,14 +1470,13 @@ class ProjectsManager {
             );
         }
         
-        // Ordinamento personalizzato: Attivi → Completati → Venduti → Altri
+        // Ordinamento personalizzato: Attivi → Completati → Annullati
         filtered.sort((a, b) => {
             // Prima ordina per status secondo la logica richiesta
             const statusOrder = {
                 'active': 1,
                 'completed': 2,
-                'sold': 3,
-                'cancelled': 4
+                'cancelled': 3
             };
             
             const aStatusOrder = statusOrder[a.status] || 99;
@@ -1533,14 +1531,12 @@ class ProjectsManager {
         const statusColors = {
             active: 'blue', 
             completed: 'purple',
-            sold: 'green',
             cancelled: 'red'
         };
         
         const statusLabels = {
             active: 'Attivo',
             completed: 'Completato',
-            sold: 'Venduto',
             cancelled: 'Annullato'
         };
         
@@ -1697,7 +1693,6 @@ class ProjectsManager {
             total: this.projects.length,
             active: this.projects.filter(p => p.status === 'active').length,
             completed: this.projects.filter(p => p.status === 'completed').length,
-            sold: this.projects.filter(p => p.status === 'sold').length,
             cancelled: this.projects.filter(p => p.status === 'cancelled').length
         };
         
@@ -1714,10 +1709,6 @@ class ProjectsManager {
                 <div class="flex justify-between">
                     <span class="admin-text-small">Completati:</span>
                     <span class="admin-badge admin-badge--success">${stats.completed}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="admin-text-small">Venduti:</span>
-                    <span class="admin-badge admin-badge--green">${stats.sold}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="admin-text-small">Cancellati:</span>

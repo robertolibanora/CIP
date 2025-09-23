@@ -131,7 +131,7 @@ def projects_list():
             CASE 
                 WHEN status = 'active' THEN 1
                 WHEN status = 'completed' THEN 2
-                WHEN status = 'sold' THEN 3
+                WHEN status = 'cancelled' THEN 3
                 ELSE 4
             END,
             created_at DESC"""
@@ -163,16 +163,12 @@ def projects_list():
         
         cur.execute("SELECT COUNT(*) as completed FROM projects WHERE status = 'completed'")
         projects_completed = cur.fetchone()['completed']
-        
-        cur.execute("SELECT COUNT(*) as sold FROM projects WHERE status = 'sold'")
-        projects_sold = cur.fetchone()['sold']
     
     metrics = {
         'projects_total': projects_total,
         'projects_active': projects_active,
         'projects_draft': projects_draft,
         'projects_completed': projects_completed,
-        'projects_sold': projects_sold,
         'projects_active': projects_active  # Per compatibilit con sidebar
     }
     
@@ -413,26 +409,6 @@ def project_cancel_data(pid):
             'investments': investments
         })
 
-@admin_bp.get("/projects/<int:pid>/delete-data")
-@admin_required
-def project_delete_data(pid):
-    """Ottiene i dati necessari per l'eliminazione di un progetto"""
-    with get_conn() as conn, conn.cursor() as cur:
-        # Dettagli progetto (solo se venduto)
-        cur.execute("""
-            SELECT id, code, name, description, total_amount, funded_amount, 
-                   min_investment, status, created_at
-            FROM projects 
-            WHERE id = %s AND status = 'sold'
-        """, (pid,))
-        project = cur.fetchone()
-        
-        if not project:
-            return jsonify({'error': 'Progetto non trovato o non venduto'}), 404
-        
-        return jsonify({
-            'project': project
-        })
 
 @admin_bp.get("/projects/<int:pid>")
 @admin_required
