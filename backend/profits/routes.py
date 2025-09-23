@@ -88,7 +88,6 @@ def admin_create_project_sale():
                     }), 400
                 
                 # 2. Ottieni tutti gli investimenti per questo progetto (esclusi completed e cancelled)
-                print(f"DEBUG: Cercando investimenti per progetto {project_id}")
                 cur.execute("""
                     SELECT i.id, i.user_id, i.amount, i.status,
                            u.nome, u.cognome, u.email, u.referred_by
@@ -98,10 +97,8 @@ def admin_create_project_sale():
                     ORDER BY i.created_at ASC
                 """, (project_id,))
                 investments = cur.fetchall()
-                print(f"DEBUG: Trovati {len(investments)} investimenti")
                 
                 if not investments:
-                    print(f"DEBUG: Nessun investimento trovato per progetto {project_id}")
                     return jsonify({
                         'success': False,
                         'error': 'Nessun investimento valido trovato per questo progetto'
