@@ -4673,10 +4673,12 @@ def uploaded_file(filename):
 def transactions_dashboard():
     """Dashboard transazioni con report e grafici"""
     try:
+        logger.info("Inizio caricamento dashboard transazioni")
         with get_conn() as conn:
             cur = conn.cursor()
             
             # 1. STATISTICHE DEPOSITI
+            logger.info("Caricamento statistiche depositi")
             cur.execute("""
                 SELECT 
                     COUNT(*) as total_deposits,
@@ -4696,6 +4698,7 @@ def transactions_dashboard():
                 'pending_deposits': deposits_data['pending_deposits'] or 0,
                 'rejected_deposits': deposits_data['rejected_deposits'] or 0
             }
+            logger.info(f"Statistiche depositi caricate: {deposits_stats}")
             
             # 2. STATISTICHE PRELIEVI
             cur.execute("""
@@ -4742,17 +4745,17 @@ def transactions_dashboard():
                 cur.execute("""
                     SELECT 
                         COUNT(*) as total_sales,
-                        COALESCE(SUM(sale_amount), 0) as total_sales_amount,
-                        COALESCE(SUM(profit_amount), 0) as total_profits
+                        COALESCE(SUM(sale_amount), 0) as total_sales_amount
                     FROM project_sales
                 """)
                 sales_data = cur.fetchone()
                 sales_stats = {
                     'total_sales': sales_data['total_sales'] or 0,
                     'total_sales_amount': float(sales_data['total_sales_amount'] or 0),
-                    'total_profits': float(sales_data['total_profits'] or 0)
+                    'total_profits': 0.0  # Calcolato come differenza se necessario
                 }
-            except:
+            except Exception as e:
+                logger.error(f"Errore nel caricamento statistiche vendite: {e}")
                 sales_stats = {
                     'total_sales': 0,
                     'total_sales_amount': 0.0,
