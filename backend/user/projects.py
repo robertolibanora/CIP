@@ -340,7 +340,7 @@ def get_user_funds(project_id):
             
             # Ottieni i dettagli del progetto
             cur.execute("""
-                SELECT id, name, total_amount, funded_amount, min_investment
+                SELECT id, title, total_amount, funded_amount, min_investment
                 FROM projects 
                 WHERE id = %s AND status = 'active'
             """, (project_id,))
@@ -360,7 +360,7 @@ def get_user_funds(project_id):
                 },
                 "project": {
                     "id": project['id'],
-                    "name": project['name'],
+                    "title": project['title'],
                     "min_investment": float(project['min_investment']),
                     "remaining_capacity": float(remaining_capacity)
                 }
