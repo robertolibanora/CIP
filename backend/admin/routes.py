@@ -448,7 +448,7 @@ def project_detail(pid):
             
             # Investimenti collegati
             cur.execute("""
-                SELECT i.id, i.amount, i.status, i.created_at, i.activated_at,
+                SELECT i.id, i.amount, i.status, i.created_at,
                        u.id as user_id, u.nome, u.email, u.kyc_status
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
