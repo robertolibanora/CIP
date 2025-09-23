@@ -42,7 +42,7 @@
                             <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.name }}" 
+                                         alt="Foto {{ project.title }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -66,7 +66,7 @@
                                                 Attivo
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
                                         {% if project.location %}
                                         <p class="text-gray-600 mb-3">
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@
                             <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.name }}" 
+                                         alt="Foto {{ project.title }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -201,7 +201,7 @@
                                                 Completato
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
                                         {% if project.location %}
                                         <p class="text-gray-600 mb-3">
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,7 +280,7 @@
                             <div class="w-full md:w-48 h-48 md:h-auto bg-gray-200 flex items-center justify-center">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.name }}" 
+                                         alt="Foto {{ project.title }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -303,7 +303,7 @@
                                                 Venduto
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
                                         {% if project.location %}
                                         <p class="text-gray-600 mb-3">
                                             <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
