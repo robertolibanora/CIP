@@ -68,7 +68,7 @@ def admin_create_project_sale():
             try:
                 # 1. Verifica che il progetto esista (può essere active, sold o completed)
                 cur.execute("""
-                    SELECT id, name, total_amount, funded_amount, status
+                    SELECT id, title, total_amount, funded_amount, status
                     FROM projects 
                     WHERE id = %s
                 """, (project_id,))
@@ -382,7 +382,7 @@ def admin_cancel_project():
             try:
                 # 1. Verifica che il progetto esista e sia attivo
                 cur.execute("""
-                    SELECT id, name, total_amount, funded_amount, status
+                    SELECT id, title, total_amount, funded_amount, status
                     FROM projects 
                     WHERE id = %s AND status = 'active'
                 """, (project_id,))
@@ -510,7 +510,7 @@ def admin_delete_project():
             try:
                 # 1. Verifica che il progetto esista e sia venduto
                 cur.execute("""
-                    SELECT id, name, status
+                    SELECT id, title, status
                     FROM projects 
                     WHERE id = %s AND status = 'sold'
                 """, (project_id,))
@@ -556,7 +556,7 @@ def admin_delete_project():
                 
                 return jsonify({
                     'success': True,
-                    'message': f'Progetto "{project["name"]}" eliminato permanentemente dal sistema.',
+                    'message': f'Progetto "{project["title"]}" eliminato permanentemente dal sistema.',
                     'project_id': project_id
                 })
                 
