@@ -2101,7 +2101,7 @@ def api_admin_user_portfolio(user_id: int):
         # Investimenti con nome progetto, importo e stato
         cur.execute(
             """
-            SELECT i.id, i.amount, i.status, i.created_at, p.name AS project_name
+            SELECT i.id, i.amount, i.status, i.created_at, p.title AS project_name
             FROM investments i
             LEFT JOIN projects p ON p.id = i.project_id
             WHERE i.user_id = %s
@@ -2933,7 +2933,7 @@ def generate_chart_data(cur, start_dt, end_dt, period):
     
     # Projects Performance (top 10 projects by RA)
     cur.execute("""
-        SELECT p.name, p.roi, 
+        SELECT p.title, p.roi, 
                (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) as volume,
                (SELECT COALESCE(SUM(amount), 0) FROM investments WHERE project_id = p.id) / p.total_amount * 100 as funding_percentage
         FROM projects p
@@ -2994,14 +2994,14 @@ def get_top_projects_performance(cur, start_dt, end_dt):
     """Ottiene top progetti per performance"""
     cur.execute("""
         SELECT 
-            p.id, p.code, p.name, p.roi, p.status, p.total_amount,
+            p.id, p.code, p.title, p.roi, p.status, p.total_amount,
             COALESCE(SUM(i.amount), 0) as volume,
             COUNT(DISTINCT i.user_id) as investors,
             COALESCE(SUM(i.amount), 0) / p.total_amount * 100 as funding_percentage
         FROM projects p
         LEFT JOIN investments i ON i.project_id = p.id AND i.status IN ('active', 'completed')
         WHERE p.created_at BETWEEN %s AND %s
-        GROUP BY p.id, p.code, p.name, p.roi, p.status, p.total_amount
+        GROUP BY p.id, p.code, p.title, p.roi, p.status, p.total_amount
         ORDER BY p.roi DESC, volume DESC
         LIMIT 10
     """, (start_dt, end_dt))
@@ -3468,7 +3468,7 @@ def user_detail_legacy(uid):
         cur.execute("SELECT id,email,nome,phone,address,role,kyc_status,currency_code,referral_code,referred_by FROM users WHERE id=%s", (uid,))
         u = cur.fetchone()
         cur.execute("""
-            SELECT i.id, p.name, i.amount, i.status, i.created_at
+            SELECT i.id, p.title, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s ORDER BY i.created_at DESC
         """, (uid,))
@@ -3529,7 +3529,7 @@ def investments_list():
     if project_id: q.append("i.project_id=%s"); params.append(project_id)
     where = ("WHERE "+" AND ".join(q)) if q else ""
     sql = f"""
-        SELECT i.id, u.nome, p.name, i.amount, i.status, i.created_at
+        SELECT i.id, u.nome, p.title, i.amount, i.status, i.created_at
         FROM investments i
         JOIN users u ON u.id=i.user_id
         JOIN projects p ON p.id=i.project_id
@@ -3546,7 +3546,7 @@ def investments_list():
 def investment_detail(iid):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.*, u.nome, p.name AS project_title
+            SELECT i.*, u.nome, p.title AS project_title
             FROM investments i
             JOIN users u ON u.id=i.user_id
             JOIN projects p ON p.id=i.project_id
@@ -3585,7 +3585,7 @@ def investment_add_yield(iid):
 def requests_queue():
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT r.id, u.nome, p.name AS project, r.amount, r.state, r.created_at
+            SELECT r.id, u.nome, p.title AS project, r.amount, r.state, r.created_at
             FROM investment_requests r
             JOIN users u ON u.id=r.user_id
             JOIN projects p ON p.id=r.project_id
