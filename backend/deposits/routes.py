@@ -43,13 +43,8 @@ def generate_payment_reference(user_name=None, length=12):
             
             if result and result['payment_reference']:
                 template = result['payment_reference']
-                # Sostituisci {NOME_UTENTE} con il nome dell'utente se fornito
-                if user_name and '{NOME_UTENTE}' in template:
-                    return template.replace('{NOME_UTENTE}', user_name)
-                elif user_name:
-                    return template + f" - {user_name}"
-                else:
-                    return template
+                # Usa il template così com'è, senza sostituire il nome utente
+                return template
     except Exception as e:
         logger.error(f"Errore nel caricamento template causale: {e}")
     
