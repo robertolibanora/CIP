@@ -113,10 +113,10 @@ def admin_create_project_sale():
                 
                 # 4. Crea record di vendita
                 cur.execute("""
-                    INSERT INTO project_sales (project_id, sale_amount, sale_date, roi_distributed)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO project_sales (project_id, sale_amount, roi_distributed)
+                    VALUES (%s, %s, %s)
                     RETURNING id
-                """, (project_id, sale_price, sale_date, 0))
+                """, (project_id, sale_price, 0))
                 sale_record = cur.fetchone()
                 sale_id = sale_record['id']
                 
