@@ -484,13 +484,13 @@ def admin_approve_withdrawal(request_id):
                     WHERE user_id = %s
                 """, (amount, withdrawal['user_id']))
             
-            # Registra transazione
+            # Registra transazione (importo negativo per prelievo)
             cur.execute("""
                 INSERT INTO portfolio_transactions (
                     user_id, type, amount, balance_before, balance_after,
                     description, reference_id, reference_type, status, created_at
                 ) VALUES (
-                    %s, 'withdrawal', %s, 0, 0, 
+                    %s, 'withdrawal', -%s, 0, 0, 
                     'Prelievo approvato da admin', %s, 'withdrawal_request', 'completed', NOW()
                 )
             """, (withdrawal['user_id'], amount, request_id))

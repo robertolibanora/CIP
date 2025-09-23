@@ -4749,7 +4749,8 @@ def transactions_dashboard():
             cur.execute("""
                 SELECT 
                     COUNT(*) as total_transactions,
-                    COALESCE(SUM(pt.amount), 0) as total_transaction_amount,
+                    COALESCE(SUM(CASE WHEN pt.type = 'deposit' THEN pt.amount ELSE 0 END), 0) as total_deposit_amount,
+                    COALESCE(SUM(CASE WHEN pt.type = 'withdrawal' THEN pt.amount ELSE 0 END), 0) as total_withdrawal_amount,
                     COUNT(CASE WHEN pt.type = 'deposit' THEN 1 END) as deposit_transactions,
                     COUNT(CASE WHEN pt.type = 'withdrawal' THEN 1 END) as withdrawal_transactions,
                     COUNT(CASE WHEN pt.type = 'investment' THEN 1 END) as investment_transactions,
@@ -4762,7 +4763,8 @@ def transactions_dashboard():
             portfolio_data = cur.fetchone()
             portfolio_stats = {
                 'total_transactions': portfolio_data['total_transactions'] or 0,
-                'total_transaction_amount': float(portfolio_data['total_transaction_amount'] or 0),
+                'total_deposit_amount': float(portfolio_data['total_deposit_amount'] or 0),
+                'total_withdrawal_amount': float(portfolio_data['total_withdrawal_amount'] or 0),
                 'deposit_transactions': portfolio_data['deposit_transactions'] or 0,
                 'withdrawal_transactions': portfolio_data['withdrawal_transactions'] or 0,
                 'investment_transactions': portfolio_data['investment_transactions'] or 0,
