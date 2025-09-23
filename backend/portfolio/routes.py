@@ -35,7 +35,7 @@ def get_investments():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.id, i.amount, i.status, i.created_at, p.name as project_title
+            SELECT i.id, i.amount, i.status, i.created_at, p.title as project_title
             FROM investments i 
             JOIN projects p ON p.id = i.project_id
             WHERE i.user_id = %s
@@ -52,7 +52,7 @@ def get_yields():
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT iy.amount, iy.period_end, p.name as project_title
+            SELECT iy.amount, iy.period_end, p.title as project_title
             FROM investment_yields iy
             JOIN investments i ON i.id = iy.investment_id
             JOIN projects p ON p.id = i.project_id

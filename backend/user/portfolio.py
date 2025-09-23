@@ -31,7 +31,7 @@ def portfolio():
     with get_conn() as conn, conn.cursor() as cur:
         # Investimenti per tab - TABELLE: investments + projects
         cur.execute("""
-            SELECT i.id, p.name AS project_title, i.amount, i.status, i.created_at
+            SELECT i.id, p.title AS project_title, i.amount, i.status, i.created_at
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.user_id=%s AND i.status = ANY(%s)
             ORDER BY i.created_at DESC
@@ -93,7 +93,7 @@ def portfolio_detail(investment_id):
     with get_conn() as conn, conn.cursor() as cur:
         # Dettaglio investimento - TABELLE: investments + projects
         cur.execute("""
-            SELECT i.*, p.name AS project_title
+            SELECT i.*, p.title AS project_title
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.id=%s AND i.user_id=%s
         """, (investment_id, uid))

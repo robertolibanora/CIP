@@ -41,7 +41,7 @@ def projects():
         
         # 2. PROGETTI ATTIVI (dove si può investire)
         cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+            SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
                    COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
@@ -64,7 +64,7 @@ def projects():
         
         # 2. PROGETTI COMPLETATI (non si può più investire, in attesa vendita)
         cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+            SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
                    COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
@@ -85,7 +85,7 @@ def projects():
         
         # 3. PROGETTI VENDUTI (con informazioni sui profitti)
         cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+            SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.address, p.min_investment,
                    COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,

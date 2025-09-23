@@ -31,7 +31,7 @@ def new_project():
     with get_conn() as conn, conn.cursor() as cur:
         # Progetti disponibili - TABELLA: projects
         cur.execute("""
-            SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+            SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code
             FROM projects p 
             WHERE p.status = 'active'

@@ -195,7 +195,7 @@ def projects():
     try:
         with get_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+                SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code, p.address, p.min_investment
                 FROM projects p 
                 WHERE p.status = 'active'
@@ -279,7 +279,7 @@ def new_project():
             
             # 5. PROGETTI DISPONIBILI
             cur.execute("""
-                SELECT p.id, p.name, p.description, p.total_amount, p.funded_amount,
+                SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
                        p.status, p.created_at, p.code, p.address, p.min_investment
                 FROM projects p 
                 WHERE p.status = 'active'
@@ -495,7 +495,7 @@ def portfolio():
         with get_conn() as conn, conn.cursor() as cur:
             # Ottieni investimenti (raggruppati per progetto)
             cur.execute("""
-                SELECT p.id as project_id, p.name AS project_title, 
+                SELECT p.id as project_id, p.title AS project_title, 
                        SUM(i.amount) as total_amount, 
                        i.status, 
                        MIN(i.created_at) as first_investment_date,
@@ -504,7 +504,7 @@ def portfolio():
                 FROM investments i 
                 JOIN projects p ON p.id=i.project_id
                 WHERE i.user_id=%s AND i.status = ANY(%s)
-                GROUP BY p.id, p.name, i.status
+                GROUP BY p.id, p.title, i.status
                 ORDER BY MAX(i.created_at) DESC
             """, (uid, list(statuses)))
             rows = cur.fetchall()
@@ -674,7 +674,7 @@ def portfolio_detail(investment_id):
     
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT i.*, p.name AS project_title
+            SELECT i.*, p.title AS project_title
             FROM investments i JOIN projects p ON p.id=i.project_id
             WHERE i.id=%s AND i.user_id=%s
         """, (investment_id, uid))
