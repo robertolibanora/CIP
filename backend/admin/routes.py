@@ -352,7 +352,7 @@ def project_sale_data(pid):
     with get_conn() as conn, conn.cursor() as cur:
         # Dettagli progetto
         cur.execute("""
-            SELECT id, code, name, description, total_amount, funded_amount, 
+            SELECT id, code, title, description, total_amount, funded_amount, 
                    min_investment, status, created_at
             FROM projects 
             WHERE id = %s
@@ -386,7 +386,7 @@ def project_cancel_data(pid):
     with get_conn() as conn, conn.cursor() as cur:
         # Dettagli progetto (solo se attivo)
         cur.execute("""
-            SELECT id, code, name, description, total_amount, funded_amount, 
+            SELECT id, code, title, description, total_amount, funded_amount, 
                    min_investment, status, created_at
             FROM projects 
             WHERE id = %s AND status = 'active'
