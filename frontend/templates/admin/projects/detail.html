@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- Loading State -->
-<div id="page-loading" class="text-center py-12">
+<div id="page-loading" class="text-center py-12" data-project-id="{{ project_id }}">
     <div class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-gray-500 bg-white">
         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -898,24 +898,8 @@ async function updateInvestmentAmount(investmentId, userId, newAmount, originalA
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    const projectId = {{ project_id }};
+    const projectId = parseInt(document.getElementById('page-loading').getAttribute('data-project-id'));
     projectDetailManager = new ProjectDetailManager(projectId);
-    
-    // Rimuovi forzatamente l'opzione "Venduto" dal dropdown se presente
-    const statusSelect = document.getElementById('field-status');
-    if (statusSelect) {
-        const soldOption = statusSelect.querySelector('option[value="sold"]');
-        if (soldOption) {
-            soldOption.remove();
-        }
-        
-        // Rimuovi anche opzioni con testo "Venduto"
-        Array.from(statusSelect.options).forEach(option => {
-            if (option.textContent.trim() === 'Venduto') {
-                option.remove();
-            }
-        });
-    }
 });
 </script>
 {% endblock %}
