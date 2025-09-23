@@ -190,7 +190,7 @@ def invest_in_project():
         with get_conn() as conn, conn.cursor() as cur:
             # 1. Verifica che il progetto esista e sia attivo
             cur.execute("""
-                SELECT id, name, total_amount, funded_amount, min_investment
+                SELECT id, title, total_amount, funded_amount, min_investment
                 FROM projects 
                 WHERE id = %s AND status = 'active'
             """, (project_id,))

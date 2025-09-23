@@ -626,7 +626,7 @@ def projects_delete(pid):
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Ottieni dettagli progetto
-            cur.execute("SELECT id, name, funded_amount FROM projects WHERE id=%s", (pid,))
+            cur.execute("SELECT id, title, funded_amount FROM projects WHERE id=%s", (pid,))
             project = cur.fetchone()
             
             if not project:
@@ -3035,7 +3035,7 @@ def get_top_projects_performance(cur, start_dt, end_dt):
         {
             'id': project['id'],
             'code': project['code'],
-            'name': project['name'],
+            'name': project['title'],
             'roi': float(project['roi']) if project['roi'] else 0,
             'volume': float(project['volume']),
             'investors': project['investors'],
@@ -3130,7 +3130,7 @@ def export_analytics_csv(analytics_data, export_type):
         for project in analytics_data.get('top_projects', []):
             writer.writerow([
                 project['code'],
-                project['name'],
+                project['title'],
                 project['roi'],
                 project['volume'],
                 project['investors'],
