@@ -106,21 +106,32 @@
 
 
 
-    <!-- Azioni rapide -->
+    <!-- Pulsanti principali -->
     <div class="px-6 pb-8">
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <a href="{{ url_for('user.new_project') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-4 rounded-xl text-center transition-all duration-300">
-                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {% if user.get('kyc_status') == 'verified' %}
+            <a href="{{ url_for('user.portfolio') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-8 rounded-xl text-center transition-all duration-300 shadow-lg hover:shadow-xl">
+                <svg class="w-8 h-8 inline mr-3 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
-                Investi Ora
+                <div class="text-xl font-semibold">Investi Ora</div>
+                <div class="text-sm opacity-90 mt-1">Gestisci il tuo portafoglio</div>
             </a>
-            <a href="{{ url_for('user.projects') }}" class="bg-green-100 hover:bg-green-200 text-green-700 font-medium p-4 rounded-xl text-center transition-all duration-300">
-                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% else %}
+            <a href="{{ url_for('user.kyc') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-8 rounded-xl text-center transition-all duration-300 shadow-lg hover:shadow-xl">
+                <svg class="w-8 h-8 inline mr-3 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="text-xl font-semibold">Completa KYC</div>
+                <div class="text-sm opacity-90 mt-1">Verifica la tua identità per investire</div>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('user.projects') }}" class="bg-green-100 hover:bg-green-200 text-green-700 font-medium p-8 rounded-xl text-center transition-all duration-300 shadow-lg hover:shadow-xl">
+                <svg class="w-8 h-8 inline mr-3 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
-                Progetti
+                <div class="text-xl font-semibold">Progetti</div>
+                <div class="text-sm opacity-70 mt-1">Esplora le opportunità di investimento</div>
             </a>
         </div>
     </div>
