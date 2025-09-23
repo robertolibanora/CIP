@@ -38,8 +38,8 @@ def ensure_admin_actions_table(cur):
         exists = cur.fetchone()[0]
         
         if not exists:
-        cur.execute(
-            """
+            cur.execute(
+                """
                 CREATE TABLE admin_actions (
                 id SERIAL PRIMARY KEY,
                 admin_id INT REFERENCES users(id) ON DELETE SET NULL,
@@ -50,7 +50,7 @@ def ensure_admin_actions_table(cur):
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
             """
-        )
+            )
     except Exception as e:
         # Log dell'errore ma non bloccare l'esecuzione
         print(f"Warning: Could not create admin_actions table: {e}")
@@ -58,7 +58,7 @@ def ensure_admin_actions_table(cur):
         try:
             cur.connection.rollback()
         except:
-        pass
+            pass
 
 # -----------------------------
 # ADMIN BLUEPRINT (protected)
