@@ -3211,14 +3211,24 @@ def config_data():
         bank_config = cur.fetchone()
         
         # Configurazione wallet USDT
-        cur.execute("""
-            SELECT wallet_address, network, created_at, updated_at
-            FROM wallet_configurations 
-            WHERE is_active = true 
-            ORDER BY created_at DESC 
-            LIMIT 1
-        """)
-        wallet_config = cur.fetchone()
+        try:
+            cur.execute("""
+                SELECT wallet_name, wallet_address, network, created_at, updated_at
+                FROM wallet_configurations 
+                WHERE is_active = true 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """)
+            wallet_config = cur.fetchone()
+        except:
+            # Se la tabella non esiste ancora, usa valori di default
+            wallet_config = {
+                'wallet_name': 'Wallet USDT',
+                'wallet_address': 'Non configurato',
+                'network': 'BEP20',
+                'created_at': None,
+                'updated_at': None
+            }
         
         # Configurazioni generali
         cur.execute("""
@@ -3296,21 +3306,75 @@ def config_bank_save():
 @admin_required
 def wallet_dashboard():
     """Dashboard Wallet CIP"""
-    # Configurazione wallet di default (tabelle non implementate)
-    wallet_config = {
-        'wallet_address': 'Non configurato',
-        'network': 'USDT',
-        'created_at': None,
-        'updated_at': None
-    }
-    
-    # Statistiche wallet di default
-    wallet_stats = {
-        'total_balance': 0.0,
-        'pending_deposits': 0,
-        'completed_deposits': 0,
-        'total_deposits_amount': 0.0
-    }
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Configurazione wallet
+            try:
+                cur.execute("""
+                    SELECT wallet_name, wallet_address, network, created_at, updated_at
+                    FROM wallet_configurations 
+                    WHERE is_active = true 
+                    ORDER BY created_at DESC 
+                    LIMIT 1
+                """)
+                wallet_config = cur.fetchone()
+                if not wallet_config:
+                    wallet_config = {
+                        'wallet_name': 'Wallet USDT',
+                        'wallet_address': 'Non configurato',
+                        'network': 'BEP20',
+                        'created_at': None,
+                        'updated_at': None
+                    }
+            except:
+                wallet_config = {
+                    'wallet_name': 'Wallet USDT',
+                    'wallet_address': 'Non configurato',
+                    'network': 'BEP20',
+                    'created_at': None,
+                    'updated_at': None
+                }
+            
+            # Statistiche wallet reali
+            cur.execute("""
+                SELECT 
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_deposits,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_deposits,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_deposits_amount
+                FROM deposit_requests
+            """)
+            stats_data = cur.fetchone()
+            
+            # Calcola bilancio totale dai portafogli utenti
+            cur.execute("""
+                SELECT 
+                    COALESCE(SUM(free_capital + invested_capital + referral_bonus + profits), 0) as total_balance
+                FROM user_portfolios
+            """)
+            balance_data = cur.fetchone()
+            
+            wallet_stats = {
+                'total_balance': float(balance_data['total_balance'] or 0),
+                'pending_deposits': stats_data['pending_deposits'] or 0,
+                'completed_deposits': stats_data['completed_deposits'] or 0,
+                'total_deposits_amount': float(stats_data['total_deposits_amount'] or 0)
+            }
+            
+    except Exception as e:
+        print(f"Errore wallet dashboard: {e}")
+        wallet_config = {
+            'wallet_name': 'Wallet USDT',
+            'wallet_address': 'Non configurato',
+            'network': 'BEP20',
+            'created_at': None,
+            'updated_at': None
+        }
+        wallet_stats = {
+            'total_balance': 0.0,
+            'pending_deposits': 0,
+            'completed_deposits': 0,
+            'total_deposits_amount': 0.0
+        }
     
     return render_template('admin/wallet/dashboard.html', 
                          wallet_config=wallet_config, 
@@ -3337,6 +3401,21 @@ def config_wallet_save():
     
     with get_conn() as conn, conn.cursor() as cur:
         try:
+            # Crea la tabella se non esiste
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS wallet_configurations (
+                    id SERIAL PRIMARY KEY,
+                    wallet_name VARCHAR(255) NOT NULL,
+                    wallet_address VARCHAR(255) NOT NULL,
+                    network VARCHAR(50) DEFAULT 'BEP20',
+                    qr_code_url VARCHAR(500),
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+                )
+            """)
+            
             # Disattiva tutte le configurazioni precedenti
             cur.execute("UPDATE wallet_configurations SET is_active = false")
             
