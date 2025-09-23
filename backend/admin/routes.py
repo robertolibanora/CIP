@@ -362,14 +362,14 @@ def project_sale_data(pid):
         if not project:
             return jsonify({'error': 'Progetto non trovato'}), 404
         
-        # Investimenti attivi per questo progetto
+        # Investimenti per questo progetto (tutti gli status)
         cur.execute("""
             SELECT i.id, i.amount, i.status, i.created_at,
                    u.id as user_id, u.nome, u.cognome, u.email,
                    CONCAT(u.nome, ' ', u.cognome) as user_name
             FROM investments i
             JOIN users u ON u.id = i.user_id
-            WHERE i.project_id = %s AND i.status = 'active'
+            WHERE i.project_id = %s
             ORDER BY i.created_at DESC
         """, (pid,))
         investments = cur.fetchall()
@@ -1000,63 +1000,6 @@ def portfolio_timeline():
             "total_capital": total_capital_timeline,
             "invested_capital": invested_capital_timeline
         })
-
-    
-    required_fields = ['user_id', 'type', 'section', 'amount', 'description']
-    for field in required_fields:
-        if not data.get(field):
-            return jsonify({"error": f"Campo {field} obbligatorio"}), 400
-    
-    user_id = int(data['user_id'])
-    movement_type = data['type']
-    section = data['section']
-    amount = float(data['amount'])
-    description = data['description']
-    admin_notes = data.get('admin_notes', '')
-    
-    # Validation
-    if amount <= 0:
-        return jsonify({"error": "L'importo deve essere positivo"}), 400
-    
-    # Adjust amount for withdrawals
-    if movement_type in ['withdrawal']:
-        amount = -amount
-    
-    with get_conn() as conn, conn.cursor() as cur:
-        # Verifica esistenza utente e portfolio
-        cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        if not cur.fetchone():
-            return jsonify({"error": "Utente non trovato"}), 404
-        
-        # Crea portfolio se non esiste
-        cur.execute("""
-            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
-            VALUES (%s, 0, 0, 0, 0)
-            ON CONFLICT (user_id) DO NOTHING
-        """, (user_id,))
-        
-        # Aggiorna sezione portfolio
-        cur.execute(f"""
-            UPDATE user_portfolios 
-            SET {section} = {section} + %s, updated_at = NOW()
-            WHERE user_id = %s
-        """, (amount, user_id))
-        
-        # Registra transazione
-        cur.execute("""
-            INSERT INTO portfolio_transactions 
-            (user_id, type, amount, description, section, admin_notes, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            RETURNING id
-        """, (user_id, movement_type, amount, description, section, admin_notes))
-        
-        transaction_id = cur.fetchone()['id']
-    
-    return jsonify({
-        "success": True,
-        "transaction_id": transaction_id,
-        "message": "Movimento creato con successo"
-    })
 
 @admin_bp.get("/projects/export")
 @admin_required
