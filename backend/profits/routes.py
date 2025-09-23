@@ -24,10 +24,10 @@ from backend.auth.decorators import login_required, kyc_verified, admin_required
 
 def get_first_code_user_id():
     """
-    Restituisce l'ID di Mark Trapella (primo codice) che riceve i bonus
+    Restituisce l'ID di Cip (primo codice) che riceve i bonus
     quando non ci sono referrer o quando i referrer non sono VIP
     """
-    return 3  # ID di Mark Trapella nel database
+    return 2  # ID di Cip nel database
 
 @profits_bp.route('/admin/project-sale', methods=['POST'])
 @admin_required
