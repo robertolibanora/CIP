@@ -3202,7 +3202,7 @@ def config_data():
     with get_conn() as conn, conn.cursor() as cur:
         # Configurazione bonifici
         cur.execute("""
-            SELECT bank_name, account_holder, iban, bic_swift, payment_reference, created_at, updated_at
+            SELECT bank_name, account_holder, iban, bic_swift, created_at, updated_at
             FROM bank_configurations 
             WHERE is_active = true 
             ORDER BY created_at DESC 
@@ -3278,14 +3278,13 @@ def config_bank_save():
             # Inserisci nuova configurazione
             cur.execute("""
                 INSERT INTO bank_configurations 
-                (bank_name, account_holder, iban, bic_swift, payment_reference, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (bank_name, account_holder, iban, bic_swift, created_by)
+                VALUES (%s, %s, %s, %s, %s)
             """, (
                 data.get('bank_name', ''),
                 data.get('account_holder', ''),
                 data.get('iban', ''),
                 data.get('bic_swift', ''),
-                data.get('payment_reference', 'Deposito CIP - {NOME_UTENTE}'),
                 session.get('user_id')
             ))
             
