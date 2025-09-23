@@ -2439,10 +2439,33 @@ def api_admin_delete_user(user_id: int):
                     (user_id,)
                 )
 
-            # Elimina record correlati essenziali (investments, portfolio) e infine l'utente
+            # Elimina TUTTI i record correlati all'utente (cancellazione completa)
+            # 1. Elimina transazioni e richieste
+            cur.execute("DELETE FROM portfolio_transactions WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM deposit_requests WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM withdrawal_requests WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM investment_requests WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM kyc_requests WHERE user_id = %s", (user_id,))
+            
+            # 2. Elimina investimenti e portfolio
             cur.execute("DELETE FROM investments WHERE user_id = %s", (user_id,))
-            # cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))  # Rimuovo per problemi di permessi
             cur.execute("DELETE FROM user_portfolios WHERE user_id = %s", (user_id,))
+            
+            # 3. Elimina documenti e notifiche
+            cur.execute("DELETE FROM documents WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM notifications WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM admin_notifications WHERE user_id = %s", (user_id,))
+            
+            # 4. Elimina codici referral
+            cur.execute("DELETE FROM referral_codes WHERE user_id = %s", (user_id,))
+            
+            # 5. Aggiorna riferimenti in altre tabelle (set NULL per created_by, approved_by)
+            cur.execute("UPDATE bank_configurations SET created_by = NULL WHERE created_by = %s", (user_id,))
+            cur.execute("UPDATE wallet_configurations SET created_by = NULL WHERE created_by = %s", (user_id,))
+            cur.execute("UPDATE deposit_requests SET approved_by = NULL WHERE approved_by = %s", (user_id,))
+            cur.execute("UPDATE withdrawal_requests SET approved_by = NULL WHERE approved_by = %s", (user_id,))
+            
+            # 6. Infine elimina l'utente stesso
             cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
 
         return jsonify({'success': True, 'message': 'Utente eliminato'})
@@ -4678,17 +4701,19 @@ def transactions_dashboard():
         with get_conn() as conn:
             cur = conn.cursor()
             
-            # 1. STATISTICHE DEPOSITI
+            # 1. STATISTICHE DEPOSITI (solo utenti attivi)
             logger.info("Caricamento statistiche depositi")
             cur.execute("""
                 SELECT 
                     COUNT(*) as total_deposits,
-                    COALESCE(SUM(amount), 0) as total_deposit_amount,
-                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_deposits,
-                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_deposit_amount,
-                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_deposits,
-                    COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_deposits
-                FROM deposit_requests
+                    COALESCE(SUM(dr.amount), 0) as total_deposit_amount,
+                    COUNT(CASE WHEN dr.status = 'completed' THEN 1 END) as completed_deposits,
+                    COALESCE(SUM(CASE WHEN dr.status = 'completed' THEN dr.amount ELSE 0 END), 0) as completed_deposit_amount,
+                    COUNT(CASE WHEN dr.status = 'pending' THEN 1 END) as pending_deposits,
+                    COUNT(CASE WHEN dr.status = 'rejected' THEN 1 END) as rejected_deposits
+                FROM deposit_requests dr
+                INNER JOIN users u ON dr.user_id = u.id
+                WHERE u.id IS NOT NULL
             """)
             deposits_data = cur.fetchone()
             deposits_stats = {
@@ -4701,14 +4726,16 @@ def transactions_dashboard():
             }
             logger.info(f"Statistiche depositi caricate: {deposits_stats}")
             
-            # 2. STATISTICHE PRELIEVI
+            # 2. STATISTICHE PRELIEVI (solo utenti attivi)
             cur.execute("""
                 SELECT 
                     COUNT(*) as total_withdrawals,
-                    COALESCE(SUM(amount), 0) as total_withdrawal_amount,
-                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_withdrawals,
-                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_withdrawal_amount
-                FROM withdrawal_requests
+                    COALESCE(SUM(wr.amount), 0) as total_withdrawal_amount,
+                    COUNT(CASE WHEN wr.status = 'completed' THEN 1 END) as completed_withdrawals,
+                    COALESCE(SUM(CASE WHEN wr.status = 'completed' THEN wr.amount ELSE 0 END), 0) as completed_withdrawal_amount
+                FROM withdrawal_requests wr
+                INNER JOIN users u ON wr.user_id = u.id
+                WHERE u.id IS NOT NULL
             """)
             withdrawals_data = cur.fetchone()
             withdrawals_stats = {
@@ -4718,17 +4745,19 @@ def transactions_dashboard():
                 'completed_withdrawal_amount': float(withdrawals_data['completed_withdrawal_amount'] or 0)
             }
             
-            # 3. STATISTICHE PORTFOLIO
+            # 3. STATISTICHE PORTFOLIO (solo utenti attivi)
             cur.execute("""
                 SELECT 
                     COUNT(*) as total_transactions,
-                    COALESCE(SUM(amount), 0) as total_transaction_amount,
-                    COUNT(CASE WHEN type = 'deposit' THEN 1 END) as deposit_transactions,
-                    COUNT(CASE WHEN type = 'withdrawal' THEN 1 END) as withdrawal_transactions,
-                    COUNT(CASE WHEN type = 'investment' THEN 1 END) as investment_transactions,
-                    COUNT(CASE WHEN type = 'roi' THEN 1 END) as roi_transactions,
-                    COUNT(CASE WHEN type = 'referral' THEN 1 END) as referral_transactions
-                FROM portfolio_transactions
+                    COALESCE(SUM(pt.amount), 0) as total_transaction_amount,
+                    COUNT(CASE WHEN pt.type = 'deposit' THEN 1 END) as deposit_transactions,
+                    COUNT(CASE WHEN pt.type = 'withdrawal' THEN 1 END) as withdrawal_transactions,
+                    COUNT(CASE WHEN pt.type = 'investment' THEN 1 END) as investment_transactions,
+                    COUNT(CASE WHEN pt.type = 'roi' THEN 1 END) as roi_transactions,
+                    COUNT(CASE WHEN pt.type = 'referral' THEN 1 END) as referral_transactions
+                FROM portfolio_transactions pt
+                INNER JOIN users u ON pt.user_id = u.id
+                WHERE u.id IS NOT NULL
             """)
             portfolio_data = cur.fetchone()
             portfolio_stats = {
@@ -4763,14 +4792,16 @@ def transactions_dashboard():
                     'total_profits': 0.0
                 }
             
-            # 5. STATISTICHE CAPITALE TOTALE
+            # 5. STATISTICHE CAPITALE TOTALE (solo utenti attivi)
             cur.execute("""
                 SELECT 
-                    COALESCE(SUM(free_capital), 0) as total_free_capital,
-                    COALESCE(SUM(invested_capital), 0) as total_invested_capital,
-                    COALESCE(SUM(referral_bonus), 0) as total_referral_bonus,
-                    COALESCE(SUM(profits), 0) as total_profits
-                FROM user_portfolios
+                    COALESCE(SUM(up.free_capital), 0) as total_free_capital,
+                    COALESCE(SUM(up.invested_capital), 0) as total_invested_capital,
+                    COALESCE(SUM(up.referral_bonus), 0) as total_referral_bonus,
+                    COALESCE(SUM(up.profits), 0) as total_profits
+                FROM user_portfolios up
+                INNER JOIN users u ON up.user_id = u.id
+                WHERE u.id IS NOT NULL
             """)
             capital_data = cur.fetchone()
             total_capital = (float(capital_data['total_free_capital'] or 0) + 
