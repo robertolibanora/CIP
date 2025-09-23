@@ -4613,49 +4613,110 @@ def transactions_dashboard():
         with get_conn() as conn:
             cur = conn.cursor()
             
-            # 1. STATISTICHE GENERALI - Valori di default (tabelle non implementate)
+            # 1. STATISTICHE DEPOSITI
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_deposits,
+                    COALESCE(SUM(amount), 0) as total_deposit_amount,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_deposits,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_deposit_amount,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_deposits,
+                    COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected_deposits
+                FROM deposit_requests
+            """)
+            deposits_data = cur.fetchone()
             deposits_stats = {
-                'total_deposits': 0,
-                'total_deposit_amount': 0.0,
-                'completed_deposits': 0,
-                'completed_deposit_amount': 0.0,
-                'pending_deposits': 0,
-                'rejected_deposits': 0
+                'total_deposits': deposits_data['total_deposits'] or 0,
+                'total_deposit_amount': float(deposits_data['total_deposit_amount'] or 0),
+                'completed_deposits': deposits_data['completed_deposits'] or 0,
+                'completed_deposit_amount': float(deposits_data['completed_deposit_amount'] or 0),
+                'pending_deposits': deposits_data['pending_deposits'] or 0,
+                'rejected_deposits': deposits_data['rejected_deposits'] or 0
             }
             
-            # Prelievi totali - Valori di default
+            # 2. STATISTICHE PRELIEVI
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_withdrawals,
+                    COALESCE(SUM(amount), 0) as total_withdrawal_amount,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_withdrawals,
+                    COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as completed_withdrawal_amount
+                FROM withdrawal_requests
+            """)
+            withdrawals_data = cur.fetchone()
             withdrawals_stats = {
-                'total_withdrawals': 0,
-                'total_withdrawal_amount': 0.0,
-                'completed_withdrawals': 0,
-                'completed_withdrawal_amount': 0.0
+                'total_withdrawals': withdrawals_data['total_withdrawals'] or 0,
+                'total_withdrawal_amount': float(withdrawals_data['total_withdrawal_amount'] or 0),
+                'completed_withdrawals': withdrawals_data['completed_withdrawals'] or 0,
+                'completed_withdrawal_amount': float(withdrawals_data['completed_withdrawal_amount'] or 0)
             }
             
-            # Transazioni portfolio - Valori di default
+            # 3. STATISTICHE PORTFOLIO
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_transactions,
+                    COALESCE(SUM(amount), 0) as total_transaction_amount,
+                    COUNT(CASE WHEN type = 'deposit' THEN 1 END) as deposit_transactions,
+                    COUNT(CASE WHEN type = 'withdrawal' THEN 1 END) as withdrawal_transactions,
+                    COUNT(CASE WHEN type = 'investment' THEN 1 END) as investment_transactions,
+                    COUNT(CASE WHEN type = 'roi' THEN 1 END) as roi_transactions,
+                    COUNT(CASE WHEN type = 'referral' THEN 1 END) as referral_transactions
+                FROM portfolio_transactions
+            """)
+            portfolio_data = cur.fetchone()
             portfolio_stats = {
-                'total_transactions': 0,
-                'total_transaction_amount': 0.0,
-                'deposit_transactions': 0,
-                'withdrawal_transactions': 0,
-                'investment_transactions': 0,
-                'roi_transactions': 0,
-                'referral_transactions': 0
+                'total_transactions': portfolio_data['total_transactions'] or 0,
+                'total_transaction_amount': float(portfolio_data['total_transaction_amount'] or 0),
+                'deposit_transactions': portfolio_data['deposit_transactions'] or 0,
+                'withdrawal_transactions': portfolio_data['withdrawal_transactions'] or 0,
+                'investment_transactions': portfolio_data['investment_transactions'] or 0,
+                'roi_transactions': portfolio_data['roi_transactions'] or 0,
+                'referral_transactions': portfolio_data['referral_transactions'] or 0
             }
             
-            # Guadagni da vendite - Valori di default
-            sales_stats = {
-                'total_sales': 0,
-                'total_sales_amount': 0.0,
-                'total_profits': 0.0
-            }
+            # 4. STATISTICHE VENDITE (se la tabella esiste)
+            try:
+                cur.execute("""
+                    SELECT 
+                        COUNT(*) as total_sales,
+                        COALESCE(SUM(sale_amount), 0) as total_sales_amount,
+                        COALESCE(SUM(profit_amount), 0) as total_profits
+                    FROM project_sales
+                """)
+                sales_data = cur.fetchone()
+                sales_stats = {
+                    'total_sales': sales_data['total_sales'] or 0,
+                    'total_sales_amount': float(sales_data['total_sales_amount'] or 0),
+                    'total_profits': float(sales_data['total_profits'] or 0)
+                }
+            except:
+                sales_stats = {
+                    'total_sales': 0,
+                    'total_sales_amount': 0.0,
+                    'total_profits': 0.0
+                }
             
-            # Capitale totale - Valori di default
+            # 5. STATISTICHE CAPITALE TOTALE
+            cur.execute("""
+                SELECT 
+                    COALESCE(SUM(free_capital), 0) as total_free_capital,
+                    COALESCE(SUM(invested_capital), 0) as total_invested_capital,
+                    COALESCE(SUM(referral_bonus), 0) as total_referral_bonus,
+                    COALESCE(SUM(profits), 0) as total_profits
+                FROM user_portfolios
+            """)
+            capital_data = cur.fetchone()
+            total_capital = (float(capital_data['total_free_capital'] or 0) + 
+                           float(capital_data['total_invested_capital'] or 0) + 
+                           float(capital_data['total_referral_bonus'] or 0) + 
+                           float(capital_data['total_profits'] or 0))
+            
             capital_stats = {
-                'total_free_capital': 0.0,
-                'total_invested_capital': 0.0,
-                'total_referral_bonus': 0.0,
-                'total_profits': 0.0,
-                'total_capital': 0.0
+                'total_free_capital': float(capital_data['total_free_capital'] or 0),
+                'total_invested_capital': float(capital_data['total_invested_capital'] or 0),
+                'total_referral_bonus': float(capital_data['total_referral_bonus'] or 0),
+                'total_profits': float(capital_data['total_profits'] or 0),
+                'total_capital': total_capital
             }
             
         return render_template('admin/transactions/dashboard.html',
