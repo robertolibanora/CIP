@@ -27,26 +27,50 @@ def get_upload_folder():
 def ensure_admin_actions_table(cur):
     """Crea la tabella admin_actions se non esiste."""
     try:
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS admin_actions (
-                id SERIAL PRIMARY KEY,
-                admin_id INT REFERENCES users(id) ON DELETE SET NULL,
-                action TEXT NOT NULL,
-                target_type TEXT NOT NULL,
-                target_id INT NOT NULL,
-                details TEXT,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        # Verifica se la tabella esiste già
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'admin_actions'
             )
-            """
-        )
-    except Exception:
-        pass
+        """)
+        exists = cur.fetchone()[0]
+        
+        if not exists:
+            cur.execute(
+                """
+                CREATE TABLE admin_actions (
+                    id SERIAL PRIMARY KEY,
+                    admin_id INT REFERENCES users(id) ON DELETE SET NULL,
+                    action TEXT NOT NULL,
+                    target_type TEXT NOT NULL,
+                    target_id INT NOT NULL,
+                    details TEXT,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+    except Exception as e:
+        # Log dell'errore ma non bloccare l'esecuzione
+        print(f"Warning: Could not create admin_actions table: {e}")
+        # Rollback della transazione per evitare errori
+        try:
+            cur.connection.rollback()
+        except:
+            pass
 
 # -----------------------------
 # ADMIN BLUEPRINT (protected)
 # -----------------------------
 admin_bp = Blueprint("admin", __name__)
+
+# Route temporanea per notifiche rimosse - restituisce 404 pulito
+@admin_bp.get("/api/notifications/unread-count")
+@admin_required
+def notifications_unread_count():
+    """Route temporanea per notifiche rimosse - restituisce 404"""
+    return jsonify({'error': 'Notifiche rimosse'}), 404
 
 # Importa decoratori di autorizzazione
 from backend.auth.decorators import admin_required

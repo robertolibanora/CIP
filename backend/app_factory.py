@@ -104,9 +104,10 @@ def create_app():
     app.config['CHECK_SESSION_IP'] = False  # Disabilitato per test
     app.config['CHECK_SESSION_USER_AGENT'] = False  # Disabilitato per test
     
-    # Carica configurazione
+    # Carica configurazione basata su FLASK_ENV
     from config.config import config
-    app.config.from_object(config['default'])
+    config_name = os.environ.get('FLASK_ENV', 'development')
+    app.config.from_object(config.get(config_name, config['default']))
     
     # Applica override dimensione upload da env (o mantieni quella della config)
     try:
