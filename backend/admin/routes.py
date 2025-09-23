@@ -65,15 +65,15 @@ def ensure_admin_actions_table(cur):
 # -----------------------------
 admin_bp = Blueprint("admin", __name__)
 
+# Importa decoratori di autorizzazione
+from backend.auth.decorators import admin_required
+
 # Route temporanea per notifiche rimosse - restituisce 404 pulito
 @admin_bp.get("/api/notifications/unread-count")
 @admin_required
 def notifications_unread_count():
     """Route temporanea per notifiche rimosse - restituisce 404"""
     return jsonify({'error': 'Notifiche rimosse'}), 404
-
-# Importa decoratori di autorizzazione
-from backend.auth.decorators import admin_required
 
 # Rimuove il before_request globale e usa decoratori specifici
 # per ogni route che richiede autorizzazione admin
