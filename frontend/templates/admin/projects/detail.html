@@ -32,12 +32,6 @@
             </div>
             <div class="flex items-center space-x-3">
                 <span class="px-3 py-1 rounded-full text-sm font-medium" id="project-status-badge">Status</span>
-                <button onclick="openSaleModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium" id="sale-btn">
-                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    Vendita
-                </button>
                 <button onclick="deleteProject()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium" id="delete-btn">
                     <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -274,26 +268,6 @@
     </div>
 </div>
 
-<!-- Modal Vendita Progetto - NUOVO SISTEMA SEMPLICE -->
-<div id="sellModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h2 class="text-xl font-bold mb-4">Vendi Progetto</h2>
-        
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Prezzo di Vendita (€)</label>
-            <input type="number" id="sellPrice" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Es. 300000" min="0" step="0.01">
-        </div>
-        
-        <div class="flex justify-end space-x-3">
-            <button onclick="closeSellModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
-                Annulla
-            </button>
-            <button onclick="executeSale()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                Conferma Vendita
-            </button>
-        </div>
-    </div>
-</div>
 
 {% block extra_js %}
 <script>
@@ -375,17 +349,6 @@ class ProjectDetailManager {
         statusBadge.className = `px-3 py-1 rounded-full text-sm font-medium ${statusColors[project.status] || 'bg-gray-100 text-gray-800'}`;
         statusBadge.textContent = statusLabels[project.status] || project.status;
         
-        // Hide/show sale button based on status
-        const saleBtn = document.getElementById('sale-btn');
-        if (saleBtn) {
-            if (project.status === 'sold') {
-                saleBtn.style.display = 'none';
-            } else if (project.status === 'completed') {
-                saleBtn.style.display = 'inline-flex';
-            } else {
-                saleBtn.style.display = 'none';
-            }
-        }
         
         // Fill form fields
         document.getElementById('field-code').value = project.code || '';
@@ -414,42 +377,7 @@ class ProjectDetailManager {
         const totalInvested = parseFloat(stats.total_invested) || 0;
         const percentage = targetAmount > 0 ? (totalInvested / targetAmount * 100) : 0;
         
-        // Se il progetto è venduto, mostra informazioni di vendita
-        if (project.status === 'sold') {
-            const salePrice = parseFloat(project.sale_price) || 0;
-            const profit = salePrice - totalInvested;
-            const profitPercentage = totalInvested > 0 ? (profit / totalInvested * 100) : 0;
-            
-            document.getElementById('project-stats').innerHTML = `
-                <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Investitori:</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">${stats.investors_count || 0}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Totale Investito:</span>
-                        <span class="text-sm font-medium">€${totalInvested.toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Prezzo di Vendita:</span>
-                        <span class="text-sm font-bold text-green-600">€${salePrice.toLocaleString()}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Profitto/Perdita:</span>
-                        <span class="text-sm font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${profit >= 0 ? '+' : ''}€${profit.toLocaleString()} (${profitPercentage >= 0 ? '+' : ''}${profitPercentage.toFixed(1)}%)
-                        </span>
-                    </div>
-                    ${project.sold_at ? `
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-600">Data Vendita:</span>
-                        <span class="text-sm">${new Date(project.sold_at).toLocaleDateString('it-IT')}</span>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-        } else {
-            // Statistiche normali per progetti non venduti
+        // Mostra statistiche standard del progetto
             document.getElementById('project-stats').innerHTML = `
                 <div class="space-y-3">
                     <div class="flex justify-between">
@@ -1097,54 +1025,6 @@ function deleteDocument(docId) {
     }
 }
 
-// ========== NUOVO SISTEMA VENDITA SEMPLICE ==========
-
-function openSaleModal() {
-    document.getElementById('sellModal').classList.remove('hidden');
-    document.getElementById('sellModal').classList.add('flex');
-    document.getElementById('sellPrice').value = '';
-}
-
-function closeSellModal() {
-    document.getElementById('sellModal').classList.add('hidden');
-    document.getElementById('sellModal').classList.remove('flex');
-}
-
-async function executeSale() {
-    const price = parseFloat(document.getElementById('sellPrice').value);
-    
-    if (!price || price <= 0) {
-        alert('Inserisci un prezzo di vendita valido');
-        return;
-    }
-    
-    if (!confirm(`Confermi la vendita del progetto per €${price.toLocaleString()}? Questa azione è irreversibile.`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/admin/projects/${projectDetailManager.projectId}/sell`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ sale_price: price })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-            alert('✅ ' + result.message);
-            closeSellModal();
-            await projectDetailManager.loadProjectData();
-        } else {
-            alert('❌ ' + (result.error || 'Errore durante la vendita'));
-        }
-    } catch (error) {
-        console.error('Errore vendita:', error);
-        alert('❌ Errore di connessione');
-    }
-}
 
 async function updateInvestmentAmount(investmentId, userId, newAmount, originalAmount) {
     const newAmountFloat = parseFloat(newAmount);
@@ -1226,8 +1106,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const projectId = parseInt(document.getElementById('page-loading').getAttribute('data-project-id'));
     projectDetailManager = new ProjectDetailManager(projectId);
     
-    // Note: Event listener for sale price input is added when modal opens (in openSaleModal function)
-    // to avoid errors when element doesn't exist yet
 });
 
 // ---- Gestione Galleria Immagini ----
