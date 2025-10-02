@@ -91,7 +91,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.min_investment,
-                   p.image_url, p.sale_price, p.sale_date, p.profit_percentage,
+                   p.image_url, p.sale_price, p.sold_at as sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
@@ -102,7 +102,7 @@ def projects():
                 WHERE user_id = %s AND status = 'completed'
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
-            WHERE p.sale_price IS NOT NULL AND p.sale_price > 0
+            WHERE p.status = 'sold' AND p.sale_price IS NOT NULL AND p.sale_price > 0
             ORDER BY p.sold_at DESC, p.created_at DESC
         """, (uid,))
         
@@ -152,6 +152,10 @@ def projects():
                         project['profit_amount'] = round(user_investment * (profit_percentage / 100), 2)
                     else:
                         project['profit_amount'] = 0
+                    
+                    # Assicurati che profit_percentage sia sempre mostrato
+                    if project.get('profit_percentage', 0) > 0:
+                        project['profit_percentage'] = round(float(project.get('profit_percentage', 0)), 1)
                 else:
                     project['sale_price'] = None
                     project['sale_date'] = None

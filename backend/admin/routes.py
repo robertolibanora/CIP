@@ -703,14 +703,15 @@ def projects_sell(pid):
 
             total_profit = float(sale_price) - total_invested
 
-            # Aggiorno progetto a 'sold'
+            # Calcola profit_percentage e aggiorna progetto a 'sold'
+            profit_percentage = (total_profit / total_invested) * 100 if total_invested > 0 else 0
             cur.execute(
                 """
                 UPDATE projects
-                SET status = 'sold', sale_price = %s, sold_at = NOW()
+                SET status = 'sold', sale_price = %s, sold_at = NOW(), profit_percentage = %s
                 WHERE id = %s
                 """,
-                (sale_price, pid),
+                (sale_price, profit_percentage, pid),
             )
 
             # Imposto tutti gli investimenti a completed
