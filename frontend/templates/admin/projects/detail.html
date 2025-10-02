@@ -357,7 +357,7 @@ class ProjectDetailManager {
         const sellBtn = document.getElementById('sell-btn');
         if (sellBtn) sellBtn.style.display = project.status === 'completed' ? 'inline-flex' : 'none';
         const deleteBtn = document.getElementById('delete-btn');
-        if (deleteBtn) deleteBtn.style.display = project.status !== 'sold' ? 'inline-flex' : 'none';
+        if (deleteBtn) deleteBtn.style.display = 'inline-flex'; // Sempre visibile
         
         
         // Fill form fields
@@ -711,7 +711,15 @@ class ProjectDetailManager {
     }
     
     async deleteProject() {
-        if (!confirm('Sei sicuro di voler eliminare questo progetto? Questa azione è irreversibile.')) {
+        const project = this.projectData?.project;
+        const isSold = project?.status === 'sold';
+        
+        let confirmMessage = 'Sei sicuro di voler eliminare questo progetto? Questa azione è irreversibile.';
+        if (isSold) {
+            confirmMessage = 'Sei sicuro di voler eliminare questo progetto venduto? I profitti sono già stati distribuiti e non verranno rimborsati. Questa azione è irreversibile.';
+        }
+        
+        if (!confirm(confirmMessage)) {
             return;
         }
         
@@ -730,7 +738,10 @@ class ProjectDetailManager {
             const result = await response.json();
             
             if (response.ok && result.deleted) {
-                this.showAlert('success', result.message || 'Progetto eliminato con successo');
+                const successMessage = isSold ? 
+                    'Progetto venduto eliminato con successo. I profitti rimangono distribuiti.' : 
+                    'Progetto eliminato con successo. Investimenti rimborsati.';
+                this.showAlert('success', result.message || successMessage);
                 setTimeout(() => {
                     window.location.href = '/admin/projects';
                 }, 2000);

@@ -659,7 +659,7 @@ def projects_sell(pid):
         sale_price = float(data.get("sale_price", 0))
         if sale_price <= 0:
             return jsonify({"error": "Inserisci un prezzo di vendita valido"}), 400
-
+        
         with get_conn() as conn, conn.cursor() as cur:
             conn.autocommit = False
 
@@ -667,7 +667,7 @@ def projects_sell(pid):
             cur.execute(
                 """
                 SELECT id, status, COALESCE(funded_amount, 0) AS funded_amount
-                FROM projects
+                FROM projects 
                 WHERE id = %s
                 """,
                 (pid,),
@@ -675,7 +675,7 @@ def projects_sell(pid):
             project = cur.fetchone()
             if not project:
                 return jsonify({"error": "Progetto non trovato"}), 404
-
+            
             # dict_row: accedi per chiave
             project_status = project.get('status') if isinstance(project, dict) else project[1]
             if project_status != "completed":
@@ -707,9 +707,9 @@ def projects_sell(pid):
             profit_percentage = (total_profit / total_invested) * 100 if total_invested > 0 else 0
             cur.execute(
                 """
-                UPDATE projects
+                    UPDATE projects 
                 SET status = 'sold', sale_price = %s, sold_at = NOW(), profit_percentage = %s
-                WHERE id = %s
+                    WHERE id = %s
                 """,
                 (sale_price, profit_percentage, pid),
             )
@@ -734,8 +734,8 @@ def projects_sell(pid):
                 cur.execute(
                     """
                     INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
-                    VALUES (%s, 0, 0, 0, %s)
-                    ON CONFLICT (user_id)
+                                    VALUES (%s, 0, 0, 0, %s)
+                                    ON CONFLICT (user_id) 
                     DO UPDATE SET profits = user_portfolios.profits + EXCLUDED.profits
                     """,
                     (user_id, profit_share),
@@ -744,7 +744,7 @@ def projects_sell(pid):
                 # Calcola i bonus referral in base al profitto generato
                 process_referral_bonus(cur, user_id, profit_share, pid)
 
-            conn.commit()
+                conn.commit()
             return jsonify(
                 {
                     "success": True,
@@ -752,63 +752,78 @@ def projects_sell(pid):
                     "total_profit": total_profit,
                 }
             )
-
+                
     except Exception as e:
         return jsonify({"error": f"Errore durante la vendita: {str(e)}"}), 500
 
+@admin_bp.delete("/projects/<int:pid>")
 @admin_required
 def projects_delete(pid):
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Ottieni dettagli progetto
-            cur.execute("SELECT id, name as title, funded_amount FROM projects WHERE id=%s", (pid,))
+            # Ottieni dettagli progetto incluso lo status
+            cur.execute("SELECT id, name as title, funded_amount, status FROM projects WHERE id=%s", (pid,))
             project = cur.fetchone()
             
             if not project:
                 return jsonify({"error": "Progetto non trovato"}), 404
             
-            # Ottieni tutti gli investimenti attivi per questo progetto
-            cur.execute("""
-                SELECT i.id, i.user_id, i.amount, u.email
-                FROM investments i
-                JOIN users u ON u.id = i.user_id
-                WHERE i.project_id = %s AND i.status = 'active'
-            """, (pid,))
-            investments = cur.fetchall()
+            is_sold = project.get('status') == 'sold' if isinstance(project, dict) else project[3] == 'sold'
             
-            # Rimborsa tutti gli investimenti attivi
-            for investment in investments:
-                user_id = investment['user_id']
-                amount = investment['amount']
+            if is_sold:
+                # Per progetti venduti: elimina solo il progetto, i profitti rimangono distribuiti
+                cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
                 
-                # Aggiorna il portfolio dell'utente: rimuovi da invested_capital e aggiungi a free_capital
-                cur.execute("""
-                    UPDATE user_portfolios 
-                    SET invested_capital = invested_capital - %s,
-                        free_capital = free_capital + %s
-                    WHERE user_id = %s
-                """, (amount, amount, user_id))
-                
-                # Se il portfolio non esiste, crealo
                 if cur.rowcount == 0:
+                    return jsonify({"error": "Progetto non trovato"}), 404
+                
+                return jsonify({
+                    "deleted": True, 
+                    "message": "Progetto venduto eliminato con successo. I profitti rimangono distribuiti agli investitori."
+                })
+            else:
+                # Per progetti non venduti: rimborsa gli investimenti attivi
+                cur.execute("""
+                    SELECT i.id, i.user_id, i.amount, u.email
+                    FROM investments i
+                    JOIN users u ON u.id = i.user_id
+                    WHERE i.project_id = %s AND i.status = 'active'
+                """, (pid,))
+                investments = cur.fetchall()
+                
+                # Rimborsa tutti gli investimenti attivi
+                for investment in investments:
+                    user_id = investment['user_id']
+                    amount = investment['amount']
+                    
+                    # Aggiorna il portfolio dell'utente: rimuovi da invested_capital e aggiungi a free_capital
                     cur.execute("""
-                        INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
-                        VALUES (%s, %s, 0, 0, 0)
-                    """, (user_id, amount))
-            
-            # Elimina tutti gli investimenti per questo progetto (per rispettare il vincolo di chiave esterna)
-            cur.execute("DELETE FROM investments WHERE project_id = %s", (pid,))
-            
-            # Ora elimina il progetto
-            cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
-            
-            if cur.rowcount == 0:
-                return jsonify({"error": "Progetto non trovato"}), 404
-            
-            return jsonify({
-                "deleted": True, 
-                "message": f"Progetto eliminato. Rimborsati {len(investments)} investimenti per un totale di €{project['funded_amount']:,.2f}"
-            })
+                        UPDATE user_portfolios 
+                        SET invested_capital = invested_capital - %s,
+                            free_capital = free_capital + %s
+                        WHERE user_id = %s
+                    """, (amount, amount, user_id))
+                    
+                    # Se il portfolio non esiste, crealo
+                    if cur.rowcount == 0:
+                        cur.execute("""
+                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                            VALUES (%s, %s, 0, 0, 0)
+                        """, (user_id, amount))
+                
+                # Elimina tutti gli investimenti per questo progetto
+                cur.execute("DELETE FROM investments WHERE project_id = %s", (pid,))
+                
+                # Ora elimina il progetto
+                cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
+                
+                if cur.rowcount == 0:
+                    return jsonify({"error": "Progetto non trovato"}), 404
+                
+                return jsonify({
+                    "deleted": True, 
+                    "message": f"Progetto eliminato. Rimborsati {len(investments)} investimenti per un totale di €{project.get('funded_amount', 0) if isinstance(project, dict) else project[2]:,.2f}"
+                })
             
     except Exception as e:
         return jsonify({"error": f"Errore durante l'eliminazione: {str(e)}"}), 500
