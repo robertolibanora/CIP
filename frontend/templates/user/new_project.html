@@ -63,7 +63,7 @@
                             <h3 class="text-lg font-semibold text-gray-900">{{ project.name }}</h3>
                             <p class="text-gray-600 text-sm">{{ project.code }}</p>
                         </div>
-                        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full roi-display" data-project-id="{{ project.id }}">
                             RA {{ project.roi }}%
                         </span>
                     </div>
@@ -119,8 +119,8 @@
                                     <span class="text-gray-600">Importo Investito:</span>
                                     <span id="investedAmount_{{ project.id }}" class="font-medium ml-1">€{{ "{:,}".format(project.min_investment) }}</span>
                                 </div>
-                                <div>
-                                    <span class="text-gray-600">RA Atteso ({{ project.roi }}%):</span>
+                                <div data-project-id="{{ project.id }}">
+                                    <span class="text-gray-600">RA Atteso (<span class="roi-display">{{ project.roi }}</span>%):</span>
                                     <span id="expectedReturn_{{ project.id }}" class="font-medium ml-1 text-green-600">€0</span>
                                 </div>
                                 <div>
@@ -218,7 +218,51 @@
                         {% for project in projects %}
                         updateInvestmentCalculation({{ project.id }}, {{ project.roi }});
                         {% endfor %}
+                        
+                        // Imposta aggiornamento automatico del ROI
+                        setupROIUpdateListener();
                     });
+                    
+                    // Funzione per aggiornare i dati del progetto dal server
+                    async function refreshProjectData(projectId) {
+                        try {
+                            const response = await fetch(`/user/api/project/${projectId}`);
+                            const data = await response.json();
+                            
+                            if (data.success && data.project) {
+                                // Aggiorna l'interfaccia
+                                updateProjectDisplay(projectId, data.project);
+                                // Aggiorna i calcoli
+                                updateInvestmentCalculation(projectId, data.project.roi);
+                            }
+                        } catch (error) {
+                            console.error('Errore nell\'aggiornamento dati progetto:', error);
+                        }
+                    }
+                    
+                    // Funzione per aggiornare la visualizzazione del progetto
+                    function updateProjectDisplay(projectId, projectData) {
+                        // Aggiorna tutti gli elementi che mostrano il ROI
+                        const roiElements = document.querySelectorAll(`[data-project-id="${projectId}"] .roi-display`);
+                        roiElements.forEach(element => {
+                            element.textContent = projectData.roi.toFixed(1);
+                        });
+                    }
+                    
+                    // Funzione per impostare il listener per aggiornamenti del ROI
+                    function setupROIUpdateListener() {
+                        // Controlla ogni 30 secondi se ci sono aggiornamenti
+                        setInterval(async () => {
+                            // Aggiorna tutti i progetti visibili
+                            const visibleProjects = document.querySelectorAll('[data-project-id]');
+                            for (const projectElement of visibleProjects) {
+                                const projectId = parseInt(projectElement.getAttribute('data-project-id'));
+                                if (projectId) {
+                                    await refreshProjectData(projectId);
+                                }
+                            }
+                        }, 30000); // 30 secondi
+                    }
                     </script>
                     <script>
                     // Valida multipli di 100

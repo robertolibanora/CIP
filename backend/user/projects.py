@@ -24,6 +24,48 @@ def require_login():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
 
+@projects_bp.get("/api/project/<int:project_id>")
+@login_required
+def get_project_data(project_id):
+    """Ottieni dati aggiornati di un singolo progetto"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
+                       p.status, p.created_at, p.code, p.location, p.min_investment,
+                       p.image_url, p.roi, p.sale_price, p.sale_date, p.profit_percentage
+                FROM projects p 
+                WHERE p.id = %s
+            """, (project_id,))
+            project = cur.fetchone()
+            
+            if not project:
+                return jsonify({'error': 'Progetto non trovato'}), 404
+            
+            return jsonify({
+                'success': True,
+                'project': {
+                    'id': project['id'],
+                    'title': project['title'],
+                    'description': project['description'],
+                    'total_amount': float(project['total_amount'] or 0),
+                    'funded_amount': float(project['funded_amount'] or 0),
+                    'status': project['status'],
+                    'code': project['code'],
+                    'location': project['location'],
+                    'min_investment': float(project['min_investment'] or 0),
+                    'image_url': project['image_url'],
+                    'roi': float(project['roi'] or 0),
+                    'sale_price': float(project['sale_price'] or 0) if project['sale_price'] else None,
+                    'sale_date': project['sale_date'].isoformat() if project['sale_date'] else None,
+                    'profit_percentage': float(project['profit_percentage'] or 0) if project['profit_percentage'] else None
+                }
+            })
+            
+    except Exception as e:
+        print(f"Errore nel recupero dati progetto: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
+
 @projects_bp.get("/projects")
 @kyc_verified
 def projects():

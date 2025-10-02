@@ -115,8 +115,8 @@
                                     </div>
                                     
                                     <!-- RA e investimento minimo -->
-                                    <div class="text-left md:text-right mt-2 md:mt-0">
-                                        <div class="text-2xl font-bold text-blue-600 mb-1">{{ "%.1f"|format(project.roi|float) }}%</div>
+                                    <div class="text-left md:text-right mt-2 md:mt-0" data-project-id="{{ project.id }}">
+                                        <div class="text-2xl font-bold text-blue-600 mb-1 roi-display">{{ "%.1f"|format(project.roi|float) }}%</div>
                                         <div class="text-sm text-gray-600 mb-3">RA Atteso</div>
                                         <div class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.min_investment|float) }}</div>
                                         <div class="text-xs text-gray-600">Investimento Minimo</div>
@@ -252,8 +252,8 @@
                                         <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
                                     </div>
                                     
-                                    <div class="text-left md:text-right mt-2 md:mt-0">
-                                        <div class="text-2xl font-bold text-yellow-600 mb-1">{{ "%.1f"|format(project.roi|float) }}%</div>
+                                    <div class="text-left md:text-right mt-2 md:mt-0" data-project-id="{{ project.id }}">
+                                        <div class="text-2xl font-bold text-yellow-600 mb-1 roi-display">{{ "%.1f"|format(project.roi|float) }}%</div>
                                         <div class="text-sm text-gray-600 mb-3">RA Atteso</div>
                                         <div class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.total_amount|float) }}</div>
                                         <div class="text-xs text-gray-600">Totale Investito</div>
@@ -594,6 +594,58 @@ if (formEl){
 let currentProjectId = null;
 let userFunds = null;
 
+// Funzione per aggiornare i dati del progetto dal server
+async function refreshProjectData(projectId) {
+    try {
+        const response = await fetch(`/user/api/project/${projectId}`);
+        const data = await response.json();
+        
+        if (data.success && data.project) {
+            // Aggiorna i dati locali
+            projectsData[projectId] = {
+                roi: data.project.roi,
+                min_investment: data.project.min_investment,
+                title: data.project.title
+            };
+            
+            // Aggiorna l'interfaccia
+            updateProjectROI(projectId);
+            updateProjectDisplay(projectId, data.project);
+        }
+    } catch (error) {
+        console.error('Errore nell\'aggiornamento dati progetto:', error);
+    }
+}
+
+// Funzione per aggiornare la visualizzazione del progetto
+function updateProjectDisplay(projectId, projectData) {
+    // Aggiorna tutti gli elementi che mostrano il ROI
+    const roiElements = document.querySelectorAll(`[data-project-id="${projectId}"] .roi-display`);
+    roiElements.forEach(element => {
+        element.textContent = projectData.roi.toFixed(1) + '%';
+    });
+    
+    // Aggiorna i calcoli di investimento se il progetto è attivo
+    if (projectData.status === 'active' || projectData.status === 'funding') {
+        updateInvestmentCalculation(projectId, projectData.roi);
+    }
+}
+
+// Funzione per impostare il listener per aggiornamenti del ROI
+function setupROIUpdateListener() {
+    // Controlla ogni 30 secondi se ci sono aggiornamenti
+    setInterval(async () => {
+        // Aggiorna tutti i progetti visibili
+        const visibleProjects = document.querySelectorAll('[data-project-id]');
+        for (const projectElement of visibleProjects) {
+            const projectId = parseInt(projectElement.getAttribute('data-project-id'));
+            if (projectId) {
+                await refreshProjectData(projectId);
+            }
+        }
+    }, 30000); // 30 secondi
+}
+
 function updateProjectROI(projectId) {
     const project = projectsData[projectId];
     if (project) {
@@ -618,6 +670,9 @@ function openInvestmentModal(projectId) {
     
     // Imposta il ROI corretto per il progetto
     updateProjectROI(projectId);
+    
+    // Ascolta per aggiornamenti del ROI
+    setupROIUpdateListener();
     
     // Carica i fondi dell'utente
     loadUserFunds(projectId);
