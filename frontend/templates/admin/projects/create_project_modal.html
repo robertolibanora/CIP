@@ -114,7 +114,8 @@
                         <input type="date" name="start_date" required
                                style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
-                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
+                               onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'"
+                               id="start_date_input">
                     </div>
                 </div>
                 
@@ -153,13 +154,17 @@
 <script>
 // Funzione per aprire il modal
 function openCreateProjectModal() {
-    // Imposta le date di default
-    const today = new Date();
-    const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-    
-    document.querySelector('input[name="start_date"]').value = today.toISOString().split('T')[0];
-    
+    // Apri prima il modal
     openModal('create-project-modal');
+    
+    // Imposta la data corrente dopo che il modal è visibile
+    setTimeout(() => {
+        const today = new Date();
+        const startDateInput = document.getElementById('start_date_input');
+        if (startDateInput) {
+            startDateInput.value = today.toISOString().split('T')[0];
+        }
+    }, 100);
 }
 
 // Funzione per chiudere il modal
@@ -299,4 +304,13 @@ function setButtonLoading(button, loading, text) {
         `;
     }
 }
+
+// Imposta la data corrente quando la pagina viene caricata
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const startDateInput = document.getElementById('start_date_input');
+    if (startDateInput) {
+        startDateInput.value = today.toISOString().split('T')[0];
+    }
+});
 </script>
