@@ -49,8 +49,8 @@
   </div>
 
   <!-- Dettaglio utente modal -->
-  <div id="user-detail-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);">
-    <div class="modal-content" style="background:#fff; margin:5% auto; padding:20px; width:700px; border-radius:14px; position:relative; box-shadow:0 20px 40px rgba(2,6,23,.18); border:1px solid #e5e7eb;">
+  <div id="user-detail-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; overflow-y:auto;">
+    <div class="modal-content" style="background:#fff; margin:2% auto; padding:20px; width:700px; max-width:90vw; border-radius:14px; position:relative; box-shadow:0 20px 40px rgba(2,6,23,.18); border:1px solid #e5e7eb; max-height:90vh; overflow-y:auto;">
       <button id="close-modal" class="btn" style="position:absolute; right:8px; top:8px;">×</button>
       <h3 style="margin:0 0 14px 0; font-size:20px;">Dettaglio utente</h3>
       <form id="user-edit-form" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
@@ -177,8 +177,16 @@
     setTimeout(()=> toast.style.display='none', 2000);
   }
 
-  function openModal(){ modal.style.display = 'block'; }
-  function closeModal(){ modal.style.display = 'none'; }
+  function openModal(){ 
+    modal.style.display = 'block'; 
+    // Blocca lo scroll della pagina
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(){ 
+    modal.style.display = 'none'; 
+    // Riabilita lo scroll della pagina
+    document.body.style.overflow = 'auto';
+  }
   function openPortfolio(){ portfolioModal.style.display = 'block'; }
   function closePortfolio(){ portfolioModal.style.display = 'none'; }
 
@@ -303,6 +311,20 @@
 
   closeModalBtn.addEventListener('click', closeModal);
   closePortfolioBtn.addEventListener('click', closePortfolio);
+  
+  // Chiudi modal cliccando fuori
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+  
+  // Chiudi modal con tasto ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'block') {
+      closeModal();
+    }
+  });
   saveBtn.addEventListener('click', saveDetail);
   deleteBtn.addEventListener('click', async ()=>{
     const id = dId.value;
