@@ -113,9 +113,11 @@
                         <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Data Inizio *</label>
                         <input type="date" name="start_date" required
                                style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
-                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                               onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'; if(!this.value) this.value = new Date().toISOString().split('T')[0];" 
                                onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'"
-                               id="start_date_input">
+                               id="start_date_input"
+                               onload="setCurrentDate()"
+                               value="">
                     </div>
                 </div>
                 
@@ -158,13 +160,7 @@ function openCreateProjectModal() {
     openModal('create-project-modal');
     
     // Imposta la data corrente dopo che il modal è visibile
-    setTimeout(() => {
-        const today = new Date();
-        const startDateInput = document.getElementById('start_date_input');
-        if (startDateInput) {
-            startDateInput.value = today.toISOString().split('T')[0];
-        }
-    }, 100);
+    setTimeout(setCurrentDate, 100);
 }
 
 // Funzione per chiudere il modal
@@ -305,12 +301,44 @@ function setButtonLoading(button, loading, text) {
     }
 }
 
+// Funzione per impostare la data corrente
+function setCurrentDate() {
+    const today = new Date();
+    const startDateInput = document.getElementById('start_date_input');
+    if (startDateInput) {
+        startDateInput.value = today.toISOString().split('T')[0];
+        console.log('Data impostata:', startDateInput.value);
+    }
+}
+
 // Imposta la data corrente quando la pagina viene caricata
 document.addEventListener('DOMContentLoaded', function() {
+    setCurrentDate();
+});
+
+// Imposta la data corrente anche quando il modal diventa visibile
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('create-project-modal');
+    if (modal) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (modal.style.display === 'flex') {
+                        setTimeout(setCurrentDate, 50);
+                    }
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
+    }
+});
+
+// Script che si esegue immediatamente
+(function() {
     const today = new Date();
     const startDateInput = document.getElementById('start_date_input');
     if (startDateInput) {
         startDateInput.value = today.toISOString().split('T')[0];
     }
-});
+})();
 </script>
