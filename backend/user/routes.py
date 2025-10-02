@@ -1046,29 +1046,21 @@ def get_referral_link():
     """Ottieni link referral dell'utente"""
     try:
         user_id = session.get('user_id')
-        print(f"DEBUG: get_referral_link chiamato per user_id: {user_id}")
         
         # Assicura che l'utente abbia un codice referral
         referral_code = ensure_referral_code(user_id)
-        print(f"DEBUG: referral_code ottenuto: {referral_code}")
         
         # Costruisci link referral
         base_url = request.host_url.rstrip('/')
         referral_link = f"{base_url}/auth/register?ref={referral_code}"
-        print(f"DEBUG: referral_link costruito: {referral_link}")
         
-        result = {
+        return jsonify({
             'referral_code': referral_code,
             'referral_link': referral_link
-        }
-        print(f"DEBUG: risultato finale: {result}")
-        
-        return jsonify(result)
+        })
         
     except Exception as e:
         print(f"Errore nel recupero link referral: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': 'Errore nel recupero del link referral'}), 500
 
 # Rotta duplicata rimossa: la pagina referral è gestita dalla funzione `referral` sopra
