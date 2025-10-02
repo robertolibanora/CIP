@@ -142,20 +142,26 @@ def projects():
                     # Usa i valori dal database se disponibili, altrimenti default
                     project['sale_price'] = project.get('sale_price') or 0
                     project['sale_date'] = project.get('sale_date') or None
-                    project['profit_percentage'] = project.get('profit_percentage') or 0
                     
-                    # Calcola il profitto reale per l'utente
-                    if project.get('user_investment_amount', 0) > 0 and project.get('profit_percentage', 0) > 0:
-                        # Calcola il profitto basato sull'investimento dell'utente
-                        user_investment = float(project.get('user_investment_amount', 0))
-                        profit_percentage = float(project.get('profit_percentage', 0))
-                        project['profit_amount'] = round(user_investment * (profit_percentage / 100), 2)
+                    # Calcola profitto totale del progetto
+                    sale_price = float(project.get('sale_price', 0))
+                    funded_amount = float(project.get('funded_amount', 0))
+                    total_profit = sale_price - funded_amount
+                    
+                    # Calcola percentuale profitto totale
+                    if funded_amount > 0:
+                        project['profit_percentage'] = round((total_profit / funded_amount) * 100, 1)
+                    else:
+                        project['profit_percentage'] = 0
+                    
+                    # Calcola profitto per l'utente (proporzionale al suo investimento)
+                    user_investment = float(project.get('user_investment_amount', 0))
+                    if user_investment > 0 and funded_amount > 0:
+                        # Profitto proporzionale: (investimento_utente / totale_investito) * profitto_totale
+                        user_profit_share = (user_investment / funded_amount) * total_profit
+                        project['profit_amount'] = round(user_profit_share, 2)
                     else:
                         project['profit_amount'] = 0
-                    
-                    # Assicurati che profit_percentage sia sempre mostrato
-                    if project.get('profit_percentage', 0) > 0:
-                        project['profit_percentage'] = round(float(project.get('profit_percentage', 0)), 1)
                 else:
                     project['sale_price'] = None
                     project['sale_date'] = None
