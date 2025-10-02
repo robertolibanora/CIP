@@ -270,13 +270,21 @@ function showReferralError(message) {
 
 async function copyReferralLink() {
     try {
+        console.log('Inizio copia link referral...');
         const response = await fetch('/user/api/referral-link');
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (response.ok && data.referral_link) {
+            console.log('Tentativo di copiare:', data.referral_link);
             await navigator.clipboard.writeText(data.referral_link);
+            console.log('Copiato con successo');
             showNotification('Link referral copiato negli appunti!', 'success');
         } else {
+            console.error('Errore nella response:', response.status, data);
             showNotification('Errore nel recupero del link referral', 'error');
         }
     } catch (error) {
