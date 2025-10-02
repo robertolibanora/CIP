@@ -4,7 +4,7 @@ const projectData = {
     id: {{ project.id }},
     roi: {{ project.roi|float }},
     min_investment: {{ project.min_investment|float }},
-    title: "{{ project.title }}",
+    title: "{{ project.name }}",
     gallery: {{ project.gallery|tojson if project.gallery else '[]' }}
 };
 

@@ -468,7 +468,7 @@ function displayCancelModal(data) {
     const investments = data.investments;
     
     // Aggiorna il contenuto del modal
-    document.getElementById('cancel-project-name').textContent = project.title || project.name || 'Progetto senza nome';
+    document.getElementById('cancel-project-name').textContent = project.name || 'Progetto senza nome';
     document.getElementById('cancel-project-code').textContent = project.code || 'N/A';
     document.getElementById('cancel-project-investors').textContent = investments.length;
     document.getElementById('cancel-project-total-invested').textContent = '€' + investments.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString();
@@ -616,7 +616,7 @@ function displayDeleteModal(data) {
     const fundedAmount = project.funded_amount || 0;
     
     // Aggiorna il contenuto del modal
-    document.getElementById('delete-project-name').textContent = project.title || project.name || 'Progetto senza nome';
+    document.getElementById('delete-project-name').textContent = project.name || 'Progetto senza nome';
     document.getElementById('delete-project-code').textContent = project.code || 'N/A';
     
     const statusElement = document.getElementById('delete-project-status');
@@ -905,7 +905,7 @@ class ProjectsManager {
                     <img src="${imgSrc}" alt="foto" class="w-full h-40 object-cover rounded mb-3"/>
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <h3 class="admin-heading-3">${project.title || project.name || 'Senza titolo'}</h3>
+                            <h3 class="admin-heading-3">${project.name || 'Senza titolo'}</h3>
                             <p class="admin-text-caption">${project.code || 'N/A'}</p>
                         </div>
                         <span class="admin-badge admin-badge--${color}">${label}</span>

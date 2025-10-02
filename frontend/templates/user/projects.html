@@ -86,7 +86,7 @@
                                  onclick="window.location.href='{{ url_for('user_projects.project_detail', project_id=project.id) }}'">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.title }}" 
+                                         alt="Foto {{ project.name }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -110,7 +110,7 @@
                                                 Attivo
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
                                         <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
                                     </div>
                                     
@@ -225,7 +225,7 @@
                                  onclick="window.location.href='{{ url_for('user_projects.project_detail', project_id=project.id) }}'">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.title }}" 
+                                         alt="Foto {{ project.name }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -248,7 +248,7 @@
                                                 Completato
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
                                         <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
                                     </div>
                                     
@@ -329,7 +329,7 @@
                                  onclick="window.location.href='{{ url_for('user_projects.project_detail', project_id=project.id) }}'">
                                 {% if project.image_url %}
                                     <img src="/uploads/projects/{{ project.image_url }}" 
-                                         alt="Foto {{ project.title }}" 
+                                         alt="Foto {{ project.name }}" 
                                          class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
                                     <div class="text-gray-400 text-center p-4">
@@ -352,7 +352,7 @@
                                                 Venduto
                                             </span>
                                         </div>
-                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.title }}</h3>
+                                        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ project.name }}</h3>
                                         <p class="text-gray-700 text-sm leading-relaxed">{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
                                     </div>
                                     
@@ -538,21 +538,21 @@ const projectsData = {
     {{ project.id }}: {
         roi: {{ project.roi|float }},
         min_investment: {{ project.min_investment|float }},
-        title: "{{ project.title }}"
+        title: "{{ project.name }}"
     },
     {% endfor %}
     {% for project in completed_projects %}
     {{ project.id }}: {
         roi: {{ project.roi|float }},
         min_investment: {{ project.min_investment|float }},
-        title: "{{ project.title }}"
+        title: "{{ project.name }}"
     },
     {% endfor %}
     {% for project in sold_projects %}
     {{ project.id }}: {
         roi: {{ project.roi|float }},
         min_investment: {{ project.min_investment|float }},
-        title: "{{ project.title }}"
+        title: "{{ project.name }}"
     },
     {% endfor %}
 };

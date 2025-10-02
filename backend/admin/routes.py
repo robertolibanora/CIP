@@ -4,7 +4,7 @@ import time
 import logging
 import json
 from datetime import datetime, date, timedelta
-from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template, send_file
+from flask import Blueprint, request, redirect, url_for, session, abort, send_from_directory, jsonify, render_template, send_file, flash
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 
@@ -286,8 +286,8 @@ def projects_new():
         status_value = data.get('status', 'draft')
         
         # Validazione campi obbligatori
-        title_value = data.get('title', '').strip()
-        if not title_value:
+        name_value = data.get('title', '').strip()
+        if not name_value:
             return jsonify({
                 "error": "Il titolo del progetto è obbligatorio",
                 "message": "Inserisci un titolo per il progetto"
@@ -309,14 +309,14 @@ def projects_new():
             cur.execute(
                 """
                 INSERT INTO projects (
-                    code, title, description, status, total_amount, start_date,
+                    code, name, description, status, total_amount, start_date,
                     location, min_investment, image_url, roi, type, funded_amount, duration
                 )
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
                 """,
                 (
-                    code_value, title_value, description_value, status_value,
+                    code_value, name_value, description_value, status_value,
                     total_amount_value, start_date_value,
                     location_value, min_investment_value, 
                     photo_filename if photo_filename else None,
@@ -3491,14 +3491,14 @@ def get_top_projects_performance(cur, start_dt, end_dt):
     """Ottiene top progetti per performance"""
     cur.execute("""
         SELECT 
-            p.id, p.code, p.title, p.roi, p.status, p.total_amount,
+            p.id, p.code, p.name, p.roi, p.status, p.total_amount,
             COALESCE(SUM(i.amount), 0) as volume,
             COUNT(DISTINCT i.user_id) as investors,
             COALESCE(SUM(i.amount), 0) / p.total_amount * 100 as funding_percentage
         FROM projects p
         LEFT JOIN investments i ON i.project_id = p.id AND i.status IN ('active', 'completed')
         WHERE p.created_at BETWEEN %s AND %s
-        GROUP BY p.id, p.code, p.title, p.roi, p.status, p.total_amount
+        GROUP BY p.id, p.code, p.name, p.roi, p.status, p.total_amount
         ORDER BY p.roi DESC, volume DESC
         LIMIT 10
     """, (start_dt, end_dt))
@@ -3509,7 +3509,7 @@ def get_top_projects_performance(cur, start_dt, end_dt):
         {
             'id': project['id'],
             'code': project['code'],
-            'name': project['title'],
+            'name': project['name'],
             'roi': float(project['roi']) if project['roi'] else 0,
             'volume': float(project['volume']),
             'investors': project['investors'],
@@ -5069,8 +5069,8 @@ def create_project():
     try:
         # Ottieni i dati dal form con validazione
         code = request.form.get('code', '').strip() or f'PRJ{int(time.time())}'
-        title = request.form.get('title', '').strip()
-        if not title:
+        name = request.form.get('title', '').strip()
+        if not name:
             flash('Il titolo del progetto è obbligatorio', 'error')
             return redirect(url_for('admin.projects_list'))
         description = request.form.get('description', '').strip() or 'Descrizione non fornita'
@@ -5126,11 +5126,11 @@ def create_project():
             
             # Inserisci progetto nel database
             cur.execute("""
-                INSERT INTO projects (code, title, description, total_amount, min_investment, 
+                INSERT INTO projects (code, name, description, total_amount, min_investment, 
                                    location, type, roi, start_date, image_url, status, funded_amount, duration)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (code, title, description, total_amount, min_investment, 
+            """, (code, name, description, total_amount, min_investment, 
                   location, project_type, roi, start_date, image_url, 'active', 0.0, 365))
             
             project_id = cur.fetchone()['id']

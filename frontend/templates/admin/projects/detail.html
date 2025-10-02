@@ -436,7 +436,7 @@ class ProjectDetailManager {
         
         // Update page title and breadcrumb
         const titleEl = document.getElementById('project-title');
-        if (titleEl) titleEl.textContent = project.title || project.name || 'Progetto Senza Titolo';
+        if (titleEl) titleEl.textContent = project.name || 'Progetto Senza Titolo';
         
         const subtitleEl = document.getElementById('project-subtitle');
         if (subtitleEl) subtitleEl.textContent = `Codice: ${project.code || 'N/A'}`;
@@ -473,7 +473,7 @@ class ProjectDetailManager {
         
         // Fill form fields
         document.getElementById('field-code').value = project.code || '';
-        document.getElementById('field-title').value = project.title || project.name || '';
+        document.getElementById('field-title').value = project.name || '';
         document.getElementById('field-description').value = project.description || '';
         document.getElementById('field-status').value = project.status || 'active';
         document.getElementById('field-total_amount').value = project.total_amount || project.target_amount || '';
@@ -482,7 +482,7 @@ class ProjectDetailManager {
         // Store original data
         this.originalData = {
             code: project.code || '',
-            title: project.title || project.name || '',
+            title: project.name || '',
             description: project.description || '',
             status: project.status || 'active',
             total_amount: project.total_amount || project.target_amount || '',
@@ -1189,7 +1189,7 @@ function openSaleModal() {
     const investments = projectDetailManager.projectData.investments || [];
     
     // Populate project info
-    document.getElementById('sale-project-title').textContent = project.title || project.name || 'N/A';
+    document.getElementById('sale-project-title').textContent = project.name || 'N/A';
     document.getElementById('sale-project-code').textContent = project.code || 'N/A';
     document.getElementById('sale-total-invested').textContent = `€${(parseFloat(stats.total_invested) || 0).toLocaleString()}`;
     document.getElementById('sale-investors-count').textContent = stats.investors_count || 0;
