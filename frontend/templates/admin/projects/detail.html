@@ -1183,6 +1183,7 @@ function deleteDocument(docId) {
 
 // Sale Modal Functions
 function openSaleModal() {
+    alert('FUNZIONE CHIAMATA! Se vedi questo, il pulsante funziona!');
     console.log('=== openSaleModal CALLED ===');
     const modal = document.getElementById('sale-modal');
     console.log('Modal element:', modal);
@@ -1322,6 +1323,7 @@ function calculateSaleProfit() {
 }
 
 async function confirmSale() {
+    alert('CONFERMA VENDITA CHIAMATA! Prezzo: ' + document.getElementById('sale-price-input').value);
     console.log('confirmSale called');
     
     const salePrice = parseFloat(document.getElementById('sale-price-input').value);
