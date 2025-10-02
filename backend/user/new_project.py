@@ -47,7 +47,7 @@ def new_project():
                 project['completion_percent'] = 0
             
             project['location'] = 'N/A'
-            project['roi'] = 8.5
+            project['roi'] = 8.5  # TODO: Prendere ROI dal database
             project['min_investment'] = 1000
     
     with get_conn() as conn, conn.cursor() as cur:

@@ -131,8 +131,9 @@ def projects_list():
             CASE 
                 WHEN status = 'active' THEN 1
                 WHEN status = 'completed' THEN 2
-                WHEN status = 'cancelled' THEN 3
-                ELSE 4
+                WHEN status = 'sold' THEN 3
+                WHEN status = 'cancelled' THEN 4
+                ELSE 5
             END,
             created_at DESC"""
         with get_conn() as conn, conn.cursor() as cur:
@@ -163,12 +164,16 @@ def projects_list():
         
         cur.execute("SELECT COUNT(*) as completed FROM projects WHERE status = 'completed'")
         projects_completed = cur.fetchone()['completed']
+        
+        cur.execute("SELECT COUNT(*) as sold FROM projects WHERE status = 'sold'")
+        projects_sold = cur.fetchone()['sold']
     
     metrics = {
         'projects_total': projects_total,
         'projects_active': projects_active,
         'projects_draft': projects_draft,
         'projects_completed': projects_completed,
+        'projects_sold': projects_sold,
         'projects_active': projects_active  # Per compatibilit con sidebar
     }
     
@@ -280,10 +285,17 @@ def projects_new():
         location_value = data.get('address') or data.get('location') or 'Indirizzo non specificato'
         status_value = data.get('status', 'draft')
         
+        # Validazione campi obbligatori
+        title_value = data.get('title', '').strip()
+        if not title_value:
+            return jsonify({
+                "error": "Il titolo del progetto è obbligatorio",
+                "message": "Inserisci un titolo per il progetto"
+            }), 400
+        
         # Campi opzionali schema esteso con valori di default
         roi_value = float(data.get('roi', 8.0))
         project_type = data.get('type', 'residential')
-        name_value = data.get('title') or data.get('name') or 'Progetto senza nome'
         description_value = data.get('description') or 'Descrizione non fornita'
         total_amount_value = float(data.get('target_amount', 100000))
         min_investment_value = float(data.get('min_investment', 1000))
@@ -297,14 +309,14 @@ def projects_new():
             cur.execute(
                 """
                 INSERT INTO projects (
-                    code, name, description, status, total_amount, start_date,
+                    code, title, description, status, total_amount, start_date,
                     location, min_investment, image_url, roi, type, funded_amount, duration
                 )
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
                 """,
                 (
-                    code_value, name_value, description_value, status_value,
+                    code_value, title_value, description_value, status_value,
                     total_amount_value, start_date_value,
                     location_value, min_investment_value, 
                     photo_filename if photo_filename else None,
@@ -392,7 +404,8 @@ def project_detail(pid):
             # Investimenti collegati
             cur.execute("""
                 SELECT i.id, i.amount, i.status, i.created_at,
-                       u.id as user_id, u.nome, u.email, u.kyc_status
+                       u.id as user_id, u.nome, u.cognome, u.email, u.kyc_status,
+                       CONCAT(u.nome, ' ', u.cognome) as full_name
                 FROM investments i
                 JOIN users u ON u.id = i.user_id
                 WHERE i.project_id = %s
@@ -459,6 +472,10 @@ def projects_edit(pid):
             update_fields.append("description = %s")
             params.append(data['description'])
         
+        if 'project_details' in data:
+            update_fields.append("project_details = %s")
+            params.append(data['project_details'])
+        
         if 'status' in data and data['status']:
             update_fields.append("status = %s")
             params.append(data['status'])
@@ -467,9 +484,7 @@ def projects_edit(pid):
             update_fields.append("total_amount = %s")
             params.append(float(data['total_amount']))
         
-        if 'start_date' in data and data['start_date']:
-            update_fields.append("start_date = %s")
-            params.append(data['start_date'])
+        # start_date rimosso - non modificabile, sempre uguale alla data di creazione
         
         
         if not update_fields:
@@ -565,6 +580,342 @@ def projects_cancel(pid):
     except Exception as e:
         return jsonify({"error": f"Errore durante l'annullamento: {str(e)}"}), 500
 
+def process_referral_bonus(cur, user_id, profit_amount, project_id):
+    """Processa i bonus referral per un utente che ha ricevuto profitti"""
+    try:
+        # Assicurati che profit_amount sia un float
+        profit_amount = float(profit_amount)
+        
+        # Trova chi ha invitato questo utente
+        cur.execute("""
+            SELECT u.referred_by as referrer_id, r.is_vip
+            FROM users u
+            JOIN users r ON r.id = u.referred_by
+            WHERE u.id = %s AND u.referred_by IS NOT NULL
+        """, (user_id,))
+        referral_data = cur.fetchone()
+        
+        if not referral_data:
+            # Nessun referral trovato, il 2% va all'utente ID 2
+            bonus_amount = profit_amount * 0.02
+            
+            # Usa UPSERT per evitare problemi di concorrenza
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                VALUES (2, 0, 0, 0, %s)
+                ON CONFLICT (user_id) 
+                DO UPDATE SET referral_bonus = user_portfolios.referral_bonus + %s
+            """, (bonus_amount, bonus_amount))
+            
+            return {"referrer_id": 2, "bonus_amount": float(bonus_amount), "is_vip": False, "source": "default"}
+        
+        referrer_id = referral_data['referrer_id']
+        is_vip = referral_data['is_vip']
+        
+        # Calcola bonus: 5% per VIP, 3% per non-VIP
+        bonus_percentage = 0.05 if is_vip else 0.03
+        bonus_amount = float(profit_amount) * bonus_percentage
+        
+        # Usa UPSERT per il referrer
+        cur.execute("""
+            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+            VALUES (%s, 0, 0, 0, %s)
+            ON CONFLICT (user_id) 
+            DO UPDATE SET referral_bonus = user_portfolios.referral_bonus + %s
+        """, (referrer_id, bonus_amount, bonus_amount))
+        
+        # Se non è VIP, il 2% va all'utente ID 2
+        if not is_vip:
+            additional_bonus = float(profit_amount) * 0.02
+            cur.execute("""
+                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                VALUES (2, 0, 0, 0, %s)
+                ON CONFLICT (user_id) 
+                DO UPDATE SET referral_bonus = user_portfolios.referral_bonus + %s
+            """, (additional_bonus, additional_bonus))
+        
+        return {
+            "referrer_id": referrer_id, 
+            "bonus_amount": float(bonus_amount), 
+            "is_vip": is_vip,
+            "source": "referral"
+        }
+        
+    except Exception as e:
+        logger.error(f"Errore nel processare referral bonus per user {user_id}: {e}")
+        return None
+
+@admin_bp.post("/projects/<int:pid>/sell")
+@admin_required
+def projects_sell(pid):
+    """Vende un progetto e distribuisce i profitti agli investitori con sistema referral"""
+    try:
+        logger.info(f"Vendita progetto {pid} - Inizio processo")
+        data = request.get_json()
+        logger.info(f"Dati ricevuti: {data}")
+        sale_price = float(data.get('sale_price', 0))
+        logger.info(f"Prezzo vendita: {sale_price}")
+        
+        if sale_price <= 0:
+            return jsonify({"error": "Il prezzo di vendita deve essere maggiore di zero"}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Disabilita autocommit per gestire manualmente la transazione
+            conn.autocommit = False
+            logger.info(f"Connessione database stabilita per progetto {pid}")
+            
+            # Ottieni dettagli progetto
+            cur.execute("""
+                SELECT id, title, code, total_amount, funded_amount, status
+                FROM projects 
+                WHERE id = %s
+            """, (pid,))
+            project = cur.fetchone()
+            logger.info(f"Progetto trovato: {project}")
+            
+            if not project:
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            if project['status'] != 'completed':
+                logger.warning(f"Progetto {pid} non è completato: {project['status']}")
+                return jsonify({"error": "Il progetto deve essere completato prima di poter essere venduto"}), 400
+            
+            # Ottieni tutti gli investimenti attivi per questo progetto
+            cur.execute("""
+                SELECT i.id, i.user_id, i.amount, u.email, u.nome, u.cognome,
+                       CONCAT(u.nome, ' ', u.cognome) as full_name
+                FROM investments i
+                JOIN users u ON u.id = i.user_id
+                WHERE i.project_id = %s AND i.status = 'active'
+            """, (pid,))
+            investments = cur.fetchall()
+            logger.info(f"Investimenti trovati: {len(investments)}")
+            
+            if not investments:
+                logger.warning(f"Nessun investimento attivo per progetto {pid}")
+                return jsonify({"error": "Nessun investimento attivo trovato per questo progetto"}), 400
+            
+            total_invested = sum(float(inv['amount']) for inv in investments)
+            total_amount = float(project['total_amount'])
+            total_profit = sale_price - total_amount
+            
+            # Verifica che ci sia almeno un investimento con importo > 0
+            if total_invested <= 0:
+                return jsonify({"error": "Impossibile vendere: nessun investimento valido trovato"}), 400
+            
+            # Usa un approccio più sicuro per le transazioni
+            try:
+                logger.info(f"Inizio transazione per progetto {pid}")
+                # Calcola la percentuale di profitto basata sul valore totale del progetto
+                profit_percentage = (total_profit / total_amount) * 100 if total_amount > 0 else 0
+                
+                # Aggiorna status del progetto a 'sold'
+                cur.execute("""
+                    UPDATE projects 
+                    SET status = 'sold', sale_price = %s, sale_date = NOW(), sold_at = NOW(), profit_percentage = %s
+                    WHERE id = %s
+                """, (sale_price, profit_percentage, pid))
+                logger.info(f"Progetto {pid} aggiornato a 'sold' con prezzo {sale_price}")
+                
+                referral_bonuses = []
+                
+                # Calcola i bonus referral per il progetto (una sola volta)
+                referral_deductions = {}  # user_id -> amount_to_deduct
+                if total_profit > 0:
+                    # Raccogli tutti gli utenti che hanno investito
+                    investors = [inv['user_id'] for inv in investments]
+                    logger.info(f"Calcolo bonus referral per {len(investors)} investitori")
+                    
+                    # Calcola i bonus per ogni investitore
+                    for investor_id in investors:
+                        try:
+                            # Trova chi ha invitato questo investitore
+                            cur.execute("""
+                                SELECT u.referred_by as referrer_id, r.is_vip
+                                FROM users u
+                                JOIN users r ON r.id = u.referred_by
+                                WHERE u.id = %s AND u.referred_by IS NOT NULL
+                            """, (investor_id,))
+                            referral_data = cur.fetchone()
+                            
+                            if referral_data:
+                                referrer_id = referral_data['referrer_id']
+                                is_vip = referral_data['is_vip']
+                                
+                                # Calcola bonus: 5% per VIP, 3% per non-VIP
+                                bonus_percentage = 0.05 if is_vip else 0.03
+                                bonus_amount = float(total_profit) * bonus_percentage
+                                
+                                # Se non è VIP, aggiungi il 2% per l'utente ID 2
+                                if not is_vip:
+                                    additional_bonus = float(total_profit) * 0.02
+                                    total_deduction = bonus_amount + additional_bonus
+                                else:
+                                    total_deduction = bonus_amount
+                                
+                                # Memorizza la deduzione per questo utente
+                                referral_deductions[investor_id] = total_deduction
+                                
+                                # Usa UPSERT per il referrer
+                                cur.execute("""
+                                    INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                    VALUES (%s, 0, 0, 0, %s)
+                                    ON CONFLICT (user_id) 
+                                    DO UPDATE SET referral_bonus = user_portfolios.referral_bonus + %s
+                                """, (referrer_id, bonus_amount, bonus_amount))
+                                
+                                # Se non è VIP, il 2% va all'utente ID 2
+                                if not is_vip:
+                                    cur.execute("""
+                                        INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                                        VALUES (2, 0, 0, 0, %s)
+                                        ON CONFLICT (user_id) 
+                                        DO UPDATE SET referral_bonus = user_portfolios.referral_bonus + %s
+                                    """, (additional_bonus, additional_bonus))
+                                
+                                referral_bonuses.append({
+                                    "referrer_id": referrer_id, 
+                                    "bonus_amount": float(bonus_amount), 
+                                    "is_vip": is_vip,
+                                    "source": "referral"
+                                })
+                                
+                        except Exception as e:
+                            logger.warning(f"Errore nel processare referral bonus per user {investor_id}: {e}")
+                
+                # Distribuisci profitti agli investitori
+                logger.info(f"Inizio distribuzione profitti per {len(investments)} investimenti")
+                for investment in investments:
+                    user_id = investment['user_id']
+                    amount = float(investment['amount'])
+                    logger.info(f"Processando investimento {investment['id']} per user {user_id}, importo: {amount}")
+                    
+                    # Controllo sicurezza per evitare divisioni per zero
+                    if total_invested <= 0:
+                        logger.error(f"total_invested è zero o negativo: {total_invested}")
+                        continue
+                    
+                    if total_profit >= 0:
+                        # Profitto: capitale torna in libero + profitto va in profitti
+                        # Il profitto viene distribuito proporzionalmente all'investimento
+                        profit_share = (amount / total_invested) * total_profit
+                        
+                        # Deduci i bonus referral dal profitto dell'utente
+                        referral_deduction = referral_deductions.get(user_id, 0)
+                        net_profit_share = profit_share - referral_deduction
+                        
+                        # Assicurati che il profitto netto non sia negativo
+                        if net_profit_share < 0:
+                            net_profit_share = 0
+                        
+                        total_return = amount + net_profit_share
+                        
+                        # Aggiorna il portfolio dell'utente usando UPSERT
+                        logger.info(f"Aggiornando portfolio user {user_id}: capitale {amount}, profitto lordo {profit_share}, profitto netto {net_profit_share}, deduzione referral {referral_deduction}")
+                        cur.execute("""
+                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                            VALUES (%s, %s, 0, %s, 0)
+                            ON CONFLICT (user_id) 
+                            DO UPDATE SET 
+                                invested_capital = user_portfolios.invested_capital - %s,
+                                free_capital = user_portfolios.free_capital + %s,
+                                profits = user_portfolios.profits + %s
+                        """, (user_id, amount, net_profit_share, amount, amount, net_profit_share))
+                        logger.info(f"Portfolio user {user_id} aggiornato con successo")
+                        
+                        
+                        # Aggiorna status dell'investimento
+                        logger.info(f"Aggiornando investimento {investment['id']} a 'completed'")
+                        cur.execute("""
+                            UPDATE investments 
+                            SET status = 'completed', 
+                                profit_earned = %s,
+                                total_return = %s,
+                                completed_at = NOW()
+                            WHERE id = %s
+                        """, (net_profit_share, total_return, investment['id']))
+                        logger.info(f"Investimento {investment['id']} aggiornato con successo")
+                    
+                    else:
+                        # Perdita: solo il capitale investito torna in libero (meno la perdita)
+                        # La perdita viene distribuita proporzionalmente all'investimento
+                        loss_share = (amount / total_invested) * abs(total_profit)
+                        capital_return = amount - loss_share
+                        logger.info(f"Perdita per user {user_id}: {loss_share}, capitale restituito: {capital_return}")
+                        
+                        # Aggiorna il portfolio dell'utente usando UPSERT
+                        cur.execute("""
+                            INSERT INTO user_portfolios (user_id, free_capital, invested_capital, profits, referral_bonus)
+                            VALUES (%s, %s, 0, 0, 0)
+                            ON CONFLICT (user_id) 
+                            DO UPDATE SET 
+                                invested_capital = user_portfolios.invested_capital - %s,
+                                free_capital = user_portfolios.free_capital + %s
+                        """, (user_id, capital_return, amount, capital_return))
+                        
+                        # Aggiorna status dell'investimento
+                        cur.execute("""
+                            UPDATE investments 
+                            SET status = 'completed', 
+                                profit_earned = %s,
+                                total_return = %s,
+                                completed_at = NOW()
+                            WHERE id = %s
+                        """, (0, capital_return, investment['id']))
+                
+                # Registra l'azione admin
+                try:
+                    ensure_admin_actions_table(cur)
+                    cur.execute("""
+                        INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                        VALUES (%s, 'project_sold', 'project', %s, %s)
+                    """, (
+                        session.get('user_id'),
+                        pid,
+                        json.dumps({
+                            'sale_price': sale_price,
+                            'total_invested': total_invested,
+                            'total_profit': total_profit,
+                            'investors_count': len(investments),
+                            'referral_bonuses': referral_bonuses
+                        })
+                    ))
+                except Exception as e:
+                    logger.warning(f"Could not log admin action: {e}")
+                
+                # Commit esplicito per assicurarsi che le modifiche vengano salvate
+                logger.info(f"Commit transazione per progetto {pid}")
+                conn.commit()
+                logger.info(f"Transazione committata con successo per progetto {pid}")
+                
+                result_message = f"Progetto venduto con successo per €{sale_price:,.2f}"
+                if total_profit >= 0:
+                    result_message += f" - Profitto: €{total_profit:,.2f} ({profit_percentage:.1f}%)"
+                else:
+                    result_message += f" - Perdita: €{abs(total_profit):,.2f} ({profit_percentage:.1f}%)"
+                
+                return jsonify({
+                    "success": True,
+                    "message": result_message,
+                    "sale_price": float(sale_price),
+                    "total_invested": float(total_invested),
+                    "total_profit": float(total_profit),
+                    "investors_count": len(investments),
+                    "referral_bonuses": referral_bonuses
+                })
+                
+            except Exception as e:
+                # Rollback in caso di errore
+                logger.error(f"Errore durante la vendita del progetto {pid}: {e}")
+                conn.rollback()
+                logger.error(f"Rollback eseguito per progetto {pid}")
+                import traceback
+                logger.error(f"Traceback completo: {traceback.format_exc()}")
+                return jsonify({"error": f"Errore durante la vendita: {str(e)}"}), 500
+                
+    except Exception as e:
+        return jsonify({"error": f"Errore durante la vendita: {str(e)}"}), 500
+
 @admin_bp.delete("/projects/<int:pid>")
 @admin_required
 def projects_delete(pid):
@@ -650,7 +1001,7 @@ def project_upload_image(pid):
         # Genera nome file sicuro
         ext = os.path.splitext(file.filename)[1].lower() or '.jpg'
         timestamp = int(time.time())
-        filename = secure_filename(f"project_{pid}_image_{timestamp}{ext}")
+        filename = secure_filename(f"project_{pid}_main_{timestamp}{ext}")
         
         # Salva file
         projects_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
@@ -658,16 +1009,30 @@ def project_upload_image(pid):
         file_path = os.path.join(projects_dir, filename)
         file.save(file_path)
         
-        # Aggiorna database
+        # Aggiorna database - cambia l'immagine principale
         with get_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                "UPDATE projects SET image_url = %s WHERE id = %s",
-                (filename, pid)
-            )
+            # Verifica che il progetto esista
+            cur.execute("SELECT id, image_url FROM projects WHERE id = %s", (pid,))
+            result = cur.fetchone()
+            
+            if not result:
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            # Aggiorna l'immagine principale
+            cur.execute("""
+                UPDATE projects 
+                SET image_url = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (filename, pid))
+            
             conn.commit()
         
-        logger.info(f"Immagine aggiornata per progetto {pid}: {filename}")
-        return jsonify({"success": True, "filename": filename})
+        logger.info(f"Immagine principale aggiornata per progetto {pid}: {filename}")
+        return jsonify({
+            "success": True, 
+            "filename": filename, 
+            "message": "Immagine principale aggiornata con successo"
+        })
         
     except Exception as e:
         logger.error(f"Errore nell'upload dell'immagine: {e}")
@@ -714,6 +1079,219 @@ def project_upload_file(pid):
         "filename": unique_filename,
         "original_name": filename
     })
+
+# ---- Gestione Immagini Progetti ----
+@admin_bp.get("/projects/images/<filename>")
+def serve_project_images(filename):
+    """Serve le immagini dei progetti"""
+    try:
+        from flask import send_from_directory
+        import os
+        
+        # Percorso della cartella uploads/projects (stesso percorso usato per il salvataggio)
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
+        logger.info(f"Serving image: {filename} from directory: {upload_dir}")
+        
+        # Verifica che il file esista
+        file_path = os.path.join(upload_dir, filename)
+        if not os.path.exists(file_path):
+            logger.error(f"Image not found: {file_path}")
+            from flask import abort
+            abort(404)
+        
+        logger.info(f"Image found, serving: {file_path}")
+        
+        return send_from_directory(upload_dir, filename)
+    except Exception as e:
+        logger.error(f"Errore nel servire immagine {filename}: {e}")
+        from flask import abort
+        abort(404)
+
+@admin_bp.post("/projects/<int:pid>/gallery/upload")
+@admin_required
+def project_upload_gallery_image(pid):
+    """Carica una nuova immagine nella galleria del progetto"""
+    logger.info(f"=== GALLERY UPLOAD START === Project ID: {pid}")
+    
+    if 'file' not in request.files:
+        logger.error("No file in request.files")
+        return jsonify({"error": "Nessun file selezionato"}), 400
+    
+    file = request.files['file']
+    logger.info(f"File received: {file.filename}, content_type: {file.content_type}")
+    
+    if file.filename == '':
+        logger.error("Empty filename")
+        return jsonify({"error": "Nessun file selezionato"}), 400
+    
+    # Verifica tipo file
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    logger.info(f"File extension: {file_ext}")
+    
+    if file_ext not in allowed_extensions:
+        logger.error(f"Invalid file extension: {file_ext}")
+        return jsonify({"error": "Tipo file non supportato. Usa JPG, PNG, GIF o WebP"}), 400
+    
+    # Verifica dimensione (max 5MB per immagine)
+    file.seek(0, 2)  # Vai alla fine del file
+    file_size = file.tell()
+    file.seek(0)  # Torna all'inizio
+    logger.info(f"File size: {file_size} bytes")
+    
+    if file_size > 5 * 1024 * 1024:
+        logger.error(f"File too large: {file_size} bytes")
+        return jsonify({"error": "File troppo grande. Massimo 5MB"}), 400
+    
+    try:
+        # Genera nome file unico
+        filename = secure_filename(file.filename)
+        unique_filename = f"project_{pid}_{int(time.time())}_{filename}"
+        logger.info(f"Generated filename: {unique_filename}")
+        
+        # Salva file nella cartella uploads/projects/ (cartella corretta per nginx)
+        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'uploads', 'projects')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, unique_filename)
+        logger.info(f"Saving file to: {file_path}")
+        
+        file.save(file_path)
+        logger.info(f"File saved successfully: {file_path}")
+        
+        # Verifica che il file sia stato salvato
+        if not os.path.exists(file_path):
+            logger.error(f"File not found after save: {file_path}")
+            return jsonify({"error": "Errore nel salvataggio del file"}), 500
+        
+        # Aggiorna la galleria nel database
+        logger.info(f"Saving to database: {unique_filename}")
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Ottieni la galleria attuale
+            cur.execute("SELECT gallery FROM projects WHERE id = %s", (pid,))
+            result = cur.fetchone()
+            
+            if not result:
+                logger.error(f"Project {pid} not found in database")
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            current_gallery = result['gallery'] or []
+            if not isinstance(current_gallery, list):
+                current_gallery = []
+            
+            logger.info(f"Current gallery: {current_gallery}")
+            
+            # Aggiungi la nuova immagine
+            current_gallery.append(unique_filename)
+            logger.info(f"New gallery: {current_gallery}")
+            
+            # Aggiorna il database
+            cur.execute("""
+                UPDATE projects 
+                SET gallery = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (json.dumps(current_gallery), pid))
+            
+            conn.commit()
+            logger.info(f"Database updated successfully for project {pid}")
+            
+            # Verifica che l'aggiornamento sia andato a buon fine
+            cur.execute("SELECT gallery FROM projects WHERE id = %s", (pid,))
+            verify_result = cur.fetchone()
+            logger.info(f"Verification - Gallery in DB: {verify_result['gallery']}")
+            
+            return jsonify({
+                "success": True,
+                "filename": unique_filename,
+                "gallery": current_gallery,
+                "message": f"Immagine {unique_filename} aggiunta alla galleria"
+            })
+            
+    except Exception as e:
+        logger.error(f"Errore durante upload immagine galleria: {str(e)}")
+        return jsonify({"error": f"Errore durante l'upload: {str(e)}"}), 500
+
+@admin_bp.delete("/projects/<int:pid>/gallery/<filename>")
+@admin_required
+def project_delete_gallery_image(pid, filename):
+    """Elimina un'immagine dalla galleria del progetto"""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Ottieni la galleria attuale
+            cur.execute("SELECT gallery FROM projects WHERE id = %s", (pid,))
+            result = cur.fetchone()
+            
+            if not result:
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            current_gallery = result['gallery'] or []
+            if not isinstance(current_gallery, list):
+                current_gallery = []
+            
+            # Rimuovi l'immagine dalla galleria
+            if filename in current_gallery:
+                current_gallery.remove(filename)
+                
+                # Aggiorna il database
+                cur.execute("""
+                    UPDATE projects 
+                    SET gallery = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (json.dumps(current_gallery), pid))
+                
+                conn.commit()
+                
+                # Elimina il file fisico
+                file_path = os.path.join(get_upload_folder(), 'projects', filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                
+                return jsonify({
+                    "success": True,
+                    "gallery": current_gallery
+                })
+            else:
+                return jsonify({"error": "Immagine non trovata nella galleria"}), 404
+                
+    except Exception as e:
+        logger.error(f"Errore durante eliminazione immagine galleria: {str(e)}")
+        return jsonify({"error": f"Errore durante l'eliminazione: {str(e)}"}), 500
+
+@admin_bp.put("/projects/<int:pid>/gallery/reorder")
+@admin_required
+def project_reorder_gallery(pid):
+    """Riordina le immagini nella galleria del progetto"""
+    try:
+        data = request.get_json()
+        new_order = data.get('gallery', [])
+        
+        if not isinstance(new_order, list):
+            return jsonify({"error": "Formato galleria non valido"}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che il progetto esista
+            cur.execute("SELECT id FROM projects WHERE id = %s", (pid,))
+            if not cur.fetchone():
+                return jsonify({"error": "Progetto non trovato"}), 404
+            
+            # Aggiorna l'ordine della galleria
+            cur.execute("""
+                UPDATE projects 
+                SET gallery = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (json.dumps(new_order), pid))
+            
+            conn.commit()
+            
+            return jsonify({
+                "success": True,
+                "gallery": new_order
+            })
+            
+    except Exception as e:
+        logger.error(f"Errore durante riordinamento galleria: {str(e)}")
+        return jsonify({"error": f"Errore durante il riordinamento: {str(e)}"}), 500
+
 
 # ---- Portfolio Admin ----
 @admin_bp.get("/portfolio")
@@ -2026,83 +2604,91 @@ def api_admin_user_portfolio(user_id: int):
 @admin_required
 def api_admin_update_portfolio(user_id: int):
     """Aggiorna i saldi del portafoglio utente (solo admin)."""
-    data = request.get_json() or {}
-    allowed = ['free_capital', 'invested_capital', 'referral_bonus', 'profits']
-    updates = {k: float(data[k]) for k in allowed if k in data}
-    if not updates:
-        return jsonify({'error': 'Nessun campo da aggiornare'}), 400
+    try:
+        data = request.get_json() or {}
+        allowed = ['free_capital', 'invested_capital', 'referral_bonus', 'profits']
+        updates = {k: float(data[k]) for k in allowed if k in data}
+        if not updates:
+            return jsonify({'error': 'Nessun campo da aggiornare'}), 400
 
-    with get_conn() as conn, conn.cursor() as cur:
-        ensure_admin_actions_table(cur)
-        # Assicurati che la riga del portafoglio esista
-        cur.execute("SELECT user_id FROM user_portfolios WHERE user_id = %s", (user_id,))
-        if not cur.fetchone():
+        with get_conn() as conn, conn.cursor() as cur:
+            ensure_admin_actions_table(cur)
+            # Assicurati che la riga del portafoglio esista
+            cur.execute("SELECT user_id FROM user_portfolios WHERE user_id = %s", (user_id,))
+            if not cur.fetchone():
+                cur.execute(
+                    """
+                    INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                    VALUES (%s, 0, 0, 0, 0)
+                    """,
+                    (user_id,)
+                )
+
+            set_parts = []
+            params = []
+            for field, value in updates.items():
+                set_parts.append(f"{field} = %s")
+                params.append(value)
+            params.append(user_id)
+
+            cur.execute(f"UPDATE user_portfolios SET {', '.join(set_parts)} WHERE user_id = %s", params)
+            
+            # Se è stato modificato invested_capital, sincronizza con la tabella investments
+            if 'invested_capital' in updates:
+                new_invested_capital = updates['invested_capital']
+                
+                # Ottieni il totale attuale degli investimenti attivi
+                cur.execute("""
+                    SELECT COALESCE(SUM(amount), 0) as total_investments
+                    FROM investments 
+                    WHERE user_id = %s AND status = 'active'
+                """, (user_id,))
+                current_total = float(cur.fetchone()['total_investments'] or 0)
+                
+                # Calcola la differenza
+                difference = new_invested_capital - current_total
+                
+                if difference != 0:
+                    # Se c'è una differenza, aggiorna proporzionalmente tutti gli investimenti attivi
+                    if current_total > 0:
+                        # Aggiorna proporzionalmente ogni investimento
+                        cur.execute("""
+                            UPDATE investments 
+                            SET amount = amount * (%s / %s)
+                            WHERE user_id = %s AND status = 'active'
+                        """, (new_invested_capital, current_total, user_id))
+                    else:
+                        # Se non ci sono investimenti attivi ma c'è capitale investito,
+                        # crea un investimento virtuale per il primo progetto attivo
+                        cur.execute("""
+                            SELECT id FROM projects 
+                            WHERE status = 'active' 
+                            ORDER BY created_at ASC 
+                            LIMIT 1
+                        """)
+                        first_project = cur.fetchone()
+                        if first_project:
+                            cur.execute("""
+                                INSERT INTO investments (user_id, project_id, amount, status, created_at)
+                                VALUES (%s, %s, %s, 'active', NOW())
+                            """, (user_id, first_project['id'], new_invested_capital))
+            
             cur.execute(
                 """
-                INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
-                VALUES (%s, 0, 0, 0, 0)
+                INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
+                VALUES (%s, 'portfolio_update', 'user', %s, %s)
                 """,
-                (user_id,)
+                (session.get('user_id'), user_id, 'Aggiornati saldi portafoglio')
             )
+            
+            # Commit esplicito per assicurarsi che le modifiche vengano salvate
+            conn.commit()
 
-        set_parts = []
-        params = []
-        for field, value in updates.items():
-            set_parts.append(f"{field} = %s")
-            params.append(value)
-        params.append(user_id)
-
-        cur.execute(f"UPDATE user_portfolios SET {', '.join(set_parts)} WHERE user_id = %s", params)
+        return jsonify({'success': True, 'message': 'Portafoglio aggiornato'})
         
-        # Se è stato modificato invested_capital, sincronizza con la tabella investments
-        if 'invested_capital' in updates:
-            new_invested_capital = updates['invested_capital']
-            
-            # Ottieni il totale attuale degli investimenti attivi
-            cur.execute("""
-                SELECT COALESCE(SUM(amount), 0) as total_investments
-                FROM investments 
-                WHERE user_id = %s AND status = 'active'
-            """, (user_id,))
-            current_total = cur.fetchone()['total_investments'] or 0
-            
-            # Calcola la differenza
-            difference = new_invested_capital - current_total
-            
-            if difference != 0:
-                # Se c'è una differenza, aggiorna proporzionalmente tutti gli investimenti attivi
-                if current_total > 0:
-                    # Aggiorna proporzionalmente ogni investimento
-                    cur.execute("""
-                        UPDATE investments 
-                        SET amount = amount * (%s / %s)
-                        WHERE user_id = %s AND status = 'active'
-                    """, (new_invested_capital, current_total, user_id))
-                else:
-                    # Se non ci sono investimenti attivi ma c'è capitale investito,
-                    # crea un investimento virtuale per il primo progetto attivo
-                    cur.execute("""
-                        SELECT id FROM projects 
-                        WHERE status = 'active' 
-                        ORDER BY created_at ASC 
-                        LIMIT 1
-                    """)
-                    first_project = cur.fetchone()
-                    if first_project:
-                        cur.execute("""
-                            INSERT INTO investments (user_id, project_id, amount, status, created_at)
-                            VALUES (%s, %s, %s, 'active', NOW())
-                        """, (user_id, first_project['id'], new_invested_capital))
-        
-        cur.execute(
-            """
-            INSERT INTO admin_actions (admin_id, action, target_type, target_id, details)
-            VALUES (%s, 'portfolio_update', 'user', %s, %s)
-            """,
-            (session.get('user_id'), user_id, 'Aggiornati saldi portafoglio')
-        )
-
-    return jsonify({'success': True, 'message': 'Portafoglio aggiornato'})
+    except Exception as e:
+        print(f"Errore nel salvataggio portafoglio: {str(e)}")
+        return jsonify({'error': f'Errore nel salvataggio: {str(e)}'}), 500
 
 
 @admin_bp.patch("/api/admin/users/<int:user_id>/portfolio/investments/<int:investment_id>")
@@ -4481,9 +5067,12 @@ def kyc_user_documents(user_id):
 def create_project():
     """Crea un nuovo progetto immobiliare"""
     try:
-        # Ottieni i dati dal form con valori di default
+        # Ottieni i dati dal form con validazione
         code = request.form.get('code', '').strip() or f'PRJ{int(time.time())}'
-        name = request.form.get('name', '').strip() or 'Progetto senza nome'
+        title = request.form.get('title', '').strip()
+        if not title:
+            flash('Il titolo del progetto è obbligatorio', 'error')
+            return redirect(url_for('admin.projects_list'))
         description = request.form.get('description', '').strip() or 'Descrizione non fornita'
         total_amount = request.form.get('total_amount', type=float) or 100000
         min_investment = request.form.get('min_investment', type=float) or 1000
@@ -4537,11 +5126,11 @@ def create_project():
             
             # Inserisci progetto nel database
             cur.execute("""
-                INSERT INTO projects (code, name, description, total_amount, min_investment, 
+                INSERT INTO projects (code, title, description, total_amount, min_investment, 
                                    location, type, roi, start_date, image_url, status, funded_amount, duration)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (code, name, description, total_amount, min_investment, 
+            """, (code, title, description, total_amount, min_investment, 
                   location, project_type, roi, start_date, image_url, 'active', 0.0, 365))
             
             project_id = cur.fetchone()['id']

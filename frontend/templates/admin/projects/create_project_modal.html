@@ -35,7 +35,7 @@
                     </div>
                     <div style="display: flex; flex-direction: column;">
                         <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Nome Progetto *</label>
-                        <input type="text" name="name" 
+                        <input type="text" name="title" 
                                placeholder="es. Residenza Milano Centro" required
                                style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
                                onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
@@ -188,7 +188,7 @@ async function submitCreateProject() {
     const formData = new FormData(form);
     
             // Validazione campi obbligatori
-            const requiredFields = ['code', 'name', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'start_date'];
+            const requiredFields = ['code', 'title', 'description', 'total_amount', 'min_investment', 'type', 'roi', 'start_date'];
     
     for (const field of requiredFields) {
         if (!formData.get(field) || formData.get(field).trim() === '') {

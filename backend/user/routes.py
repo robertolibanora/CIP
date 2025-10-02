@@ -185,68 +185,7 @@ def dashboard():
 # 2. PROFILO UTENTE - Gestione dati personali
 # =====================================================
 
-@user_bp.get("/projects")
-@login_required
-def projects():
-    """Lista progetti disponibili per investimento"""
-    uid = session.get("user_id") or 1  # Default per test
-    
-    try:
-        with get_conn() as conn, conn.cursor() as cur:
-            # Progetti attivi
-            cur.execute("""
-                SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
-                FROM projects p 
-                WHERE p.status = 'active'
-                ORDER BY p.created_at DESC
-            """)
-            active_projects = cur.fetchall()
-            
-            # Progetti completati
-            cur.execute("""
-                SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
-                FROM projects p 
-                WHERE p.status = 'completed'
-                ORDER BY p.created_at DESC
-            """)
-            completed_projects = cur.fetchall()
-            
-            # Progetti venduti
-            cur.execute("""
-                SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
-                       p.status, p.created_at, p.code, p.location, p.min_investment, p.roi, p.image_url
-                FROM projects p 
-                WHERE p.status = 'sold'
-                ORDER BY p.created_at DESC
-            """)
-            sold_projects = cur.fetchall()
-            
-            # Calcola percentuale completamento e aggiungi campi mancanti per tutti i progetti
-            for project_list in [active_projects, completed_projects, sold_projects]:
-                for project in project_list:
-                    if project['total_amount'] and project['total_amount'] > 0:
-                        project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
-                    else:
-                        project['completion_percent'] = 0
-                    
-                    # Campi di fallback se non presenti
-                    project['roi'] = project.get('roi', 8.5)
-                    project['min_investment'] = project.get('min_investment', 1000)
-                    
-    except Exception as e:
-        print(f"Errore projects: {str(e)}")
-        active_projects = []
-        completed_projects = []
-        sold_projects = []
-    
-    return render_template("user/projects.html", 
-                         user_id=uid,
-                         active_projects=active_projects,
-                         completed_projects=completed_projects,
-                         sold_projects=sold_projects,
-                         current_page="projects")
+# Route /projects rimossa - gestita da projects.py per evitare conflitti
 
 @user_bp.get("/new-project")
 @login_required

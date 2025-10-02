@@ -3,9 +3,13 @@ CIP Immobiliare - Projects Module
 Compartimento stagno per i progetti disponibili per investimento
 """
 
+import logging
 from flask import Blueprint, session, render_template, request, redirect, url_for, jsonify, flash
 from backend.shared.database import get_connection
-from backend.auth.decorators import can_invest, kyc_verified
+from backend.auth.decorators import can_invest, kyc_verified, login_required
+
+# Configura logger
+logger = logging.getLogger(__name__)
 
 # Blueprint isolato per Projects
 projects_bp = Blueprint("user_projects", __name__)
@@ -99,10 +103,15 @@ def projects():
                 GROUP BY project_id
             ) user_investments ON p.id = user_investments.project_id
             WHERE p.sale_price IS NOT NULL AND p.sale_price > 0
-            ORDER BY p.sale_date DESC, p.created_at DESC
+            ORDER BY p.sold_at DESC, p.created_at DESC
         """, (uid,))
         
         sold_projects = cur.fetchall()
+        
+        # DEBUG: Stampa i dati dei progetti venduti
+        logger.info(f"Progetti venduti trovati: {len(sold_projects)}")
+        for project in sold_projects:
+            logger.info(f"Progetto {project['id']}: sale_price={project.get('sale_price')}, profit_percentage={project.get('profit_percentage')}, sale_date={project.get('sale_date')}")
         
         # 5. ELABORAZIONE DATI PROGETTI
         def process_projects(projects_list):
@@ -368,3 +377,51 @@ def get_user_funds(project_id):
             
     except Exception as e:
         return jsonify({"error": f"Errore nel recupero fondi: {str(e)}"}), 500
+
+@projects_bp.get("/projects/<int:project_id>")
+@login_required
+def project_detail(project_id):
+    """Pagina di dettaglio di un singolo progetto"""
+    uid = session.get("user_id")
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        # Ottieni dettagli progetto
+        cur.execute("""
+            SELECT p.id, p.title, p.description, p.total_amount, p.funded_amount,
+                   p.status, p.created_at, p.code, p.location, p.min_investment,
+                   p.image_url, p.sale_price, p.sold_at as sale_date, p.profit_percentage,
+                   p.gallery, p.project_details
+            FROM projects p 
+            WHERE p.id = %s
+        """, (project_id,))
+        
+        project = cur.fetchone()
+        
+        if not project:
+            from flask import abort
+            abort(404)
+        
+        # Calcola percentuale completamento
+        if project['total_amount'] and project['total_amount'] > 0:
+            project['completion_percent'] = min(100, int((project['funded_amount'] / project['total_amount']) * 100))
+        else:
+            project['completion_percent'] = 0
+        
+        # Aggiungi campi mancanti per compatibilità template
+        project['location'] = project.get('location') or 'N/A'
+        project['roi'] = project.get('roi') or 8.5
+        project['min_investment'] = project.get('min_investment') or 1000
+        project['description'] = project.get('description') or 'Nessuna descrizione disponibile'
+        
+        # GESTIONE IMMAGINI - Struttura per galleria
+        project['has_images'] = bool(project.get('gallery') and len(project.get('gallery', [])) > 0)
+        
+        # Se non c'è galleria ma c'è un'immagine principale, aggiungila alla galleria
+        if not project.get('gallery') and project.get('image_url'):
+            project['gallery'] = [project['image_url']]
+        elif not project.get('gallery'):
+            project['gallery'] = []
+        
+        return render_template("projects/detail.html",
+                             project=project,
+                             current_page="projects")

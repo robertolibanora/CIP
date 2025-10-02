@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # COSTANTI SICUREZZA SESSIONI
 # ============================================================================
 
-SESSION_TIMEOUT = 3600  # 1 ora in secondi
+SESSION_TIMEOUT = 8 * 3600  # 8 ore in secondi
 SESSION_LAST_ACTIVITY_KEY = 'last_activity'
 SESSION_CREATED_KEY = 'created_at'
 SESSION_IP_KEY = 'ip_address'
@@ -78,13 +78,20 @@ def is_kyc_verified() -> bool:
 def validate_session_security() -> bool:
     """Valida la sicurezza della sessione corrente"""
     if not is_authenticated():
+        logger.info("validate_session_security: utente non autenticato")
         return False
     
     # Verifica timeout sessione
     last_activity = session.get(SESSION_LAST_ACTIVITY_KEY)
+    current_time = time.time()
+    
+    logger.info(f"validate_session_security: utente {session.get('user_id')}, last_activity={last_activity}, current_time={current_time}")
+    
     if last_activity:
-        if time.time() - last_activity > SESSION_TIMEOUT:
-            logger.warning(f"Sessione scaduta per utente {session.get('user_id')}")
+        time_diff = current_time - last_activity
+        logger.info(f"validate_session_security: differenza tempo={time_diff}s, timeout={SESSION_TIMEOUT}s")
+        if time_diff > SESSION_TIMEOUT:
+            logger.warning(f"Sessione scaduta per utente {session.get('user_id')}: {time_diff}s > {SESSION_TIMEOUT}s")
             return False
     
     # Verifica IP address (se configurato)

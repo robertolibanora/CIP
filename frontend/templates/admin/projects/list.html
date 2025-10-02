@@ -14,7 +14,6 @@
                 <span style="margin-right: 8px;">+</span>
                 Crea Progetto
             </button>
-            <button onclick="window.location.reload()" class="admin-btn admin-btn--secondary" style="background: white; color: #374151; padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-weight: bold;">Aggiorna</button>
         </div>
     </div>
 </div>
@@ -37,6 +36,7 @@
                         <option value="">Tutti gli stati</option>
                         <option value="active">Attivo</option>
                         <option value="completed">Completato</option>
+                        <option value="sold">Venduto</option>
                         <option value="cancelled">Annullato</option>
                     </select>
                 </div>
@@ -468,7 +468,7 @@ function displayCancelModal(data) {
     const investments = data.investments;
     
     // Aggiorna il contenuto del modal
-    document.getElementById('cancel-project-name').textContent = project.name || 'Progetto senza nome';
+    document.getElementById('cancel-project-name').textContent = project.title || project.name || 'Progetto senza nome';
     document.getElementById('cancel-project-code').textContent = project.code || 'N/A';
     document.getElementById('cancel-project-investors').textContent = investments.length;
     document.getElementById('cancel-project-total-invested').textContent = '€' + investments.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString();
@@ -616,7 +616,7 @@ function displayDeleteModal(data) {
     const fundedAmount = project.funded_amount || 0;
     
     // Aggiorna il contenuto del modal
-    document.getElementById('delete-project-name').textContent = project.name || 'Progetto senza nome';
+    document.getElementById('delete-project-name').textContent = project.title || project.name || 'Progetto senza nome';
     document.getElementById('delete-project-code').textContent = project.code || 'N/A';
     
     const statusElement = document.getElementById('delete-project-status');
@@ -819,13 +819,14 @@ class ProjectsManager {
             );
         }
         
-        // Ordinamento personalizzato: Attivi → Completati → Annullati
+        // Ordinamento personalizzato: Attivi → Completati → Venduti → Annullati
         filtered.sort((a, b) => {
             // Prima ordina per status secondo la logica richiesta
             const statusOrder = {
                 'active': 1,
                 'completed': 2,
-                'cancelled': 3
+                'sold': 3,
+                'cancelled': 4
             };
             
             const aStatusOrder = statusOrder[a.status] || 99;
@@ -880,12 +881,14 @@ class ProjectsManager {
         const statusColors = {
             active: 'blue', 
             completed: 'purple',
+            sold: 'green',
             cancelled: 'red'
         };
         
         const statusLabels = {
             active: 'Attivo',
             completed: 'Completato',
+            sold: 'Venduto',
             cancelled: 'Annullato'
         };
         
@@ -902,7 +905,7 @@ class ProjectsManager {
                     <img src="${imgSrc}" alt="foto" class="w-full h-40 object-cover rounded mb-3"/>
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <h3 class="admin-heading-3">${project.name || 'Senza titolo'}</h3>
+                            <h3 class="admin-heading-3">${project.title || project.name || 'Senza titolo'}</h3>
                             <p class="admin-text-caption">${project.code || 'N/A'}</p>
                         </div>
                         <span class="admin-badge admin-badge--${color}">${label}</span>
@@ -915,10 +918,25 @@ class ProjectsManager {
                     ` : ''}
                     
                     <div class="mb-4">
-                        <div class="w-full bg-gray-200 rounded h-2 mb-2">
-                            <div class="bg-blue-600 h-2 rounded" style="width:${pct}%"></div>
-                        </div>
-                        <div class="admin-text-small text-gray-700">Raccolto: €${invested.toLocaleString()} / €${target.toLocaleString()} (${pct}%)</div>
+                        ${project.status === 'sold' ? `
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="admin-text-small text-green-700">Venduto per:</span>
+                                    <span class="admin-text-small font-bold text-green-800">€${parseFloat(project.sale_price || 0).toLocaleString()}</span>
+                                </div>
+                                ${project.sold_at ? `
+                                    <div class="flex items-center justify-between mt-1">
+                                        <span class="admin-text-small text-green-600">Data vendita:</span>
+                                        <span class="admin-text-small text-green-600">${new Date(project.sold_at).toLocaleDateString('it-IT')}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : `
+                            <div class="w-full bg-gray-200 rounded h-2 mb-2">
+                                <div class="bg-blue-600 h-2 rounded" style="width:${pct}%"></div>
+                            </div>
+                            <div class="admin-text-small text-gray-700">Raccolto: €${invested.toLocaleString()} / €${target.toLocaleString()} (${pct}%)</div>
+                        `}
                     </div>
                     
                     <div class="space-y-2 mb-4">
@@ -963,7 +981,14 @@ class ProjectsManager {
                                 ⚠️ Annulla
                             </button>
                         ` : project.status === 'completed' ? `
-                            <div class="flex-1 mr-2"></div>
+                            <button onclick="sellProject(${project.id})" 
+                                    class="admin-btn admin-btn--success admin-btn--sm flex-1 mr-2">
+                                💰 Vendita
+                            </button>
+                        ` : project.status === 'sold' ? `
+                            <div class="flex-1 mr-2">
+                                <span class="admin-text-small text-green-600 font-medium">✅ Venduto</span>
+                            </div>
                         ` : `
                             <div class="flex-1 mr-2"></div>
                         `}
@@ -1039,6 +1064,7 @@ class ProjectsManager {
             total: this.projects.length,
             active: this.projects.filter(p => p.status === 'active').length,
             completed: this.projects.filter(p => p.status === 'completed').length,
+            sold: this.projects.filter(p => p.status === 'sold').length,
             cancelled: this.projects.filter(p => p.status === 'cancelled').length
         };
         
@@ -1055,6 +1081,10 @@ class ProjectsManager {
                 <div class="flex justify-between">
                     <span class="admin-text-small">Completati:</span>
                     <span class="admin-badge admin-badge--success">${stats.completed}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="admin-text-small">Venduti:</span>
+                    <span class="admin-badge admin-badge--success">${stats.sold}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="admin-text-small">Cancellati:</span>
@@ -1194,6 +1224,12 @@ document.addEventListener('click', function(e) {
         closeModal('create-project-modal');
     }
 });
+
+// Funzioni globali
+function sellProject(projectId) {
+    // Reindirizza alla pagina di dettaglio del progetto per la vendita
+    window.location.href = `/admin/projects/${projectId}`;
+}
 
 // Inizializzazione
 document.addEventListener('DOMContentLoaded', function() {

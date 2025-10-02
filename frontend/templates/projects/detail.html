@@ -1,255 +1,206 @@
-{% extends "layouts/base.html" %}
+{% extends "layouts/user_base.html" %}
 
-{% block title %}{{ project.name }} - CIP Immobiliare{% endblock %}
-
-{% block breadcrumb %}
-<nav class="flex" aria-label="Breadcrumb">
-    <ol class="flex items-center space-x-4">
-        <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                </svg>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Dashboard</span>
-            </div>
-        </li>
-        <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <a href="{{ url_for('user.projects') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 md:ml-2">Progetti</a>
-            </div>
-        </li>
-        <li>
-            <div class="flex items-center">
-                <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                </svg>
-                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ project.name }}</span>
-            </div>
-        </li>
-    </ol>
-</nav>
-{% endblock %}
+{% block title %}{{ project.title }} - CIP Immobiliare{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Contenuto Principale -->
-    <div class="lg:col-span-2 space-y-6">
-        <!-- Immagine Principale -->
-        <div class="relative overflow-hidden rounded-lg">
-            {% if project.image_url %}
-                <img src="{{ project.image_url }}" alt="{{ project.name }}" class="w-full h-96 object-cover">
-            {% else %}
-                <div class="w-full h-96 bg-gradient-to-br from-cip-primary to-blue-600 flex items-center justify-center">
-                    <svg class="w-24 h-24 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+<div class="min-h-screen bg-gray-50">
+    <!-- Header con breadcrumb -->
+    <div class="bg-white border-b border-gray-200 px-4 py-4">
+        <div class="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+            <a href="{{ url_for('user_projects.projects') }}" class="hover:text-blue-600">Progetti</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
+            <span class="text-gray-900 font-medium">{{ project.title }}</span>
                 </div>
-            {% endif %}
+        
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ project.title }}</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        {{ project.code }}
+                    </span>
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        {{ project.status|title }}
+                    </span>
+                </div>
+            </div>
             
-            <!-- Badge Status -->
-            <div class="absolute top-4 left-4">
-                {% if project.status == 'active' %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                        <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                        Attivo
-                    </span>
-                {% elif project.status == 'funding' %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                        <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
-                        Raccolta Fondi
-                    </span>
-                {% elif project.status == 'completed' %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                        Completato
-                    </span>
+            {% if project.status == 'active' and is_kyc_verified %}
+            <button onclick="openInvestmentModal()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Investi Ora
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="px-4 py-6 pb-24">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Galleria immagini -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Galleria Immagini</h2>
+        </div>
+
+                    <div class="p-6">
+                        {% if project.gallery and project.gallery|length > 0 %}
+                        <!-- Immagine principale -->
+                        <div class="mb-4">
+                            <img id="mainImage" 
+                                 src="/uploads/projects/{{ project.gallery[0] }}" 
+                                 alt="{{ project.title }}" 
+                                 class="w-full h-64 md:h-80 object-cover rounded-lg cursor-pointer"
+                                 onclick="openImageModal(0)">
+                        </div>
+                        
+                        <!-- Thumbnails -->
+                        {% if project.gallery|length > 1 %}
+                        <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
+                            {% for image in project.gallery %}
+                            <img src="/uploads/projects/{{ image }}" 
+                                 alt="{{ project.title }} - Immagine {{ loop.index }}"
+                                 class="w-full h-16 object-cover rounded cursor-pointer hover:opacity-75 transition-opacity gallery-thumbnail"
+                                 data-image="{{ image }}"
+                                 data-index="{{ loop.index0 }}">
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <!-- Nessuna immagine -->
+                        <div class="text-center py-12">
+                            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-gray-500">Nessuna immagine disponibile</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Informazioni dettagliate del progetto -->
+                {% if project.project_details %}
+                <div class="bg-white rounded-lg shadow mt-6">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Dettagli Progetto</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="prose max-w-none">
+                            {{ project.project_details|safe }}
+                        </div>
+                </div>
+                </div>
                 {% endif %}
             </div>
-        </div>
-
-        <!-- Informazioni Progetto -->
-        <div class="card">
-            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ project.name }}</h1>
-            <p class="text-gray-600 text-lg mb-6">{{ project.description }}</p>
             
-            <!-- Dettagli Chiave -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-                <div class="text-center">
-                    <p class="text-2xl font-bold text-cip-primary">{{ "%.1f"|format(project.roi|float) }}%</p>
-                    <p class="text-sm text-gray-500">RA Atteso</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold text-cip-accent">{{ project.type|title }}</p>
-                    <p class="text-sm text-gray-500">Tipo</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-2xl font-bold text-gray-700">{{ project.location }}</p>
-                    <p class="text-sm text-gray-500">Località</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Galleria Immagini -->
-        {% if project.gallery %}
-        <div class="card">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Galleria Immagini</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {% for image in project.gallery %}
-                <div class="aspect-w-1 aspect-h-1">
-                    <img src="{{ image.url }}" alt="{{ image.caption }}" class="w-full h-32 object-cover rounded-lg">
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Documenti -->
-        {% if project.documents %}
-        <div class="card">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Documenti</h3>
-            <div class="space-y-3">
-                {% for doc in project.documents %}
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center space-x-3">
-                        <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                        </svg>
-                        <div>
-                            <p class="font-medium text-gray-800">{{ doc.name }}</p>
-                            <p class="text-sm text-gray-500">{{ doc.size }}</p>
-                        </div>
+            <!-- Sidebar con informazioni progetto -->
+            <div class="space-y-6">
+                <!-- Informazioni principali -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Informazioni Progetto</h3>
                     </div>
-                    <a href="{{ doc.url }}" class="btn-secondary text-sm" download>
-                        Scarica
-                    </a>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">Tipo</label>
+                            <p class="text-gray-900">{{ project.type|title or 'N/A' }}</p>
                 </div>
-                {% endfor %}
+                        
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">ROI Atteso</label>
+                            <p class="text-2xl font-bold text-blue-600">{{ "%.1f"|format(project.roi|float) }}%</p>
+        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Finanziamento -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Finanziamento</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Progresso</span>
+                                <span>{{ project.completion_percent or 0 }}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full progress-bar" data-width="{{ project.completion_percent or 0 }}"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Raccolto</label>
+                                <p class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.funded_amount|float) }}</p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">Target</label>
+                                <p class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.total_amount|float) }}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="text-sm font-medium text-gray-500">Investimento Minimo</label>
+                            <p class="text-lg font-semibold text-gray-900">€{{ "{:,.0f}".format(project.min_investment|float) }}</p>
+                        </div>
+                        
+                        {% if project.user_invested %}
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-green-800">Il tuo investimento</p>
+                                    <p class="text-lg font-bold text-green-900">€{{ "{:,.0f}".format(project.user_investment_amount|float) }}</p>
+                                </div>
             </div>
         </div>
         {% endif %}
     </div>
-
-    <!-- Sidebar Destra -->
-    <div class="lg:col-span-1 space-y-6">
-        <!-- Card Investimento -->
-        <div class="card bg-gradient-to-br from-cip-primary to-blue-600 text-white">
-            <h3 class="text-xl font-semibold mb-4">Investi Ora</h3>
-            
-            <!-- Statistiche Investimento -->
-            <div class="space-y-4 mb-6">
-                <div class="text-center">
-                    <p class="text-3xl font-bold">€{{ "{:,.0f}".format(project.total_amount|float) }}</p>
-                    <p class="text-blue-100">Valore Totale</p>
                 </div>
                 
-                <div class="text-center">
-                    <p class="text-2xl font-bold">{{ "%.1f"|format(project.funding_progress|float) }}%</p>
-                    <p class="text-blue-100">Completato</p>
-                </div>
-                
-                <!-- Barra Progresso -->
-                <div class="w-full bg-blue-500 bg-opacity-30 rounded-full h-3">
-                    <div class="bg-white h-3 rounded-full transition-all duration-300" 
-                         data-progress="{{ project.funding_progress }}"></div>
-                </div>
-                
-                <div class="flex justify-between text-sm text-blue-100">
-                    <span>Raccolto: €{{ "{:,.0f}".format(project.funded_amount|float) }}</span>
-                    <span>Rimanente: €{{ "{:,.0f}".format((project.total_amount - project.funded_amount)|float) }}</span>
-                </div>
-            </div>
-            
-            <!-- Form Investimento Rapido -->
-            {% if project.status == 'funding' %}
-            <form method="POST" action="{{ url_for('user.invest', project_id=project.id) }}" class="space-y-4">
-                <div>
-                    <label for="amount" class="block text-sm font-medium text-blue-100 mb-2">
-                        Importo Investimento
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-100">€</span>
-                        <input type="number" name="amount" id="amount" min="{{ project.min_investment }}" 
-                               step="100" required
-                               class="w-full pl-8 pr-3 py-2 bg-white bg-opacity-20 border border-blue-300 rounded-lg text-white placeholder-blue-100 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
-                               placeholder="Min €{{ "{:,.0f}".format(project.min_investment|float) }}">
+                <!-- Descrizione -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Descrizione</h3>
                     </div>
-                    <p class="text-xs text-blue-200 mt-1">
-                        Minimo: €{{ "{:,.0f}".format(project.min_investment|float) }}
-                    </p>
+                    <div class="p-6">
+                        <p class="text-gray-700 leading-relaxed">{{ project.description or 'Nessuna descrizione disponibile' }}</p>                                                                                 
+                </div>
                 </div>
                 
-                <button type="submit" class="w-full bg-white text-cip-primary font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                    Investi Ora
-                </button>
-            </form>
-            {% else %}
-            <div class="text-center py-8">
-                <p class="text-blue-100 mb-4">
-                    {% if project.status == 'completed' %}
-                        Progetto completato
-                    {% else %}
-                        Non disponibile per investimenti
-                    {% endif %}
-                </p>
-                <button disabled class="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed">
-                    Non Disponibile
+                
+                <!-- Documenti -->
+                {% if project.documents_filename %}
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Documenti</h3>
+                    </div>
+                    <div class="p-6">
+                        <button onclick="viewProjectDocuments('{{ project.id }}', '{{ project.documents_filename }}')" 
+                                class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Visualizza Documenti
                 </button>
             </div>
-            {% endif %}
-        </div>
-
-        <!-- Dettagli Investimento -->
-        <div class="card">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Dettagli Investimento</h4>
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Investimento Minimo:</span>
-                    <span class="font-medium">€{{ "{:,.0f}".format(project.min_investment|float) }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">RA Atteso:</span>
-                    <span class="font-medium text-green-600">{{ "%.1f"|format(project.roi|float) }}%</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Tipo:</span>
-                    <span class="font-medium">{{ project.type|title }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Data Inizio:</span>
-                    <span class="font-medium">{{ project.start_date.strftime('%d/%m/%Y') }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Data Fine:</span>
-                    <span class="font-medium">{{ project.end_date.strftime('%d/%m/%Y') }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Condividi -->
-        <div class="card">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Condividi Progetto</h4>
-            <div class="flex space-x-3">
-                <button class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                    Facebook
-                </button>
-                <button class="flex-1 bg-blue-400 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors duration-200">
-                    Twitter
-                </button>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Imposta larghezza barre di progresso
-    document.querySelectorAll('[data-progress]').forEach(function(element) {
-        const progress = element.getAttribute('data-progress');
-        element.style.width = progress + '%';
-    });
-});
-</script>
+<!-- Include modals and scripts -->
+{% include 'projects/detail_modals.html' %}
+{% include 'projects/detail_scripts.html' %}
 {% endblock %}

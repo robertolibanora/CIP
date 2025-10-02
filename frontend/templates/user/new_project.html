@@ -75,10 +75,6 @@
                             <p class="text-sm text-gray-500">Investimento Minimo</p>
                             <p class="font-semibold text-gray-900">€{{ "{:,}".format(project.min_investment) }}</p>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Località</p>
-                            <p class="font-semibold text-gray-900">{{ project.location }}</p>
-                        </div>
                     </div>
                     
                     <!-- Barra progresso -->
@@ -250,7 +246,7 @@
                 </svg>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Nessun progetto disponibile</h3>
                 <p class="text-gray-600">Al momento non ci sono progetti aperti per nuovi investimenti.</p>
-                <a href="{{ url_for('user.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                <a href="{{ url_for('user_projects.projects') }}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
                     Vedi Tutti i Progetti
                 </a>
             </div>

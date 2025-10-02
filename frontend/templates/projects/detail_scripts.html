@@ -1,0 +1,332 @@
+<script>
+// Dati progetto per JavaScript
+const projectData = {
+    id: {{ project.id }},
+    roi: {{ project.roi|float }},
+    min_investment: {{ project.min_investment|float }},
+    title: "{{ project.title }}",
+    gallery: {{ project.gallery|tojson if project.gallery else '[]' }}
+};
+
+let currentImageIndex = 0;
+let userFunds = null;
+
+// Gestione galleria immagini
+function changeMainImage(imageSrc, index) {
+    document.getElementById('mainImage').src = '/uploads/projects/' + imageSrc;
+    currentImageIndex = index;
+    
+    // Aggiorna thumbnail attivo
+    document.querySelectorAll('[data-index]').forEach(thumb => {
+        thumb.classList.remove('ring-2', 'ring-blue-500');
+    });
+    document.querySelector(`[data-index="${index}"]`).classList.add('ring-2', 'ring-blue-500');
+}
+
+function openImageModal(index = 0) {
+    if (projectData.gallery.length === 0) return;
+    
+    currentImageIndex = index;
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const counter = document.getElementById('imageCounter');
+    
+    modalImage.src = '/uploads/projects/' + projectData.gallery[index];
+    modalImage.alt = projectData.title + ' - Immagine ' + (index + 1);
+    
+    if (counter) {
+        counter.textContent = (index + 1) + ' / ' + projectData.gallery.length;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+}
+
+function previousImage() {
+    if (projectData.gallery.length === 0) return;
+    currentImageIndex = (currentImageIndex - 1 + projectData.gallery.length) % projectData.gallery.length;
+    openImageModal(currentImageIndex);
+}
+
+function nextImage() {
+    if (projectData.gallery.length === 0) return;
+    currentImageIndex = (currentImageIndex + 1) % projectData.gallery.length;
+    openImageModal(currentImageIndex);
+}
+
+// Gestione investimento
+function openInvestmentModal() {
+    document.getElementById('investmentModal').classList.remove('hidden');
+    document.getElementById('investmentAmount').focus();
+    loadUserFunds();
+}
+
+function closeInvestmentModal() {
+    document.getElementById('investmentModal').classList.add('hidden');
+    document.getElementById('investmentForm').reset();
+    userFunds = null;
+}
+
+// Carica i fondi dell'utente
+async function loadUserFunds() {
+    try {
+        const response = await fetch(`/user/projects/${projectData.id}/funds`);
+        if (response.ok) {
+            const data = await response.json();
+            userFunds = data;
+            updateFundsDisplay(data.funds);
+            updateInvestmentLimits(data.project);
+        } else {
+            console.error('Errore nel caricamento fondi:', await response.text());
+        }
+    } catch (error) {
+        console.error('Errore nel caricamento fondi:', error);
+    }
+}
+
+// Aggiorna la visualizzazione dei fondi disponibili
+function updateFundsDisplay(funds) {
+    window.userFundsData = funds;
+    
+    const select = document.getElementById('fundSourceSelect');
+    const options = select.querySelectorAll('option');
+    
+    options.forEach(option => {
+        if (option.value === 'free_capital') {
+            option.textContent = `Capitale Libero (€${funds.free_capital.toFixed(2)})`;
+            option.disabled = funds.free_capital <= 0;
+        } else if (option.value === 'profits') {
+            option.textContent = `Profitti (€${funds.profits.toFixed(2)})`;
+            option.disabled = funds.profits <= 0;
+        } else if (option.value === 'referral_bonus') {
+            option.textContent = `Bonus Referral (€${funds.referral_bonus.toFixed(2)})`;
+            option.disabled = funds.referral_bonus <= 0;
+        }
+    });
+    
+    const firstAvailable = select.querySelector('option:not([disabled]):not([value=""])');
+    if (firstAvailable) {
+        select.value = firstAvailable.value;
+        updateFundsDisplayForSelected();
+    }
+}
+
+function updateFundsDisplayForSelected() {
+    const select = document.getElementById('fundSourceSelect');
+    const fundsDisplay = document.getElementById('fundsDisplay');
+    const availableAmount = document.getElementById('availableAmount');
+    const selectedSource = document.getElementById('selectedSource');
+    
+    if (!window.userFundsData || !select.value) {
+        fundsDisplay.classList.add('hidden');
+        return;
+    }
+    
+    const selectedValue = select.value;
+    const funds = window.userFundsData;
+    let amount = 0;
+    let sourceName = '';
+    
+    switch(selectedValue) {
+        case 'free_capital':
+            amount = funds.free_capital;
+            sourceName = 'Capitale Libero';
+            break;
+        case 'profits':
+            amount = funds.profits;
+            sourceName = 'Profitti';
+            break;
+        case 'referral_bonus':
+            amount = funds.referral_bonus;
+            sourceName = 'Bonus Referral';
+            break;
+    }
+    
+    availableAmount.textContent = `€${amount.toFixed(2)}`;
+    selectedSource.textContent = sourceName;
+    fundsDisplay.classList.remove('hidden');
+}
+
+function updateInvestmentLimits(project) {
+    const amountInput = document.getElementById('investmentAmount');
+    amountInput.min = project.min_investment;
+    amountInput.max = project.remaining_capacity;
+    
+    const helpText = amountInput.nextElementSibling;
+    helpText.textContent = `Importo minimo: €${project.min_investment} | Massimo: €${project.remaining_capacity.toFixed(2)}`;
+}
+
+// Gestione documenti
+function viewProjectDocuments(projectId, documentsFilename) {
+    const modal = document.getElementById('documentsModal');
+    const content = document.getElementById('documentsContent');
+    
+    modal.classList.remove('hidden');
+    
+    content.innerHTML = `
+        <div class="text-center">
+            <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">Documenti Tecnici</h4>
+            <p class="text-gray-600 mb-4">Visualizza i documenti tecnici e le planimetrie del progetto</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="/uploads/projects/${documentsFilename}" target="_blank" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Scarica PDF
+                </a>
+                
+                <button onclick="viewPdfInBrowser('${documentsFilename}')" 
+                        class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    Visualizza Online
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function closeDocumentsModal() {
+    document.getElementById('documentsModal').classList.add('hidden');
+}
+
+function viewPdfInBrowser(filename) {
+    const url = `/uploads/projects/${filename}`;
+    window.open(url, '_blank');
+}
+
+// Event listeners
+document.getElementById('fundSourceSelect').addEventListener('change', updateFundsDisplayForSelected);
+
+// Gestione form investimento
+document.getElementById('investmentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const amount = parseFloat(document.getElementById('investmentAmount').value);
+    const fundSource = document.getElementById('fundSourceSelect').value;
+    
+    if (!amount || amount < projectData.min_investment) {
+        alert(`Inserisci un importo valido (minimo €${projectData.min_investment})`);
+        return;
+    }
+    
+    if (!fundSource) {
+        alert('Seleziona una fonte fondi');
+        return;
+    }
+    
+    if (!userFunds) {
+        alert('Errore: fondi non caricati. Riprova.');
+        return;
+    }
+    
+    const availableFunds = userFunds.funds[fundSource];
+    if (availableFunds < amount) {
+        alert(`Fondi insufficienti. Disponibili: €${availableFunds.toFixed(2)}`);
+        return;
+    }
+    
+    if (amount > userFunds.project.remaining_capacity) {
+        alert(`Importo troppo alto. Capacità rimanente: €${userFunds.project.remaining_capacity.toFixed(2)}`);
+        return;
+    }
+    
+    const submitButton = document.querySelector('#investmentForm button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Elaborazione...</span>';
+    
+    try {
+        const response = await fetch('/user/projects/invest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                project_id: projectData.id,
+                amount: amount,
+                fund_source: fundSource
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(result.message);
+            closeInvestmentModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            alert(result.error);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    } catch (error) {
+        console.error('Errore durante l\'investimento:', error);
+        alert(`Errore di connessione: ${error.message}`);
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+    }
+});
+
+// Chiudi modal cliccando fuori
+document.getElementById('investmentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeInvestmentModal();
+    }
+});
+
+document.getElementById('documentsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDocumentsModal();
+    }
+});
+
+document.getElementById('imageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeImageModal();
+    }
+});
+
+// Navigazione con tastiera
+document.addEventListener('keydown', function(e) {
+    const imageModal = document.getElementById('imageModal');
+    if (!imageModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+        } else if (e.key === 'ArrowLeft') {
+            previousImage();
+        } else if (e.key === 'ArrowRight') {
+            nextImage();
+        }
+    }
+});
+
+// Event listeners per thumbnail gallery
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.gallery-thumbnail').forEach(thumb => {
+        thumb.addEventListener('click', function() {
+            const imageSrc = this.getAttribute('data-image');
+            const index = parseInt(this.getAttribute('data-index'));
+            changeMainImage(imageSrc, index);
+        });
+    });
+    
+    // Inizializza barra di progresso
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
+});
+</script>

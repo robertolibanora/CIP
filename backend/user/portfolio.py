@@ -40,7 +40,8 @@ def portfolio():
         
         # Aggiungi campi mancanti per compatibilità template
         for row in rows:
-            row['roi'] = 8.5  # RA fisso per ora
+            # Il ROI dovrebbe essere preso dal progetto, non hardcoded
+            row['roi'] = 8.5  # TODO: Prendere ROI dal progetto
         
         # Dati utente completi per il form profilo - TABELLA: users
         cur.execute("""

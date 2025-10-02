@@ -1,0 +1,124 @@
+<!-- Modal per visualizzazione immagini -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 hidden z-50 flex items-center justify-center p-4">
+    <div class="relative max-w-4xl max-h-full w-full">
+        <button onclick="closeImageModal()" 
+                class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        
+        <img id="modalImage" 
+             src="" 
+             alt="" 
+             class="max-w-full max-h-full object-contain mx-auto">
+        
+        <!-- Navigazione immagini -->
+        {% if project.gallery and project.gallery|length > 1 %}
+        <button onclick="previousImage()" 
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        
+        <button onclick="nextImage()" 
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+        
+        <!-- Indicatore immagine corrente -->
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm">
+            <span id="imageCounter">1 / {{ project.gallery|length }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal investimento -->
+<div id="investmentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Investi nel Progetto</h3>
+            <button onclick="closeInvestmentModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <form id="investmentForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Importo investimento (€)</label>
+                <input type="number" id="investmentAmount" name="amount" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="1000" min="{{ project.min_investment }}" step="100" required>
+                <p class="text-xs text-gray-500 mt-1">Importo minimo: €{{ "{:,.0f}".format(project.min_investment|float) }}</p>
+            </div>
+            
+            <!-- Selezione fonte fondi -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fonte fondi</label>
+                <select id="fundSourceSelect" name="fund_source" 
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="">Seleziona fonte fondi...</option>
+                    <option value="free_capital">Capitale Libero</option>
+                    <option value="profits">Profitti</option>
+                    <option value="referral_bonus">Bonus Referral</option>
+                </select>
+                
+                <!-- Visualizzazione fondi disponibili -->
+                <div id="fundsDisplay" class="mt-3 p-3 bg-gray-50 rounded-lg hidden">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-700">Disponibile:</span>
+                        <span id="availableAmount" class="text-sm font-bold text-green-600">€0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-xs text-gray-500">Fonte:</span>
+                        <span id="selectedSource" class="text-xs text-gray-600">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 p-3 rounded-lg">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">RA atteso:</span>
+                    <span class="font-medium text-blue-600">{{ "%.1f"|format(project.roi|float) }}%</span>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="closeInvestmentModal()" 
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-lg font-medium transition-colors">
+                    Annulla
+                </button>
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors">
+                    Conferma Investimento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal visualizzazione documenti -->
+<div id="documentsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex justify-between items-center p-6 border-b">
+            <h3 class="text-lg font-bold text-gray-900">Documenti Progetto</h3>
+            <button onclick="closeDocumentsModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div id="documentsContent" class="space-y-4">
+                <!-- I documenti verranno caricati qui dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>

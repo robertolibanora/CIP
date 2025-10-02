@@ -85,18 +85,19 @@
             </div>
             <div class="admin-card-body">
                 <div class="space-y-6">
-                    <div class="admin-grid admin-grid--2">
-                        <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">Codice Progetto</label>
-                            <input type="text" name="code" class="admin-input" required 
-                                   placeholder="es. PROJ001" id="field-code">
-                            <p class="admin-help-text">Codice univoco per identificare il progetto</p>
-                        </div>
-                        <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">Titolo Progetto</label>
-                            <input type="text" name="title" class="admin-input" required 
-                                   placeholder="Nome del progetto" id="field-title">
-                        </div>
+                    <!-- Titolo - Campo principale -->
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Titolo</label>
+                        <input type="text" name="title" class="admin-input" required 
+                               placeholder="es. Residenza Milano Centro" id="field-title">
+                        <p class="admin-help-text">Titolo del progetto immobiliare</p>
+                    </div>
+                    
+                    <div class="admin-form-group">
+                        <label class="admin-label admin-label--required">Codice Progetto</label>
+                        <input type="text" name="code" class="admin-input" required 
+                               placeholder="es. PROJ001" id="field-code">
+                        <p class="admin-help-text">Codice univoco per identificare il progetto</p>
                     </div>
                     
                     <div class="admin-form-group">
@@ -165,12 +166,7 @@
                         </div>
                 </div>
                 
-                    <div class="admin-grid admin-grid--2">
-                        <div class="admin-form-group">
-                            <label class="admin-label admin-label--required">Data Inizio</label>
-                            <input type="date" name="start_date" class="admin-input" required id="field-start_date">
-                        </div>
-                </div>
+                    <!-- Data inizio rimossa - impostata automaticamente alla data di creazione -->
                 
                     <!-- Preview Calcoli -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -351,10 +347,8 @@ class ProjectWizard {
     }
     
     setDefaultDates() {
-        const today = new Date();
-        const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-        
-        document.getElementById('field-start_date').value = today.toISOString().split('T')[0];
+        // Data inizio impostata automaticamente dal backend alla data di creazione
+        // Non più necessario impostare manualmente
     }
     
     updateCalculations() {
@@ -449,7 +443,7 @@ class ProjectWizard {
     getRequiredFieldsForStep(step) {
         const fields = {
             1: ['field-code', 'field-title', 'field-description', 'field-location', 'field-type'],
-            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-status', 'field-start_date'],
+            2: ['field-target_amount', 'field-min_investment', 'field-roi', 'field-status'],
             3: [], // No required fields in step 3
             4: []  // No fields in step 4
         };
