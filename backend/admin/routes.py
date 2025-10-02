@@ -730,7 +730,18 @@ def projects_sell(pid):
                 user_id = int(inv.get('user_id') if isinstance(inv, dict) else inv[1])
                 profit_share = (investment_amount / total_invested) * total_profit
 
-                # Upsert su user_portfolios: aggiungo ai profits e restituisco il capitale investito
+                # Calcola i bonus referral PRIMA di aggiornare i profitti
+                referral_result = process_referral_bonus(cur, user_id, profit_share, pid)
+                total_referral_bonus = referral_result.get('bonus_amount', 0)
+                
+                # Se non è VIP, aggiungi anche il 2% che va all'utente ID 2
+                if not referral_result.get('is_vip', False):
+                    total_referral_bonus += profit_share * 0.02
+
+                # Calcola profitto netto (profitto - bonus referral)
+                net_profit = profit_share - total_referral_bonus
+
+                # Upsert su user_portfolios: aggiungo ai profits (netto) e restituisco il capitale investito
                 cur.execute(
                     """
                     INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
@@ -741,11 +752,8 @@ def projects_sell(pid):
                         free_capital = user_portfolios.free_capital + EXCLUDED.free_capital,
                         invested_capital = user_portfolios.invested_capital + EXCLUDED.invested_capital
                     """,
-                    (user_id, investment_amount, investment_amount, profit_share),
+                    (user_id, investment_amount, investment_amount, net_profit),
                 )
-
-                # Calcola i bonus referral in base al profitto generato
-                process_referral_bonus(cur, user_id, profit_share, pid)
 
                 conn.commit()
             return jsonify(
