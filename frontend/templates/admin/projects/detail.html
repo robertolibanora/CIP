@@ -274,107 +274,23 @@
     </div>
 </div>
 
-<!-- Sale Modal -->
-<div id="sale-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Vendita Progetto</h3>
-                <button onclick="closeSaleModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-            
-            <form id="sale-form" class="space-y-6">
-                <!-- Project Info -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="text-sm font-medium text-gray-700 mb-2">Informazioni Progetto</h4>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span class="text-gray-500">Progetto:</span>
-                            <span id="sale-project-title" class="font-medium ml-2">-</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500">Codice:</span>
-                            <span id="sale-project-code" class="font-medium ml-2">-</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500">Investimento Totale:</span>
-                            <span id="sale-total-invested" class="font-medium ml-2">-</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500">Investitori:</span>
-                            <span id="sale-investors-count" class="font-medium ml-2">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sale Price Input -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Prezzo di Vendita (€) <span class="text-red-500">*</span></label>
-                    <input type="number" 
-                           name="sale_price" 
-                           id="sale-price-input"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" 
-                           placeholder="Inserisci il prezzo di vendita"
-                           min="0" 
-                           step="0.01"
-                           required>
-                    <p class="text-xs text-gray-500 mt-1">Inserisci l'importo per cui vuoi vendere il progetto</p>
-                </div>
-
-                <!-- Profit Preview -->
-                <div id="profit-preview" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="text-sm font-medium text-green-800 mb-3">Anteprima Profitto</h4>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span class="text-green-600">Profitto Totale:</span>
-                            <span id="total-profit" class="font-medium ml-2 text-green-800">€0.00</span>
-                        </div>
-                        <div>
-                            <span class="text-green-600">Percentuale Profitto:</span>
-                            <span id="profit-percentage" class="font-medium ml-2 text-green-800">0%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Investors Distribution -->
-                <div id="investors-distribution" class="hidden">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Distribuzione agli Investitori</h4>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div id="investors-list" class="space-y-2">
-                            <!-- Investors will be populated here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Warning Message -->
-                <div id="sale-warning" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div class="flex">
-                        <svg class="w-5 h-5 text-yellow-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                        </svg>
-                        <div>
-                            <h4 class="text-sm font-medium text-yellow-800">Attenzione</h4>
-                            <p class="text-sm text-yellow-700 mt-1">Questa azione è irreversibile. Una volta confermata la vendita, il progetto verrà marcato come venduto e i profitti verranno distribuiti agli investitori.</p>
-                        </div>
-                    </div>
-                </div>
-            </form>
-            
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="closeSaleModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                    Annulla
-                </button>
-                <button type="button" onclick="confirmSale()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" id="confirm-sale-btn" disabled>
-                    <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    Conferma Vendita
-                </button>
-            </div>
+<!-- Modal Vendita Progetto - NUOVO SISTEMA SEMPLICE -->
+<div id="sellModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Vendi Progetto</h2>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Prezzo di Vendita (€)</label>
+            <input type="number" id="sellPrice" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Es. 300000" min="0" step="0.01">
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeSellModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                Annulla
+            </button>
+            <button onclick="executeSale()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                Conferma Vendita
+            </button>
         </div>
     </div>
 </div>
@@ -1181,225 +1097,52 @@ function deleteDocument(docId) {
     }
 }
 
-// Sale Modal Functions
+// ========== NUOVO SISTEMA VENDITA SEMPLICE ==========
+
 function openSaleModal() {
-    alert('FUNZIONE CHIAMATA! Se vedi questo, il pulsante funziona!');
-    console.log('=== openSaleModal CALLED ===');
-    const modal = document.getElementById('sale-modal');
-    console.log('Modal element:', modal);
-    
-    // Check if projectDetailManager and projectData are available
-    if (!projectDetailManager || !projectDetailManager.projectData) {
-        console.error('Project data not loaded');
-        alert('Errore: dati del progetto non caricati. Ricarica la pagina.');
-        return;
-    }
-    
-    console.log('projectDetailManager available:', projectDetailManager);
-    console.log('projectData:', projectDetailManager.projectData);
-    
-    const project = projectDetailManager.projectData.project;
-    const stats = projectDetailManager.projectData.stats;
-    const investments = projectDetailManager.projectData.investments || [];
-    
-    // Check if project is already sold
-    if (project.status === 'sold') {
-        alert('Questo progetto è già stato venduto.');
-        return;
-    }
-    
-    // Check if project is completed
-    if (project.status !== 'completed') {
-        alert('Il progetto deve essere completato prima di poter essere venduto.');
-        return;
-    }
-    
-    // Populate project info
-    document.getElementById('sale-project-title').textContent = project.name || 'N/A';
-    document.getElementById('sale-project-code').textContent = project.code || 'N/A';
-    document.getElementById('sale-total-invested').textContent = `€${(parseFloat(stats.total_invested) || 0).toLocaleString()}`;
-    document.getElementById('sale-investors-count').textContent = stats.investors_count || 0;
-    
-    // Reset form
-    document.getElementById('sale-price-input').value = '';
-    document.getElementById('profit-preview').classList.add('hidden');
-    document.getElementById('investors-distribution').classList.add('hidden');
-    document.getElementById('sale-warning').classList.add('hidden');
-    document.getElementById('confirm-sale-btn').disabled = true;
-    
-    // Show modal
-    modal.classList.remove('hidden');
-    
-    // Add event listener for price calculation
-    const priceInput = document.getElementById('sale-price-input');
-    if (priceInput) {
-        console.log('Adding event listener to price input');
-        // Remove old listener if exists
-        priceInput.removeEventListener('input', calculateSaleProfit);
-        // Add new listener
-        priceInput.addEventListener('input', calculateSaleProfit);
-        
-        // Test: manually call once to see if it works
-        console.log('Testing calculateSaleProfit...');
-        // calculateSaleProfit(); // Commented - will cause issues if called without value
-    } else {
-        console.error('Price input not found!');
-    }
-    
-    // Debug: test if button exists
-    const confirmBtn = document.getElementById('confirm-sale-btn');
-    console.log('Confirm button:', confirmBtn, 'disabled:', confirmBtn?.disabled);
-    
-    // Focus on price input
-    setTimeout(() => {
-        const input = document.getElementById('sale-price-input');
-        if (input) {
-            input.focus();
-            console.log('Price input focused');
-        }
-    }, 100);
+    document.getElementById('sellModal').classList.remove('hidden');
+    document.getElementById('sellModal').classList.add('flex');
+    document.getElementById('sellPrice').value = '';
 }
 
-function closeSaleModal() {
-    document.getElementById('sale-modal').classList.add('hidden');
-    document.getElementById('sale-form').reset();
+function closeSellModal() {
+    document.getElementById('sellModal').classList.add('hidden');
+    document.getElementById('sellModal').classList.remove('flex');
 }
 
-function calculateSaleProfit() {
-    console.log('calculateSaleProfit called');
+async function executeSale() {
+    const price = parseFloat(document.getElementById('sellPrice').value);
     
-    if (!projectDetailManager || !projectDetailManager.projectData) {
-        console.error('projectDetailManager or projectData not available');
-        return;
-    }
-    
-    const salePrice = parseFloat(document.getElementById('sale-price-input').value) || 0;
-    const totalInvested = parseFloat(projectDetailManager.projectData.stats.total_invested) || 0;
-    const investments = projectDetailManager.projectData.investments || [];
-    
-    console.log('Sale calculation:', {salePrice, totalInvested, investmentsCount: investments.length});
-    
-    if (salePrice <= 0 || totalInvested <= 0 || investments.length === 0) {
-        document.getElementById('profit-preview').classList.add('hidden');
-        document.getElementById('investors-distribution').classList.add('hidden');
-        document.getElementById('sale-warning').classList.add('hidden');
-        document.getElementById('confirm-sale-btn').disabled = true;
-        return;
-    }
-    
-    const totalProfit = salePrice - totalInvested;
-    const profitPercentage = (totalProfit / totalInvested) * 100;
-    
-    // Update profit preview
-    document.getElementById('total-profit').textContent = `€${totalProfit.toLocaleString()}`;
-    document.getElementById('profit-percentage').textContent = `${profitPercentage.toFixed(1)}%`;
-    document.getElementById('profit-preview').classList.remove('hidden');
-    
-    // Calculate distribution for each investor
-    const investorsList = document.getElementById('investors-list');
-    investorsList.innerHTML = investments.map(inv => {
-        const investmentAmount = parseFloat(inv.amount);
-        const profitShare = (investmentAmount / totalInvested) * totalProfit;
-        const totalReturn = investmentAmount + profitShare;
-        const returnPercentage = (totalReturn / investmentAmount) * 100;
-        
-        return `
-            <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                <div>
-                    <p class="text-sm font-medium text-gray-900">${inv.full_name || inv.nome || 'Investitore'}</p>
-                    <p class="text-xs text-gray-500">Investimento: €${investmentAmount.toLocaleString()}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-sm font-medium text-green-600">+€${profitShare.toFixed(2)}</p>
-                    <p class="text-xs text-gray-500">Totale: €${totalReturn.toFixed(2)} (${returnPercentage.toFixed(1)}%)</p>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    document.getElementById('investors-distribution').classList.remove('hidden');
-    document.getElementById('sale-warning').classList.remove('hidden');
-    document.getElementById('confirm-sale-btn').disabled = false;
-}
-
-async function confirmSale() {
-    alert('CONFERMA VENDITA CHIAMATA! Prezzo: ' + document.getElementById('sale-price-input').value);
-    console.log('confirmSale called');
-    
-    const salePrice = parseFloat(document.getElementById('sale-price-input').value);
-    console.log('Sale price:', salePrice);
-    
-    if (!salePrice || salePrice <= 0) {
+    if (!price || price <= 0) {
         alert('Inserisci un prezzo di vendita valido');
         return;
     }
     
-    if (!confirm('Sei sicuro di voler confermare la vendita di questo progetto? Questa azione è irreversibile.')) {
-        console.log('Sale cancelled by user');
+    if (!confirm(`Confermi la vendita del progetto per €${price.toLocaleString()}? Questa azione è irreversibile.`)) {
         return;
     }
     
-    console.log('Sending sale request to backend...');
-    
-    const confirmBtn = document.getElementById('confirm-sale-btn');
-    const originalText = confirmBtn.innerHTML;
-    
-    // Show loading state
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = `
-        <svg class="w-4 h-4 mr-2 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-        </svg>
-        Vendendo...
-    `;
-    
     try {
-        console.log('Fetching:', `/admin/projects/${projectDetailManager.projectId}/sell`);
         const response = await fetch(`/admin/projects/${projectDetailManager.projectId}/sell`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                sale_price: salePrice
-            })
+            body: JSON.stringify({ sale_price: price })
         });
         
-        console.log('Response status:', response.status);
         const result = await response.json();
-        console.log('Response data:', result);
         
         if (response.ok && result.success) {
-            // Mostra messaggio di successo con dettagli
-            let successMessage = result.message;
-            
-            // Aggiungi informazioni sui referral bonus se presenti
-            if (result.referral_bonuses && result.referral_bonuses.length > 0) {
-                successMessage += '\n\nBonus Referral distribuiti:';
-                result.referral_bonuses.forEach(bonus => {
-                    const percentage = bonus.is_vip ? '5%' : '3%';
-                    const source = bonus.source === 'default' ? ' (utente ID 2)' : '';
-                    successMessage += `\n- Utente ${bonus.referrer_id}: €${bonus.bonus_amount.toFixed(2)} (${percentage})${source}`;
-                });
-            }
-            
-            projectDetailManager.showAlert('success', successMessage);
-            closeSaleModal();
-            
-            // Refresh project data
+            alert('✅ ' + result.message);
+            closeSellModal();
             await projectDetailManager.loadProjectData();
         } else {
-            projectDetailManager.showAlert('error', result.error || 'Errore durante la vendita');
+            alert('❌ ' + (result.error || 'Errore durante la vendita'));
         }
     } catch (error) {
-        console.error('Error:', error);
-        projectDetailManager.showAlert('error', 'Errore di connessione durante la vendita');
-    } finally {
-        // Reset button state
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = originalText;
+        console.error('Errore vendita:', error);
+        alert('❌ Errore di connessione');
     }
 }
 
