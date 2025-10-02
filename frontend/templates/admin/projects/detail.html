@@ -32,11 +32,11 @@
             </div>
             <div class="flex items-center space-x-3">
                 <span class="px-3 py-1 rounded-full text-sm font-medium" id="project-status-badge">Status</span>
-                <button onclick="deleteProject()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium" id="delete-btn">
+                <button onclick="openSellModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium" id="sell-btn">
                     <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                     </svg>
-                    Elimina
+                    Vendita
                 </button>
             </div>
         </div>
@@ -412,6 +412,74 @@ class ProjectDetailManager {
             `;
     }
     
+    // ===== VENDITA: anteprima e invio =====
+    openSellModal() {
+        const modal = document.getElementById('sellModal');
+        if (!modal) return;
+        document.getElementById('sellPrice').value = '';
+        document.getElementById('sellPreview').innerHTML = '';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    closeSellModal() {
+        const modal = document.getElementById('sellModal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    updateSalePreview() {
+        const price = parseFloat(document.getElementById('sellPrice').value || '0');
+        const stats = this.projectData?.stats || {};
+        const totalInvested = parseFloat(stats.total_invested || '0');
+        if (price <= 0 || totalInvested <= 0) {
+            document.getElementById('sellPreview').innerHTML = '';
+            return;
+        }
+        const profit = price - totalInvested;
+        const pct = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+        document.getElementById('sellPreview').innerHTML = `
+            <div class="p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+                <div class="flex justify-between"><span>Totale Investito:</span><strong>€${totalInvested.toLocaleString()}</strong></div>
+                <div class="flex justify-between"><span>Prezzo Vendita:</span><strong>€${price.toLocaleString()}</strong></div>
+                <div class="flex justify-between"><span>Profitto previsto:</span><strong class="${profit>=0?'text-green-600':'text-red-600'}">€${profit.toLocaleString()} (${pct.toFixed(1)}%)</strong></div>
+            </div>`;
+    }
+
+    async confirmSale() {
+        const price = parseFloat(document.getElementById('sellPrice').value || '0');
+        if (!price || price <= 0) {
+            alert('Inserisci un prezzo valido');
+            return;
+        }
+        if (!confirm(`Confermi la vendita per €${price.toLocaleString()}?`)) return;
+
+        const btn = document.getElementById('sellConfirmBtn');
+        this.setButtonLoading(btn, true, 'Vendendo...');
+        try {
+            const resp = await fetch(`/admin/projects/${this.projectId}/sell`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sale_price: price })
+            });
+            const result = await resp.json();
+            if (resp.ok && result.success) {
+                this.showAlert('success', result.message || 'Vendita completata');
+                this.closeSellModal();
+                await this.loadProjectData();
+                // nascondi tasto se venduto
+                const sellBtn = document.getElementById('sell-btn');
+                if (sellBtn) sellBtn.style.display = 'none';
+            } else {
+                this.showAlert('error', result.error || 'Errore durante la vendita');
+            }
+        } catch (e) {
+            this.showAlert('error', 'Errore di connessione');
+        } finally {
+            this.setButtonLoading(btn, false);
+        }
+    }
     renderCurrentImage() {
         // Ottieni l'immagine dalla struttura corretta dei dati
         let imageUrl = null;
@@ -983,6 +1051,22 @@ function deleteProject() {
     projectDetailManager.deleteProject();
 }
 
+function openSellModal() {
+    projectDetailManager.openSellModal();
+}
+
+function closeSellModal() {
+    projectDetailManager.closeSellModal();
+}
+
+function updateSalePreview() {
+    projectDetailManager.updateSalePreview();
+}
+
+function confirmSale() {
+    projectDetailManager.confirmSale();
+}
+
 function openImageUploadModal() {
     document.getElementById('image-upload-modal').classList.remove('hidden');
     
@@ -1389,6 +1473,22 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Modali per gestione immagini -->
+<!-- Modal Vendita Progetto -->
+<div id="sellModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h2 class="text-xl font-bold mb-4">Vendi Progetto</h2>
+        <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Prezzo di Vendita (€)</label>
+            <input type="number" id="sellPrice" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Es. 300000" min="0" step="0.01" oninput="updateSalePreview()">
+        </div>
+        <div id="sellPreview" class="mb-4"></div>
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeSellModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">Annulla</button>
+            <button id="sellConfirmBtn" onclick="confirmSale()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Conferma Vendita</button>
+        </div>
+    </div>
+    
+</div>
 <!-- Modal Upload Galleria -->
 <div id="galleryUploadModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg max-w-md w-full p-6">

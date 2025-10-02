@@ -645,6 +645,113 @@ def process_referral_bonus(cur, user_id, profit_amount, project_id):
         logger.error(f"Errore nel processare referral bonus per user {user_id}: {e}")
         return None
 
+
+# ============ PROGETTI: VENDITA SEMPLIFICATA ======================
+@admin_bp.post("/projects/<int:pid>/sell")
+@admin_required
+def projects_sell(pid):
+    """Imposta il progetto come 'sold', distribuisce i profitti agli investitori e calcola i bonus referral.
+
+    Input JSON: { "sale_price": number }
+    """
+    try:
+        data = request.get_json() or {}
+        sale_price = float(data.get("sale_price", 0))
+        if sale_price <= 0:
+            return jsonify({"error": "Inserisci un prezzo di vendita valido"}), 400
+
+        with get_conn() as conn, conn.cursor() as cur:
+            conn.autocommit = False
+
+            # Blocco il progetto e leggo i dati essenziali
+            cur.execute(
+                """
+                SELECT id, status, COALESCE(funded_amount, 0) AS funded_amount
+                FROM projects
+                WHERE id = %s
+                """,
+                (pid,),
+            )
+            project = cur.fetchone()
+            if not project:
+                return jsonify({"error": "Progetto non trovato"}), 404
+
+            if project[1] != "completed":
+                return jsonify({"error": "Il progetto deve essere in stato 'completed'"}), 400
+
+            # Recupero investimenti attivi
+            cur.execute(
+                """
+                SELECT id, user_id, amount
+                FROM investments
+                WHERE project_id = %s AND status = 'active'
+                """,
+                (pid,),
+            )
+            investments = cur.fetchall() or []
+
+            # Calcolo totale investito (fallback a somma investimenti se funded_amount non affidabile)
+            total_invested = float(project[2] or 0)
+            if total_invested <= 0 and investments:
+                total_invested = sum(float(inv[2]) for inv in investments)
+
+            if total_invested <= 0:
+                return jsonify({"error": "Nessun investimento registrato per il progetto"}), 400
+
+            total_profit = float(sale_price) - total_invested
+
+            # Aggiorno progetto a 'sold'
+            cur.execute(
+                """
+                UPDATE projects
+                SET status = 'sold', sale_price = %s, sold_at = NOW()
+                WHERE id = %s
+                """,
+                (sale_price, pid),
+            )
+
+            # Imposto tutti gli investimenti a completed
+            cur.execute(
+                """
+                UPDATE investments SET status = 'completed' WHERE project_id = %s AND status = 'active'
+                """,
+                (pid,),
+            )
+
+            # Distribuzione profitti proporzionale e bonus referral
+            for inv in investments:
+                investment_amount = float(inv[2])
+                if investment_amount <= 0:
+                    continue
+                user_id = int(inv[1])
+                profit_share = (investment_amount / total_invested) * total_profit
+
+                # Upsert su user_portfolios: aggiungo ai profits
+                cur.execute(
+                    """
+                    INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
+                    VALUES (%s, 0, 0, 0, %s)
+                    ON CONFLICT (user_id)
+                    DO UPDATE SET profits = user_portfolios.profits + EXCLUDED.profits
+                    """,
+                    (user_id, profit_share),
+                )
+
+                # Calcola i bonus referral in base al profitto generato
+                process_referral_bonus(cur, user_id, profit_share, pid)
+
+            conn.commit()
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Vendita completata. Profitti e referral distribuiti.",
+                    "total_profit": total_profit,
+                }
+            )
+
+    except Exception as e:
+        return jsonify({"error": f"Errore durante la vendita: {str(e)}"}), 500
+
 @admin_required
 def projects_delete(pid):
     try:
