@@ -895,7 +895,7 @@ class ProjectsManager {
         const color = statusColors[project.status] || 'gray';
         const label = statusLabels[project.status] || project.status;
         
-        const imgSrc = project.image_url ? `/uploads/projects/${project.image_url.split('/').pop()}` : 'https://via.placeholder.com/640x360?text=Foto+Progetto';
+        const imgSrc = project.image_url ? `/admin/projects/images/${project.image_url.split('/').pop()}` : 'https://via.placeholder.com/640x360?text=Foto+Progetto';
         const target = parseFloat(project.total_amount || 0) || 0;
         const invested = parseFloat(project.funded_amount || 0) || 0;
         const pct = target > 0 ? Math.min(100, Math.round((invested / target) * 100)) : 0;

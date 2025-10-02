@@ -589,7 +589,7 @@ class ProjectDetailManager {
             noImageMessage.classList.add('hidden');
             currentImageContainer.classList.remove('hidden');
             
-            const imageSrc = `/uploads/projects/${imageUrl}`;
+            const imageSrc = `/admin/projects/images/${imageUrl}`;
             console.log('Image source:', imageSrc);
             
             currentImageContainer.innerHTML = `
@@ -1472,7 +1472,7 @@ function displayGallery(gallery) {
     });
     
     const galleryHTML = validImages.map((image, index) => {
-        const imageUrl = `/uploads/projects/${image}`;
+        const imageUrl = `/admin/projects/images/${image}`;
         console.log(`Creating image ${index + 1}: ${imageUrl}`);
         return `
         <div class="relative group">
