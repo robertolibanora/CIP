@@ -19,7 +19,7 @@
                 Sopra di te: <span id="referrer-name" class="font-semibold ml-1"></span>
             </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <!-- Totale Invitati -->
             <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -35,35 +35,6 @@
                 <p class="text-sm text-blue-600 mt-1">Persone che hai invitato</p>
             </div>
 
-            <!-- Totale Investito -->
-            <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm font-medium text-green-700">Investito</span>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-1">Totale Investito</h3>
-                <p class="text-3xl font-bold text-green-600" id="referral-total-invested">€0.00</p>
-                <p class="text-sm text-green-600 mt-1">Dai tuoi invitati</p>
-            </div>
-
-            <!-- Totale Profitti -->
-            <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm font-medium text-purple-700">Profitti</span>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-1">Totale Profitti</h3>
-                <p class="text-3xl font-bold text-purple-600" id="referral-total-profits">€0.00</p>
-                <p class="text-sm text-purple-600 mt-1">Generati dagli invitati</p>
-            </div>
 
             <!-- Bonus Guadagnati -->
             <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
@@ -206,8 +177,6 @@ async function loadReferralCode() {
 // Aggiorna statistiche
 function updateReferralStats(data) {
     document.getElementById('referral-count').textContent = data.total_invited || 0;
-    document.getElementById('referral-total-invested').textContent = formatCurrency(data.total_invested || 0);
-    document.getElementById('referral-total-profits').textContent = formatCurrency(data.total_profits || 0);
     document.getElementById('referral-bonus-earned').textContent = formatCurrency(data.bonus_earned || 0);
 }
 
@@ -255,34 +224,13 @@ function renderReferralList(invitedUsers) {
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">${formatCurrency(user.total_invested || 0)}</div>
-                    <div class="text-sm text-gray-500">Investito</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-600">${formatCurrency(user.total_profits || 0)}</div>
-                    <div class="text-sm text-gray-500">Profitti</div>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
                 <div class="text-center">
                     <div class="text-2xl font-bold text-purple-600">${formatCurrency(user.bonus_generated || 0)}</div>
                     <div class="text-sm text-gray-500">Bonus Generato</div>
                 </div>
             </div>
             
-            ${user.investments && user.investments.length > 0 ? `
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <h4 class="text-sm font-medium text-gray-900 mb-2">Progetti Investiti:</h4>
-                    <div class="space-y-2">
-                        ${user.investments.map(inv => `
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-gray-600">${inv.project_name || 'Progetto'}</span>
-                                <span class="font-medium">${formatCurrency(inv.amount || 0)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
         </div>
     `;
     }).join('');
