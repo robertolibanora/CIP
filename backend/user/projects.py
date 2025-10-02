@@ -47,7 +47,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.min_investment,
-                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
+                   p.image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -70,7 +70,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.min_investment,
-                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
+                   p.image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'active' ELSE 'none' END as user_investment_status
@@ -91,7 +91,7 @@ def projects():
         cur.execute("""
             SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.min_investment,
-                   COALESCE(p.image_url, p.photo_filename) as image_url, p.sale_price, p.sale_date, p.profit_percentage,
+                   p.image_url, p.sale_price, p.sale_date, p.profit_percentage,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN true ELSE false END as user_invested,
                    COALESCE(user_investments.total_amount, 0) as user_investment_amount,
                    CASE WHEN user_investments.total_amount IS NOT NULL THEN 'completed' ELSE 'none' END as user_investment_status
