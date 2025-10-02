@@ -1183,7 +1183,9 @@ function deleteDocument(docId) {
 
 // Sale Modal Functions
 function openSaleModal() {
+    console.log('=== openSaleModal CALLED ===');
     const modal = document.getElementById('sale-modal');
+    console.log('Modal element:', modal);
     
     // Check if projectDetailManager and projectData are available
     if (!projectDetailManager || !projectDetailManager.projectData) {
@@ -1191,6 +1193,9 @@ function openSaleModal() {
         alert('Errore: dati del progetto non caricati. Ricarica la pagina.');
         return;
     }
+    
+    console.log('projectDetailManager available:', projectDetailManager);
+    console.log('projectData:', projectDetailManager.projectData);
     
     const project = projectDetailManager.projectData.project;
     const stats = projectDetailManager.projectData.stats;
@@ -1227,15 +1232,30 @@ function openSaleModal() {
     // Add event listener for price calculation
     const priceInput = document.getElementById('sale-price-input');
     if (priceInput) {
+        console.log('Adding event listener to price input');
         // Remove old listener if exists
         priceInput.removeEventListener('input', calculateSaleProfit);
         // Add new listener
         priceInput.addEventListener('input', calculateSaleProfit);
+        
+        // Test: manually call once to see if it works
+        console.log('Testing calculateSaleProfit...');
+        // calculateSaleProfit(); // Commented - will cause issues if called without value
+    } else {
+        console.error('Price input not found!');
     }
+    
+    // Debug: test if button exists
+    const confirmBtn = document.getElementById('confirm-sale-btn');
+    console.log('Confirm button:', confirmBtn, 'disabled:', confirmBtn?.disabled);
     
     // Focus on price input
     setTimeout(() => {
-        document.getElementById('sale-price-input').focus();
+        const input = document.getElementById('sale-price-input');
+        if (input) {
+            input.focus();
+            console.log('Price input focused');
+        }
     }, 100);
 }
 
