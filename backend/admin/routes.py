@@ -782,7 +782,14 @@ def projects_delete(pid):
             is_sold = project.get('status') == 'sold' if isinstance(project, dict) else project[3] == 'sold'
             
             if is_sold:
-                # Per progetti venduti: elimina solo il progetto, i profitti rimangono distribuiti
+                # Per progetti venduti: elimina prima gli investimenti, poi il progetto
+                # I profitti rimangono distribuiti agli investitori
+                
+                # Elimina tutti gli investimenti per questo progetto (anche se completed)
+                cur.execute("DELETE FROM investments WHERE project_id = %s", (pid,))
+                investments_deleted = cur.rowcount
+                
+                # Ora elimina il progetto
                 cur.execute("DELETE FROM projects WHERE id=%s", (pid,))
                 
                 if cur.rowcount == 0:
@@ -790,7 +797,7 @@ def projects_delete(pid):
                 
                 return jsonify({
                     "deleted": True, 
-                    "message": "Progetto venduto eliminato con successo. I profitti rimangono distribuiti agli investitori."
+                    "message": f"Progetto venduto eliminato con successo. Rimossi {investments_deleted} investimenti. I profitti rimangono distribuiti agli investitori."
                 })
             else:
                 # Per progetti non venduti: rimborsa gli investimenti attivi
