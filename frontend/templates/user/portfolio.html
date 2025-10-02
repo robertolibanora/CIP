@@ -98,6 +98,31 @@
         border-radius: 8px !important;
     }
     
+    /* Fix per portafoglio totale su mobile */
+    #total-balance {
+        font-size: 1.5rem !important; /* Riduce da text-3xl a text-2xl */
+        line-height: 1.2 !important;
+        word-break: break-word !important;
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Layout portafoglio su mobile */
+    .bg-white.rounded-xl.border.border-gray-200.p-6.mb-8 {
+        padding: 1rem !important;
+    }
+    
+    .bg-white.rounded-xl.border.border-gray-200.p-6.mb-8 .flex.items-center.justify-between {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem !important;
+    }
+    
+    .bg-white.rounded-xl.border.border-gray-200.p-6.mb-8 .text-right {
+        text-align: left !important;
+        width: 100% !important;
+    }
+    
     /* IBAN container */
     .iban-container {
         flex-direction: column !important;
