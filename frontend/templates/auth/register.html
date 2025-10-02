@@ -367,6 +367,9 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
   const globalErr = document.getElementById('registerError');
   if (globalErr){ globalErr.classList.add('hidden'); globalErr.textContent=''; }
   
+  // Salva il referral code prima della validazione
+  const referralCode = document.getElementById('referral_code').value;
+  
   // Reset all error messages
   document.querySelectorAll('[id^="error-"]').forEach(el => {
     el.classList.add('hidden');
@@ -411,6 +414,11 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         errorText.textContent = 'ATTENZIONE: Devi accettare i Termini e Condizioni per creare un account';
       }
       generalError.classList.remove('hidden');
+      
+      // Nascondi il messaggio dopo 5 secondi
+      setTimeout(() => {
+        generalError.classList.add('hidden');
+      }, 5000);
     }
     
     hasErrors = true;
@@ -442,6 +450,13 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     const generalError = document.getElementById('registerError');
     if (generalError) {
       generalError.classList.add('hidden');
+    }
+    
+    // Ripristina il referral code se era presente
+    if (referralCode) {
+      document.getElementById('referral_code').value = referralCode;
+      // Rivalida il referral code
+      validateReferral(referralCode);
     }
   }
   
