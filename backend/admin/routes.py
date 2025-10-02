@@ -4853,6 +4853,39 @@ def get_iban_configuration():
     
     return jsonify(config) if config else jsonify({'error': 'Nessuna configurazione IBAN trovata'}), 404
 
+@admin_bp.post("/projects/<int:pid>/update-roi")
+@admin_required
+def update_project_roi(pid):
+    """Aggiorna il ROI di un progetto"""
+    try:
+        data = request.get_json() or {}
+        roi = data.get('roi')
+        
+        if roi is None:
+            return jsonify({'error': 'ROI richiesto'}), 400
+        
+        roi = float(roi)
+        if roi < 0.1 or roi > 99.9:
+            return jsonify({'error': 'ROI deve essere tra 0.1% e 99.9%'}), 400
+        
+        with get_conn() as conn, conn.cursor() as cur:
+            # Verifica che il progetto esista
+            cur.execute("SELECT id FROM projects WHERE id = %s", (pid,))
+            if not cur.fetchone():
+                return jsonify({'error': 'Progetto non trovato'}), 404
+            
+            # Aggiorna il ROI
+            cur.execute("UPDATE projects SET roi = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (roi, pid))
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'ROI aggiornato con successo', 'roi': roi})
+            
+    except ValueError:
+        return jsonify({'error': 'ROI non valido'}), 400
+    except Exception as e:
+        print(f"Errore nell'aggiornamento ROI: {e}")
+        return jsonify({'error': 'Errore interno del server'}), 500
+
 @admin_bp.post("/api/iban-config")
 @admin_required
 def set_iban_configuration():

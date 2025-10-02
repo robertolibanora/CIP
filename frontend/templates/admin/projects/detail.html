@@ -418,6 +418,17 @@ class ProjectDetailManager {
                         <span class="text-sm">€${parseFloat(stats.avg_investment).toLocaleString()}</span>
                     </div>
                     ` : ''}
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">RA:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-blue-600">${project.roi || 0}%</span>
+                            <button onclick="openEditROIModal()" class="text-gray-400 hover:text-blue-600 transition-colors" title="Modifica RA">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
     }
@@ -1443,6 +1454,69 @@ function closeModal(modalId) {
     }
 }
 
+// Funzione per aprire il modal di modifica RA
+function openEditROIModal() {
+    const modal = document.getElementById('edit-roi-modal');
+    const input = document.getElementById('edit-roi-input');
+    const currentROI = projectDetailManager?.projectData?.project?.roi || 0;
+    
+    // Popola il campo con il RA corrente
+    input.value = currentROI;
+    
+    // Mostra il modal
+    modal.style.display = 'flex';
+}
+
+// Gestione del form di modifica RA
+document.addEventListener('DOMContentLoaded', function() {
+    const editROIForm = document.getElementById('edit-roi-form');
+    if (editROIForm) {
+        editROIForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(editROIForm);
+            const newROI = parseFloat(formData.get('roi'));
+            
+            if (isNaN(newROI) || newROI < 0.1 || newROI > 99.9) {
+                alert('Inserisci un RA valido tra 0.1% e 99.9%');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/projects/${projectDetailManager?.projectData?.project?.id}/update-roi`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ roi: newROI })
+                });
+                
+                if (response.ok) {
+                    // Aggiorna i dati del progetto
+                    if (projectDetailManager?.projectData?.project) {
+                        projectDetailManager.projectData.project.roi = newROI;
+                    }
+                    
+                    // Ricarica le statistiche per mostrare il nuovo RA
+                    projectDetailManager?.renderStats();
+                    
+                    // Chiudi il modal
+                    closeModal('edit-roi-modal');
+                    
+                    // Mostra messaggio di successo
+                    alert('RA aggiornato con successo!');
+                } else {
+                    const error = await response.json();
+                    alert('Errore nell\'aggiornamento: ' + (error.error || 'Errore sconosciuto'));
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                alert('Errore nella comunicazione con il server');
+            }
+        });
+    }
+});
+
 // Gestione form di modifica titolo
 document.addEventListener('DOMContentLoaded', function() {
     const editTitleForm = document.getElementById('edit-title-form');
@@ -1596,6 +1670,58 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Modal duplicato rimosso -->
+
+<!-- Modal Modifica RA -->
+<div id="edit-roi-modal" class="admin-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: transparent; align-items: center; justify-content: center;">
+    <div class="admin-modal-backdrop" onclick="closeModal('edit-roi-modal')" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);"></div>
+    <div class="admin-modal-container" style="position: relative; background: white; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 25px 50px rgba(0,0,0,0.25); overflow: hidden;">
+        <div class="admin-modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: white;">Modifica RA</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: rgba(255,255,255,0.8);">Aggiorna il Rendimento Atteso del progetto</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeModal('edit-roi-modal')" style="background: rgba(255,255,255,0.1); border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="admin-modal-body" style="padding: 24px;">
+            <form id="edit-roi-form" style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column;">
+                    <label style="margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.875rem;">Rendimento Atteso (RA) *</label>
+                    <input type="number" name="roi" id="edit-roi-input" 
+                           placeholder="Inserisci il RA in percentuale" required min="0.1" max="99.9" step="0.1"
+                           style="padding: 10px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; transition: all 0.2s; background: #fafafa;" 
+                           onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)'" 
+                           onblur="this.style.borderColor='#e5e7eb'; this.style.background='#fafafa'; this.style.boxShadow='none'">
+                    <p style="margin-top: 4px; font-size: 0.75rem; color: #6b7280;">Inserisci un valore tra 0.1% e 99.9%</p>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+                    <button type="button" onclick="closeModal('edit-roi-modal')" 
+                            style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; color: #374151; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
+                        Annulla
+                    </button>
+                    <button type="submit" 
+                            style="padding: 10px 20px; border: none; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                        Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 
