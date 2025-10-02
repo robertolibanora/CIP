@@ -730,15 +730,18 @@ def projects_sell(pid):
                 user_id = int(inv.get('user_id') if isinstance(inv, dict) else inv[1])
                 profit_share = (investment_amount / total_invested) * total_profit
 
-                # Upsert su user_portfolios: aggiungo ai profits
+                # Upsert su user_portfolios: aggiungo ai profits e restituisco il capitale investito
                 cur.execute(
                     """
                     INSERT INTO user_portfolios (user_id, free_capital, invested_capital, referral_bonus, profits)
-                                    VALUES (%s, 0, 0, 0, %s)
+                                    VALUES (%s, %s, -%s, 0, %s)
                                     ON CONFLICT (user_id) 
-                    DO UPDATE SET profits = user_portfolios.profits + EXCLUDED.profits
+                    DO UPDATE SET 
+                        profits = user_portfolios.profits + EXCLUDED.profits,
+                        free_capital = user_portfolios.free_capital + EXCLUDED.free_capital,
+                        invested_capital = user_portfolios.invested_capital + EXCLUDED.invested_capital
                     """,
-                    (user_id, profit_share),
+                    (user_id, investment_amount, investment_amount, profit_share),
                 )
 
                 # Calcola i bonus referral in base al profitto generato
