@@ -1483,8 +1483,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const projectId = parseInt(document.getElementById('page-loading').getAttribute('data-project-id'));
     projectDetailManager = new ProjectDetailManager(projectId);
     
-    // Add event listener for sale price input
-    document.getElementById('sale-price-input').addEventListener('input', calculateSaleProfit);
+    // Note: Event listener for sale price input is added when modal opens (in openSaleModal function)
+    // to avoid errors when element doesn't exist yet
 });
 
 // ---- Gestione Galleria Immagini ----
