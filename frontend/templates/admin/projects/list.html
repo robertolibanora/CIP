@@ -980,11 +980,6 @@ class ProjectsManager {
                                     class="admin-btn admin-btn--warning admin-btn--sm flex-1 mr-2">
                                 ⚠️ Annulla
                             </button>
-                        ` : project.status === 'completed' ? `
-                            <button onclick="sellProject(${project.id})" 
-                                    class="admin-btn admin-btn--success admin-btn--sm flex-1 mr-2">
-                                💰 Vendita
-                            </button>
                         ` : project.status === 'sold' ? `
                             <div class="flex-1 mr-2">
                                 <span class="admin-text-small text-green-600 font-medium">✅ Venduto</span>
@@ -1226,10 +1221,6 @@ document.addEventListener('click', function(e) {
 });
 
 // Funzioni globali
-function sellProject(projectId) {
-    // Reindirizza alla pagina di dettaglio del progetto per la vendita
-    window.location.href = `/admin/projects/${projectId}`;
-}
 
 // Inizializzazione
 document.addEventListener('DOMContentLoaded', function() {
