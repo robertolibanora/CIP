@@ -676,7 +676,9 @@ def projects_sell(pid):
             if not project:
                 return jsonify({"error": "Progetto non trovato"}), 404
 
-            if project[1] != "completed":
+            # dict_row: accedi per chiave
+            project_status = project.get('status') if isinstance(project, dict) else project[1]
+            if project_status != "completed":
                 return jsonify({"error": "Il progetto deve essere in stato 'completed'"}), 400
 
             # Recupero investimenti attivi
@@ -691,9 +693,10 @@ def projects_sell(pid):
             investments = cur.fetchall() or []
 
             # Calcolo totale investito (fallback a somma investimenti se funded_amount non affidabile)
-            total_invested = float(project[2] or 0)
+            funded_amount_value = project.get('funded_amount') if isinstance(project, dict) else project[2]
+            total_invested = float(funded_amount_value or 0)
             if total_invested <= 0 and investments:
-                total_invested = sum(float(inv[2]) for inv in investments)
+                total_invested = sum(float(inv.get('amount') if isinstance(inv, dict) else inv[2]) for inv in investments)
 
             if total_invested <= 0:
                 return jsonify({"error": "Nessun investimento registrato per il progetto"}), 400
@@ -720,10 +723,10 @@ def projects_sell(pid):
 
             # Distribuzione profitti proporzionale e bonus referral
             for inv in investments:
-                investment_amount = float(inv[2])
+                investment_amount = float(inv.get('amount') if isinstance(inv, dict) else inv[2])
                 if investment_amount <= 0:
                     continue
-                user_id = int(inv[1])
+                user_id = int(inv.get('user_id') if isinstance(inv, dict) else inv[1])
                 profit_share = (investment_amount / total_invested) * total_profit
 
                 # Upsert su user_portfolios: aggiungo ai profits

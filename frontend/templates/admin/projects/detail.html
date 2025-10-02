@@ -348,6 +348,8 @@ class ProjectDetailManager {
         
         statusBadge.className = `px-3 py-1 rounded-full text-sm font-medium ${statusColors[project.status] || 'bg-gray-100 text-gray-800'}`;
         statusBadge.textContent = statusLabels[project.status] || project.status;
+        const sellBtn = document.getElementById('sell-btn');
+        if (sellBtn) sellBtn.style.display = project.status === 'completed' ? 'inline-flex' : 'none';
         
         
         // Fill form fields
