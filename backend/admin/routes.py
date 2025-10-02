@@ -309,14 +309,14 @@ def projects_new():
             cur.execute(
                 """
                 INSERT INTO projects (
-                    code, name, description, status, total_amount, start_date,
+                    code, name, title, description, status, total_amount, start_date,
                     location, min_investment, image_url, roi, type, funded_amount, duration
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
                 """,
                 (
-                    code_value, name_value, description_value, status_value,
+                    code_value, name_value, name_value, description_value, status_value,
                     total_amount_value, start_date_value,
                     location_value, min_investment_value, 
                     photo_filename if photo_filename else None,
@@ -5126,11 +5126,11 @@ def create_project():
             
             # Inserisci progetto nel database
             cur.execute("""
-                INSERT INTO projects (code, name, description, total_amount, min_investment, 
+                INSERT INTO projects (code, name, title, description, total_amount, min_investment, 
                                    location, type, roi, start_date, image_url, status, funded_amount, duration)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (code, name, description, total_amount, min_investment, 
+            """, (code, name, name, description, total_amount, min_investment, 
                   location, project_type, roi, start_date, image_url, 'active', 0.0, 365))
             
             project_id = cur.fetchone()['id']
