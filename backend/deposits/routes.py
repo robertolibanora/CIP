@@ -43,8 +43,9 @@ def generate_payment_reference(user_name=None, length=12):
             
             if result and result['payment_reference']:
                 template = result['payment_reference']
-                # Usa il template così com'è, senza sostituire il nome utente
-                return template
+                # Aggiungi un identificatore unico al template
+                unique_id = generate_unique_key(6)
+                return f"{template} {unique_id}"
     except Exception as e:
         logger.error(f"Errore nel caricamento template causale: {e}")
     
