@@ -1224,6 +1224,15 @@ function openSaleModal() {
     // Show modal
     modal.classList.remove('hidden');
     
+    // Add event listener for price calculation
+    const priceInput = document.getElementById('sale-price-input');
+    if (priceInput) {
+        // Remove old listener if exists
+        priceInput.removeEventListener('input', calculateSaleProfit);
+        // Add new listener
+        priceInput.addEventListener('input', calculateSaleProfit);
+    }
+    
     // Focus on price input
     setTimeout(() => {
         document.getElementById('sale-price-input').focus();
@@ -1236,9 +1245,18 @@ function closeSaleModal() {
 }
 
 function calculateSaleProfit() {
+    console.log('calculateSaleProfit called');
+    
+    if (!projectDetailManager || !projectDetailManager.projectData) {
+        console.error('projectDetailManager or projectData not available');
+        return;
+    }
+    
     const salePrice = parseFloat(document.getElementById('sale-price-input').value) || 0;
     const totalInvested = parseFloat(projectDetailManager.projectData.stats.total_invested) || 0;
     const investments = projectDetailManager.projectData.investments || [];
+    
+    console.log('Sale calculation:', {salePrice, totalInvested, investmentsCount: investments.length});
     
     if (salePrice <= 0 || totalInvested <= 0 || investments.length === 0) {
         document.getElementById('profit-preview').classList.add('hidden');
@@ -1284,7 +1302,10 @@ function calculateSaleProfit() {
 }
 
 async function confirmSale() {
+    console.log('confirmSale called');
+    
     const salePrice = parseFloat(document.getElementById('sale-price-input').value);
+    console.log('Sale price:', salePrice);
     
     if (!salePrice || salePrice <= 0) {
         alert('Inserisci un prezzo di vendita valido');
@@ -1292,8 +1313,11 @@ async function confirmSale() {
     }
     
     if (!confirm('Sei sicuro di voler confermare la vendita di questo progetto? Questa azione è irreversibile.')) {
+        console.log('Sale cancelled by user');
         return;
     }
+    
+    console.log('Sending sale request to backend...');
     
     const confirmBtn = document.getElementById('confirm-sale-btn');
     const originalText = confirmBtn.innerHTML;
@@ -1308,6 +1332,7 @@ async function confirmSale() {
     `;
     
     try {
+        console.log('Fetching:', `/admin/projects/${projectDetailManager.projectId}/sell`);
         const response = await fetch(`/admin/projects/${projectDetailManager.projectId}/sell`, {
             method: 'POST',
             headers: {
@@ -1320,7 +1345,9 @@ async function confirmSale() {
             })
         });
         
+        console.log('Response status:', response.status);
         const result = await response.json();
+        console.log('Response data:', result);
         
         if (response.ok && result.success) {
             // Mostra messaggio di successo con dettagli
