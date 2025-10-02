@@ -1041,7 +1041,7 @@ def get_referral_data():
 
 @user_bp.get("/api/referral-link")
 @login_required
-@kyc_verified
+# @kyc_verified  # Temporaneamente disabilitato per debug
 def get_referral_link():
     """Ottieni link referral dell'utente"""
     try:
