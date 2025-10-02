@@ -666,7 +666,7 @@ def projects_sell(pid):
             
             # Ottieni dettagli progetto
             cur.execute("""
-                SELECT id, title, code, total_amount, funded_amount, status
+                SELECT id, name as title, code, total_amount, funded_amount, status
                 FROM projects 
                 WHERE id = %s
             """, (pid,))
@@ -922,7 +922,7 @@ def projects_delete(pid):
     try:
         with get_conn() as conn, conn.cursor() as cur:
             # Ottieni dettagli progetto
-            cur.execute("SELECT id, title, funded_amount FROM projects WHERE id=%s", (pid,))
+            cur.execute("SELECT id, name as title, funded_amount FROM projects WHERE id=%s", (pid,))
             project = cur.fetchone()
             
             if not project:

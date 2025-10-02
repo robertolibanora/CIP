@@ -1184,9 +1184,29 @@ function deleteDocument(docId) {
 // Sale Modal Functions
 function openSaleModal() {
     const modal = document.getElementById('sale-modal');
+    
+    // Check if projectDetailManager and projectData are available
+    if (!projectDetailManager || !projectDetailManager.projectData) {
+        console.error('Project data not loaded');
+        alert('Errore: dati del progetto non caricati. Ricarica la pagina.');
+        return;
+    }
+    
     const project = projectDetailManager.projectData.project;
     const stats = projectDetailManager.projectData.stats;
     const investments = projectDetailManager.projectData.investments || [];
+    
+    // Check if project is already sold
+    if (project.status === 'sold') {
+        alert('Questo progetto è già stato venduto.');
+        return;
+    }
+    
+    // Check if project is completed
+    if (project.status !== 'completed') {
+        alert('Il progetto deve essere completato prima di poter essere venduto.');
+        return;
+    }
     
     // Populate project info
     document.getElementById('sale-project-title').textContent = project.name || 'N/A';
