@@ -2376,36 +2376,24 @@ function initializeWithdrawalForm() {
                 return;
             }
             
-            // Validazione rete per USDT
-            if (method === 'usdt' && !network) {
-                showErrorModal('Seleziona una rete per il prelievo USDT');
-                return;
-            }
-            
-            // Prepara dati
+            // Prepara dati - stessa logica per USDT e Bank
             const data = {
                 amount: amount,
                 method: method,
-                source_section: sourceSection,
-                network: network
+                source_section: sourceSection
             };
             
             if (method === 'usdt') {
-                const walletAddress = formData.get('wallet_address');
-                if (!walletAddress) {
-                    showErrorModal('Indirizzo wallet richiesto per prelievi USDT');
-                    return;
-                }
-                data.wallet_address = walletAddress;
+                // Aggiungi dati USDT
+                data.wallet_address = formData.get('wallet_address') || '';
+                data.network = formData.get('network') || 'BEP20';
             } else if (method === 'bank') {
-                const bankDetails = {
+                // Aggiungi dati bancari - stessa logica di USDT, nessuna validazione
+                data.bank_details = {
                     iban: formData.get('iban') || '',
                     account_holder: formData.get('account_holder') || '',
                     bank_name: formData.get('bank_name') || ''
                 };
-                
-                // Nessuna validazione - L'admin verificherà i dati manualmente
-                data.bank_details = bankDetails;
             }
             
             try {
