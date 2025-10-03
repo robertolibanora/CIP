@@ -42,25 +42,33 @@ def get_project_data(project_id):
             if not project:
                 return jsonify({'error': 'Progetto non trovato'}), 404
             
-            return jsonify({
-                'success': True,
-                'project': {
-                    'id': project['id'],
-                    'title': project['title'],
-                    'description': project['description'],
-                    'total_amount': float(project['total_amount'] or 0),
-                    'funded_amount': float(project['funded_amount'] or 0),
-                    'status': project['status'],
-                    'code': project['code'],
-                    'location': project['location'],
-                    'min_investment': float(project['min_investment'] or 0),
-                    'image_url': project['image_url'],
-                    'roi': float(project['roi'] or 0),
-                    'sale_price': float(project['sale_price'] or 0) if project['sale_price'] else None,
-                    'sale_date': project['sale_date'].isoformat() if project['sale_date'] else None,
-                    'profit_percentage': float(project['profit_percentage'] or 0) if project['profit_percentage'] else None
-                }
-            })
+                    # Calcola profitto totale per tutti gli utenti se il progetto è venduto
+                    total_profit_all_users = 0
+                    if project.get('sale_price') and project.get('funded_amount'):
+                        sale_price = float(project.get('sale_price', 0))
+                        funded_amount = float(project.get('funded_amount', 0))
+                        total_profit_all_users = round(sale_price - funded_amount, 2)
+                    
+                    return jsonify({
+                        'success': True,
+                        'project': {
+                            'id': project['id'],
+                            'title': project['title'],
+                            'description': project['description'],
+                            'total_amount': float(project['total_amount'] or 0),
+                            'funded_amount': float(project['funded_amount'] or 0),
+                            'status': project['status'],
+                            'code': project['code'],
+                            'location': project['location'],
+                            'min_investment': float(project['min_investment'] or 0),
+                            'image_url': project['image_url'],
+                            'roi': float(project['roi'] or 0),
+                            'sale_price': float(project['sale_price'] or 0) if project['sale_price'] else None,
+                            'sale_date': project['sale_date'].isoformat() if project['sale_date'] else None,
+                            'profit_percentage': float(project['profit_percentage'] or 0) if project['profit_percentage'] else None,
+                            'total_profit_all_users': total_profit_all_users
+                        }
+                    })
             
     except Exception as e:
         print(f"Errore nel recupero dati progetto: {e}")
@@ -185,7 +193,7 @@ def projects():
                     project['sale_price'] = project.get('sale_price') or 0
                     project['sale_date'] = project.get('sale_date') or None
                     
-                    # Calcola profitto totale del progetto
+                    # Calcola profitto totale del progetto (per TUTTI gli utenti)
                     sale_price = float(project.get('sale_price', 0))
                     funded_amount = float(project.get('funded_amount', 0))
                     total_profit = sale_price - funded_amount
@@ -204,11 +212,15 @@ def projects():
                         project['profit_amount'] = round(user_profit_share, 2)
                     else:
                         project['profit_amount'] = 0
+                    
+                    # NUOVO: Aggiungi il profitto totale di TUTTI gli utenti
+                    project['total_profit_all_users'] = round(total_profit, 2)
                 else:
                     project['sale_price'] = None
                     project['sale_date'] = None
                     project['profit_amount'] = 0
                     project['profit_percentage'] = 0
+                    project['total_profit_all_users'] = 0
             
             return projects_list
         
