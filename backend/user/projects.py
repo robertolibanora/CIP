@@ -441,7 +441,7 @@ def project_detail(project_id):
         cur.execute("""
             SELECT p.id, p.name as title, p.description, p.total_amount, p.funded_amount,
                    p.status, p.created_at, p.code, p.location, p.min_investment,
-                   p.image_url, p.sale_price, p.sold_at as sale_date, p.profit_percentage,
+                   p.image_url, p.roi, p.sale_price, p.sold_at as sale_date, p.profit_percentage,
                    p.gallery, p.project_details
             FROM projects p 
             WHERE p.id = %s
@@ -461,7 +461,8 @@ def project_detail(project_id):
         
         # Aggiungi campi mancanti per compatibilità template
         project['location'] = project.get('location') or 'N/A'
-        project['roi'] = project.get('roi') or 8.5
+        # ROI ora viene direttamente dal database, nessun fallback hardcoded
+        project['roi'] = project.get('roi') or 0
         project['min_investment'] = project.get('min_investment') or 1000
         project['description'] = project.get('description') or 'Nessuna descrizione disponibile'
         
