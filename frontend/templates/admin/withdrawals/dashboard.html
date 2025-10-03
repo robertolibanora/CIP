@@ -253,6 +253,32 @@ function renderWithdrawals() {
                               withdrawal.source_section === 'referral_bonus' ? 'Bonus Referral' : withdrawal.source_section}</p>
                         </div>
                     </div>
+                    
+                    <!-- Terza Riga: Dettagli Bancari (solo per bonifici) -->
+                    ${withdrawal.method === 'bank' ? `
+                    <div class="mt-4 grid grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">IBAN</label>
+                            <p class="mt-1 text-sm text-gray-900 font-mono">${withdrawal.bank_details?.iban || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Intestatario</label>
+                            <p class="mt-1 text-sm text-gray-900">${withdrawal.bank_details?.account_holder || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Banca</label>
+                            <p class="mt-1 text-sm text-gray-900">${withdrawal.bank_details?.bank_name || 'N/A'}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Debug: Mostra tutti i dati bancari -->
+                    ${withdrawal.method === 'bank' ? `
+                    <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Debug - Dati Bancari:</h4>
+                        <pre class="text-xs text-gray-600">${JSON.stringify(withdrawal.bank_details, null, 2)}</pre>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 <!-- Sezione Destra: Note e Azioni -->
