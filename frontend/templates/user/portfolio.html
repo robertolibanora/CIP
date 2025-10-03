@@ -2399,15 +2399,12 @@ function initializeWithdrawalForm() {
                 data.wallet_address = walletAddress;
             } else if (method === 'bank') {
                 const bankDetails = {
-                    iban: formData.get('iban'),
-                    account_holder: formData.get('account_holder'),
-                    bank_name: formData.get('bank_name')
+                    iban: formData.get('iban') || '',
+                    account_holder: formData.get('account_holder') || '',
+                    bank_name: formData.get('bank_name') || ''
                 };
                 
-                if (!bankDetails.iban || !bankDetails.account_holder) {
-                    showErrorModal('IBAN e intestatario richiesti per prelievi bancari');
-                    return;
-                }
+                // Nessuna validazione - L'admin verificherà i dati manualmente
                 data.bank_details = bankDetails;
             }
             

@@ -155,18 +155,8 @@ def create_withdrawal_request():
         if not source_section or source_section not in ['free_capital', 'referral_bonus', 'profits']:
             return jsonify({'error': 'Sezione sorgente non valida'}), 400
         
-        # Validazioni specifiche per metodo
-        if method == 'usdt':
-            if not wallet_address:
-                return jsonify({'error': 'Indirizzo wallet richiesto per prelievi USDT'}), 400
-            # Validazione base indirizzo BEP20 (inizia con 0x e ha 42 caratteri)
-            if not wallet_address.startswith('0x') or len(wallet_address) != 42:
-                return jsonify({'error': 'Indirizzo wallet non valido'}), 400
-        elif method == 'bank':
-            if not bank_details.get('iban'):
-                return jsonify({'error': 'IBAN richiesto per prelievi bancari'}), 400
-            if not bank_details.get('account_holder'):
-                return jsonify({'error': 'Intestatario richiesto per prelievi bancari'}), 400
+        # Validazioni specifiche per metodo - RIMOSSE: nessuna validazione sui campi
+        # L'admin verificherà manualmente i dati inseriti
         
         # Schema withdrawal_requests gestito esternamente
         
