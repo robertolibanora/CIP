@@ -498,14 +498,14 @@
                 <!-- Form Richiesta Prelievo -->
                 <div class="bg-gray-50 rounded-lg p-6 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Nuova Richiesta Prelievo</h3>
-                    <form id="withdrawal-form" class="space-y-4">
+                    <form id="withdrawalFormNew" class="space-y-4" onsubmit="submitWithdrawalRequest(event)">
                         <!-- Metodo di prelievo -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Metodo di Prelievo</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Metodo di Prelievo *</label>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <label class="relative">
-                                    <input type="radio" name="method" value="usdt" class="sr-only peer" required>
-                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" id="method-usdt" name="method" value="usdt" class="sr-only peer" required onchange="togglePaymentMethod()">
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors hover:border-gray-300">
                                         <div class="flex items-center">
                                             <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
                                                 <span class="text-white font-bold text-sm">₮</span>
@@ -517,9 +517,9 @@
                                         </div>
                                     </div>
                                 </label>
-                                <label class="relative">
-                                    <input type="radio" name="method" value="bank" class="sr-only peer" required>
-                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" id="method-bank" name="method" value="bank" class="sr-only peer" required onchange="togglePaymentMethod()">
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors hover:border-gray-300">
                                         <div class="flex items-center">
                                             <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
                                                 <span class="text-white font-bold text-sm">€</span>
@@ -534,13 +534,45 @@
                             </div>
                         </div>
 
+                        <!-- Importo e sezione -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="withdrawal-amount-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Importo (min. €50) *
+                                </label>
+                                <input type="number" 
+                                       id="withdrawal-amount-new" 
+                                       name="amount" 
+                                       min="50" 
+                                       step="0.01"
+                                       placeholder="es. 100.00"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                            
+                            <div>
+                                <label for="withdrawal-source-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Sezione Fonte *
+                                </label>
+                                <select id="withdrawal-source-new" 
+                                        name="source_section" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required>
+                                    <option value="">Seleziona sezione</option>
+                                    <option value="free_capital">Capitale Libero</option>
+                                    <option value="referral_bonus">Bonus Referral</option>
+                                    <option value="profits">Profitti</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <!-- Selezione Rete USDT -->
-                        <div id="network-selection" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Rete USDT</label>
+                        <div id="network-selection-new" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Rete USDT *</label>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <label class="relative">
-                                    <input type="radio" name="network" value="TRC20" class="sr-only peer" required>
-                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="network" value="TRC20" class="sr-only peer" onchange="updateNetworkHint()">
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors hover:border-gray-300">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
                                                 <span class="text-white font-bold text-xs">T</span>
@@ -551,9 +583,9 @@
                                         </div>
                                     </div>
                                 </label>
-                                <label class="relative">
-                                    <input type="radio" name="network" value="BEP20" class="sr-only peer" required>
-                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="network" value="BEP20" class="sr-only peer" onchange="updateNetworkHint()">
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors hover:border-gray-300">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-2">
                                                 <span class="text-white font-bold text-xs">B</span>
@@ -564,9 +596,9 @@
                                         </div>
                                     </div>
                                 </label>
-                                <label class="relative">
-                                    <input type="radio" name="network" value="ERC20" class="sr-only peer" required>
-                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="network" value="ERC20" class="sr-only peer" onchange="updateNetworkHint()">
+                                    <div class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 transition-colors hover:border-gray-300">
                                         <div class="text-center">
                                             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
                                                 <span class="text-white font-bold text-xs">E</span>
@@ -579,40 +611,9 @@
                                 </label>
                             </div>
                         </div>
-
-                        <!-- Importo e sezione -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="withdrawal-amount" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Importo (min. €50)
-                                </label>
-                                <input type="number" 
-                                       id="withdrawal-amount" 
-                                       name="amount" 
-                                       min="50" 
-                                       step="0.01"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       required>
-                            </div>
-                            
-                            <div>
-                                <label for="withdrawal-source" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Sezione Fonte
-                                </label>
-                                <select id="withdrawal-source" 
-                                        name="source_section" 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        required>
-                                    <option value="">Seleziona sezione</option>
-                                    <option value="free_capital">Capitale Libero</option>
-                                    <option value="referral_bonus">Bonus Referral</option>
-                                    <option value="profits">Profitti</option>
-                                </select>
-                            </div>
-                        </div>
                         
                         <!-- Dettagli USDT -->
-                        <div id="usdt-details" class="hidden">
+                        <div id="usdt-details-new" class="hidden">
                             <div class="bg-amber-50 border-2 border-amber-300 rounded-lg p-5 mb-4 shadow-sm">
                                 <div class="flex">
                                     <div class="flex-shrink-0">
@@ -625,16 +626,11 @@
                                         <div class="text-sm text-amber-900 space-y-3">
                                             <div class="bg-amber-100 border border-amber-200 rounded-md p-3">
                                                 <p class="font-semibold text-amber-900 mb-2">🔒 Indirizzo Wallet:</p>
-                                                <p class="text-amber-900 leading-relaxed">Non ci assumiamo responsabilità per errori nell'indirizzo wallet. Se inserisci un indirizzo errato, i fondi andranno persi definitivamente. Assicurati di inserire l'indirizzo corretto per la rete selezionata.</p>
+                                                <p class="text-amber-900 leading-relaxed">Non ci assumiamo responsabilità per errori nell'indirizzo wallet. Se inserisci un indirizzo errato, i fondi andranno persi definitivamente.</p>
                                             </div>
                                             <div class="bg-amber-100 border border-amber-200 rounded-md p-3">
                                                 <p class="font-semibold text-amber-900 mb-2">💰 Commissioni di Transazione:</p>
-                                                <p class="text-amber-900 mb-2">Dal denaro prelevato saranno detratte le commissioni di transazione della rete:</p>
-                                                <ul class="list-disc list-inside ml-4 space-y-1 text-amber-900">
-                                                    <li><strong>TRC20:</strong> ~1 USDT</li>
-                                                    <li><strong>BSC:</strong> ~1-2 USDT</li>
-                                                    <li><strong>ERC20:</strong> ~5-20 USDT (può variare in base al traffico della rete)</li>
-                                                </ul>
+                                                <p class="text-amber-900 mb-2">Dal denaro prelevato saranno detratte le commissioni di transazione della rete.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -642,56 +638,48 @@
                             </div>
                             
                             <div>
-                                <label for="withdrawal-wallet" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Indirizzo Wallet USDT
+                                <label for="withdrawal-wallet-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Indirizzo Wallet USDT *
                                 </label>
                                 <input type="text" 
-                                       id="withdrawal-wallet" 
+                                       id="withdrawal-wallet-new" 
                                        name="wallet_address" 
                                        placeholder="Inserisci l'indirizzo wallet..."
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                                       autocomplete="off"
-                                       spellcheck="false"
-                                       autocorrect="off"
-                                       autocapitalize="off"
-                                       style="text-transform: none !important; -webkit-text-transform: none !important; -moz-text-transform: none !important; -ms-text-transform: none !important; font-family: 'Courier New', monospace;"
-                                       oninput="handleWalletInput(this)"
-                                       onkeydown="return true"
-                                       onkeyup="handleWalletKeyUp(this)">
-                                <p class="mt-1 text-xs text-gray-500" id="wallet-format-hint">Seleziona una rete per vedere il formato richiesto</p>
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm">
+                                <p class="mt-1 text-xs text-gray-500" id="wallet-format-hint-new">Seleziona una rete per vedere il formato richiesto</p>
                             </div>
                         </div>
                         
-                        <!-- Dettagli Bancari - RICOSTRUITO COME USDT -->
-                        <div id="bank-details" class="hidden">
+                        <!-- Dettagli Bancari -->
+                        <div id="bank-details-new" class="hidden space-y-4">
                             <div>
-                                <label for="withdrawal-iban" class="block text-sm font-medium text-gray-700 mb-2">
-                                    IBAN
+                                <label for="withdrawal-iban-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    IBAN *
                                 </label>
                                 <input type="text" 
-                                       id="withdrawal-iban" 
+                                       id="withdrawal-iban-new" 
                                        name="iban" 
                                        placeholder="IT60X0542811101000000123456"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4">
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             
                             <div>
-                                <label for="withdrawal-holder" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Intestatario
+                                <label for="withdrawal-holder-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Intestatario *
                                 </label>
                                 <input type="text" 
-                                       id="withdrawal-holder" 
+                                       id="withdrawal-holder-new" 
                                        name="account_holder" 
                                        placeholder="Mario Rossi"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4">
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             
                             <div>
-                                <label for="withdrawal-bank" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Banca
+                                <label for="withdrawal-bank-new" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Banca *
                                 </label>
                                 <input type="text" 
-                                       id="withdrawal-bank" 
+                                       id="withdrawal-bank-new" 
                                        name="bank_name" 
                                        placeholder="Banca Popolare"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -700,11 +688,11 @@
                         
                         <div class="pt-4">
                             <button type="submit" 
-                                    id="withdrawal-submit-btn"
-                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-                                <span id="withdrawal-btn-text">Richiedi Prelievo</span>
-                                <span id="withdrawal-countdown" class="hidden">
-                                    Riprova tra <span id="withdrawal-countdown-timer">0:00</span>
+                                    id="withdrawal-submit-btn-new"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span id="withdrawal-btn-text-new">Conferma Prelievo</span>
+                                <span id="withdrawal-countdown-new" class="hidden">
+                                    Riprova tra <span id="withdrawal-countdown-timer-new">0:00</span>
                                 </span>
                             </button>
                         </div>
@@ -715,16 +703,11 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Richieste Prelievo</h3>
                     <div id="withdrawals-list" class="space-y-4">
-                        <div class="py-2">
-                          <div class="space-y-3">
-                            {% for _ in range(3) %}
-                            <div class="animate-pulse">
-                              <div class="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
-                              <div class="h-3 bg-gray-100 rounded w-1/2 mb-1"></div>
-                              <div class="h-3 bg-gray-100 rounded w-1/4"></div>
-                            </div>
-                            {% endfor %}
-                          </div>
+                        <div class="py-8 text-center text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p class="mt-2">Caricamento in corso...</p>
                         </div>
                     </div>
                 </div>
@@ -2298,136 +2281,171 @@ function updateWithdrawalRateLimitUI(rateLimitData) {
 }
 
 
-// Funzione per inizializzare il form prelievo
-function initializeWithdrawalForm() {
-    // Event listeners per cambio metodo
-    const methodRadios = document.querySelectorAll('input[name="method"]');
-    methodRadios.forEach(radio => {
-        radio.addEventListener('change', toggleWithdrawalMethod);
+// ===========================
+// NUOVE FUNZIONI WITHDRAWAL
+// ===========================
+
+// Toggle tra metodi di pagamento (USDT / Bonifico)
+function togglePaymentMethod() {
+    const usdtRadio = document.getElementById('method-usdt');
+    const bankRadio = document.getElementById('method-bank');
+    const networkSection = document.getElementById('network-selection-new');
+    const usdtDetails = document.getElementById('usdt-details-new');
+    const bankDetails = document.getElementById('bank-details-new');
+    
+    if (usdtRadio && usdtRadio.checked) {
+        networkSection.classList.remove('hidden');
+        usdtDetails.classList.remove('hidden');
+        bankDetails.classList.add('hidden');
+    } else if (bankRadio && bankRadio.checked) {
+        networkSection.classList.add('hidden');
+        usdtDetails.classList.add('hidden');
+        bankDetails.classList.remove('hidden');
+    }
+}
+
+// Aggiorna hint per il wallet in base alla rete selezionata
+function updateNetworkHint() {
+    const networkRadios = document.querySelectorAll('input[name="network"]');
+    const walletHint = document.getElementById('wallet-format-hint-new');
+    const walletInput = document.getElementById('withdrawal-wallet-new');
+    
+    let selectedNetwork = '';
+    networkRadios.forEach(radio => {
+        if (radio.checked) {
+            selectedNetwork = radio.value;
+        }
     });
     
-    // Event listeners per cambio rete
-    toggleNetworkSelection();
-    
-    // Prevenire conversione automatica a minuscolo per il campo wallet
-    const walletInput = document.getElementById('withdrawal-wallet');
-    if (walletInput) {
-        // Forza il mantenimento del case originale
-        walletInput.addEventListener('input', function(e) {
-            const originalValue = this.value;
-            this.value = originalValue;
-        });
-        
-        walletInput.addEventListener('keydown', function(e) {
-            // Permetti tutti i caratteri
-            return true;
-        });
-        
-        walletInput.addEventListener('keyup', function(e) {
-            // Mantieni il valore originale
-            const originalValue = this.value;
-            this.value = originalValue;
-        });
+    if (walletHint && walletInput) {
+        switch(selectedNetwork) {
+            case 'TRC20':
+                walletInput.placeholder = 'T... (indirizzo Tron)';
+                walletHint.textContent = 'Inserisci l\'indirizzo TRC20 (inizia con T e ha 34 caratteri)';
+                break;
+            case 'BEP20':
+                walletInput.placeholder = '0x... (indirizzo BSC)';
+                walletHint.textContent = 'Inserisci l\'indirizzo BSC (inizia con 0x e ha 42 caratteri)';
+                break;
+            case 'ERC20':
+                walletInput.placeholder = '0x... (indirizzo Ethereum)';
+                walletHint.textContent = 'Inserisci l\'indirizzo ERC20 (inizia con 0x e ha 42 caratteri)';
+                break;
+            default:
+                walletInput.placeholder = 'Inserisci l\'indirizzo wallet...';
+                walletHint.textContent = 'Seleziona una rete per vedere il formato richiesto';
+        }
     }
+}
+
+// Gestione submit del form di prelievo
+async function submitWithdrawalRequest(event) {
+    event.preventDefault();
     
-    // Form prelievo
-    const withdrawalForm = document.getElementById('withdrawal-form');
+    const form = event.target;
+    const submitBtn = document.getElementById('withdrawal-submit-btn-new');
+    const btnText = document.getElementById('withdrawal-btn-text-new');
     
-    if (withdrawalForm) {
-        // Verifica rate limit al caricamento
-        checkWithdrawalRateLimit().then(updateWithdrawalRateLimitUI);
+    // Disabilita il pulsante durante l'invio
+    if (submitBtn) submitBtn.disabled = true;
+    if (btnText) btnText.textContent = 'Invio in corso...';
+    
+    try {
+        // Raccogli i dati del form
+        const formData = new FormData(form);
+        const method = formData.get('method');
+        const amount = parseFloat(formData.get('amount'));
+        const sourceSection = formData.get('source_section');
         
-        // Event listener per il pulsante prelievo - mostra modal se rate limited
-        const withdrawalBtn = document.getElementById('withdrawal-submit-btn');
-        if (withdrawalBtn) {
-            withdrawalBtn.addEventListener('click', function(e) {
-                if (withdrawalRateLimited && currentWithdrawalCountdownSeconds > 0) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showWithdrawalRateLimitModal(currentWithdrawalCountdownSeconds);
-                }
-            });
+        // Validazioni base
+        if (!method) {
+            showErrorModal('Seleziona un metodo di prelievo');
+            return;
         }
         
-        withdrawalForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const method = formData.get('method');
-            const amount = parseFloat(formData.get('amount'));
-            const sourceSection = formData.get('source_section');
+        if (!sourceSection) {
+            showErrorModal('Seleziona una sezione fonte');
+            return;
+        }
+        
+        if (!amount || amount < 50) {
+            showErrorModal('Importo minimo: €50');
+            return;
+        }
+        
+        // Prepara i dati per l'API
+        const data = {
+            amount: amount,
+            method: method,
+            source_section: sourceSection
+        };
+        
+        if (method === 'usdt') {
             const network = formData.get('network');
+            const walletAddress = formData.get('wallet_address');
             
-            // Validazioni
-            if (!method) {
-                showErrorModal('Seleziona un metodo di prelievo');
+            if (!network) {
+                showErrorModal('Seleziona una rete USDT');
                 return;
             }
             
-            if (!sourceSection) {
-                showErrorModal('Seleziona una sezione fonte');
-                return;
-            }
-            
-            if (amount < 50) {
-                showErrorModal('Importo minimo: €50');
-                return;
-            }
-            
-            // Prepara dati - stessa logica per USDT e Bank
-            const data = {
-                amount: amount,
-                method: method,
-                source_section: sourceSection
+            data.wallet_address = walletAddress || '';
+            data.network = network;
+        } else if (method === 'bank') {
+            data.bank_details = {
+                iban: formData.get('iban') || '',
+                account_holder: formData.get('account_holder') || '',
+                bank_name: formData.get('bank_name') || ''
             };
-            
-            if (method === 'usdt') {
-                // Aggiungi dati USDT
-                data.wallet_address = formData.get('wallet_address') || '';
-                data.network = formData.get('network') || 'BEP20';
-            } else if (method === 'bank') {
-                // Aggiungi dati bancari - stessa logica di USDT, nessuna validazione
-                data.bank_details = {
-                    iban: formData.get('iban') || '',
-                    account_holder: formData.get('account_holder') || '',
-                    bank_name: formData.get('bank_name') || ''
-                };
-            }
-            
-            try {
-                const response = await fetch('/withdrawals/api/requests/new', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Prelievo riuscito, avvia countdown di 5 minuti
-                    startWithdrawalCountdown(300); // 5 minuti = 300 secondi
-                    // Mostra popup di successo
-                    showWithdrawalSuccessModal(result.withdrawal_request);
-                    this.reset();
-                    // Ricarica lista prelievi
-                    loadWithdrawals();
-                    // Ricarica dati portfolio
-                    loadPortfolioData();
-                } else {
-                    if (response.status === 429) {
-                        // Rate limit exceeded - aggiorna UI
-                        updateWithdrawalRateLimitUI(result);
-                    } else {
-                        showErrorModal('Errore: ' + result.error);
-                    }
-                }
-            } catch (error) {
-                showErrorModal('Errore durante la creazione della richiesta prelievo');
-            }
+        }
+        
+        // Invia la richiesta
+        const response = await fetch('/withdrawals/api/requests/new', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
         });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Successo!
+            showWithdrawalSuccessModal(result.withdrawal_request);
+            form.reset();
+            // Nascondi le sezioni metodo
+            document.getElementById('network-selection-new').classList.add('hidden');
+            document.getElementById('usdt-details-new').classList.add('hidden');
+            document.getElementById('bank-details-new').classList.add('hidden');
+            // Ricarica la lista prelievi
+            loadWithdrawals();
+            // Ricarica i dati del portfolio
+            loadPortfolioData();
+        } else {
+            // Errore
+            if (response.status === 429) {
+                // Rate limit
+                showErrorModal(result.message || 'Hai raggiunto il limite di richieste. Riprova più tardi.');
+            } else {
+                showErrorModal('Errore: ' + (result.error || 'Si è verificato un errore'));
+            }
+        }
+        
+    } catch (error) {
+        console.error('Errore durante l\'invio della richiesta di prelievo:', error);
+        showErrorModal('Errore durante la creazione della richiesta di prelievo');
+    } finally {
+        // Riabilita il pulsante
+        if (submitBtn) submitBtn.disabled = false;
+        if (btnText) btnText.textContent = 'Conferma Prelievo';
     }
+}
+
+// Funzione per inizializzare il form prelievo
+function initializeWithdrawalForm() {
+    // Carica la lista prelievi
+    loadWithdrawals();
 }
 
 // Inizializzazione pagina
