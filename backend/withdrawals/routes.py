@@ -298,12 +298,8 @@ def get_user_withdrawals():
                     withdrawal_data['wallet_address'] = w['wallet_address']
                     withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
-                    try:
-                        import json
-                        withdrawal_data['bank_details'] = json.loads(w['bank_details'])
-                    except (json.JSONDecodeError, TypeError):
-                        withdrawal_data['bank_details'] = {}
+                    # PostgreSQL con psycopg2, bank_details è già un dizionario Python
+                    withdrawal_data['bank_details'] = w['bank_details']
                 
                 result.append(withdrawal_data)
             
@@ -359,12 +355,8 @@ def admin_get_pending_withdrawals():
                     withdrawal_data['wallet_address'] = w['wallet_address']
                     withdrawal_data['network'] = w['network'] or 'BEP20'
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
-                    try:
-                        import json
-                        withdrawal_data['bank_details'] = json.loads(w['bank_details'])
-                    except (json.JSONDecodeError, TypeError):
-                        withdrawal_data['bank_details'] = {}
+                    # PostgreSQL con psycopg2, bank_details è già un dizionario Python
+                    withdrawal_data['bank_details'] = w['bank_details']
                 
                 result.append(withdrawal_data)
             
@@ -416,11 +408,8 @@ def admin_get_withdrawal_details(withdrawal_id):
                 withdrawal_data['wallet_address'] = withdrawal['wallet_address']
                 withdrawal_data['network'] = withdrawal['network'] or 'BEP20'
             elif withdrawal['method'] == 'bank' and withdrawal['bank_details']:
-                try:
-                    import json
-                    withdrawal_data['bank_details'] = json.loads(withdrawal['bank_details'])
-                except:
-                    withdrawal_data['bank_details'] = {}
+                # PostgreSQL con psycopg2, bank_details è già un dizionario Python
+                withdrawal_data['bank_details'] = withdrawal['bank_details']
             
             return jsonify({'withdrawal': withdrawal_data})
             
@@ -660,12 +649,8 @@ def admin_get_withdrawals_history():
                 if w['method'] == 'usdt':
                     withdrawal_data['wallet_address'] = w['wallet_address']
                 elif w['method'] == 'bank' and w['bank_details']:
-                    # PostgreSQL, bank_details è una stringa JSON che deve essere parsata
-                    try:
-                        import json
-                        withdrawal_data['bank_details'] = json.loads(w['bank_details'])
-                    except (json.JSONDecodeError, TypeError):
-                        withdrawal_data['bank_details'] = {}
+                    # PostgreSQL con psycopg2, bank_details è già un dizionario Python
+                    withdrawal_data['bank_details'] = w['bank_details']
                 
                 result.append(withdrawal_data)
             
