@@ -156,7 +156,12 @@ def dashboard():
             active_investments_data = []
             referred_users_count = 0
             total_referral_investments = 0
-            referral_link = request.url_root.rstrip('/') + '/auth/register'
+            # Genera link referral con codice
+            referral_code = user_data.get('referral_code') if user_data else None
+            if referral_code:
+                referral_link = f"{request.url_root.rstrip('/')}/auth/register?ref={referral_code}"
+            else:
+                referral_link = request.url_root.rstrip('/') + '/auth/register'
             
             return render_template("user/dashboard.html",
                                    user=user_data,
