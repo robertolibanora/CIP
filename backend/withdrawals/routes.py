@@ -142,9 +142,6 @@ def create_withdrawal_request():
         network = data.get('network', 'BEP20')  # BEP20, ERC20, TRC20
         bank_details = data.get('bank_details', {})
         
-        # Debug: Log dei dati ricevuti
-        logger.info(f"🔍 Debug - Dati ricevuti per prelievo: method={method}, bank_details={bank_details}")
-        
         # Validazioni base
         if amount <= 0:
             return jsonify({'error': 'Importo deve essere positivo'}), 400
