@@ -2392,11 +2392,19 @@ async function submitWithdrawalRequest(event) {
             data.wallet_address = walletAddress || '';
             data.network = network;
         } else if (method === 'bank') {
+            const iban = formData.get('iban') || '';
+            const accountHolder = formData.get('account_holder') || '';
+            const bankName = formData.get('bank_name') || '';
+            
+            console.log('🔍 Debug - Dati bancari raccolti:', { iban, accountHolder, bankName });
+            
             data.bank_details = {
-                iban: formData.get('iban') || '',
-                account_holder: formData.get('account_holder') || '',
-                bank_name: formData.get('bank_name') || ''
+                iban: iban,
+                account_holder: accountHolder,
+                bank_name: bankName
             };
+            
+            console.log('🔍 Debug - Dati finali da inviare:', data);
         }
         
         // Invia la richiesta
